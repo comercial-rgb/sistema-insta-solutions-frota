@@ -103,5 +103,24 @@ body {
     border: 1px solid #f1aeb5;
 }
 
+/* Containers de gráficos (ECharts) */
+.echart-chart {
+    width: 100%;
+    max-width: 100%;
+    height: 600px;
+}
+
+@media (max-width: 768px) {
+    .echart-chart {
+        height: 480px;
+    }
+}
+
+@media (max-width: 576px) {
+    .echart-chart {
+        height: 420px;
+    }
+}
+
 // End of file application.css.scss
 // Path: ./app/assets/stylesheets/application.css.scss

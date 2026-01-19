@@ -32,15 +32,15 @@ function Test-ServerRunning {
 }
 
 function Stop-RubyProcesses {
-    Write-Host "`n>> Verificando processos Ruby anteriores..." -ForegroundColor Yellow
+    Write-Host "`n>> Verificando processos Ruby..." -ForegroundColor Yellow
     $rubyProcesses = Get-Process | Where-Object {$_.ProcessName -like "*ruby*"}
     if ($rubyProcesses) {
         Write-Host "   Parando $($rubyProcesses.Count) processo(s)..." -ForegroundColor Gray
         $rubyProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
         Start-Sleep -Seconds 2
-        Write-Host "   [OK] Limpo!" -ForegroundColor Green
+        Write-Host "   [OK] Finalizado" -ForegroundColor Green
     } else {
-        Write-Host "   [OK] Nenhum processo anterior encontrado" -ForegroundColor Green
+        Write-Host "   [OK] Nada para parar" -ForegroundColor Green
     }
 }
 
@@ -49,18 +49,24 @@ function Stop-RubyProcesses {
 # ================================================================
 
 Clear-Host
-Write-Host "========================================================" -ForegroundColor Cyan
-Write-Host "   QUICK START - Sistema Insta Solutions" -ForegroundColor Cyan
-Write-Host "========================================================" -ForegroundColor Cyan
-Write-Host ""
+if ($Debug) {
+    Write-Host "========================================================" -ForegroundColor Cyan
+    Write-Host "   QUICK START - Sistema Insta Solutions" -ForegroundColor Cyan
+    Write-Host "========================================================" -ForegroundColor Cyan
+    Write-Host ""
+} else {
+    Write-Host "Quick Start - InstaSolutions" -ForegroundColor Cyan
+}
 
 # Assinatura do script (ajuda a confirmar se o arquivo certo foi enviado/rodado)
 try {
     $scriptPath = $MyInvocation.MyCommand.Path
     if ($scriptPath) {
         $scriptHash = (Get-FileHash -Algorithm SHA256 -Path $scriptPath).Hash.Substring(0, 12)
-        Write-Host ("   Build: {0}" -f $scriptHash) -ForegroundColor DarkGray
-        Write-Host ""
+        if ($Debug) {
+            Write-Host ("   Build: {0}" -f $scriptHash) -ForegroundColor DarkGray
+            Write-Host ""
+        }
     }
 } catch {
     # ignore
@@ -123,9 +129,10 @@ Write-Host "          INICIANDO SERVIDOR RAILS" -ForegroundColor Green
 Write-Host "========================================================" -ForegroundColor Green
 Write-Host ""
 Write-Host "   URL: http://localhost:$Port" -ForegroundColor Cyan
-Write-Host "   Modo: Development" -ForegroundColor Gray
-Write-Host "   Tempo estimado: 30-40 segundos" -ForegroundColor Gray
-Write-Host ""
+if ($Debug) {
+    Write-Host "   Modo: Development" -ForegroundColor Gray
+    Write-Host ""
+}
 Write-Host ">> Pressione Ctrl+C para parar o servidor <<" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "========================================================" -ForegroundColor Gray

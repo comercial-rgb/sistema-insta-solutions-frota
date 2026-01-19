@@ -2,8 +2,6 @@ let myBarYCategoryChart;
 
 function generateBarYCategory(chartDomId, chartData){
     const chartDom = document.getElementById(chartDomId);
-    chartDom.style.width = '1200px'; // Set to desired width
-    chartDom.style.height = '600px'; // Set to desired height
     if (myBarYCategoryChart != null && echarts.getInstanceByDom(chartDom)) {
         echarts.dispose(chartDom);
     }
@@ -47,4 +45,20 @@ function generateBarYCategory(chartDomId, chartData){
         ]
     };
     myBarYCategoryChart.setOption(option);
+
+    // Responsividade: redimensiona quando a janela ou o container mudarem.
+    if (!chartDom.dataset.echartResizeBound) {
+        chartDom.dataset.echartResizeBound = '1';
+
+        window.addEventListener('resize', () => {
+            if (myBarYCategoryChart) myBarYCategoryChart.resize();
+        });
+
+        if (typeof ResizeObserver !== 'undefined') {
+            const ro = new ResizeObserver(() => {
+                if (myBarYCategoryChart) myBarYCategoryChart.resize();
+            });
+            ro.observe(chartDom);
+        }
+    }
 }

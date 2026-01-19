@@ -2,8 +2,6 @@ let myWatermarkChart;
 
 function generateWatermarkChart(chartDomId, chartData){
     const chartDom = document.getElementById(chartDomId);
-    chartDom.style.width = '1300px'; // Set to desired width
-    chartDom.style.height = '600px'; // Set to desired height
     if (myWatermarkChart != null && echarts.getInstanceByDom(chartDom)) {
         echarts.dispose(chartDom);
     }
@@ -49,7 +47,7 @@ function generateWatermarkChart(chartDomId, chartData){
         },
         title: [
             {
-                text: 'Valores consumidos (Aprovados e Autorizados)',
+                text: 'Valores consumidos (Aprovada até Paga)',
                 left: '25%',
                 textAlign: 'center'
             },
@@ -275,4 +273,20 @@ function generateWatermarkChart(chartDomId, chartData){
         ]
     };
     myWatermarkChart.setOption(option);
+
+    // Responsividade: redimensiona quando a janela ou o container mudarem.
+    if (!chartDom.dataset.echartResizeBound) {
+        chartDom.dataset.echartResizeBound = '1';
+
+        window.addEventListener('resize', () => {
+            if (myWatermarkChart) myWatermarkChart.resize();
+        });
+
+        if (typeof ResizeObserver !== 'undefined') {
+            const ro = new ResizeObserver(() => {
+                if (myWatermarkChart) myWatermarkChart.resize();
+            });
+            ro.observe(chartDom);
+        }
+    }
 }

@@ -80,7 +80,7 @@ class OrderServicesController < ApplicationController
       builderJson: OrderService.generate_dashboard_to_charts(@order_services_to_export.assets, cost_centers, cost_center_ids, sub_unit_ids),
       downloadJson: OrderService.getting_vehicles_to_charts(@order_services_to_export.assets, cost_centers, cost_center_ids, sub_unit_ids),
       themeJson: OrderService.getting_cost_center_values(@order_services_to_export.assets, cost_centers, cost_center_ids, sub_unit_ids),
-      typesJson: OrderService.getting_values_by_type(@order_services_to_export.assets, cost_centers)
+      typesJson: OrderService.getting_values_by_type(@order_services_to_export.assets, cost_centers, cost_center_ids, sub_unit_ids)
     }
   end
 
