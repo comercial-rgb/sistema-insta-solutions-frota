@@ -1,0 +1,40 @@
+<%= simple_form_for @user, validate: false do |f| %>
+
+	<!-- ID do perfil de usuário -->
+	<%= f.input :profile_id, as: :hidden, input_html: {value: @user.profile_id} %>
+
+	<%= render 'users/renders/client_selection', f: f %>
+
+	<%= render 'users/forms/personal_data', f: f %>
+
+	<% if !@current_user.additional? %>
+		<div class="row">
+			<div class="col-12 mb-2">
+				<h5 class="mt-4"><%= CostCenter.model_name.human(count: 2).upcase %></h5>
+			</div>
+		</div>
+		<% User.client.all.each do |client| %>
+			<div <%= 'hidden' if f.object.client_id != client.id %> id="cost-centers-client-<%= client.id.to_s %>" class="cost-centers-client col-12 col-md-4">
+				<%= 
+					render "users/forms/filter_registers_cost_centers",
+					label_text: '',
+					register_name: "cost-center",
+					form_model: :user,
+					form_attribute: :associated_cost_center_ids,
+					collection: CostCenter.getting_data_by_user(@current_user).where(client_id: client.id),
+					value_register: :id,
+					label_register: :name,
+					placeholder: t("model.find_filter")
+				%>
+			</div>
+		<% end %>
+	<% end %>
+
+	<%= render 'common_pages/save', f: f, return_path: (@current_user.id != @user.id) ? users_additional_path : nil %>
+
+<% end %>
+
+<%
+# End of file _form.html.erb
+# Path: ./app/views/users/_form.html.erb
+%>

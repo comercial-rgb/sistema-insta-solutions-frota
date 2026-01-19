@@ -1,0 +1,23 @@
+<div class="modal fade" id="newServiceModal<%= category_id %>" tabindex="-1" aria-labelledby="newServiceModalLabel<%= category_id %>" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div id="newServiceForm<%= category_id %>" class="new-service-form" data-category-id="<%= category_id %>">
+        <div class="modal-header">
+          <h5 class="modal-title" id="newServiceModalLabel<%= category_id %>">Cadastrar nov<%=letter%></h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" name="category_id" value="<%= category_id %>">
+
+          <div class="mb-3">
+            <label for="service_name_<%= category_id %>" class="form-label">Nome</label>
+            <input type="text" class="form-control" name="name" id="service_name_<%= category_id %>" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary text-white submit-new-service" data-category-id="<%= category_id %>">Salvar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

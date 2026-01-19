@@ -1,0 +1,36 @@
+pt-BR:
+  activerecord:
+    models:
+      data_bank:
+        one: "Dados Bancários"
+        other: "Dados Bancários"
+    attributes:
+      data_bank:
+        bank: "Banco"
+        agency: "Agência"
+        account: "Conta"
+        operation: "Operação"
+        cpf_cnpj: "CPF/CNPJ"
+        bank_id: 'Banco'
+        bank: 'Banco'
+        pix: 'Chave PIX'
+        data_bank_type: 'Tipo de conta'
+        data_bank_type_id: 'Tipo de conta'
+en:
+  activerecord:
+    models:
+      data_bank:
+        one: "Dados Bancários"
+        other: "Dados Bancários"
+    attributes:
+      data_bank:
+        bank: "Banco"
+        agency: "Agência"
+        account: "Conta"
+        operation: "Operação"
+        cpf_cnpj: "CPF/CNPJ"
+        bank_id: 'Banco'
+        bank: 'Banco'
+        pix: 'Chave PIX'
+        data_bank_type: 'Tipo de conta'
+        data_bank_type_id: 'Tipo de conta'

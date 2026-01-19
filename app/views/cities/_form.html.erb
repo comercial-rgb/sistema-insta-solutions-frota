@@ -1,0 +1,39 @@
+<%= simple_form_for(@city) do |f| %>
+
+<div class="row">
+
+        <div class="col-12">
+                <%= f.error_notification %>
+                <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+        </div>
+
+        <div class="col-12 col-md-6">
+                <%= f.input :name %>
+        </div>
+        <div class="col-12 col-md-3">
+                <%= f.association :country, collection: Country.all, as: :select, include_blank: I18n.t('model.select_option') %>
+        </div>
+        <div class="col-12 col-md-3">
+                <%= f.association :state, collection: State.all, as: :select, include_blank: I18n.t('model.select_option') %>
+        </div>
+
+        <div class="col-12 col-md-3">
+                <%= f.input :latitude %>
+        </div>
+
+        <div class="col-12 col-md-3">
+                <%= f.input :longitude %>
+        </div>
+
+        <div class="col-12 col-md-3">
+                <%= f.input :ibge_code %>
+        </div>
+
+        <div class="col-12 col-md-3">
+                <%= f.input :quantity_population %>
+        </div>
+</div>
+
+<%= render 'common_pages/save', f: f, return_path: cities_path %>
+
+<% end %>

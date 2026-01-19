@@ -1,0 +1,17 @@
+<div class="row align-items-end">
+
+  <div class="col-12 col-md-6">
+    <%= attachment.input :attachment, label: false %>
+  </div>
+  <% if attachment.object.persisted? && attachment.object.attachment.attached? %>
+  <div class="row">
+    <div class="col-12 col-md-4">
+      <small class="form-text text-muted">
+          <%= t('model.current_file') %>:
+          <%= link_to attachment.object.attachment.filename, attachment.object.attachment.url, target: '_blank' %>
+        </small>
+    </div>
+  </div>
+  <% end %>
+
+</div>

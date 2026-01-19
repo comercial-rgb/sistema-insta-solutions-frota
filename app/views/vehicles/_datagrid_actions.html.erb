@@ -1,0 +1,36 @@
+<%
+array_links = [
+  {
+    link_path: vehicle_path(record),
+    link_method: :get,
+    link_title: t('model.view'),
+    confirm: nil,
+    link_image: 'bi bi-eye-fill',
+    text_action: t('model.view'),
+    link_policy: policy(record).show? && !policy(record).edit?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: edit_vehicle_path(record),
+    link_method: :get,
+    link_title: t('model.edit'),
+    confirm: nil,
+    link_image: 'bi bi-pencil-fill',
+    text_action: t('model.edit'),
+    link_policy: policy(record).edit?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: vehicle_path(record),
+    link_method: :delete,
+    link_title: t('model.delete'),
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-trash-fill',
+    text_action: t('model.delete'),
+    link_policy: policy(record).destroy?,
+    class: 'dropdown-item'
+  }
+]
+%>
+
+<%= render 'common_pages/datagrid_actions', array_links: array_links %>

@@ -1,0 +1,15 @@
+pt-BR:
+  activerecord:
+    models:
+      service_group:
+        one: "Grupo de serviço"
+        other: "Grupos de serviço"
+    attributes:
+      service_group:
+        id: "ID"
+        name: "Nome"
+        value_limit: "Valor limite"
+        active: "Ativo"
+        created_at: "Criado em"
+        updated_at: "Atualizado em"
+        actions: "Ações"

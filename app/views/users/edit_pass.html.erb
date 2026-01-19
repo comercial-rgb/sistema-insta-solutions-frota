@@ -1,0 +1,57 @@
+<div class="container">
+    <div class="row">
+
+        <!-- Logo -->
+        <div class="col-12 text-center my-5">
+            <%= render 'layouts/logo', width: 350, height: nil %>
+        </div>
+
+        <div class="col-12 col-md-4 offset-md-4">
+
+            <%= form_for @user, url: update_pass_path(@user.id), method: :patch do |f| %>
+
+                <p class="text-muted text-center">
+                    <small>
+                        <%= t('session.recover_pass').html_safe %>
+                    </small>
+                </p>
+
+                <!-- Nova senha de acesso -->
+                <div class="mb-3">
+                    <label class="form-label" for="user_password">
+                        <%= User.human_attribute_name(:password) %>
+                    </label>
+
+                    <%= f.password_field :password,
+                            class: 'form-control',
+                            autofocus: true,
+                            autocomplete: 'new-password' %>
+                </div>
+
+                <!-- Confirmação da senha de acesso -->
+                <div class="mb-3">
+                    <label class="form-label" for="user_password_confirmation">
+                        <%= User.human_attribute_name(:password_confirmation) %>
+                    </label>
+
+                    <%= f.password_field :password_confirmation,
+                            class: 'form-control',
+                            autocomplete: 'new-password' %>
+                </div>
+
+                <!-- Botão de submeter -->
+                <button class="btn btn-primary" type="submit">
+                    <%= t('model.send') %>
+                </button>
+
+            <% end %>
+
+        </div>
+
+    </div>
+</div>
+
+<%
+# End of file edit_pass.html.erb
+# Path: ./app/views/users/edit_pass.html.erb
+%>

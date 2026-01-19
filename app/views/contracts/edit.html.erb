@@ -1,0 +1,16 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: contracts_path, text: Contract.model_name.human(count: 2)},
+	{active: false, href: edit_contract_path(@contract), text: @contract.get_text_name},
+	{active: true, href: '#', text: t('model.edit')},
+]
+%>
+
+<%= 
+render 'common_pages/edit', 
+objects_path: contracts_path, 
+page_title: Contract.model_name.human(count: 2), 
+form_to_render: 'contracts/form',
+breadcrumbs: breadcrumbs
+%>

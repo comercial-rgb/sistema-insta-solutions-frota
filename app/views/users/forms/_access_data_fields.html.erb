@@ -1,0 +1,24 @@
+<% if false %>
+    <!-- Utilizar apenas se o projeto requerer login com usuário de acesso e não com e-mail -->
+    <!-- Usuário de acesso -->
+    <div class="col-12 col-md-3 mb-3">
+    	<%= f.input :access_user, input_html: {class: 'text-lowercase no-space', type: "email"} %>
+    </div>
+<% end %>
+
+<!-- Email de acesso -->
+<div class="col-12 col-md-3 mb-3">
+    <%= f.input :email, input_html: {class: 'text-lowercase no-space', type: "email"} %>
+</div>
+
+<% if f.object.id == @current_user.id %>
+    <!-- Senha de acesso -->
+    <div class="col-12 col-md-6 col-lg-3 mb-3">
+        <%= f.input :password, input_html: {autocomplete: 'new-password'}  %>
+    </div>
+
+    <!-- Confirmação de senha -->
+    <div class="col-12 col-md-6 col-lg-3 mb-3">
+        <%= f.input :password_confirmation, input_html: {autocomplete: 'new-password'} %>
+    </div>
+<% end %>

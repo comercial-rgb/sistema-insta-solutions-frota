@@ -1,0 +1,217 @@
+pt-BR:
+  activerecord:
+    models:
+      order_service:
+        one: "Ordem de serviço"
+        other: "Ordens de serviço"
+    attributes:
+      order_service:
+        id: "ID"
+        created_at: 'Criada em'
+        updated_at: 'Última atualização'
+        actions: "Ações"
+        order_service_status_id: "Status"
+        order_service_status: "Status"
+        client_id: "Cliente"
+        client: "Cliente"
+        vehicle_id: "Veículo"
+        vehicle: "Veículo"
+        provider_service_type_id: "Tipo de serviço"
+        provider_service_type: "Tipo de serviço"
+        maintenance_plan_id: "Plano de manutenção"
+        maintenance_plan: "Plano de manutenção"
+        order_service_type_id: "Tipo"
+        order_service_type: "Tipo"
+        provider_id: "Fornecedor"
+        provider: "Fornecedor"
+        km: "Km do veículo"
+        driver: "Motorista"
+        details: "Detalhamento"
+        code: "Código/ID"
+        cost_center_id: "Centro de custo"
+        last_order_service_vehicle: "Última ordem de serviço do veículo"
+        manager: "Gestor"
+        registered_by: "Criada por"
+        manager_id: "Gestor"
+        files: "Fotos ou Arquivos Complementares"
+        cost_center_vehicle: "Centro de custo / Veículo"
+        cancel_justification: "Justificativa de cancelamento"
+        cancel_success: "Ordem de serviço cancelada com sucesso!"
+        cancel_failed: "Falha ao cancelar ordem de serviço. Tente novamente."
+        order_service_proposals: "Propostas"
+        show_order_service_proposals: "Ver propostas"
+        print_order_service_proposals: "Imprimir propostas"
+        select_all_order_services: "Selecionar todas as ordens de serviço"
+        all_authorized_with_success: "Ordens de serviço autorizadas com sucesso"
+        authorize_order_services: 'Autorizar ordens de serviço'
+        waiting_payment: 'Atualizar para "Aguardando pagamento"'
+        make_payment: 'Atualizar para "Paga"'
+        all_waiting_payment_with_success: 'Ordens de serviço atualizadas com sucesso'
+        all_make_payment_with_success: 'Ordens de serviço atualizadas com sucesso'
+        show_historic: 'Visualizar histórico'
+        invoice: 'Nota fiscal'
+        invoice_information: "Dados para emissão de nota fiscal"
+        invoice_part_ir: 'Peças - IR'
+        invoice_part_pis: 'Peças - PIS'
+        invoice_part_cofins: 'Peças - COFINS'
+        invoice_part_csll: 'Peças - CSLL'
+        invoice_service_ir: 'Serviços - IR'
+        invoice_service_pis: 'Serviços - PIS'
+        invoice_service_cofins: 'Serviços - COFINS'
+        invoice_service_csll: 'Serviços - CSLL'
+        invoice_taxes: "Impostos"
+        invoice_part_tax_information: 'Dados para emissão de notas fiscais de peças. Destaque destes impostos'
+        invoice_service_tax_information: 'Dados para emissão de notas fiscais de serviços. Destaque destes impostos'
+        invoice_information_general: 'O DESTAQUE DOS IMPOSTOS É APENAS PARA EMPRESAS NÃO OPTANTES PELO SIMPLES NACIONAL'
+        reports: "Relatórios"
+        show_invoices: "Faturas"
+        month: "Mês"
+        year: "Ano"
+        rejecteds: 'Rejeitadas'
+        reject_order_service: "Rejeitar ordem de serviço"
+        unreject_order_service: "Remover rejeição"
+        rejection_success: "Ordem de serviço rejeitada com sucesso!"
+        unrejection_success: "Ordem de serviço retirada das rejeições com sucesso!"
+        dashboard: "Dashboard"
+        rejecteds: "Rejeições"
+        show_order_rejecteds: "Ver rejeições"
+        commitment: "Empenho"
+        commitment_id: "Empenho"
+        commitment_parts_id: "Empenho de Peças"
+        commitment_services_id: "Empenho de Serviços"
+        service_group_id: "Grupo de serviço"
+        service_group: "Grupo de serviço"
+        origin_type: "Origem"
+        only_save: 'Salvar apenas'
+        save_and_insert_values: "Salvar e inserir valores/preços"
+        save_and_submit_to_approve: 'Salvar e enviar para aprovação'
+        save_and_submit: 'Salvar e enviar para cotação'
+        back_to_edit_order_service: "Editar ordem de serviço"
+        back_to_edit_success: "Ordem de serviço liberada para edição"
+        data_inserted_by_provider: "Dados inseridos pelo fornecedor"
+        release_to_quotation: "Liberar para cotação"
+        release_quotation: "Liberado para cotação"
+        parts_services_added: "Peças e serviços adicionados"
+        parts_services_added_success: "Peças e serviços adicionados com sucesso!"
+        sub_unit: "Sub-unidade"
+        sub_unit_id: "Sub-unidade"
+        min_km: "O valor mínimo deve ser maior ou igual a "
+        revaluate: "Reavaliar"
+        # Reavaliação
+        request_reevaluation: "Solicitar Reavaliação"
+        request_reevaluation_success: "Reavaliação solicitada com sucesso!"
+        request_reevaluation_error: "Não foi possível solicitar reavaliação."
+        finish_reevaluation: "Concluir Reavaliação"
+        finish_reevaluation_success: "Reavaliação concluída com sucesso!"
+        finish_reevaluation_error: "Não foi possível concluir a reavaliação."
+        reevaluation_requested_at: "Reavaliação solicitada em"
+        reevaluation_requested_by: "Reavaliação solicitada por"
+        in_reevaluation: "Em Reavaliação"
+        reevaluation_confirm: "Tem certeza que deseja solicitar reavaliação? O fornecedor poderá editar a proposta."
+        finish_reevaluation_confirm: "Tem certeza que deseja concluir a reavaliação e enviar para aprovação?"
+        # Complemento
+        add_complement: "Realizar Complemento"
+        add_complement_confirm: "Deseja adicionar um complemento à proposta aprovada?"
+        complement_success: "Complemento enviado para aprovação!"
+        complement_error: "Não foi possível criar o complemento."
+        approve_complement: "Aprovar Complemento"
+        reprove_complement: "Reprovar Complemento"
+        complement_approved: "Complemento aprovado com sucesso!"
+        complement_reproved: "Complemento reprovado."
+        complement_balance_exceeded: "O complemento excede o saldo disponível no empenho."
+        # Edição de peças/serviços
+        parts_services_changed: "Peças e/ou serviços alterados. As propostas existentes foram canceladas."
+en:
+  activerecord:
+    models:
+      order_service:
+        one: "Ordem de serviço"
+        other: "Ordens de serviço"
+    attributes:
+      order_service:
+        id: "ID"
+        created_at: 'Created at'
+        updated_at: 'Update at'
+        actions: "Ações"
+        order_service_status_id: "Status"
+        order_service_status: "Status"
+        client_id: "Cliente"
+        client: "Cliente"
+        vehicle_id: "Veículo"
+        vehicle: "Veículo"
+        provider_service_type_id: "Tipo de serviço"
+        provider_service_type: "Tipo de serviço"
+        maintenance_plan_id: "Plano de manutenção"
+        maintenance_plan: "Plano de manutenção"
+        order_service_type_id: "Tipo"
+        order_service_type: "Tipo"
+        provider_id: "Fornecedor"
+        provider: "Fornecedor"
+        km: "Km do veículo"
+        driver: "Motorista"
+        details: "Detalhamento"
+        code: "Código/ID"
+        cost_center_id: "Centro de custo"
+        last_order_service_vehicle: "Última ordem de serviço do veículo"
+        manager: "Gestor"
+        registered_by: "Criada por"
+        manager_id: "Gestor"
+        files: "Fotos ou Arquivos Complementares"
+        cost_center_vehicle: "Centro de custo / Veículo"
+        cancel_justification: "Justificativa de cancelamento"
+        cancel_success: "Ordem de serviço cancelada com sucesso!"
+        cancel_failed: "Falha ao cancelar ordem de serviço. Tente novamente."
+        order_service_proposals: "Propostas"
+        show_order_service_proposals: "Ver propostas"
+        print_order_service_proposals: "Imprimir propostas"
+        select_all_order_services: "Selecionar todas as ordens de serviço"
+        all_authorized_with_success: "Ordens de serviço autorizadas com sucesso"
+        authorize_order_services: 'Autorizar ordens de serviço'
+        waiting_payment: 'Atualizar para "Aguardando pagamento"'
+        make_payment: 'Atualizar para "Paga"'
+        all_waiting_payment_with_success: 'Ordens de serviço atualizadas com sucesso'
+        all_make_payment_with_success: 'Ordens de serviço atualizadas com sucesso'
+        show_historic: 'Visualizar histórico'
+        invoice: 'Nota fiscal'
+        invoice_information: "Dados para emissão de nota fiscal"
+        invoice_part_ir: 'Peças - IR'
+        invoice_part_pis: 'Peças - PIS'
+        invoice_part_cofins: 'Peças - COFINS'
+        invoice_part_csll: 'Peças - CSLL'
+        invoice_service_ir: 'Serviços - IR'
+        invoice_service_pis: 'Serviços - PIS'
+        invoice_service_cofins: 'Serviços - COFINS'
+        invoice_service_csll: 'Serviços - CSLL'
+        invoice_taxes: "Impostos"
+        invoice_part_tax_information: 'Dados para emissão de notas fiscais de peças. Destaque destes impostos'
+        invoice_service_tax_information: 'Dados para emissão de notas fiscais de serviços. Destaque destes impostos'
+        invoice_information_general: 'O DESTAQUE DOS IMPOSTOS É APENAS PARA EMPRESAS NÃO OPTANTES PELO SIMPLES NACIONAL'
+        reports: "Relatórios"
+        show_invoices: "Faturas"
+        month: "Mês"
+        year: "Ano"
+        rejecteds: 'Rejeitadas'
+        reject_order_service: "Rejeitar ordem de serviço"
+        unreject_order_service: "Remover rejeição"
+        rejection_success: "Ordem de serviço rejeitada com sucesso!"
+        unrejection_success: "Ordem de serviço retirada das rejeições com sucesso!"
+        dashboard: "Dashboard"
+        rejecteds: "Rejeições"
+        show_order_rejecteds: "Ver rejeições"
+        commitment: "Empenho"
+        commitment_id: "Empenho"
+        only_save: 'Salvar apenas'
+        save_and_insert_values: "Salvar e inserir valores/preços"
+        save_and_submit_to_approve: 'Salvar e enviar para aprovação'
+        save_and_submit: 'Salvar e enviar para cotação'
+        back_to_edit_order_service: "Editar ordem de serviço"
+        back_to_edit_success: "Ordem de serviço liberada para edição"
+        data_inserted_by_provider: "Dados inseridos pelo fornecedor"
+        release_to_quotation: "Liberar para cotação"
+        release_quotation: "Liberado para cotação"
+        parts_services_added: "Peças e serviços adicionados"
+        parts_services_added_success: "Peças e serviços adicionados com sucesso!"
+        sub_unit: "Sub-unidade"
+        sub_unit_id: "Sub-unidade"
+        min_km: "O valor mínimo deve ser maior ou igual a "
+        revaluate: "Reavaliar"

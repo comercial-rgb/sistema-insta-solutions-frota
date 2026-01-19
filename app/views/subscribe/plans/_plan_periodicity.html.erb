@@ -1,0 +1,25 @@
+<%
+  current_subscription = Subscription.getting_current_subscription(@current_user)
+  current_price = price_periodicity
+  new_price = Subscription.getting_subscription_price(current_subscription, data_plan_periodicity)
+%>
+<hr>
+<%= price_periodicity_text.upcase %>
+<% if data_plan_periodicity && current_data_plan_periodicity_id != data_plan_periodicity.id %>
+  <p class="card-text text-center">
+    <!-- Valor dentro da periodicidade enviada -->
+    <b><%= CustomHelper.to_currency(current_price) %></b>
+  </p>
+  <p class="card-text text-center">
+    <a href="<%= add_plan_to_subscribe_path(plan_id: plan.id, data_plan_periodicity_id: data_plan_periodicity.id) %>" class="btn btn-primary"><%= Subscription.human_attribute_name(:subscribe) %></a>
+  </p>
+<% else %>
+  <p class="card-text text-center">
+    <!-- Valor dentro da periodicidade enviada -->
+    <b><%= CustomHelper.to_currency(current_price) %></b>
+  </p>
+  <p class="card-text text-center">
+    <!-- O plano atual do usuário logado -->
+    <span class="badge bg-success"><%= User.human_attribute_name(:current_plan_id) %></span>
+  </p>
+<% end %>

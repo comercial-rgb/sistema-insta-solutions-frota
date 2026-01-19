@@ -1,0 +1,27 @@
+<div class="row">
+
+    <!-- Título -->
+    <div class="col-12">
+        <h5 class="mt-4"><%= Attachment.model_name.human(count: 2) %>:</h5>
+    </div>
+
+    <div class="col-12 multi-attachment-block">
+
+        <!-- Contador -->
+        <input type="hidden" value="<%= f.object.attachments.length.to_s %>" class="multi-attachment-cont" disabled>
+
+        <%= f.fields_for :attachments do |attachment| %>
+        <div class="row multi-attachment align-items-end">
+            <%= render 'common_pages/attachments/attachment_fields', f: f, attachment: attachment  %>
+            <%= render 'common_pages/delete_multiple_relation', remove_path: delete_attachment_path(model_id: attachment.object.id), object: attachment.object, object_text: 'attachment'  %>
+        </div>
+        <% end %>
+
+    </div>
+
+    <!-- Botão de adicionar -->
+    <div class="col-12">
+        <%= render 'common_pages/add_multiple_relation', object_text: 'attachment' %>
+    </div>
+</div>
+<!-- Fim anexos cadastro múltiplo -->

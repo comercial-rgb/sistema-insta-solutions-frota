@@ -1,0 +1,5 @@
+<% if (!f.object.persisted? || !f.object.accept_therm) && f.object.profile_id == Profile::USER_ID %>
+<%= f.input :accept_therm, label: "Estou de acordo com os termos de
+	<a target=\"_blank\" href=\"#{show_text_path(text_to_show: SystemConfiguration::POLITICA_USO)}\">uso</a> e de
+	<a target=\"_blank\" href=\"#{show_text_path(text_to_show: SystemConfiguration::POLITICA_PRIVACIDADE)}\">privacidade</a>".html_safe, as: :boolean %>
+<% end %>

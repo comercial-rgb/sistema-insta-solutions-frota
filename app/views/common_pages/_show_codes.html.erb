@@ -1,0 +1,34 @@
+<!-- Modal -->
+<div class="modal fade" id="show_codes" tabindex="-1">
+
+    <div class="modal-dialog modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            <!-- Cabeçalho -->
+            <div class="modal-header">
+                <!-- Título -->
+                <h5 class="modal-title" id="show_codes">
+                    <small class="text-muted"><%= title %></small>
+                </h5>
+                <!-- Botão fechar -->
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Conteúdo -->
+            <div class="modal-body text-center">
+                <div class="col-12 mb-2">
+                    <input class="codes-filter-by-text" id="codes-filter-by-text" type="text" style="width: 100%;" placeholder="Pesquisar">
+                </div>
+                <ul class="list-group list-group-flush">
+                  <% codes.each do |code| %>
+                    <li class="list-group-item linked-filter-code"><%= code[1] %>:</b><br><%= code[0] %></li>
+                  <% end %>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%
+# End of file _show_codes.html.erb
+# Path: ./app/views/common_pages/_show_codes.html.erb
+%>

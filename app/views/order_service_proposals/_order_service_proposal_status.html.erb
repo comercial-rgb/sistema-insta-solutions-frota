@@ -1,0 +1,90 @@
+<div class="table-actions">
+
+	<%
+		if record.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID
+			# Se está pendente de aprovação do gestor
+			if record.pending_manager_approval
+				span_class = 'bg-secondary'
+				span_text = 'Pré-aprovada (Aguardando Gestor)'
+			# Se está pendente de autorização do gestor
+			elsif record.pending_manager_authorization
+				span_class = 'bg-secondary'
+				span_text = 'Pré-autorizada (Aguardando Gestor)'
+			else
+				span_class = 'bg-warning'
+				span_text = record.order_service_proposal_status.name
+			end
+		elsif record.order_service_proposal_status_id == OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID
+            span_class = 'bg-danger'
+			span_text = record.order_service_proposal_status.name
+		elsif record.order_service_proposal_status_id == OrderServiceProposalStatus::APROVADA_ID
+			# Se ainda está pendente de autorização do gestor após aprovação
+			if record.pending_manager_authorization
+				span_class = 'bg-secondary'
+				span_text = 'Aprovada - Pré-autorizada (Aguardando Gestor)'
+			else
+				span_class = 'bg-info'
+				span_text = record.order_service_proposal_status.name
+			end
+		elsif record.order_service_proposal_status_id == OrderServiceProposalStatus::NOTAS_INSERIDAS_ID
+            span_class = 'bg-info'
+			span_text = record.order_service_proposal_status.name
+		elsif record.order_service_proposal_status_id == OrderServiceProposalStatus::AUTORIZADA_ID
+            span_class = 'bg-primary'
+			span_text = record.order_service_proposal_status.name
+		elsif record.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID
+			span_class = 'bg-warning'
+			span_text = record.order_service_proposal_status.name
+		elsif record.order_service_proposal_status_id == OrderServiceProposalStatus::PAGA_ID
+			span_class = 'bg-success'
+			span_text = record.order_service_proposal_status.name
+		elsif record.order_service_proposal_status_id == OrderServiceProposalStatus::CANCELADA_ID
+			span_class = 'bg-danger'
+			span_text = record.order_service_proposal_status.name
+		elsif record.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID
+			span_class = 'bg-info'
+			span_text = record.order_service_proposal_status.name
+		end
+
+		# Só exibe "Valor acima do limite" se:
+		# 1. Status é AGUARDANDO_AVALIACAO_ID
+		# 2. Não pode ser gerenciado por valor pendente (commitment insuficiente)
+		# 3. Não está em aprovações pendentes (manager)
+		# 4. A OS tem commitment associado (se não tem, não faz sentido validar valor)
+		# 5. O usuário atual NÃO é fornecedor (fornecedor não precisa ver essa validação)
+		if record.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID && 
+		   !record.can_manage_by_pendent_value && 
+		   !record.pending_manager_approval && 
+		   !record.pending_manager_authorization &&
+		   record.order_service.commitment_id.present? &&
+		   !@current_user.provider?
+			span_class = 'bg-danger'
+			span_text = '<span class="text-wrap">'+OrderServiceProposal.human_attribute_name(:value_above_limit)+'</span>'
+		end
+	%>
+
+	<span class="badge <%= span_class %>">
+		<%= span_text.html_safe %>
+	</span>
+
+	<% if record.reproved || (!record.reason_approved.nil? && !record.reason_approved.blank?) || (!record.reason_refused_approval.nil? && !record.reason_refused_approval.blank?) %>
+		<% 
+			can_show = true
+			if record.reproved
+				text = record.reason_reproved
+			elsif (!record.reason_refused_approval.nil? && !record.reason_refused_approval.blank?)
+				text = "Pré-aprovação recusada: #{record.reason_refused_approval}"
+				can_show = @current_user.additional? || @current_user.manager? || @current_user.admin?
+			elsif (!record.reason_approved.nil? && !record.reason_approved.blank?)
+				text = record.reason_approved
+				can_show = policy(OrderServiceProposal).can_view_reason_approved?
+			else
+				text = ''
+			end
+		%>
+		<% if can_show %>
+			<i class="bi bi-question-circle-fill pointer" data-bs-toggle="tooltip" title="<%= text %>"></i>
+		<% end %>
+	<% end %>
+
+</div>

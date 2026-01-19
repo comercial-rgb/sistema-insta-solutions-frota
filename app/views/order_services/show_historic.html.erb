@@ -1,0 +1,42 @@
+<%
+breadcrumbs = [
+    {active: false, href: root_path, text: t('menu.initial_page')},
+    {active: false, href: '#', text: OrderService.model_name.human(count: 2)},
+    {active: false, href: show_order_services_path(order_service_status_id: @order_service.order_service_status_id), text: @order_service.order_service_status.name},
+    {active: false, href: edit_order_service_path(@order_service.id), text: @order_service.code},
+    {active: false, href: show_historic_path(id: @order_service.id), text: @order_service.code, text: OrderService.human_attribute_name(:show_historic)}
+]
+%>
+
+<div class="container">
+    <div class="row mb-3">
+        <div class="d-none d-md-block col-md-10 text-center">
+            <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+        </div>
+    </div>
+
+    <!-- Keep your normal screen components -->
+    <div class="d-print-none">
+        <div class="d-flex justify-content-end mt-4 mt-md-0">
+            <button onclick="window.print();" type="button" class="btn btn-outline-primary radius-6 d-flex align-items-center d-print-none custom-button-print px-3 py-1">
+                <i class="bi bi-printer fs-5"></i>
+                <span class="fs-8 ps-2">
+                    <%= OrderServiceProposal.human_attribute_name(:print_save) %>
+                </span>
+            </button>
+        </div>
+        <%= render 'order_service_proposals/renders/order_service_data', record: @order_service %>
+        <%= render 'order_services/renders/table_audited', audits: @audits %>    
+    </div>
+
+    <!-- Print-only version -->
+    <div class="d-none d-print-block">
+        <%= render 'order_services/renders/print_order_service', record: @order_service, audits: @audits %>
+    </div>
+
+</div>
+
+<%
+# End of file _first_container.html.erb
+# Path: ./app/views/common_pages/index/_first_container.html.erb
+%>

@@ -1,0 +1,7 @@
+<%= simple_form_for @user do |f| %>
+
+	<%= f.input :profile_id, as: :hidden, input_html: {value: Profile::ADMIN_ID} %>
+	<%= render 'users/forms/personal_data', f: f %>
+	<%= render 'common_pages/save', f: f, return_path: (@current_user.id != @user.id) ? users_admin_path : nil %>
+
+<% end %>

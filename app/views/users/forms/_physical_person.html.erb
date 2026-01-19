@@ -1,0 +1,16 @@
+<!-- Dados de pessoa física -->
+<div class="div_with_person_type_physical" <%= 'hidden' if f.object.person_type_id != PersonType::FISICA_ID %>>
+    <div class="row">
+
+        <!-- CPF -->
+        <div class="col-12 col-md-3 mb-3">
+            <%= f.input :cpf, input_html: {class: 'cpf', type: "tel"} %>
+        </div>
+
+    </div>
+</div>
+
+<%
+# End of file _physical_person.html.erb
+# Path: ./app/views/users/forms/_physical_person.html.erb
+%>

@@ -1,0 +1,21 @@
+<%
+    current_button_text = defined?(button_text) ? button_text : t('model.save')
+    current_cancel_text = defined?(cancel_text) ? cancel_text : t('model.cancel')
+    current_return_path = defined?(return_path) ? return_path : false
+    current_data_confirm = defined?(data_confirm) ? data_confirm : ""
+%>
+
+<!-- Botão de ação -->
+<div class="row my-3">
+    <div class="col-12 mb-3 text-end">
+        <% if defined?(current_return_path) && current_return_path && !current_return_path.nil? %>
+            <a href="<%= current_return_path %>" class="btn btn-link text-decoration-none"><%= current_cancel_text %></a>
+        <% end %>
+        <%= f.button :submit, value: current_button_text, data: {confirm: current_data_confirm} %>
+    </div>
+</div>
+
+<%
+# End of file _save.html.erb
+# Path: ./app/views/common_pages/_save.html.erb
+%>

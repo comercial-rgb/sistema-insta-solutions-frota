@@ -1,0 +1,43 @@
+<div class="container">
+    <div class="row">
+
+        <!-- Logo -->
+        <div class="col-12 text-center my-5">
+            <%= render 'layouts/logo', width: 350, height: nil %>
+        </div>
+
+        <div class="col-12 col-md-4 offset-md-4">
+            <div class="row">
+                <div class="col-12">
+                    <%= form_for :recovery_pass, method: :post, novalidate: true do |f| %>
+
+                        <p class="text-muted text-center">
+                            <small><%= t('session.recovery_pass').html_safe %></small>
+                        </p>
+
+                        <!-- E-mail/login de acesso -->
+                        <div class="mb-3">
+                            <label class="form-label" for="recovery_pass_email"><%= User.human_attribute_name(:email) %></label>
+                            <%= f.text_field :email, class: 'form-control', autofocus: true, autocomplete: 'off', type: "email" %>
+                        </div>
+
+                        <!-- Botão de submeter -->
+                        <button class="btn btn-primary" type="submit">
+                            <%= t('model.send') %>
+                        </button>
+
+                        <!-- Link para a página de login -->
+                        <a class="btn btn-link" href="<%= login_path %>"><%= t('model.back')%></a>
+
+                    <% end %>
+
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%
+# End of file recovery_pass.html.erb
+# Path: ./app/views/users/recovery_pass.html.erb
+%>

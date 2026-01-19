@@ -1,0 +1,23 @@
+<div class="row">
+
+    <!-- Nome -->
+    <div class="col-7 col-md-4 mb-3">
+        <%= card.get_formatted_name %>
+    </div>
+
+    <!-- Data de validade -->
+    <div class="col-3 col-md-2 mb-3">
+        <%= card.get_formatted_validate_date %>
+    </div>
+
+    <!-- Excluir -->
+    <div class="col-2 col-md-2 mb-3">
+        <%= render 'common_pages/delete_multiple_relation', remove_path: delete_card_path(model_id: card.id), object: card, object_text: 'card'  %>
+    </div>
+
+</div>
+
+<%
+# End of file _saved_card.html.erb
+# Path: ./app/views/common_pages/cards/_saved_card.html.erb
+%>

@@ -1,0 +1,23 @@
+<%= form_tag url_import, method: "POST", class: 'form-horizontal', multipart: true do %>
+    <div class="row mb-3">
+        <% if show_file_model %>
+            <div class="col-12 text-center">
+                <p>
+                    <%= text_model %>
+                </p>
+                <a href="<%= url_download_file_model %>" class="btn btn-sm btn-secondary mb-3 text-white">
+                    <%= text_bottom_model %>
+                </a>
+            </div>
+        <% end %>
+        <div class="col-12 text-center">
+            <p>
+                <%= text_instructions %>
+            </p>
+            <%= file_field_tag attribute_file, accept: "xls,xlsx" %>
+            <button data-confirm="<%= t("model.confirm_action") %>" type="submit" class="btn btn-sm btn-primary mb-3">
+                <%= text_bottom_import_file %>
+            </button>
+        </div>
+    </div>
+<% end %>

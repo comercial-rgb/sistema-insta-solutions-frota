@@ -1,0 +1,49 @@
+<div class="table-actions">
+
+	<%
+        if record.rejected_providers.select{|item| item.id == current_user.id}.present?
+            span_class = 'bg-danger text-white'
+            span_text = OrderServiceProposal.human_attribute_name(:rejected)
+        else
+            pending_complement = record.order_service_proposals.detect do |item|
+                item.provider_id == current_user.id &&
+                item.is_complement &&
+                item.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID
+            end
+
+            order_service_proposal = pending_complement || record.order_service_proposals.detect do |item|
+                item.provider_id == current_user.id && !item.is_complement
+            end
+
+            order_service_proposal ||= record.order_service_proposals.detect{|item| item.provider_id == current_user.id}
+            span_text =  ""
+            if order_service_proposal.present?
+                span_text = order_service_proposal.order_service_proposal_status.name
+                if order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::EM_ABERTO_ID
+                    span_class = 'bg-info text-white'
+                elsif order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID
+                    span_class = 'bg-secondary text-white'
+                elsif order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::APROVADA_ID
+                    span_class = 'bg-success text-white'
+                elsif order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::NOTAS_INSERIDAS_ID
+                    span_class = 'bg-primary text-white'
+                elsif order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::AUTORIZADA_ID
+                    span_class = 'bg-warning text-dark'
+                elsif order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID
+                    span_class = 'bg-warning text-dark'
+                elsif order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::PAGA_ID
+                    span_class = 'bg-success text-white'
+                elsif order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID
+                    span_class = 'bg-danger text-white'
+                elsif order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::CANCELADA_ID
+                    span_class = 'bg-danger text-white'
+                elsif order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID
+                    span_class = 'bg-info text-white'
+                end
+            end
+        end
+
+    %>
+	<span class="badge <%= span_class %>"><%= span_text %></span>
+
+</div>

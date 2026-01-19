@@ -1,0 +1,13 @@
+<% if !plan.nil? %>
+  <div class="card mb-4">
+    <img src="<%= plan.get_image %>" class="card-img-top" alt="..." width="50" height="100">
+    <div class="card-header">
+      <%= plan.name %>
+    </div>
+    <div class="card-body">
+      <p class="card-text">
+        <%= plan.description %>
+      </p>
+    </div>
+  </div>
+<% end %>

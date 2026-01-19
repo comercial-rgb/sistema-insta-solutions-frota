@@ -1,0 +1,72 @@
+<% 
+if @current_user.admin?
+
+  if @user.profile_id == Profile::USER_ID
+    objects_path = users_user_path
+    page_title = User.human_attribute_name(:common_users)
+    form_to_render = 'users/form'
+  elsif @user.profile_id == Profile::ADMIN_ID
+    objects_path = users_admin_path
+    page_title = User.human_attribute_name(:admin_users)
+    form_to_render = 'users/admin_form'
+  elsif @user.profile_id == Profile::CLIENT_ID
+    objects_path = users_client_path
+    page_title = User.human_attribute_name(:client_users)
+    form_to_render = 'users/client_form'
+  elsif @user.profile_id == Profile::MANAGER_ID
+    objects_path = users_manager_path
+    page_title = User.human_attribute_name(:manager_users)
+    form_to_render = 'users/manager_form'
+  elsif @user.profile_id == Profile::ADDITIONAL_ID
+    objects_path = users_additional_path
+    page_title = User.human_attribute_name(:additional_users)
+    form_to_render = 'users/additional_form'
+  elsif @user.profile_id == Profile::PROVIDER_ID
+    objects_path = users_provider_path
+    page_title = User.human_attribute_name(:provider_users)
+    form_to_render = 'users/provider_form'
+  end 
+
+  breadcrumbs = [
+    {active: false, href: root_path, text: t('menu.initial_page')},
+    {active: false, href: objects_path, text: page_title},
+    {active: false, href: change_data_path(id: @user.id), text: @user.get_name},
+    {active: true, href: '#', text: t('model.edit')},
+  ]
+else
+
+  if @current_user.user?
+    form_to_render = 'users/form'
+    page_title = User.human_attribute_name(:common_users)
+  elsif @user.profile_id == Profile::CLIENT_ID
+    form_to_render = 'users/client_form'
+    page_title = User.human_attribute_name(:client_users)
+  elsif @user.profile_id == Profile::MANAGER_ID
+    form_to_render = 'users/manager_form'
+    page_title = User.human_attribute_name(:manager_users)
+  elsif @user.profile_id == Profile::ADDITIONAL_ID
+    form_to_render = 'users/additional_form'
+    page_title = User.human_attribute_name(:additional_users)
+  elsif @user.profile_id == Profile::PROVIDER_ID
+    form_to_render = 'users/provider_form'
+    page_title = User.human_attribute_name(:provider_users)
+  end
+
+  objects_path = nil
+  form_to_render = form_to_render
+  page_title = page_title
+  breadcrumbs = [
+    {active: false, href: change_data_path(id: @user.id), text: @user.get_name},
+    {active: true, href: '#', text: t('model.edit')},
+  ]
+end
+
+%>
+
+<%= 
+render 'common_pages/edit', 
+objects_path: objects_path, 
+page_title: page_title, 
+form_to_render: form_to_render,
+breadcrumbs: breadcrumbs
+%>

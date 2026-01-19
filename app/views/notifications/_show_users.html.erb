@@ -1,0 +1,10 @@
+<% if !record.profile.nil? && !record.send_all %>
+	<!-- Usuários específicos -->
+	<%= render 'notifications/modals/show_users', notification: record %>
+	<button type="button" class="btn btn-link btn-sm" data-bs-toggle="modal" data-bs-target="#show_users_<%=record.id%>">
+		<%= t('model.show_details') %>
+	</button>
+<% elsif !record.profile.nil? && record.send_all %>
+	<!-- Todos os usuários -->
+	<%= t('model.select_all') %>
+<% end %>

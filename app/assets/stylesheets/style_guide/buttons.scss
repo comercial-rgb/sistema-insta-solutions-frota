@@ -1,0 +1,34 @@
+$btn-font-weight: 400;
+$btn-line-height: 32px;
+
+$btn-font-size-sm: 14px;
+$btn-border-radius-sm: 8px;
+$btn-padding-y-sm: 5px;
+$btn-padding-x-sm: 18px;
+
+$btn-font-size: 16px;
+$btn-border-radius: 8px;
+$btn-padding-y: 8px;
+$btn-padding-x: 28px;
+
+$btn-font-size-lg: 18px;
+$btn-border-radius-lg: 8px;
+$btn-padding-y-lg: 10px;
+$btn-padding-x-lg: 36px;
+
+.tag {
+  color: #FFFFFF;
+  font-weight: 500;
+  line-height: 32px;
+  font-size: 16px;
+  border-radius: 8px;
+  padding-top: 7px;
+  padding-bottom: 7px;
+  padding-left: 19px;
+  padding-right: 19px;
+  cursor: default;
+}
+
+// $btn-disabled-color: #46C026;
+// $btn-link-disabled-color: #46C026;
+// $input-disabled-color: #FFFFFF;

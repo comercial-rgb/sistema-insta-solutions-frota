@@ -1,0 +1,23 @@
+<div class="row">
+   
+    <div class="col-12 mb-3">
+        <h5 class="mt-4"><%= CancelCommitment.model_name.human(count: 2).upcase %></h5>
+    </div>
+
+    <div class="col-12 multi-cancelcommitment-block">
+        <!-- Contador -->
+        <input type="hidden" value="<%= f.object.cancel_commitments.length.to_s %>" class="multi-cancelcommitment-cont" disabled>
+        <%= f.fields_for :cancel_commitments do |cancel_commitment| %>
+            <div class="row multi-cancelcommitment align-items-end">
+                <%= render "commitments/forms/cancel_commitment_fields", f: f, cancel_commitment: cancel_commitment %>
+                <%= render 'common_pages/delete_multiple_relation', remove_path: delete_cancel_commitment_path(model_id: cancel_commitment.object.id), object: cancel_commitment.object, object_text: 'cancelcommitment'  %>
+            </div>
+        <% end %>
+    </div>
+
+    <!-- Botão de adicionar -->
+    <div class="col-12">
+        <%= render 'common_pages/add_multiple_relation', object_text: 'cancelcommitment' %>
+    </div>
+</div>
+

@@ -1,0 +1,32 @@
+pt-BR:
+  activerecord:
+    models:
+      state:
+        one: "Estado"
+        other: "Estados"
+    attributes:
+      state:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        name: "Nome"
+        acronym: "Acrônimo"
+        country_id: "País"
+        country: "País"
+en:
+  activerecord:
+    models:
+      state:
+        one: "Estado"
+        other: "Estados"
+    attributes:
+      state:
+        id: "ID"
+        created_at: 'Created at'
+        updated_at: 'Updated at'
+        actions: "Actions"
+        name: "Nome"
+        acronym: "Acrônimo"
+        country_id: "País"
+        country: "País"

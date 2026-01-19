@@ -1,0 +1,8 @@
+<%= render 'order_services/modals/show_vehicle_data', order_service: record %>
+<span class="pointer" data-bs-toggle="modal" data-bs-target="#show_vehicle_data_<%=record.id%>">
+    <% 
+        text = record.vehicle.brand + ', '+ record.vehicle.model + ', '+ record.vehicle.board
+    %>
+    <%= text %>
+    <i class="bi bi-search"></i>
+</span>

@@ -1,0 +1,261 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: false, href: contracts_path, text: Contract.model_name.human(count: 2)},
+  {active: true, href: '#', text: @contract.name},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+  
+  <div class="row mb-3">
+    <div class="col-12">
+      <h4 class="mb-0">
+        <%= @contract.name %>
+        <% if @contract.active %>
+          <span class="badge bg-success">Ativo</span>
+        <% else %>
+          <span class="badge bg-danger">Inativo</span>
+        <% end %>
+      </h4>
+    </div>
+  </div>
+
+  <!-- Dados do Contrato -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+      <i class="bi bi-file-earmark-text me-2"></i>Dados do Contrato
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold text-muted small">Cliente</label>
+          <p class="mb-0"><%= @contract.client&.name || '-' %></p>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold text-muted small">Número do Contrato</label>
+          <p class="mb-0"><%= @contract.number %></p>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold text-muted small">Data Inicial</label>
+          <p class="mb-0"><%= @contract.initial_date.present? ? @contract.initial_date.to_s : '-' %></p>
+        </div>
+      </div>
+
+      <% if @contract.cost_centers.any? %>
+        <div class="row">
+          <div class="col-12 mb-3">
+            <label class="fw-bold text-muted small">Centros de Custo</label>
+            <p class="mb-0">
+              <% @contract.cost_centers.each do |cc| %>
+                <span class="badge bg-secondary me-1"><%= cc.name %></span>
+              <% end %>
+            </p>
+          </div>
+                  <td><%= os.vehicle&.board || '-' %></td>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Valores -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-info text-white">
+      <i class="bi bi-cash-stack me-2"></i>Valores
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold text-muted small">Valor Total do Contrato</label>
+          <p class="mb-0 fs-5 text-primary"><%= CustomHelper.to_currency(@total_value) %></p>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold text-muted small">Valor Utilizado (Empenhos)</label>
+          <p class="mb-0 fs-5 text-warning"><%= CustomHelper.to_currency(@used_value) %></p>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold text-muted small">Valor Disponível</label>
+          <p class="mb-0 fs-5 <%= @available_value > 0 ? 'text-success' : 'text-danger' %>">
+            <%= CustomHelper.to_currency(@available_value) %>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aditivos -->
+  <% if @contract.addendum_contracts.any? %>
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-secondary text-white">
+        <i class="bi bi-plus-square me-2"></i>Aditivos (<%= @contract.addendum_contracts.count %>)
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Nome</th>
+                <th>Número</th>
+                <th>Valor</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @contract.addendum_contracts.each do |addendum| %>
+                <tr>
+                  <td><%= addendum.name %></td>
+                  <td><%= addendum.number %></td>
+                  <td><%= CustomHelper.to_currency(addendum.total_value) %></td>
+                  <td>
+                    <% if addendum.active %>
+                      <span class="badge bg-success">Ativo</span>
+                    <% else %>
+                      <span class="badge bg-danger">Inativo</span>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Empenhos -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-folder me-2"></i>Empenhos Vinculados (<%= @commitments.count %>)</span>
+    </div>
+    <div class="card-body">
+      <% if @commitments.empty? %>
+        <p class="text-muted mb-0">Nenhum empenho vinculado a este contrato.</p>
+      <% else %>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>N° Empenho</th>
+                <th>Centro de Custo</th>
+                <th>Subunidade</th>
+                <th>Categoria</th>
+                <th>Valor Inicial</th>
+                <th>Valor Consumido</th>
+                <th>Valor Restante</th>
+                <th>Status</th>
+                <th class="text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @commitments.each do |commitment| %>
+                <% commitment_values = Commitment.getting_values_to_commitment(commitment) %>
+                <tr>
+                  <td><%= commitment.commitment_number %></td>
+                  <td>
+                    <% if commitment.cost_centers.any? %>
+                      <%= commitment.cost_centers.map(&:name).join(', ') %>
+                    <% elsif commitment.cost_center.present? %>
+                      <%= commitment.cost_center.name %>
+                    <% else %>
+                      -
+                    <% end %>
+                  </td>
+                  <td><%= commitment.sub_unit&.name || '-' %></td>
+                  <td><%= commitment.category&.name || '-' %></td>
+                  <td><%= CustomHelper.to_currency(commitment_values[:sum_budget_value]) %></td>
+                  <td class="text-warning"><%= CustomHelper.to_currency(commitment_values[:total_already_consumed_value]) %></td>
+                  <td class="<%= commitment_values[:pendent_value] > 0 ? 'text-success' : 'text-danger' %>">
+                    <%= CustomHelper.to_currency(commitment_values[:pendent_value]) %>
+                  </td>
+                  <td>
+                    <% if commitment.active %>
+                      <span class="badge bg-success">Ativo</span>
+                    <% else %>
+                      <span class="badge bg-danger">Inativo</span>
+                    <% end %>
+                  </td>
+                  <td class="text-center">
+                    <%= link_to commitment_path(commitment), class: 'btn btn-sm btn-primary', title: 'Visualizar' do %>
+                      <i class="bi bi-eye"></i>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- OSs Aprovadas -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-check-circle me-2"></i>Ordens de Serviço Aprovadas (<%= @approved_order_services.count %>)</span>
+    </div>
+    <div class="card-body">
+      <% if @approved_order_services.empty? %>
+        <p class="text-muted mb-0">Nenhuma OS aprovada vinculada a este contrato.</p>
+      <% else %>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Código</th>
+                <th>Veículo</th>
+                <th>Centro de Custo</th>
+                <th>Empenho</th>
+                <th>Status</th>
+                <th>Valor Total</th>
+                <th>Data</th>
+                <th class="text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @approved_order_services.each do |os| %>
+                <% 
+                  approved_proposal = os.approved_proposal || os.getting_order_service_proposal_approved
+                  os_total_value = approved_proposal&.total_value_with_complements
+                %>
+                <tr>
+                  <td><%= os.code %></td>
+                  <td><%= os.vehicle&.board || '-' %></td>
+                  <td><%= os.cost_center&.name || '-' %></td>
+                  <td><%= os.commitment&.commitment_number || '-' %></td>
+                  <td>
+                    <span class="badge bg-success"><%= os.order_service_status&.name %></span>
+                  </td>
+                  <td><%= os_total_value.present? ? CustomHelper.to_currency(os_total_value) : '-' %></td>
+                  <td><%= l(os.created_at, format: :short) %></td>
+                  <td class="text-center">
+                    <%= link_to order_service_path(os), class: 'btn btn-sm btn-primary', title: 'Visualizar' do %>
+                      <i class="bi bi-eye"></i>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Botões de ação -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <%= link_to contracts_path, class: 'btn btn-secondary' do %>
+        <i class="bi bi-arrow-left"></i> Voltar
+      <% end %>
+      
+      <% if policy(@contract).edit? %>
+        <%= link_to edit_contract_path(@contract), class: 'btn btn-primary' do %>
+          <i class="bi bi-pencil"></i> Editar Contrato
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</div>

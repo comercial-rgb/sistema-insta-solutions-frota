@@ -1,0 +1,125 @@
+<div class="row py-3">
+  <% if !defined?(hide_actions) || (defined?(hide_actions) && !hide_actions) %>
+    <div class="col-12 d-print-none text-end mb-2">
+      <% if policy(order_service_proposal).reprove_order_service_proposal? %>
+        <%= link_to reprove_order_service_proposal_path(id: order_service_proposal.id), method: :post,
+          data: { confirm: t('model.confirm_action') },
+          class: 'btn btn-sm btn-outline-danger me-2' do %>
+          <i class="bi bi-x-circle"></i>
+          <%= OrderServiceProposal.human_attribute_name(:reprove_order_service_proposal) %>
+        <% end %>
+      <% end %>
+
+      <% if policy(order_service_proposal).approve_order_service_proposal? %>
+        <%= render 'order_service_proposals/modals/approve_order_service_proposal', order_service_proposal: order_service_proposal %>
+        <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#approve_order_service_proposal_<%= order_service_proposal.id %>">
+          <i class="bi bi-check-circle"></i>
+          <%= OrderServiceProposal.human_attribute_name(:approve_order_service_proposal) %>
+        </button>
+      <% end %>
+    </div>
+  <% end %>
+
+  <div class="col-12">
+    <div class="accordion" id="accordionExample">
+      <div class="accordion-item border rounded-3 overflow-hidden">
+        <h2 class="accordion-header" id="headingOne">
+          <button class="accordion-button fw-semibold" type="button" data-bs-toggle="collapse"
+            data-bs-target="#collapseOrderServiceProposalData<%= order_service_proposal.id %>"
+            aria-expanded="true" aria-controls="collapseOrderServiceProposalData<%= order_service_proposal.id %>">
+            <i class="bi bi-info-circle-fill me-2"></i>
+            <%= OrderServiceProposal.human_attribute_name(:general_data) %>
+          </button>
+        </h2>
+
+        <div id="collapseOrderServiceProposalData<%= order_service_proposal.id %>"
+             class="accordion-collapse collapse show"
+             aria-labelledby="headingOne"
+             data-bs-parent="#accordionExample">
+          <div class="accordion-body bg-light">
+
+            <div class="card border-0 shadow-sm">
+              <div class="card-header text-center bg-white fw-bold">
+                <%= OrderServiceProposal.model_name.human %>: <span class="text-primary"><%= order_service_proposal.code %></span>
+              </div>
+
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-12 col-md-6 col-lg-4">
+                    <strong><%= OrderServiceProposal.human_attribute_name(:created_at) %>:</strong>
+                    <div><%= CustomHelper.get_text_date(order_service_proposal.created_at, 'datetime', :full) %></div>
+                  </div>
+
+                  <% if !@current_user.provider? %>
+                    <div class="col-12 col-md-6 col-lg-4">
+                      <strong><%= OrderServiceProposal.human_attribute_name(:provider_id) %>:</strong>
+                      <div><%= order_service_proposal.provider.get_name %></div>
+                    </div>
+                  <% end %>
+
+                  <div class="col-12 col-md-6 col-lg-4">
+                    <strong><%= OrderServiceProposal.human_attribute_name(:total_value_without_discount) %>:</strong>
+                    <div><%= CustomHelper.to_currency(order_service_proposal.total_value_without_discount) %></div>
+                  </div>
+
+                  <div class="col-12 col-md-6 col-lg-4">
+                    <strong><%= OrderServiceProposal.human_attribute_name(:total_discount) %>:</strong>
+                    <div><%= CustomHelper.to_currency(order_service_proposal.total_discount) %></div>
+                  </div>
+
+                  <div class="col-12 col-md-6 col-lg-4">
+                    <strong><%= OrderServiceProposal.human_attribute_name(:total_value) %>:</strong>
+                    <div><%= CustomHelper.to_currency(order_service_proposal.total_value) %></div>
+                  </div>
+
+                  <div class="col-12 col-md-6 col-lg-4">
+                    <strong><%= OrderServiceProposal.human_attribute_name(:order_service_proposal_status_id) %>:</strong>
+                    <div><%= order_service_proposal.order_service_proposal_status.name %></div>
+                  </div>
+
+                  <% if order_service_proposal.attachments.any? %>
+                    <div class="col-12">
+                      <strong>Anexos:</strong>
+                      <ul class="list-unstyled mt-2">
+                        <% order_service_proposal.attachments.each do |attachment| %>
+                          <li>
+                            <%= link_to attachment.attachment.url, class: 'text-decoration-none', target: '_blank' do %>
+                              <i class="bi bi-paperclip me-1"></i> <%= attachment.attachment.filename %>
+                            <% end %>
+                          </li>
+                        <% end %>
+                      </ul>
+                    </div>
+                  <% end %>
+
+                  <% if order_service_proposal.details.present? %>
+                    <div class="col-12">
+                      <strong><%= OrderServiceProposal.human_attribute_name(:details) %>:</strong>
+                      <p class="mb-0"><%= order_service_proposal.details %></p>
+                    </div>
+                  <% end %>
+                  
+                  <% if order_service_proposal.reason_refused_approval.present? %>
+                    <div class="col-12">
+                      <div class="alert alert-warning" role="alert">
+                        <strong><i class="bi bi-exclamation-triangle-fill"></i> Pré-aprovação recusada:</strong>
+                        <p class="mb-1 mt-2"><%= order_service_proposal.reason_refused_approval %></p>
+                        <% if order_service_proposal.refused_by_manager.present? %>
+                          <small class="text-muted">
+                            Recusado por: <%= order_service_proposal.refused_by_manager.name %> em 
+                            <%= l(order_service_proposal.refused_by_manager_at, format: :short) if order_service_proposal.refused_by_manager_at %>
+                          </small>
+                        <% end %>
+                      </div>
+                    </div>
+                  <% end %>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

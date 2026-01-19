@@ -1,0 +1,33 @@
+<!-- Modal -->
+<div class="modal fade" id="show_sub_units_<%=sub_unit.id%>" tabindex="-1">
+
+    <div class="modal-dialog modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+
+            <!-- Cabeçalho -->
+            <div class="modal-header">
+
+                <!-- Título -->
+                <h5 class="modal-title" id="show_sub_units_label_<%=sub_unit.id%>">
+                    <small class="text-muted"><%= sub_unit.name.upcase %></small>
+                </h5>
+
+                <!-- Botão fechar -->
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Conteúdo -->
+            <div class="modal-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item disabled"><%= CostCenter.human_attribute_name(:sub_units) %>:</li>
+                    <% sub_unit.sub_units.each do |sub_unit| %>
+                        <li class="list-group-item">
+                            <%= sub_unit.name %>
+                        </li>
+                    <% end %>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</div>

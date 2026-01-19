@@ -1,0 +1,25 @@
+<%= simple_form_for @system_configuration do |f| %>
+
+<div class="row">
+	<!-- Título -->
+    <div class="col-12">
+        <h5 class="mt-4"><%= SystemConfiguration.model_name.human(count: 2).upcase %></h5>
+    </div>
+</div>
+
+<%= render 'system_configurations/forms/save', f: f %>
+
+<%= render 'system_configurations/forms/logo_page', f: f %>
+
+<%= render 'system_configurations/forms/institutional', f: f %>
+
+<%= render 'system_configurations/forms/editable_texts', f: f %>
+
+<%= render 'system_configurations/forms/save', f: f %>
+
+<% end %>
+
+<%
+# End of file _form.html.erb
+# Path: ./app/views/system_configurations/_form.html.erb
+%>

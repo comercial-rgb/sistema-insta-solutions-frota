@@ -1,0 +1,2 @@
+module OrderServiceProposalsHelper
+end

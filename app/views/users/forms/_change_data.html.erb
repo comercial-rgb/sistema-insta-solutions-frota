@@ -1,0 +1,24 @@
+<% if (@current_user.id == @user.id) && !@user.client? %>
+    <%= simple_form_for @user, url: update_access_data_path(id: @user.id), html: {id: 'change-data-'+@user.id.to_s}, method: :post, validate: false do |f| %>
+        
+        <div class="row">
+            <!-- Título -->
+            <div class="col-12">
+                <h5 class="mt-4"><%= User.human_attribute_name(:access_data).upcase %></h5>
+            </div>
+
+            <!-- Senha de acesso -->
+            <div class="col-12 col-md-3 mb-3">
+                <%= f.input :current_password, input_html: {autocomplete: 'new-password'}  %>
+            </div>
+            <%= render 'users/forms/access_data_fields', f: f %>
+        </div>
+        
+        <%= render 'common_pages/save', f: f, return_path: (@current_user.id != @user.id) ? change_data_path : nil %>
+    <% end %>
+<% end %>
+
+<%
+# End of file _change_data.html.erb
+# Path: ./app/views/users/forms/_change_data.html.erb
+%>

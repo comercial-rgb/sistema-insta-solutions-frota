@@ -1,0 +1,15 @@
+pt-BR:
+  activerecord:
+    models:
+      service_group_item:
+        one: "Item do grupo de serviço"
+        other: "Itens do grupo de serviço"
+    attributes:
+      service_group_item:
+        id: "ID"
+        service_group_id: "Grupo de serviço"
+        service_id: "Peça/Serviço"
+        quantity: "Quantidade limite"
+        max_value: "Valor máximo"
+        created_at: "Criado em"
+        updated_at: "Atualizado em"

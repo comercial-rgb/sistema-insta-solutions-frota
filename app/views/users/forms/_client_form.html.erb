@@ -1,0 +1,61 @@
+<div class="row">
+    <!-- Título -->
+    <div class="col-12">
+        <h5 class="mt-4"><%= User.human_attribute_name(:general_data).upcase %></h5>
+    </div>
+
+    <!-- Razão social -->
+    <div class="col-12 col-md-4 mb-3">
+        <%= f.input :social_name %>
+    </div>
+
+    <!-- Nome fantasia -->
+    <div class="col-12 col-md-4 mb-3">
+        <%= f.input :fantasy_name %>
+    </div>
+
+    <!-- CNPJ -->
+    <div class="col-12 col-md-4 mb-3">
+        <%= f.input :cnpj, input_html: {class: 'cnpj', type: "tel"} %>
+    </div>
+
+    <!-- Inscrição municipal -->
+    <div class="col-12 col-md-2 mb-3">
+        <%= f.input :municipal_inscription %>
+    </div>
+
+    <!-- Inscrição estadual -->
+    <div class="col-12 col-md-2 mb-3">
+        <%= f.input :state_inscription %>
+    </div>
+
+    <!-- % de desconto -->
+    <div class="col-12 col-md-2 mb-3">
+        <%= f.input :discount_percent %>
+    </div>
+
+    <div class="col-12 col-md-3 mb-3 checkbox-input-center">
+        <%= f.input :needs_km %>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12 col-md-4">
+        <%= 
+            render "common_pages/filter_registers_by_text_checkboxes",
+            label_text: User.human_attribute_name(:states),
+            register_name: "state",
+            form_model: :user,
+            form_attribute: :state_ids,
+            collection: State.order(:name),
+            value_register: :id,
+            label_register: :name,
+            placeholder: t("model.find_filter")
+        %>
+    </div>
+</div>
+
+<%
+# End of file _personal_data.html.erb
+# Path: ./app/views/users/forms/_personal_data.html.erb
+%>

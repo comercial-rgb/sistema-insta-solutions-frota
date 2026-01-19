@@ -1,0 +1,106 @@
+pt-BR:
+  activerecord:
+    models:
+      vehicle:
+        one: "Veículo"
+        other: "Veículos"
+    attributes:
+      vehicle:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        client_id: "Cliente"
+        client: "Cliente"
+        cost_center_id: "Centro de custo"
+        cost_center: "Centro de custo"
+        sub_unit_id: "Sub-unidade"
+        sub_unit: "Sub-unidade"
+        board: "Placa"
+        brand: "Marca"
+        model: "Modelo completo"
+        year: "Ano fabricação"
+        color: "Cor"
+        renavam: "Renavam"
+        chassi: "Chassi"
+        market_value: "Valor de mercado do veículo"
+        market_value_column: "Valor de mercado<br> do veículo"
+        acquisition_date: "Data de aquisição"
+        acquisition_date_column: "Data de<br> aquisição"
+        vehicle_type_id: "Tipo de veículo"
+        vehicle_type: "Tipo de veículo"
+        category_id: "Categoria"
+        category: "Categoria"
+        state_id: "Estado"
+        state: "Estado"
+        city_id: "Cidade"
+        city: "Cidade"
+        fuel_type_id: "Tipo de combustível"
+        fuel_type: "Tipo de combustível"
+        active: "Ativo"
+        cost_center_sub_unit: "Centro de custo<br>/Sub-unidade"
+        maintenance_value: "Valor gasto em manutenção"
+        maintenance_value_column: "Valor gasto<br> em manutenção"
+        total_paid_value: "Valor total das ordens de serviço faturadas"
+        model_year: "Ano modelo"
+        current_owner_name: "Proprietário atual"
+        old_owner_name: "Proprietário anterior"
+        current_owner_document: "CPF/CNPJ"
+        engine_displacement: 'Cilindradas'
+        gearbox_type: 'Caixa de câmbio'
+        fipe_code: 'Código Fipe'
+        model_text: 'Modelo completo'
+        value_text: 'Valor de mercado'
+en:
+  activerecord:
+    models:
+      vehicle:
+        one: "Veículo"
+        other: "Veículos"
+    attributes:
+      vehicle:
+        id: "ID"
+        created_at: 'Created at'
+        updated_at: 'Updated at'
+        actions: "Actions"
+        client_id: "Cliente"
+        client: "Cliente"
+        cost_center_id: "Centro de custo"
+        cost_center: "Centro de custo"
+        sub_unit_id: "Sub-unidade"
+        sub_unit: "Sub-unidade"
+        board: "Placa"
+        brand: "Marca"
+        model: "Modelo completo"
+        year: "Ano fabricação"
+        color: "Cor"
+        renavam: "Renavam"
+        chassi: "Chassi"
+        market_value: "Valor de mercado do veículo"
+        market_value_column: "Valor de mercado<br> do veículo"
+        acquisition_date: "Data de aquisição"
+        acquisition_date_column: "Data de<br> aquisição"
+        vehicle_type_id: "Tipo de veículo"
+        vehicle_type: "Tipo de veículo"
+        category_id: "Categoria"
+        category: "Categoria"
+        state_id: "Estado"
+        state: "Estado"
+        city_id: "Cidade"
+        city: "Cidade"
+        fuel_type_id: "Tipo de combustível"
+        fuel_type: "Tipo de combustível"
+        active: "Ativo"
+        cost_center_sub_unit: "Centro de custo<br>/Sub-unidade"
+        maintenance_value: "Valor gasto em manutenção"
+        maintenance_value_column: "Valor gasto<br> em manutenção"
+        total_paid_value: "Valor total das ordens de serviço faturadas"
+        model_year: "Ano modelo"
+        current_owner_name: "Proprietário atual"
+        old_owner_name: "Proprietário anterior"
+        current_owner_document: "CPF / CNPJ"
+        engine_displacement: 'Cilindradas'
+        gearbox_type: 'Caixa de câmbio'
+        fipe_code: 'Código Fipe'
+        model_text: 'Modelo completo'
+        value_text: 'Valor de mercado'

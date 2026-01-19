@@ -1,0 +1,17 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: commitments_path, text: Commitment.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.add_new')},
+]
+# Usar o formulário completo para todos os usuários na criação
+form_to_render = 'commitments/form'
+%>
+
+<%= 
+	render 'common_pages/new', 
+	objects_path: commitments_path, 
+	page_title: Commitment.model_name.human(count: 2), 
+	form_to_render: form_to_render,
+	breadcrumbs: breadcrumbs
+%>

@@ -1,0 +1,77 @@
+<%
+array_links = [
+  {
+    link_path: change_data_path(id: record.id),
+    link_method: :get,
+    link_title: t('model.edit'),
+    confirm: nil,
+    link_image: 'bi bi-pencil-fill',
+    text_action: t('model.edit'),
+    link_policy: policy(record).edit?,
+    class: 'dropdown-item'
+  },
+  
+  # Para acesso direto a alteração de senha
+  # {
+  #   link_path: change_data_path(id: record.id),
+  #   link_method: :get,
+  #   link_title: User.human_attribute_name(:change_data),
+  #   confirm: nil,
+  #   link_image: 'bi bi-shield-lock-fill',
+  #   text_action: User.human_attribute_name(:change_data),
+  #   link_policy: policy(record).change_data?,
+  #   class: 'dropdown-item'
+  # },
+
+  # Para reset automático da senha
+  # {
+  #   link_path: reset_user_password_path(id: record.id),
+  #   link_method: :post,
+  #   link_title: User.human_attribute_name(:reset_user_password),
+  #   confirm: t('model.confirm_action'),
+  #   link_image: 'bi bi-send-fill',
+  #   text_action: User.human_attribute_name(:reset_user_password),
+  #   link_policy: policy(record).reset_user_password?,
+  #   class: 'dropdown-item'
+  # },
+  {
+    link_path: user_addresses_path(ownertable_type: "User", id: record.id, address_area_id: AddressArea::GENERAL_ID, page_title: Address.model_name.human(count: 2)),
+    link_method: :get,
+    link_title: Address.model_name.human(count: 2),
+    confirm: nil,
+    link_image: 'bi bi-house-fill',
+    text_action: Address.model_name.human(count: 2),
+    link_policy: policy(record).user_addresses?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: user_path(record),
+    link_method: :delete,
+    link_title: t('model.delete'),
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-trash-fill',
+    text_action: t('model.delete'),
+    link_policy: policy(record).destroy?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: block_user_path(record),
+    link_method: :put,
+    link_title: record.text_blocked,
+    confirm: t('model.confirm_action'),
+    link_image: (!record.is_blocked? ? 'bi bi-lock-fill' : 'bi bi-unlock-fill'),
+    text_action: (record.is_blocked? ? User.human_attribute_name(:set_active) : User.human_attribute_name(:set_inactive)),
+    link_policy: policy(record).block?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: chat_path(sender_id: @current_user.id, receiver_id: record.id),
+    link_title: 'Iniciar chat',
+    link_image: 'bi bi-chat-fill',
+    text_action: 'Iniciar chat',
+    link_policy: policy(record).open_chat?(@current_user.id),
+    class: 'dropdown-item'
+  },
+]
+%>
+<%= render 'common_pages/datagrid_actions', array_links: array_links %>

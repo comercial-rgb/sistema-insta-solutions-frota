@@ -1,0 +1,29 @@
+<div class="row">
+	<!-- E-mail de notificação -->
+	<div class="col-12 col-md-4">
+		<%= f.input :notification_mail, input_html: {type: "email"} %>
+	</div>
+
+	<!-- E-mail de contato -->
+	<div class="col-12 col-md-4">
+		<%= f.input :contact_mail, input_html: {type: "email"} %>
+	</div>
+
+	<!-- Telefone -->
+	<div class="col-12 col-md-2">
+		<%= f.input :phone, input_html: {class: 'complete-phone-ddd', type: "tel"} %>
+	</div>
+</div>
+
+<div class="row">
+	<!-- Dados de atendimento -->
+	<div class="col-12">
+		<label><%= SystemConfiguration.human_attribute_name(:attendance_data) %></label>
+		<%= f.input :attendance_data, label: false %>
+	</div>
+</div>
+
+<%
+# End of file _institutional.html.erb
+# Path: ./app/views/system_configurations/forms/_institutional.html.erb
+%>

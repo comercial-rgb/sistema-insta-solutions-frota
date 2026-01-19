@@ -1,0 +1,164 @@
+<%# app/views/order_services/renders/_print_order_service.html.erb %>
+
+<style media="print">
+  /* Reset noisy UI bits for paper */
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-size: 12px; }
+  a[href]:after { content: "" !important; } /* don’t append URLs */
+  .text-muted { color: #000 !important; }
+
+  /* Clean headings & spacing */
+  .print-heading { margin: 0 0 8px; padding-bottom: 4px; border-bottom: 1px solid #000; }
+  .print-subheading { margin: 4px 0 12px; }
+  .print-section { margin-top: 14px; page-break-inside: avoid; }
+  .print-kv { margin: 0; padding: 0; }
+  .print-kv li { list-style: none; margin: 0 0 4px; display: flex; gap: 6px; }
+  .print-kv li strong { min-width: 180px; }
+
+  /* Table that prints nicely (no stripes, solid borders) */
+  .print-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+  .print-table th, .print-table td { border: 1px solid #000; padding: 6px; vertical-align: top; }
+  .print-table thead { display: table-header-group; } /* repeat header on each page */
+  .print-table tfoot { display: table-row-group; }
+  .print-table tr { page-break-inside: avoid; }
+
+  /* Page break helpers */
+  .page-break { page-break-before: always; }
+</style>
+
+<% os = record %>
+
+<h2 class="print-heading">
+  <%= OrderService.model_name.human %> — <%= os.code %>
+</h2>
+
+<p class="print-subheading">
+  <strong><%= OrderService.human_attribute_name(:created_at) %>:</strong>
+  <%= CustomHelper.get_text_date(os.created_at, 'datetime', :full) %>
+</p>
+
+<div class="print-section">
+  <h3 class="print-heading">Dados principais</h3>
+  <ul class="print-kv">
+    <li>
+      <strong><%= OrderService.human_attribute_name(:client_id) %>:</strong>
+      <span><%= os.client.fantasy_name %></span>
+    </li>
+    <li>
+      <strong><%= OrderService.human_attribute_name(:registered_by) %>:</strong>
+      <span><%= os.manager.name %></span>
+    </li>
+    <li>
+      <strong><%= OrderService.human_attribute_name(:cost_center_id) %>:</strong>
+      <span><%= os.cost_center.name %></span>
+    </li>
+    <li>
+      <strong><%= OrderService.human_attribute_name(:provider_service_type) %>:</strong>
+      <span><%= os.provider_service_type.name %></span>
+    </li>
+    <li>
+      <strong><%= OrderService.human_attribute_name(:order_service_type_id) %>:</strong>
+      <span><%= os.order_service_type.name %></span>
+    </li>
+    <li>
+      <strong><%= OrderService.human_attribute_name(:vehicle) %>:</strong>
+      <span><%= "#{os.vehicle.brand}, #{os.vehicle.model}, #{os.vehicle.board}" %></span>
+    </li>
+  </ul>
+</div>
+
+<% if os.details.present? %>
+  <div class="print-section">
+    <h3 class="print-heading"><%= OrderService.human_attribute_name(:details) %></h3>
+    <p style="margin:8px 0 0;"><%= os.details %></p>
+  </div>
+<% end %>
+
+<% if os.attachments.any? %>
+  <div class="print-section">
+    <h3 class="print-heading">Anexos</h3>
+    <ul class="print-kv">
+      <% os.attachments.each do |att| %>
+        <li>
+          <strong><i class="bi bi-paperclip"></i></strong>
+          <span><%= att.attachment.filename %></span>
+        </li>
+      <% end %>
+    </ul>
+  </div>
+<% end %>
+
+<div class="print-section page-break">
+  <h3 class="print-heading">Histórico de alterações</h3>
+
+  <table class="print-table">
+    <thead>
+      <tr>
+        <th><%= t('audit.user') %></th>
+        <th><%= t('audit.order_service_code') %></th>
+        <th><%= t('audit.order_service_proposal_code') %></th>
+        <th><%= t('audit.change') %></th>
+        <th><%= t('audit.old_value') %></th>
+        <th><%= t('audit.new_value') %></th>
+        <th><%= t('audit.date') %></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% audits.each do |audit| %>
+
+        <% os_code = (audit.auditable_type == 'OrderService' && audit.auditable) ? audit.auditable.code : '' %>
+        <% pr_code = (audit.auditable_type == 'OrderServiceProposal' && audit.auditable) ? audit.auditable.code : '' %>
+
+        <%# Compute old/new status names robustly (no rescue in IF) %>
+        <%
+        old_status_name = ''
+        new_status_name = ''
+        new_status_id   = nil
+
+        begin
+            changes = audit.audited_changes || {}
+            # Expecting something like { "status_name" => [old, new], "status_id" => [old_id, new_id] }
+            values = changes.values
+            if values.is_a?(Array) && values.size >= 2 && values[1].is_a?(Array)
+            old_status_name = values[0].first rescue ''
+            new_status_name = values[0].last  rescue ''
+            new_status_id   = values[1].last  rescue nil
+            end
+        rescue
+            # leave defaults
+        end
+        %>
+
+        <%
+        canceled_or_reproved = false
+        canceled_text = ''
+
+        if audit.auditable_type == 'OrderService' && new_status_id == OrderServiceStatus::CANCELADA_ID
+            canceled_or_reproved = true
+            canceled_text = audit.auditable&.cancel_justification.to_s
+        elsif audit.auditable_type == 'OrderServiceProposal' &&
+                [OrderServiceProposalStatus::CANCELADA_ID, OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID].include?(new_status_id)
+            canceled_or_reproved = true
+            canceled_text = audit.auditable&.reason_reproved.to_s
+        end
+        %>
+
+        <tr>
+        <td><%= audit.user.try(:name) || t('audit.system_user') %></td>
+        <td><%= os_code %></td>
+        <td><%= pr_code %></td>
+        <td><%= t("audit.actions.#{audit.action}") %></td>
+        <td><%= old_status_name %></td>
+        <td>
+            <%= new_status_name %>
+            <% if canceled_or_reproved && canceled_text.present? %>
+            — <em><%= canceled_text %></em>
+            <% end %>
+        </td>
+        <td><%= CustomHelper.get_text_date(audit.created_at, 'datetime', :full) %></td>
+        </tr>
+
+      <% end %>
+    </tbody>
+  </table>
+</div>

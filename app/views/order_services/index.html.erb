@@ -1,0 +1,21 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: order_services_path, text: OrderService.human_attribute_name(:reports)}
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: OrderService.model_name.human(count: 2),
+		url_new_path: nil,
+		policy_true: false,
+		objects: @order_services,
+		objects_path: order_services_path,
+		object_name: OrderService.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: order_services_path(format: "csv", order_services_grid: (params[:order_services_grid].nil? ? "" : params[:order_services_grid].to_enum.to_h)),
+		objects_path_export_pdf: order_services_path(format: "pdf", order_services_grid: (params[:order_services_grid].nil? ? "" : params[:order_services_grid].to_enum.to_h))
+	}
+%>

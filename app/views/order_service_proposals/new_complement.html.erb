@@ -1,0 +1,618 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: false, href: order_service_path(@order_service), text: "OS #{@order_service.code}"},
+  {active: true, href: '#', text: 'Realizar Complemento'},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+  
+  <div class="row mb-3">
+    <div class="col-12">
+      <h4 class="mb-0">
+        <i class="bi bi-plus-circle text-success"></i>
+        Realizar Complemento - OS <%= @order_service.code %>
+      </h4>
+      <p class="text-muted">Adicione novas peças e serviços que serão identificados como complemento.</p>
+    </div>
+  </div>
+
+  <!-- Informações da OS e Proposta Original -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-info text-white">
+      <i class="bi bi-info-circle me-2"></i>Informações da Proposta Original
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4">
+          <strong>Código da Proposta:</strong> <%= @parent_proposal.code %>
+        </div>
+        <div class="col-md-4">
+          <strong>Fornecedor:</strong> <%= @parent_proposal.provider&.name %>
+        </div>
+        <div class="col-md-4">
+          <strong>Valor Total Atual:</strong> <%= CustomHelper.to_currency(@parent_proposal.total_value) %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerta sobre complemento -->
+  <div class="alert alert-warning" role="alert">
+    <i class="bi bi-exclamation-triangle me-2"></i>
+    <strong>Atenção:</strong> Os itens adicionados serão identificados como <span class="badge bg-warning text-dark">COMPLEMENTO</span> 
+    e passarão por aprovação antes de serem adicionados à OS. O sistema verificará o saldo disponível no empenho.
+  </div>
+
+  <!-- Formulário de Complemento -->
+  <%= simple_form_for @order_service_proposal, url: create_complement_path(@order_service), method: :post do |f| %>
+    <%= f.input :order_service_id, as: :hidden, input_html: { value: @order_service.id } %>
+    <%= f.input :provider_id, as: :hidden, input_html: { value: @parent_proposal.provider_id } %>
+    
+    <!-- Campo de Justificativa -->
+    <div class="card shadow-sm mb-3">
+      <div class="card-header bg-secondary text-white">
+        <i class="bi bi-chat-left-text me-2"></i>Justificativa do Complemento
+      </div>
+      <div class="card-body py-2">
+        <%= f.input :justification, 
+            as: :text, 
+            label: false,
+            placeholder: 'Descreva o motivo da solicitação deste complemento...',
+            input_html: { class: 'form-control', rows: 2, required: true }
+        %>
+      </div>
+    </div>
+    <%= f.input :order_service_id, as: :hidden, input_html: { value: @order_service.id } %>
+    <%= f.input :provider_id, as: :hidden, input_html: { value: @parent_proposal.provider_id } %>
+    
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-box-seam me-2"></i>Peças e Serviços do Complemento</span>
+        <button type="button" class="btn btn-light btn-sm" data-bs-toggle="modal" data-bs-target="#newServiceModal">
+          <i class="bi bi-plus-lg"></i> Criar Peça/Serviço
+        </button>
+      </div>
+      <div class="card-body" style="background-color: #f8f9fa;">
+        <div id="provider-service-temps-container">
+          <%= f.simple_fields_for :provider_service_temps do |pst| %>
+            <%= render 'order_service_proposals/forms/complement_item_fields', f: pst, position: pst.index %>
+          <% end %>
+        </div>
+        
+        <div class="mt-3">
+          <button type="button" class="btn btn-outline-success" id="add-complement-item">
+            <i class="bi bi-plus-circle"></i> Adicionar Item
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mb-4">
+      <div class="col-12">
+        <%= link_to show_order_service_proposal_path(@parent_proposal), class: 'btn btn-secondary' do %>
+          <i class="bi bi-arrow-left"></i> Cancelar
+        <% end %>
+        
+        <button type="submit" class="btn btn-success">
+          <i class="bi bi-check-circle"></i> Enviar para Aprovação
+        </button>
+      </div>
+    </div>
+  <% end %>
+  
+  <!-- Modal para criar nova Peça/Serviço -->
+  <div class="modal fade" id="newServiceModal" tabindex="-1" aria-labelledby="newServiceModalLabel" aria-hidden="true" style="z-index: 9999;">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title" id="newServiceModalLabel">
+            <i class="bi bi-plus-circle"></i> Criar Nova Peça/Serviço
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label d-block">Nome da Peça/Serviço <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="newServiceName" placeholder="Digite o nome..." required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label d-block">Categoria <span class="text-danger">*</span></label>
+            <div class="d-flex gap-3">
+              <% Category.order(:name).each do |category| %>
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="categoryRadio" id="category_<%= category.id %>" value="<%= category.id %>" required>
+                  <label class="form-check-label" for="category_<%= category.id %>">
+                    <%= category.name %>
+                  </label>
+                </div>
+              <% end %>
+            </div>
+          </div>
+          <div class="alert alert-info mb-0">
+            <i class="bi bi-info-circle me-2"></i>
+            A nova peça/serviço será criada e estará disponível imediatamente.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-success" id="saveNewService">
+            <i class="bi bi-check-circle"></i> Criar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <style>
+    /* Deixar texto do Select2 mais escuro e legível */
+    .select2-container--bootstrap-5 .select2-selection--single {
+      color: #212529 !important;
+      font-weight: 500;
+    }
+    .select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+      color: #212529 !important;
+    }
+    .select2-container--bootstrap-5 .select2-results__option {
+      color: #212529;
+    }
+  </style>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      let complementIndex = <%= @order_service_proposal.provider_service_temps.size || 0 %>;
+
+      const PARTS_CATEGORY_ID = <%= Category::SERVICOS_PECAS_ID %>;
+      const SERVICES_CATEGORY_ID = <%= Category::SERVICOS_SERVICOS_ID %>;
+
+      // Mapa service_id -> category_id (somente para esta tela de complemento)
+      const serviceCategoryMap = <%= Service.pluck(:id, :category_id).to_h.to_json.html_safe %>;
+      
+      // Serviços já existentes na proposta original
+      const existingServices = <%= @parent_proposal.order_service_proposal_items.pluck(:service_id).to_json.html_safe %>;
+      
+      function applyComplementMoneyMask(input) {
+        if (!input) return;
+
+        const rawValue = (input.value || '')
+          .toString()
+          .replace(/[^0-9,.-]/g, '')
+          .replace(',', '.');
+        const numericValue = parseFloat(rawValue);
+
+        if (window.jQuery && typeof jQuery.fn.maskMoney === 'function') {
+          const $input = jQuery(input);
+          $input.maskMoney({
+            prefix: 'R$ ',
+            showSymbol: true,
+            decimal: ',',
+            thousands: '.',
+            symbolStay: true,
+            selectAllOnFocus: true
+          });
+
+          if (!Number.isNaN(numericValue)) {
+            $input.maskMoney('mask', numericValue);
+          } else {
+            $input.maskMoney('mask', 0);
+          }
+        } else if (typeof SimpleMaskMoney !== 'undefined') {
+          SimpleMaskMoney.setMask(input, {
+            prefix: 'R$ ',
+            fixed: true,
+            fractionDigits: 2,
+            decimalSeparator: ',',
+            thousandsSeparator: '.'
+          });
+
+          if (!input.value || input.value.trim() === '') {
+            input.value = 'R$ 0,00';
+          }
+        } else {
+          if (!input.value || input.value.trim() === '') {
+            input.value = 'R$ 0,00';
+          }
+        }
+
+        input.addEventListener('focus', function() {
+          if (this.value === 'R$ 0,00') {
+            setTimeout(() => this.select(), 10);
+          }
+        });
+      }
+
+      // Aplicar máscara de dinheiro nos campos existentes
+      document.querySelectorAll('.complement-price').forEach(function(input) {
+        applyComplementMoneyMask(input);
+      });
+
+      function updateCategoryAndBrandRequirement(itemRow) {
+        if (!itemRow) return;
+
+        const categoryInput = itemRow.querySelector('.complement-category-id');
+        const brandInput = itemRow.querySelector('.complement-brand');
+        const brandRequiredIndicator = itemRow.querySelector('.complement-brand-required-indicator');
+        const typeRadios = itemRow.querySelectorAll('.complement-type-radio');
+
+        // Obter category_id do radio button selecionado
+        let categoryId = null;
+        typeRadios.forEach(radio => {
+          if (radio.checked) {
+            categoryId = parseInt(radio.value, 10);
+          }
+        });
+
+        // Se não encontrou radio selecionado, usar PEÇA como padrão
+        if (!categoryId) {
+          categoryId = PARTS_CATEGORY_ID;
+        }
+
+        // Atualizar hidden category_id
+        if (categoryInput) {
+          categoryInput.value = categoryId;
+        }
+
+        // Determinar se é peça (category_id = 1)
+        const isPart = (categoryId === PARTS_CATEGORY_ID);
+
+        // Atualizar obrigatoriedade do campo Marca
+        if (brandInput) {
+          brandInput.required = isPart;
+          if (!isPart) {
+            brandInput.value = ''; // Limpar valor se não for obrigatório
+          }
+        }
+
+        // Atualizar indicador visual (*)
+        if (brandRequiredIndicator) {
+          brandRequiredIndicator.style.display = isPart ? 'inline' : 'none';
+        }
+      }
+      
+      // Validar se serviço já existe
+      function validateDuplicateService(serviceId) {
+        if (existingServices.includes(parseInt(serviceId))) {
+          alert('Esta peça/serviço já está incluída na proposta original!');
+          return false;
+        }
+        
+        // Verificar se já foi adicionado no complemento
+        const complementServices = Array.from(document.querySelectorAll('.complement-service-select'))
+          .map(select => parseInt(select.value))
+          .filter(val => val);
+        
+        if (complementServices.filter(id => id === parseInt(serviceId)).length > 1) {
+          alert('Esta peça/serviço já foi adicionada ao complemento!');
+          return false;
+        }
+        
+        return true;
+      }
+      
+      // Event listener para validar seleção e mudança de tipo
+      document.addEventListener('change', function(e) {
+        if (e.target.classList.contains('complement-service-select')) {
+          if (e.target.value && !validateDuplicateService(e.target.value)) {
+            e.target.value = '';
+          }
+        }
+        
+        // Atualizar quando mudar o tipo (Peça/Serviço)
+        if (e.target.classList.contains('complement-type-radio')) {
+          updateCategoryAndBrandRequirement(e.target.closest('.complement-item'));
+        }
+      });
+      
+      // Criar nova peça/serviço
+      document.getElementById('saveNewService')?.addEventListener('click', function() {
+        const name = document.getElementById('newServiceName').value.trim();
+        const categoryRadio = document.querySelector('input[name="categoryRadio"]:checked');
+        const categoryId = categoryRadio ? categoryRadio.value : null;
+        
+        if (!name || !categoryId) {
+          alert('Preencha todos os campos obrigatórios!');
+          return;
+        }
+        
+        // Criar serviço via AJAX
+        fetch('/services.json', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]').content
+          },
+          body: JSON.stringify({
+            service: {
+              name: name,
+              category_id: categoryId
+            }
+          })
+        })
+        .then(response => {
+          if (!response.ok) {
+            return response.json().then(err => Promise.reject(err));
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.id) {
+            // Determinar o tipo baseado na categoria
+            const typeLabel = categoryId == <%= Category::SERVICOS_PECAS_ID %> ? '[PEÇA]' : '[SERVIÇO]';
+            const displayName = `${typeLabel} ${data.name}`;
+
+            // Atualizar mapa de categorias para novos serviços criados
+            serviceCategoryMap[data.id] = parseInt(categoryId, 10);
+            
+            // Adicionar nova opção em todos os selects com data-category-id
+            const option = `<option value="${data.id}" data-category-id="${categoryId}">${displayName}</option>`;
+            document.querySelectorAll('.complement-service-select').forEach(select => {
+              select.insertAdjacentHTML('beforeend', option);
+            });
+            
+            // Fechar modal e limpar campos
+            bootstrap.Modal.getInstance(document.getElementById('newServiceModal')).hide();
+            document.getElementById('newServiceName').value = '';
+            document.querySelectorAll('input[name="categoryRadio"]').forEach(radio => radio.checked = false);
+            
+            alert('Peça/Serviço criada com sucesso!');
+          } else {
+            alert('Erro ao criar peça/serviço: ' + (data.errors ? data.errors.join(', ') : 'Erro desconhecido'));
+          }
+        })
+        .catch(error => {
+          const errorMsg = error.errors ? error.errors.join(', ') : (error.message || 'Erro desconhecido');
+          alert('Erro ao criar peça/serviço: ' + errorMsg);
+          console.error('Erro completo:', error);
+        });
+      });
+      
+      // Adicionar novo item
+      document.getElementById('add-complement-item').addEventListener('click', function() {
+        const container = document.getElementById('provider-service-temps-container');
+        const clientDiscountPercent = <%= @order_service.client&.discount_percent || 0 %>;
+        const template = `
+          <div class="nested-fields complement-item mb-2 p-2 border rounded position-relative" style="background-color: #ffffff;" data-index="${complementIndex}">
+            <button type="button" class="btn btn-danger btn-sm remove-complement-item position-absolute top-0 end-0 m-2" data-index="${complementIndex}" style="z-index: 10; padding: 0.25rem 0.5rem;">
+              <i class="bi bi-trash"></i>
+            </button>
+            
+            <div class="row g-2">
+              <input type="hidden" name="order_service_proposal[provider_service_temps_attributes][${complementIndex}][is_complement]" value="true">
+              <input type="hidden" class="complement-category-id" name="order_service_proposal[provider_service_temps_attributes][${complementIndex}][category_id]" value="${PARTS_CATEGORY_ID}">
+              
+              <div class="col-md-2">
+                <label class="form-label" style="font-size: 0.875rem;">Tipo <span class="text-danger">*</span></label>
+                <div class="btn-group w-100" role="group">
+                  <input type="radio" class="btn-check complement-type-radio" name="complement_type_${complementIndex}" id="type_part_${complementIndex}" value="${PARTS_CATEGORY_ID}" checked>
+                  <label class="btn btn-outline-primary btn-sm" for="type_part_${complementIndex}">
+                    <i class="bi bi-gear"></i> Peça
+                  </label>
+                  
+                  <input type="radio" class="btn-check complement-type-radio" name="complement_type_${complementIndex}" id="type_service_${complementIndex}" value="${SERVICES_CATEGORY_ID}">
+                  <label class="btn btn-outline-success btn-sm" for="type_service_${complementIndex}">
+                    <i class="bi bi-wrench"></i> Serviço
+                  </label>
+                </div>
+              </div>
+              
+              <div class="col-md-1">
+                <label class="form-label" style="font-size: 0.875rem;">Obs.</label>
+                <input type="text" class="form-control form-control-sm" placeholder="Códigos..." name="order_service_proposal[provider_service_temps_attributes][${complementIndex}][description]">
+              </div>
+              
+              <div class="col-md-4">
+                <label class="form-label" style="font-size: 0.875rem;">Peça/Serviço <span class="text-danger">*</span></label>
+                <select class="form-select form-select-sm complement-service-select" name="order_service_proposal[provider_service_temps_attributes][${complementIndex}][service_id]" data-index="${complementIndex}" required>
+                  <option value="">Selecione...</option>
+                  <% Service.order(:category_id, :name).each do |service| %>
+                    <option value="<%= service.id %>" data-category-id="<%= service.category_id %>"><%= service.getting_formatted_name_with_type_and_price %></option>
+                  <% end %>
+                </select>
+              </div>
+              
+              <div class="col-md-5"></div>
+            </div>
+            
+            <div class="row g-2 mt-1">
+              <div class="col-md-1">
+                <label class="form-label" style="font-size: 0.875rem;">Qtd. <span class="text-danger">*</span></label>
+                <input type="number" min="1" value="1" class="form-control form-control-sm complement-quantity" name="order_service_proposal[provider_service_temps_attributes][${complementIndex}][quantity]" data-index="${complementIndex}" required>
+              </div>
+              
+              <div class="col-md-2">
+                <label class="form-label" style="font-size: 0.875rem;">Preço <span class="text-danger">*</span></label>
+                <input type="tel" class="form-control form-control-sm complement-price" name="order_service_proposal[provider_service_temps_attributes][${complementIndex}][price]" data-index="${complementIndex}" required>
+              </div>
+              
+              <div class="col-md-2">
+                <label class="form-label" style="font-size: 0.875rem;">Garantia <span class="text-danger">*</span></label>
+                <input type="number" min="0" class="form-control form-control-sm" placeholder="Dias" name="order_service_proposal[provider_service_temps_attributes][${complementIndex}][warranty_period]" required>
+              </div>
+              
+              <div class="col-md-2">
+                <label class="form-label" style="font-size: 0.875rem;">Marca <span class="text-danger complement-brand-required-indicator" style="display:none;">*</span></label>
+                <input type="text" class="form-control form-control-sm complement-brand" name="order_service_proposal[provider_service_temps_attributes][${complementIndex}][brand]">
+              </div>
+              
+              <div class="col-md-2">
+                <label class="form-label" style="font-size: 0.875rem;">Desconto (${clientDiscountPercent}%)</label>
+                <input type="text" class="form-control form-control-sm only-read complement-discount" value="R$ 0,00" readonly style="background-color: #e9ecef;" data-index="${complementIndex}">
+                <input type="hidden" class="complement-discount-percent" value="${clientDiscountPercent}" data-index="${complementIndex}">
+              </div>
+              
+              <div class="col-md-2">
+                <label class="form-label" style="font-size: 0.875rem;">Total</label>
+                <input type="text" class="form-control form-control-sm only-read complement-total" value="R$ 0,00" readonly style="background-color: #e9ecef;" data-index="${complementIndex}">
+              </div>
+            </div>
+          </div>
+        `;
+        
+        container.insertAdjacentHTML('beforeend', template);
+        
+        // Incrementar índice antes de buscar o elemento
+        const currentIndex = complementIndex;
+        complementIndex++;
+        
+        // Buscar o novo item e seus campos (aguardar DOM estar pronto)
+        setTimeout(function() {
+          const newItem = container.querySelector(`[data-index="${currentIndex}"]`);
+          if (!newItem) {
+            console.error('Item não encontrado:', currentIndex);
+            return;
+          }
+          
+          const qtyInput = newItem.querySelector('.complement-quantity');
+          const priceInput = newItem.querySelector('.complement-price');
+          const serviceSelect = newItem.querySelector('.complement-service-select');
+
+          // Inicializar Select2 no novo campo de Peça/Serviço para ter pesquisa
+          if (serviceSelect && typeof $.fn.select2 !== 'undefined') {
+            $(serviceSelect).select2({
+              theme: 'bootstrap-5',
+              width: '100%',
+              placeholder: 'Selecione...',
+              allowClear: true,
+              language: {
+                noResults: function() {
+                  return 'Nenhum resultado encontrado';
+                },
+                searching: function() {
+                  return 'Pesquisando...';
+                }
+              }
+            });
+          }
+
+          // Ajustar category_id e obrigatoriedade de marca (inicial)
+          updateCategoryAndBrandRequirement(newItem);
+
+          // Aplicar máscara de dinheiro no novo campo de preço
+          applyComplementMoneyMask(priceInput);
+          
+          if (priceInput) {
+            priceInput.addEventListener('input', function() { 
+              calculateTotal(newItem); 
+            });
+            priceInput.addEventListener('change', function() { 
+              calculateTotal(newItem); 
+            });
+            priceInput.addEventListener('blur', function() { 
+              calculateTotal(newItem); 
+            });
+          }
+          
+          // Adicionar listeners para quantidade
+          if (qtyInput) {
+            qtyInput.addEventListener('input', function() { 
+              calculateTotal(newItem); 
+            });
+            qtyInput.addEventListener('change', function() { 
+              calculateTotal(newItem); 
+            });
+          }
+          
+          // Calcular total inicial
+          calculateTotal(newItem);
+        }, 150);
+      });
+      
+      // Função para calcular total com desconto percentual do cliente
+      function calculateTotal(row) {
+        const qtyInput = row.querySelector('.complement-quantity');
+        const priceInput = row.querySelector('.complement-price');
+        const discountPercentInput = row.querySelector('.complement-discount-percent');
+        const discountDisplayInput = row.querySelector('.complement-discount');
+        const totalInput = row.querySelector('.complement-total');
+        
+        if (qtyInput && priceInput && totalInput) {
+          const qty = parseFloat(qtyInput.value) || 0;
+          const priceText = priceInput.value.replace('R$ ', '').replace(/\./g, '').replace(',', '.');
+          const price = parseFloat(priceText) || 0;
+          const discountPercent = parseFloat(discountPercentInput?.value) || 0;
+          
+          const subtotal = qty * price;
+          const discountAmount = subtotal * (discountPercent / 100);
+          const total = subtotal - discountAmount;
+          
+          // Atualizar display do desconto em R$
+          if (discountDisplayInput) {
+            discountDisplayInput.value = 'R$ ' + discountAmount.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+          }
+          
+          // Atualizar total
+          totalInput.value = 'R$ ' + total.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        }
+      }
+      
+      // Adicionar listeners aos itens existentes (execução imediata)
+      setTimeout(function() {
+        document.querySelectorAll('.complement-item').forEach(function(item) {
+          const qtyInput = item.querySelector('.complement-quantity');
+          const priceInput = item.querySelector('.complement-price');
+          const serviceSelect = item.querySelector('.complement-service-select');
+
+          // Inicializar Select2 no campo existente de Peça/Serviço para ter pesquisa
+          if (serviceSelect && typeof $.fn.select2 !== 'undefined') {
+            $(serviceSelect).select2({
+              theme: 'bootstrap-5',
+              width: '100%',
+              placeholder: 'Selecione...',
+              allowClear: true,
+              language: {
+                noResults: function() {
+                  return 'Nenhum resultado encontrado';
+                },
+                searching: function() {
+                  return 'Pesquisando...';
+                }
+              }
+            });
+          }
+
+          // Ajustar category_id e obrigatoriedade de marca (inicial)
+          updateCategoryAndBrandRequirement(item);
+
+          // Aplicar máscara de dinheiro no item existente
+          applyComplementMoneyMask(priceInput);
+          
+          if (qtyInput) {
+            qtyInput.addEventListener('input', function() { 
+              calculateTotal(item); 
+            });
+            qtyInput.addEventListener('change', function() { 
+              calculateTotal(item); 
+            });
+          }
+          if (priceInput) {
+            priceInput.addEventListener('input', function() { 
+              calculateTotal(item); 
+            });
+            priceInput.addEventListener('change', function() { 
+              calculateTotal(item); 
+            });
+            priceInput.addEventListener('blur', function() { 
+              calculateTotal(item); 
+            });
+          }
+          
+          // Calcular total inicial
+          calculateTotal(item);
+        });
+      }, 100);
+      
+      // Remover item
+      document.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-complement-item')) {
+          e.preventDefault();
+          const item = e.target.closest('.complement-item');
+          if (item) {
+            item.remove();
+          }
+        }
+      });
+    });
+  </script>

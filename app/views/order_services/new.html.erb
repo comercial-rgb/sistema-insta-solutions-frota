@@ -1,0 +1,15 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: show_order_services_path(order_service_status_id: OrderServiceStatus::EM_ABERTO_ID), text: OrderService.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.add_new')},
+]
+%>
+
+<%= 
+render 'common_pages/new', 
+objects_path: order_services_path, 
+page_title: OrderService.model_name.human(count: 2), 
+form_to_render: 'order_services/form',
+breadcrumbs: breadcrumbs
+%>

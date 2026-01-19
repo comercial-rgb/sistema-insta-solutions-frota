@@ -1,0 +1,87 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: vehicles_path, text: Vehicle.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: Vehicle.model_name.human(count: 2),
+		url_new_path: new_vehicle_path,
+		policy_true: policy(Vehicle).new?,
+		objects: @vehicles,
+		objects_path: vehicles_path,
+		object_name: Vehicle.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: vehicles_path(format: "csv", vehicles_grid: (params[:vehicles_grid].nil? ? "" : params[:vehicles_grid].to_enum.to_h)),
+		objects_path_export_pdf: vehicles_path(format: "pdf", vehicles_grid: (params[:vehicles_grid].nil? ? "" : params[:vehicles_grid].to_enum.to_h))
+	}
+%>
+
+<div class="modal fade" id="vehicleOrderServicesModal" tabindex="-1" aria-labelledby="vehicleOrderServicesModalLabel" aria-hidden="true">
+	<div class="modal-dialog modal-xl modal-dialog-scrollable">
+		<div class="modal-content">
+			<div class="modal-header">
+				<h5 class="modal-title" id="vehicleOrderServicesModalLabel"><%= OrderService.model_name.human(count: 2) %></h5>
+				<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+			</div>
+			<div class="modal-body" id="vehicle-order-services-modal-body">
+				<p class="text-muted mb-0">Selecione um veículo para visualizar as ordens de serviço vinculadas.</p>
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+	document.addEventListener('DOMContentLoaded', function() {
+		$(document).on('click', '[data-bs-target="#vehicleOrderServicesModal"]', function() {
+			var trigger = $(this);
+			var url = trigger.data('url');
+			var vehicleLabel = trigger.data('vehicle-label');
+			var modalTitle = $('#vehicleOrderServicesModalLabel');
+			var modalBody = $('#vehicle-order-services-modal-body');
+
+			if (vehicleLabel) {
+				modalTitle.text(vehicleLabel);
+			}
+
+			modalBody.html('<div class="d-flex align-items-center justify-content-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div><span class="ms-2">Carregando OS...</span></div>');
+
+			$.ajax({
+				url: url,
+				dataType: 'html',
+				success: function(html) {
+					modalBody.html(html);
+				},
+				error: function() {
+					modalBody.html('<p class="text-danger mb-0">Não foi possível carregar as OS deste veículo.</p>');
+				}
+			});
+		});
+
+		// Paginação dentro do modal (AJAX)
+		$(document).on('click', '#vehicle-order-services-modal-body .pagination a', function(e) {
+			e.preventDefault();
+			var url = $(this).attr('href');
+			var modalBody = $('#vehicle-order-services-modal-body');
+
+			if (!url) return;
+
+			modalBody.html('<div class="d-flex align-items-center justify-content-center py-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Carregando...</span></div><span class="ms-2">Carregando OS...</span></div>');
+
+			$.ajax({
+				url: url,
+				dataType: 'html',
+				success: function(html) {
+					modalBody.html(html);
+				},
+				error: function() {
+					modalBody.html('<p class="text-danger mb-0">Não foi possível carregar as OS deste veículo.</p>');
+				}
+			});
+		});
+	});
+</script>

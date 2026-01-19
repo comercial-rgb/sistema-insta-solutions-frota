@@ -1,0 +1,14 @@
+# Exemplo de arquivo de configuração do Figaro
+# Copie este arquivo para application.yml e preencha com suas credenciais
+
+# Banco de Dados
+DATABASE_USERNAME_DEVELOPMENT: "root"
+DATABASE_PASSWORD_DEVELOPMENT: "sua_senha"
+
+DATABASE_USERNAME_TEST: "root"
+DATABASE_PASSWORD_TEST: "sua_senha"
+
+DATABASE_USERNAME_PRODUCTION: "root"
+DATABASE_PASSWORD_PRODUCTION: "sua_senha"
+
+# Outras configurações podem ser necessárias aqui

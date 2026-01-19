@@ -1,0 +1,21 @@
+<%
+breadcrumbs = [
+  {active: false, href: subscribe_path, text: Subscription.human_attribute_name(:plan_signature)}
+]
+%>
+
+<%= 
+  render 'common_pages/index',
+  attributes: {
+    page_title: Subscription.human_attribute_name(:plan_signature),
+    url_new_path: nil,
+    policy_true: false,
+    objects: @plans,
+    objects_path: subscribe_path,
+    object_name: Subscription.model_name.human,
+    breadcrumbs: breadcrumbs,
+    objects_path_export: subscribe_path(format: "csv", plans_grid: (params[:plans_grid].nil? ? "" : params[:plans_grid].to_enum.to_h)),
+    custom_table_data: (render "subscribe/plans/plans", plans: @plans.assets),
+    remove_pagination: true
+  }
+%>

@@ -1,0 +1,38 @@
+<%
+
+if @order_service_status.nil?
+	label_text = OrderService.human_attribute_name(:rejecteds)
+else
+	label_text = @order_service_status.name
+end
+
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: '#', text: OrderService.model_name.human(count: 2)},
+	{active: false, href: show_order_services_path(order_service_status_id: params[:order_service_status_id]), text: label_text},
+	{active: true, href: '#', text: t('model.list')},
+]
+
+select_all_registers = false
+if !@order_service_status.nil? && [OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID, OrderServiceStatus::AUTORIZADA_ID, OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID].include?(@order_service_status.id) && @current_user.admin?
+	select_all_registers = true
+end
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: OrderService.model_name.human(count: 2),
+		url_new_path: new_order_service_path,
+		policy_true: policy(OrderService).new?,
+		objects: @order_services,
+		objects_path: show_order_services_path(order_service_status_id: params[:order_service_status_id]),
+		object_name: OrderService.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: show_order_services_path(order_service_status_id: params[:order_service_status_id], format: "csv", order_services_grid: (params[:order_services_grid].nil? ? "" : params[:order_services_grid].to_enum.to_h)),
+		select_all_registers: select_all_registers,
+		render_select_all_registers: (render "common_pages/datagrid/select_all_registers", current_model: "order_service", current_models: "order_services", text_label: OrderService.human_attribute_name(:select_all_order_services)),
+		show_actions_registers: true,
+		render_show_actions_registers: (render "order_services/renders/button_actions", order_service_status: @order_service_status)
+	}
+%>

@@ -1,0 +1,22 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: '#', text: OrderService.model_name.human(count: 2)},
+	{active: false, href: show_order_service_proposals_path(order_service_proposal_status_id: params[:order_service_proposal_status_id]), text: @order_service_proposal_status.name},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: OrderServiceProposal.model_name.human(count: 2),
+		url_new_path: new_order_service_proposal_path,
+		policy_true: policy(OrderServiceProposal).new?,
+		objects: @order_service_proposals,
+		objects_path: show_order_service_proposals_path(order_service_proposal_status_id: params[:order_service_proposal_status_id]),
+		object_name: OrderServiceProposal.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: show_order_service_proposals_path(order_service_proposal_status_id: params[:order_service_proposal_status_id], format: "csv", order_service_proposals_grid: (params[:order_service_proposals_grid].nil? ? "" : params[:order_service_proposals_grid].to_enum.to_h))
+	}
+%>

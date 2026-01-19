@@ -1,0 +1,652 @@
+# Files in the config/locales directory are used for internationalization
+# and are automatically loaded by Rails. If you want to use locales other
+# than English, add the necessary files in this directory.
+#
+# To use the locales, use `I18n.t`:
+#
+#     I18n.t 'hello'
+#
+# In views, this is aliased to just `t`:
+#
+#     <%= t('hello') %>
+#
+# To use a different locale, set it with `I18n.locale`:
+#
+#     I18n.locale = :es
+#
+# This would use the information in config/locales/es.yml.
+#
+# To learn more, please read the Rails Internationalization guide
+# available at http://guides.rubyonrails.org/i18n.html.
+pt-BR:
+  "yes": 'Sim'
+  "no": 'Não'
+  "true": 'Sim'
+  "false": 'Não'
+  from: 'De'
+  until: 'Até'
+  session:
+    login: 'Digite seu <b>login</b> e <b>senha</b para que tenha acesso ao sistema.'
+    recover_pass: 'Digite sua <b>nova senha</b> e confirme para que tenha acesso ao sistema.'
+    recovery_pass: 'Digite seu e-mail a seguir para receber as instruções de recuperação de senha de acesso ao sistema.'
+    user: 'E-mail'
+    password: 'Senha'
+    forgot_password: 'Esqueceu a senha?'
+    log_in: 'Entrar'
+    terms: 'Termos e condições de uso'
+    project: 'Insta Solutions'
+    register: 'Se cadastrar'
+    enter: 'Entrar'
+    welcome: 'Seja bem vindo'
+    locale_ptbr: 'Português'
+    locale_en: 'Inglês'
+    initial: "Início"
+    continue_with_google: "Continuar com Google"
+    continue_with_facebook: "Continuar com Facebook"
+    invalid_data: "Dados inválidos"
+    invalid_recaptcha: "Complete a validação acima"
+  api:
+    invalid_access_data: "Dados de acesso inválidos"
+  menu:
+    menu: "Menu"
+    initial_page: 'Página inicial'
+    login: 'Login'
+    logout: 'Sair'
+    hello: 'Olá'
+    welcome: 'seja bem vindo!'
+    home: 'Home'
+    address: "Endereços"
+    categories: "Categorias"
+  subject_mails:
+    welcome: 'Bem vindo'
+    forgot_password: 'Instruções para alteração de senha'
+    reset_password: "Nova senha de acesso"
+    new_site_contact_user: 'Insta Solutions :: Novo contato realizado'
+    new_site_contact_confirm_message: 'Insta Solutions :: Novo contato realizado com sucesso'
+    plan_subscription: 'Insta Solutions :: Assinatura de plano'
+    disapprove_user: 'Insta Solutions :: Cadastro reprovado'
+    approve_user: 'Insta Solutions :: Cadastro aprovado'
+  model:
+    no_document: "Sem documento"
+    download: "Download"
+    management: 'Gerenciar'
+    add: "Adicionar"
+    add_new: "Adicionar"
+    edit: 'Atualizar'
+    delete: 'Excluir'
+    list: 'Listagem'
+    export_excel: 'Baixar em Excel'
+    export_pdf: 'Baixar em PDF'
+    export_pdf: 'Baixar em PDF'
+    show_details: 'Visualizar'
+    register: 'registro'
+    invalid: 'inválido'
+    show: 'Detalhes'
+    save: 'Salvar'
+    current_file: 'Atual'
+    confirm_action: "Você tem certeza?"
+    select_option: 'Selecione'
+    send: 'Enviar'
+    back: 'Voltar'
+    cancel: 'Cancelar'
+    "yes": 'Sim'
+    "no": 'Não'
+    from: 'De'
+    until: 'Até'
+    invite: "Convidar"
+    with_sucess: ' com sucesso!'
+    instruction_import: "No botão a seguir você poderá baixar o modelo de planilha a ser preenchida para que os dados sejam importados corretamente no sistema."
+    download_model_import: "Baixar modelo de planilha"
+    select_file_import: 'Clique no botão a seguir e selecione a planilha preenchida a partir do modelo que você baixou e clique em "Importar dados da planilha" para que os dados sejam inseridos no sistema.'
+    import_file: "Importar dados da planilha"
+    success_import: "Dados importados com sucesso!"
+    error_import: "Falha ao importar dados:"
+    not_found: "Não encontrado"
+    send_push_test: "Envio de push (teste)"
+    select_all: "Todos"
+    find_filter: "Pesquisar.."
+    delete_remove: "Apagar/remover"
+    password_generated: "Senha gerada: "
+    password_sent: "Foi enviado um e-mail para o usuário com os dados de acesso."
+    download_invoice: "Baixar fatura"
+  datagrid:
+    no_results: "Nenhum registro encontrado"
+    filters:
+      xboolean:
+        "yes": "Sim"
+        "no": "Não"
+    form:
+      reset: "Limpar"
+      search: "Filtrar"
+    table:
+      order:
+        asc: "&uarr;"
+        desc: "&darr;"
+      no_columns: ""
+  views:
+    pagination:
+      first: "Primeiro"
+      previous: "Anterior"
+      next: "Próximo"
+      last: "Último"
+      truncate: ""
+  date:
+    abbr_day_names:
+    - Dom
+    - Seg
+    - Ter
+    - Qua
+    - Qui
+    - Sex
+    - Sáb
+    abbr_month_names:
+    -
+    - Jan
+    - Fev
+    - Mar
+    - Abr
+    - Mai
+    - Jun
+    - Jul
+    - Ago
+    - Set
+    - Out
+    - Nov
+    - Dez
+    day_names:
+    - Domingo
+    - Segunda
+    - Terça
+    - Quarta
+    - Quinta
+    - Sexta
+    - Sábado
+    formats:
+      default: "%d/%m/%Y"
+      long: "%d de %B de %Y"
+      short: "%d de %B"
+      full: "%d/%m/%Y %H:%M"
+      just_month: "%B"
+      just_hour_minute: "%H:%M"
+    month_names:
+    -
+    - Janeiro
+    - Fevereiro
+    - Março
+    - Abril
+    - Maio
+    - Junho
+    - Julho
+    - Agosto
+    - Setembro
+    - Outubro
+    - Novembro
+    - Dezembro
+    order:
+    - :day
+    - :month
+    - :year
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        one: aproximadamente 1 hora
+        other: aproximadamente %{count} horas
+      about_x_months:
+        one: aproximadamente 1 mês
+        other: aproximadamente %{count} meses
+      about_x_years:
+        one: aproximadamente 1 ano
+        other: aproximadamente %{count} anos
+      almost_x_years:
+        one: quase 1 ano
+        other: quase %{count} anos
+      half_a_minute: meio minuto
+      less_than_x_minutes:
+        one: menos de um minuto
+        other: menos de %{count} minutos
+      less_than_x_seconds:
+        one: menos de 1 segundo
+        other: menos de %{count} segundos
+      over_x_years:
+        one: mais de 1 ano
+        other: mais de %{count} anos
+      x_days:
+        one: 1 dia
+        other: "%{count} dias"
+      x_minutes:
+        one: 1 minuto
+        other: "%{count} minutos"
+      x_months:
+        one: 1 mês
+        other: "%{count} meses"
+      x_seconds:
+        one: 1 segundo
+        other: "%{count} segundos"
+    prompts:
+      day: Dia
+      hour: Hora
+      minute: Minuto
+      month: Mês
+      second: Segundo
+      year: Ano
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: devem ser aceitos
+      blank: não pode ficar em branco
+      present: deve ficar em branco
+      confirmation: não é igual a %{attribute}
+      empty: não pode ficar vazio
+      equal_to: deve ser igual a %{count}
+      even: deve ser par
+      exclusion: não está disponível
+      greater_than: deve ser maior que %{count}
+      greater_than_or_equal_to: deve ser maior ou igual a %{count}
+      inclusion: não está incluído na lista
+      invalid: não é válido
+      less_than: deve ser menor que %{count}
+      less_than_or_equal_to: deve ser menor ou igual a %{count}
+      not_a_number: não é um número
+      not_an_integer: não é um número inteiro
+      odd: deve ser ímpar
+      record_invalid: 'A validação falhou: %{errors}'
+      restrict_dependent_destroy:
+        one: Não é possível excluir o registro pois existe um %{record} dependente
+        many: Não é possível excluir o registro pois existem %{record} dependentes
+      taken: já cadastrado(a) no sistema
+      too_long: 'é muito longo (máximo: %{count} caracteres)'
+      too_short: 'é muito curto (mínimo: %{count} caracteres)'
+      wrong_length: não possui o tamanho esperado (%{count} caracteres)
+      other_than: deve ser diferente de %{count}
+    template:
+      body: 'Por favor, verifique o(s) seguinte(s) campo(s):'
+      header:
+        one: 'Não foi possível gravar %{model}: 1 erro'
+        other: 'Não foi possível gravar %{model}: %{count} erros.'
+  helpers:
+    select:
+      prompt: Por favor selecione
+    submit:
+      create: Salvando
+      submit: Salvando
+      update: Salvando
+    page_entries_info:
+      one_page:
+        display_entries:
+          zero: "Nenhum %{entry_name} encontrado"
+          one: "Mostrando <b>1</b> %{entry_name}"
+          other: "Mostrando <b> %{count}</b> %{entry_name}"
+      more_pages:
+        display_entries: "Mostrando %{entry_name} <b>%{first}&nbsp;-&nbsp;%{last}</b> de <b>%{total}</b> no total"
+  number:
+    currency:
+      format:
+        delimiter: "."
+        format: "%u %n"
+        precision: 2
+        separator: ","
+        significant: false
+        strip_insignificant_zeros: false
+        unit: R$
+    format:
+      delimiter: "."
+      precision: 3
+      separator: ","
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      decimal_units:
+        format: "%n %u"
+        units:
+          billion:
+            one: bilhão
+            other: bilhões
+          million:
+            one: milhão
+            other: milhões
+          quadrillion:
+            one: quatrilhão
+            other: quatrilhões
+          thousand: mil
+          trillion:
+            one: trilhão
+            other: trilhões
+          unit: ''
+      format:
+        delimiter: "."
+        precision: 2
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            one: Byte
+            other: Bytes
+          gb: GB
+          kb: KB
+          mb: MB
+          tb: TB
+    percentage:
+      format:
+        delimiter: "."
+        format: "%n%"
+    precision:
+      format:
+        delimiter: "."
+  support:
+    array:
+      last_word_connector: " e "
+      two_words_connector: " e "
+      words_connector: ", "
+  time:
+    am: ''
+    formats:
+      default: "%a, %d de %B de %Y, %H:%M:%S %z"
+      long: "%d de %B de %Y, %H:%M"
+      short: "%d de %B, %H:%M"
+      full: "%d/%m/%Y %H:%M"
+      just_month: "%B"
+      just_hour_minute: "%H:%M"
+    pm: ''
+en:
+  session:
+    login: 'Insert seu <b>login</b> e <b>senha</b para que tenha acesso ao sistema.'
+    recover_pass: 'Digite sua <b>nova senha</b> e confirme para que tenha acesso ao sistema.'
+    recovery_pass: 'Digite seu e-mail a seguir para receber as instruções de recuperação de senha de acesso ao sistema.'
+    user: 'Login'
+    password: 'Password'
+    forgot_password: 'Esqueceu a senha?'
+    log_in: 'Entrar'
+    terms: 'Termos e condições de uso'
+    project: 'Insta Solutions'
+    register: 'Se cadastrar'
+    enter: 'Entrar'
+    welcome: 'Seja bem vindo'
+    locale_ptbr: 'Português'
+    locale_en: 'Inglês'
+    initial: "Início"
+    continue_with_google: "Continuar com Google"
+    continue_with_facebook: "Continuar com Facebook"
+    invalid_data: "Dados inválidos"
+    invalid_recaptcha: "Complete a validação acima"
+  menu:
+    initial_page: 'Página inicial'
+    login: 'Login'
+    logout: 'Sair'
+    hello: 'Olá'
+    welcome: 'seja bem vindo!'
+    home: 'Home'
+  subject_mails:
+    welcome: 'Bem vindo'
+    forgot_password: 'Instruções para alteração de senha'
+    reset_password: "Nova senha de acesso"
+  model:
+    no_document: "Sem documento"
+    download: "Download"
+    management: 'Gerenciar'
+    add: "Adicionar"
+    add_new: "Adicionar"
+    edit: 'Atualizar'
+    delete: 'Excluir'
+    list: 'Listagem'
+    export_excel: 'Baixar em Excel'
+    show_details: 'Visualizar'
+    register: 'registro'
+    invalid: 'inválido'
+    show: 'Detalhes'
+    save: 'Salvar'
+    current_file: 'Atual'
+    confirm_action: 'Você tem certeza?'
+    select_option: 'Selecione'
+    select_all: "Todos"
+    send: 'Enviar'
+    back: 'Voltar'
+    cancel: 'Cancelar'
+    "yes": 'Sim'
+    "no": 'Não'
+    with_sucess: ' com sucesso!'
+  datagrid:
+    no_results: "Nenhum registro encontrado"
+    filters:
+      xboolean:
+        "yes": "Sim"
+        "no": "Não"
+    form:
+      reset: "Limpar"
+      search: "Filtrar"
+    table:
+      order:
+        asc: "&uarr;"
+        desc: "&darr;"
+      no_columns: ""
+  views:
+    pagination:
+      first: "Primeiro"
+      previous: "Anterior"
+      next: "Próximo"
+      last: "Último"
+      truncate: ""
+  date:
+    abbr_day_names:
+    - Dom
+    - Seg
+    - Ter
+    - Qua
+    - Qui
+    - Sex
+    - Sáb
+    abbr_month_names:
+    -
+    - Jan
+    - Fev
+    - Mar
+    - Abr
+    - Mai
+    - Jun
+    - Jul
+    - Ago
+    - Set
+    - Out
+    - Nov
+    - Dez
+    day_names:
+    - Domingo
+    - Segunda
+    - Terça
+    - Quarta
+    - Quinta
+    - Sexta
+    - Sábado
+    formats:
+      default: "%d/%m/%Y"
+      long: "%d de %B de %Y"
+      short: "%d de %B"
+      full: "%d/%m/%Y %H:%M"
+      just_month: "%B"
+      just_hour_minute: "%H:%M"
+    month_names:
+    -
+    - Janeiro
+    - Fevereiro
+    - Março
+    - Abril
+    - Maio
+    - Junho
+    - Julho
+    - Agosto
+    - Setembro
+    - Outubro
+    - Novembro
+    - Dezembro
+    order:
+    - :day
+    - :month
+    - :year
+  datetime:
+    distance_in_words:
+      about_x_hours:
+        one: aproximadamente 1 hora
+        other: aproximadamente %{count} horas
+      about_x_months:
+        one: aproximadamente 1 mês
+        other: aproximadamente %{count} meses
+      about_x_years:
+        one: aproximadamente 1 ano
+        other: aproximadamente %{count} anos
+      almost_x_years:
+        one: quase 1 ano
+        other: quase %{count} anos
+      half_a_minute: meio minuto
+      less_than_x_minutes:
+        one: menos de um minuto
+        other: menos de %{count} minutos
+      less_than_x_seconds:
+        one: menos de 1 segundo
+        other: menos de %{count} segundos
+      over_x_years:
+        one: mais de 1 ano
+        other: mais de %{count} anos
+      x_days:
+        one: 1 dia
+        other: "%{count} dias"
+      x_minutes:
+        one: 1 minuto
+        other: "%{count} minutos"
+      x_months:
+        one: 1 mês
+        other: "%{count} meses"
+      x_seconds:
+        one: 1 segundo
+        other: "%{count} segundos"
+    prompts:
+      day: Dia
+      hour: Hora
+      minute: Minuto
+      month: Mês
+      second: Segundo
+      year: Ano
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      accepted: devem ser aceitos
+      blank: não pode ficar em branco
+      present: deve ficar em branco
+      confirmation: não é igual a %{attribute}
+      empty: não pode ficar vazio
+      equal_to: deve ser igual a %{count}
+      even: deve ser par
+      exclusion: não está disponível
+      greater_than: deve ser maior que %{count}
+      greater_than_or_equal_to: deve ser maior ou igual a %{count}
+      inclusion: não está incluído na lista
+      invalid: não é válido
+      less_than: deve ser menor que %{count}
+      less_than_or_equal_to: deve ser menor ou igual a %{count}
+      not_a_number: não é um número
+      not_an_integer: não é um número inteiro
+      odd: deve ser ímpar
+      record_invalid: 'A validação falhou: %{errors}'
+      restrict_dependent_destroy:
+        one: Não é possível excluir o registro pois existe um %{record} dependente
+        many: Não é possível excluir o registro pois existem %{record} dependentes
+      taken: já cadastrado(a) no sistema
+      too_long: 'é muito longo (máximo: %{count} caracteres)'
+      too_short: 'é muito curto (mínimo: %{count} caracteres)'
+      wrong_length: não possui o tamanho esperado (%{count} caracteres)
+      other_than: deve ser diferente de %{count}
+    template:
+      body: 'Por favor, verifique o(s) seguinte(s) campo(s):'
+      header:
+        one: 'Não foi possível gravar %{model}: 1 erro'
+        other: 'Não foi possível gravar %{model}: %{count} erros.'
+  helpers:
+    select:
+      prompt: Por favor selecione
+    submit:
+      create: Salvando
+      submit: Salvando
+      update: Salvando
+    page_entries_info:
+      one_page:
+        display_entries:
+          zero: "Nenhum %{entry_name} encontrado"
+          one: "Mostrando <b>1</b> %{entry_name}"
+          other: "Mostrando <b> %{count}</b> %{entry_name}"
+      more_pages:
+        display_entries: "Mostrando %{entry_name} <b>%{first}&nbsp;-&nbsp;%{last}</b> de <b>%{total}</b> no total"
+  number:
+    currency:
+      format:
+        delimiter: "."
+        format: "%u %n"
+        precision: 2
+        separator: ","
+        significant: false
+        strip_insignificant_zeros: false
+        unit: R$
+    format:
+      delimiter: "."
+      precision: 3
+      separator: ","
+      significant: false
+      strip_insignificant_zeros: false
+    human:
+      decimal_units:
+        format: "%n %u"
+        units:
+          billion:
+            one: bilhão
+            other: bilhões
+          million:
+            one: milhão
+            other: milhões
+          quadrillion:
+            one: quatrilhão
+            other: quatrilhões
+          thousand: mil
+          trillion:
+            one: trilhão
+            other: trilhões
+          unit: ''
+      format:
+        delimiter: "."
+        precision: 2
+        significant: true
+        strip_insignificant_zeros: true
+      storage_units:
+        format: "%n %u"
+        units:
+          byte:
+            one: Byte
+            other: Bytes
+          gb: GB
+          kb: KB
+          mb: MB
+          tb: TB
+    percentage:
+      format:
+        delimiter: "."
+        format: "%n%"
+    precision:
+      format:
+        delimiter: "."
+  support:
+    array:
+      last_word_connector: " e "
+      two_words_connector: " e "
+      words_connector: ", "
+  time:
+    am: ''
+    formats:
+      default: "%a, %d de %B de %Y, %H:%M:%S %z"
+      long: "%d de %B de %Y, %H:%M"
+      short: "%d de %B, %H:%M"
+      full: "%d/%m/%Y %H:%M"
+      just_month: "%B"
+      just_hour_minute: "%H:%M"
+    pm: ''
+
+
+
+

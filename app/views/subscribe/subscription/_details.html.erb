@@ -1,0 +1,53 @@
+<% plan = subscription.plan %>
+
+<% if plan %>
+<div class="row">
+	<div class="col-12 col-md-4 text-center">
+		<div class="card mb-4">
+			<img src="<%= plan.get_image %>" class="card-img-top" alt="..." width="250" height="250">
+			<div class="card-header">
+				<%= plan.name %>
+			</div>
+			<div class="card-body">
+				<p class="card-text">
+					<%= plan.description %>
+				</p>
+			</div>
+		</div>
+	</div>
+	<div class="col-12 col-md-8">
+		<table class="table table-striped table-borderless mb-0">
+			<thead>
+				<tr class="text-center">
+					<th class="py-1 fw-bold"><%= Subscription.human_attribute_name(:payment_date) %></th>
+					<th class="py-1 fw-bold"><%= Subscription.human_attribute_name(:payment_value) %></th>
+					<th class="py-1 fw-bold"><%= Subscription.human_attribute_name(:payment_type) %></th>
+					<th class="py-1 fw-bold"><%= Subscription.human_attribute_name(:payment_status) %></th>
+				</tr>
+			</thead>
+			<tbody>
+				<% subscription.orders.sort_by{|item| item.updated_at}.reverse.each do |order| %>
+					<tr class="text-center">
+						<td class="py-1">
+							<% if order.order_status_id == OrderStatus::PAGAMENTO_REALIZADO_ID %>
+								<%= CustomHelper.get_text_date(order.updated_at, "datetime", :full) %>
+							<% end %>
+						</td>
+						<td class="py-1"><%= CustomHelper.to_currency(order.get_total_price) %></td>
+						<td class="py-1"><%= order.payment_type.name %></td>
+						<td class="py-1">
+							<%= render "orders/order_status", record: order %>
+							<% if policy(order).show? %>
+								<%= link_to subscription_payment_path(id: subscription.id, order_id: order.id), class: "text-decoration-none btn-sm btn btn-primary mt-2", target: "_blank" do %>
+									<i class="bi bi-info-circle-fill"></i>
+									<%= t('model.show') %>
+								<% end %>
+							<% end %>
+						</td>
+					</tr>
+				<% end %>
+			</tbody>
+		</table>
+	</div>
+</div>
+<% end %>

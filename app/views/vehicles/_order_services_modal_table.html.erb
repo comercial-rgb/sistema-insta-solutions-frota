@@ -1,0 +1,51 @@
+<div class="table-responsive">
+  <table class="table table-sm table-striped align-middle mb-0">
+    <thead class="table-light">
+      <tr>
+        <th><%= OrderService.human_attribute_name(:code) %></th>
+        <th><%= OrderService.human_attribute_name(:order_service_status_id) %></th>
+        <th><%= OrderService.human_attribute_name(:order_service_type_id) %></th>
+        <th><%= OrderService.human_attribute_name(:provider_service_type_id) %></th>
+        <th><%= Vehicle.human_attribute_name(:cost_center) %></th>
+        <th><%= OrderService.human_attribute_name(:sub_unit_id) %></th>
+        <th><%= OrderService.human_attribute_name(:updated_at) %></th>
+      </tr>
+    </thead>
+    <tbody>
+      <% if order_services.blank? %>
+        <tr>
+          <td colspan="7" class="text-center text-muted py-3">Nenhuma OS vinculada a este veículo.</td>
+        </tr>
+      <% else %>
+        <% order_services.each do |os| %>
+          <tr>
+            <td>
+              <% code_label = os.code.presence || os.id %>
+              <% if policy(os).show_historic? %>
+                <%= link_to code_label, show_historic_path(id: os.id), class: 'text-decoration-none' %>
+              <% else %>
+                <span><%= code_label %></span>
+              <% end %>
+            </td>
+            <td>
+              <% if os.order_service_status.present? %>
+                <%= render 'order_services/show_order_service_status', record: os %>
+              <% end %>
+            </td>
+            <td><%= os.order_service_type&.name %></td>
+            <td><%= os.provider_service_type&.name %></td>
+            <td><%= os.vehicle&.cost_center&.name %></td>
+            <td><%= os.vehicle&.sub_unit&.get_text_name %></td>
+            <td><%= l(os.updated_at, format: :short) rescue os.updated_at %></td>
+          </tr>
+        <% end %>
+      <% end %>
+    </tbody>
+  </table>
+</div>
+
+<% if order_services.present? %>
+  <div class="d-flex justify-content-center mt-3">
+    <%= paginate order_services, param_name: :page %>
+  </div>
+<% end %>

@@ -1,0 +1,24 @@
+<%
+	image_link = (record.nil? || record.blank?) ? nil : record.url
+	width = defined?(width) ? width : ""
+	height = defined?(height) ? height : ""
+	if resize_to_limit
+		width = width.blank? ? resize_to_limit[0] : ""
+		height = height.blank? ? resize_to_limit[1] : ""
+	end
+%>
+
+<% if defined?(show_just_image) && show_just_image %>
+	<figure>
+		<img class="img-fluid" src="<%= image_link %>" alt="<%= alt %>" width="<%= width %>" height="<%= height %>">
+	</figure>
+<% elsif !image_link.nil? %>
+	<%= render "common_pages/show_link", link: record.url, text: image_tag(image_link, alt: alt, width: width, height: height), target: "_blank" %>
+<% else %>
+	<img src="https://via.placeholder.com/100/1247C7/FFFFFF/?text=Sem imagem" alt="" width="<%= width %>" height="<%= height %>">
+<% end %>
+
+<%
+# End of file _show_image.html.erb
+# Path: ./app/views/common_pages/_show_image.html.erb
+%>

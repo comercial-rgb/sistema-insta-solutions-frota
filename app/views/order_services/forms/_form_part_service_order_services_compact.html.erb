@@ -1,0 +1,614 @@
+<%
+    if category_id == Category::SERVICOS_PECAS_ID
+        letter = 'a'
+        tooltip_text = 'Caso não encontre a peça nas opções apresentadas, clique para adicionar uma nova peça ao banco de dados.'
+        item_name = 'peça'
+        item_name_plural = 'Peças'
+    else
+        letter = 'o'
+        tooltip_text = 'Caso não encontre o serviço nas opções apresentadas, clique para adicionar um novo serviço ao banco de dados.'
+        item_name = 'serviço'
+        item_name_plural = 'Serviços'
+    end
+    
+    os = local_assigns[:order_service] || @order_service
+    is_requisicao = os&.order_service_type_id == OrderServiceType::REQUISICAO_ID
+    is_cotacoes = os&.order_service_type_id == OrderServiceType::COTACOES_ID
+    is_diagnostico = os&.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID
+    grupo_servico = os&.service_group
+    
+    # Coleção de serviços disponíveis
+    if is_requisicao && grupo_servico.present?
+        available_services = grupo_servico.services.where(category_id: category_id)
+        # Carregar limites do grupo
+        service_limits = {}
+        grupo_servico.service_group_items.where(service_id: available_services.pluck(:id)).each do |item|
+            service_limits[item.service_id] = { quantity: item.quantity, max_value: item.max_value }
+        end
+    else
+        available_services = Service.by_category_id(category_id)
+        service_limits = {}
+    end
+    
+    # Itens já adicionados - filtrar APENAS pela categoria do serviço associado
+    # O category_id é apenas attr_accessor (não persiste no banco), então devemos usar service.category_id
+    existing_items = f.object.part_service_order_services.select do |item| 
+      item.service.present? && item.service.category_id == category_id
+    end
+%>
+
+<%= render 'order_services/modals/new_service_modal', category_id: category_id, letter: letter %>
+
+<div class="card mb-3" id="card-items-<%= category_id %>">
+    <div class="card-header d-flex justify-content-between align-items-center py-2">
+        <h6 class="mb-0"><i class="bi bi-<%= category_id == Category::SERVICOS_PECAS_ID ? 'box-seam' : 'tools' %>"></i> <%= form_title %></h6>
+        <span class="badge bg-primary items-count-badge-<%= category_id %>"><%= existing_items.reject(&:marked_for_destruction?).count %></span>
+    </div>
+    
+    <% unless disabled %>
+    <div class="card-body py-2">
+        <!-- Área de Seleção Compacta -->
+        <div class="row g-2 align-items-end">
+            <div class="col-12 col-md-5">
+                <label class="form-label small mb-1">Selecionar <%= item_name %></label>
+                <select class="form-select form-select-sm select-new-item-<%= category_id %> service-select-<%= category_id %>" id="select-new-item-<%= category_id %>">
+                    <option value="">Pesquisar <%= item_name %>...</option>
+                    <% available_services.each do |service| %>
+                        <% 
+                            limit = service_limits[service.id]
+                            max_qty = limit ? limit[:quantity] : nil
+                        %>
+                        <option value="<%= service.id %>" 
+                                data-name="<%= service.name %>"
+                                <%= "data-max-qty=#{max_qty}" if max_qty %>
+                        ><%= service.name %><%= " (máx: #{max_qty})" if max_qty %></option>
+                    <% end %>
+                </select>
+            </div>
+            
+            <div class="col-6 col-md-2 quantity-field-container" <%= 'style="display:none;"'.html_safe if is_diagnostico %>>
+                <label class="form-label small mb-1">Qtd</label>
+                <% if is_cotacoes %>
+                    <input type="text" class="form-control form-control-sm input-new-quantity-<%= category_id %> part-service-quantity" id="input-new-quantity-<%= category_id %>" value="1" placeholder="Ex: 1, 2-3, etc" <%= 'disabled' if is_diagnostico %>>
+                <% else %>
+                    <input type="number" class="form-control form-control-sm input-new-quantity-<%= category_id %> part-service-quantity" id="input-new-quantity-<%= category_id %>" value="1" min="1" max="9999" <%= 'disabled' if is_diagnostico %>>
+                <% end %>
+                <small class="text-muted quantity-limit-hint-new-<%= category_id %>" style="display:none;"></small>
+            </div>
+            
+            <div class="col-6 col-md-3">
+                <label class="form-label small mb-1">
+                    Observação
+                    <span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="Insira aqui códigos ou complementos">
+                        <i class="bi bi-info-circle text-muted"></i>
+                    </span>
+                </label>
+                <input type="text" class="form-control form-control-sm input-new-observation-<%= category_id %>" id="input-new-observation-<%= category_id %>" placeholder="Códigos ou complementos...">
+            </div>
+            
+            <div class="col-12 col-md-2">
+                <button type="button" class="btn btn-success btn-sm w-100 btn-add-item-<%= category_id %>" id="btn-add-item-<%= category_id %>">
+                    <i class="bi bi-plus-lg"></i> Incluir
+                </button>
+            </div>
+        </div>
+        
+        <% unless is_requisicao %>
+        <div class="mt-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#newServiceModal<%= category_id %>" data-category-id="<%= category_id %>">
+                <i class="bi bi-plus-circle"></i> 
+                Cadastrar nov<%= letter %> <%= item_name %>
+                <span class="ms-1" data-bs-toggle="tooltip" data-bs-placement="top" title="<%= tooltip_text %>">
+                    <i class="bi bi-info-circle"></i>
+                </span>
+            </button>
+        </div>
+        <% end %>
+    </div>
+    <% end %>
+    
+    <!-- Lista de Itens Adicionados -->
+    <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0 items-table-<%= category_id %>">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 45%"><%= item_name_plural %></th>
+                    <th style="width: 10%; <%= 'display:none;' if is_diagnostico %>" class="text-center">Qtd</th>
+                    <th style="width: <%= is_diagnostico ? '45%' : '35%' %>">Observação</th>
+                    <% unless disabled %><th style="width: 10%" class="text-center">Ação</th><% end %>
+                </tr>
+            </thead>
+            <tbody class="items-list-<%= category_id %>" id="items-list-<%= category_id %>">
+                <% existing_items.each_with_index do |ps, local_idx| %>
+                    <% 
+                      # CORREÇÃO: Usar ID do registro se existir, ou gerar índice único baseado em timestamp + categoria + posição local
+                      # Isso evita colisão de índices entre categorias (Peças vs Serviços)
+                      if ps.persisted?
+                        unique_index = ps.id
+                      else
+                        unique_index = "#{(Time.now.to_f * 1000).to_i}_#{category_id}_#{local_idx}"
+                      end
+                      is_new_record = ps.new_record?
+                      item_limit = service_limits[ps.service_id]
+                      max_qty_item = item_limit ? item_limit[:quantity] : 9999
+                    %>
+                    <tr class="item-row-<%= category_id %>" data-index="<%= unique_index %>" <%= 'style=display:none;' if ps.marked_for_destruction? %>>
+                            <td>
+                                <% if ps.persisted? %>
+                                  <input type="hidden" 
+                                         name="order_service[part_service_order_services_attributes][<%= unique_index %>][id]" 
+                                         value="<%= ps.id %>" 
+                                         class="record-id-field">
+                                <% end %>
+                                <input type="hidden" 
+                                       name="order_service[part_service_order_services_attributes][<%= unique_index %>][service_id]" 
+                                       value="<%= ps.service_id %>" 
+                                       class="service-id-field">
+                                <input type="hidden" 
+                                       name="order_service[part_service_order_services_attributes][<%= unique_index %>][_destroy]" 
+                                       value="0" 
+                                       class="destroy-field">
+                                <span class="item-name"><%= ps.service&.name || 'Item não definido' %></span>
+                                <% if item_limit %>
+                                    <small class="text-muted d-block">(máx: <%= max_qty_item %>)</small>
+                                <% end %>
+                            </td>
+                            <td class="text-center" <%= 'style="display:none;"'.html_safe if is_diagnostico %>>
+                                <% if disabled %>
+                                    <span><%= ps.quantity || 1 %></span>
+                                <% else %>
+                                    <% if is_cotacoes %>
+                                        <input type="text" 
+                                               name="order_service[part_service_order_services_attributes][<%= unique_index %>][quantity]" 
+                                               value="<%= ps.quantity || 1 %>" 
+                                               class="form-control form-control-sm text-center part-service-quantity"
+                                               style="width: 70px;"
+                                               placeholder="1"
+                                               <%= 'disabled' if is_diagnostico %>>
+                                    <% else %>
+                                        <input type="number" 
+                                               name="order_service[part_service_order_services_attributes][<%= unique_index %>][quantity]" 
+                                               value="<%= ps.quantity || 1 %>" 
+                                               min="1" 
+                                               max="<%= max_qty_item %>" 
+                                               class="form-control form-control-sm text-center part-service-quantity"
+                                               style="width: 70px;"
+                                               step="1"
+                                               inputmode="numeric"
+                                               data-max-qty="<%= max_qty_item %>"
+                                               <%= 'disabled' if is_diagnostico %>>
+                                    <% end %>
+                                <% end %>
+                            </td>
+                            <td>
+                                <% if disabled %>
+                                    <span class="small text-muted"><%= ps.observation %></span>
+                                <% else %>
+                                    <input type="text" 
+                                           name="order_service[part_service_order_services_attributes][<%= unique_index %>][observation]" 
+                                           value="<%= ps.observation %>"
+                                           class="form-control form-control-sm"
+                                           placeholder="Observação...">
+                                <% end %>
+                            </td>
+                            <% unless disabled %>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-outline-danger btn-sm btn-remove-item" data-index="<%= unique_index %>" title="Remover">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </td>
+                            <% end %>
+                        </tr>
+                <% end %>
+            </tbody>
+        </table>
+    </div>
+    
+    <% if existing_items.reject(&:marked_for_destruction?).empty? && disabled %>
+    <div class="card-body text-center text-muted py-3 empty-message-<%= category_id %>">
+        <i class="bi bi-inbox"></i> Nenhum<%= letter %> <%= item_name %> adicionad<%= letter %>
+    </div>
+    <% end %>
+</div>
+
+<!-- Hidden template for new items -->
+<template id="item-row-template-<%= category_id %>">
+    <tr class="item-row-<%= category_id %>" data-index="__INDEX__">
+        <td>
+            <input type="hidden" name="order_service[part_service_order_services_attributes][__INDEX__][service_id]" value="__SERVICE_ID__" class="service-id-field">
+            <input type="hidden" name="order_service[part_service_order_services_attributes][__INDEX__][_destroy]" value="0" class="destroy-field">
+            <span class="item-name">__SERVICE_NAME__</span>
+            <small class="text-muted d-block max-qty-hint" style="display:__SHOW_MAX_QTY__;">__MAX_QTY_TEXT__</small>
+        </td>
+        <td class="text-center" <%= 'style="display:none;"'.html_safe if is_diagnostico %>>
+            <% if is_cotacoes %>
+                <input type="text" name="order_service[part_service_order_services_attributes][__INDEX__][quantity]" value="__QUANTITY__" class="form-control form-control-sm text-center part-service-quantity" style="width: 70px;" placeholder="1" <%= 'disabled' if is_diagnostico %>>
+            <% else %>
+                <input type="number" name="order_service[part_service_order_services_attributes][__INDEX__][quantity]" value="__QUANTITY__" min="1" max="__MAX_QTY__" step="1" inputmode="numeric" data-max-qty="__MAX_QTY__" class="form-control form-control-sm text-center part-service-quantity" style="width: 70px;" <%= 'disabled' if is_diagnostico %>>
+            <% end %>
+        </td>
+        <td>
+            <input type="text" name="order_service[part_service_order_services_attributes][__INDEX__][observation]" value="__OBSERVATION__" class="form-control form-control-sm" placeholder="Observação...">
+        </td>
+        <td class="text-center">
+            <button type="button" class="btn btn-outline-danger btn-sm btn-remove-item" data-index="__INDEX__" title="Remover">
+                <i class="bi bi-trash"></i>
+            </button>
+        </td>
+    </tr>
+</template>
+
+<!-- Counter for new items - using timestamp + random to ensure global uniqueness across all categories -->
+<input type="hidden" id="item-counter-<%= category_id %>" value="<%= (Time.now.to_f * 1000).to_i + category_id * 100000 %>">
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const categoryId = <%= category_id %>;
+    const isDiagnostico = <%= is_diagnostico ? 'true' : 'false' %>;
+    const isRequisicao = <%= is_requisicao ? 'true' : 'false' %>;
+    
+    const selectItem = document.getElementById(`select-new-item-${categoryId}`);
+    const inputQuantity = document.getElementById(`input-new-quantity-${categoryId}`);
+    const inputObservation = document.getElementById(`input-new-observation-${categoryId}`);
+    const btnAdd = document.getElementById(`btn-add-item-${categoryId}`);
+    const itemsList = document.getElementById(`items-list-${categoryId}`);
+    const template = document.getElementById(`item-row-template-${categoryId}`);
+    const counter = document.getElementById(`item-counter-${categoryId}`);
+    const countBadge = document.querySelector(`.items-count-badge-${categoryId}`);
+    const quantityLimitHint = document.querySelector(`.quantity-limit-hint-new-${categoryId}`);
+    
+    // Initialize Select2 for better search
+    if (typeof $ !== 'undefined' && $.fn.select2) {
+        $(`#select-new-item-${categoryId}`).select2({
+            theme: 'bootstrap-5',
+            placeholder: 'Pesquisar...',
+            allowClear: true,
+            width: '100%'
+        });
+    }
+    
+    // Update quantity limit when service is selected
+    if (selectItem && inputQuantity) {
+        const updateQuantityLimit = function() {
+            const selectedOption = selectItem.options[selectItem.selectedIndex];
+            const maxQty = selectedOption?.dataset?.maxQty;
+            
+            if (maxQty && isRequisicao) {
+                inputQuantity.max = maxQty;
+                inputQuantity.setAttribute('data-max-qty', maxQty);
+                if (quantityLimitHint) {
+                    quantityLimitHint.innerHTML = `<i class="bi bi-info-circle"></i> Máx: ${maxQty}`;
+                    quantityLimitHint.style.display = 'block';
+                }
+            } else {
+                inputQuantity.max = 9999;
+                inputQuantity.removeAttribute('data-max-qty');
+                if (quantityLimitHint) {
+                    quantityLimitHint.style.display = 'none';
+                }
+            }
+
+            // Valida o valor atual do input de nova inclusão
+            validateQuantity({ target: inputQuantity });
+            updateAddButtonState();
+        };
+        
+        selectItem.addEventListener('change', updateQuantityLimit);
+
+        // Valida ao digitar manualmente e atualiza estado do botão
+        inputQuantity.addEventListener('input', function() {
+            validateQuantity({ target: inputQuantity });
+            updateAddButtonState();
+        });
+        inputQuantity.addEventListener('blur', function() {
+            validateQuantity({ target: inputQuantity });
+            updateAddButtonState();
+        });
+        inputQuantity.addEventListener('change', function() {
+            validateQuantity({ target: inputQuantity });
+            updateAddButtonState();
+        });
+        
+        // For Select2
+        if (typeof $ !== 'undefined' && $.fn.select2) {
+            $(`#select-new-item-${categoryId}`).on('select2:select', updateQuantityLimit);
+        }
+    }
+
+    // Valida também as quantidades editadas na lista
+    if (itemsList) {
+        itemsList.addEventListener('input', function(e) {
+            const target = e.target;
+            if (target && target.classList && target.classList.contains('part-service-quantity')) {
+                validateQuantity({ target });
+            }
+        });
+        itemsList.addEventListener('blur', function(e) {
+            const target = e.target;
+            if (target && target.classList && target.classList.contains('part-service-quantity')) {
+                validateQuantity({ target });
+            }
+        }, true);
+        itemsList.addEventListener('change', function(e) {
+            const target = e.target;
+            if (target && target.classList && target.classList.contains('part-service-quantity')) {
+                validateQuantity({ target });
+            }
+        });
+    }
+    
+    function updateCount() {
+        if (countBadge) {
+            const visibleRows = itemsList.querySelectorAll(`tr.item-row-${categoryId}:not([style*="display: none"])`);
+            countBadge.textContent = visibleRows.length;
+        }
+    }
+    
+    function addItem() {
+        if (!selectItem) return;
+        
+        const serviceId = selectItem.value;
+        const selectedOption = selectItem.options[selectItem.selectedIndex];
+        const serviceName = selectedOption?.dataset?.name || selectedOption?.text?.replace(/\s*\(máx:.*\)/, '');
+        const maxQty = parseInt(selectedOption?.dataset?.maxQty || 9999);
+        
+        // Capturar valor diretamente do DOM para garantir que pegamos o valor atual
+        const quantityInput = document.getElementById(`input-new-quantity-${categoryId}`);
+        let quantity;
+        if (quantityInput) {
+            if (quantityInput.type === 'text') {
+                quantity = quantityInput.value || '1';
+            } else {
+                quantity = parseInt(quantityInput.value) || 1;
+            }
+        } else {
+            quantity = 1;
+        }
+        
+        const observation = inputObservation ? inputObservation.value : '';
+        
+        if (!serviceId) {
+            alert('Selecione um item para adicionar.');
+            return;
+        }
+
+        // Validação apenas para campos numéricos (não para cotações)
+        if (quantityInput && quantityInput.type === 'number') {
+            const numQuantity = parseInt(quantity);
+            if (numQuantity < 1) {
+                alert('Quantidade mínima permitida: 1');
+                quantityInput.focus();
+                return;
+            }
+
+            if (isRequisicao && maxQty && !isNaN(maxQty) && numQuantity > maxQty) {
+                alert(`Quantidade excede o limite do grupo. Máximo permitido: ${maxQty}`);
+                quantityInput.focus();
+                validateQuantity({ target: quantityInput });
+                return;
+            }
+        }
+        
+        // Check if item already exists
+        const existingItem = itemsList.querySelector(`input.service-id-field[value="${serviceId}"]`);
+        if (existingItem) {
+            const row = existingItem.closest('tr');
+            const destroyField = row.querySelector('.destroy-field');
+            if (destroyField && destroyField.value === 'true') {
+                // Reactivate the item
+                destroyField.value = 'false';
+                row.style.display = '';
+                // Update quantity if not diagnostico
+                if (!isDiagnostico) {
+                    const qtyField = row.querySelector('.part-service-quantity');
+                    if (qtyField) qtyField.value = quantity;
+                }
+                // Update observation
+                const obsField = row.querySelector('input[name*="[observation]"]');
+                if (obsField) obsField.value = observation;
+            } else {
+                alert('Este item já foi adicionado.');
+                return;
+            }
+        } else {
+            // Add new item - use timestamp + random for truly unique index across all categories
+            const index = Date.now() + Math.floor(Math.random() * 10000) + categoryId;
+            
+            const showMaxQty = maxQty && maxQty < 9999 ? 'block' : 'none';
+            const maxQtyText = maxQty && maxQty < 9999 ? `(máx: ${maxQty})` : '';
+            
+            let html = template.innerHTML
+                .replace(/__INDEX__/g, index)
+                .replace(/__SERVICE_ID__/g, serviceId)
+                .replace(/__SERVICE_NAME__/g, serviceName)
+                .replace(/__QUANTITY__/g, quantity)
+                .replace(/__MAX_QTY__/g, maxQty)
+                .replace(/__MAX_QTY_TEXT__/g, maxQtyText)
+                .replace(/__SHOW_MAX_QTY__/g, showMaxQty)
+                .replace(/__OBSERVATION__/g, observation);
+            
+            itemsList.insertAdjacentHTML('beforeend', html);
+            
+            // Attach remove handler to new row
+            const newRow = itemsList.lastElementChild;
+            const removeBtn = newRow.querySelector('.btn-remove-item');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function() {
+                    removeItem(this);
+                });
+            }
+            
+            // Attach quantity validation
+            const qtyInput = newRow.querySelector('.part-service-quantity');
+            if (qtyInput) {
+                qtyInput.addEventListener('input', validateQuantity);
+                qtyInput.addEventListener('change', validateQuantity);
+                qtyInput.addEventListener('blur', validateQuantity);
+            }
+        }
+        
+        // Clear inputs
+        if (typeof $ !== 'undefined' && $.fn.select2) {
+            $(`#select-new-item-${categoryId}`).val('').trigger('change');
+        } else {
+            selectItem.value = '';
+        }
+        if (inputQuantity) inputQuantity.value = 1;
+        if (inputObservation) inputObservation.value = '';
+        if (quantityLimitHint) quantityLimitHint.style.display = 'none';
+        
+        updateCount();
+    }
+    
+    function validateQuantity(e) {
+        const input = e.target;
+        const maxQty = parseInt(input.getAttribute('max')) || parseInt(input.getAttribute('data-max-qty'));
+
+        // Reset estado visual
+        input.classList.remove('is-invalid');
+        if (input.setCustomValidity) input.setCustomValidity('');
+
+        const currentVal = parseInt(input.value);
+        if (!currentVal || isNaN(currentVal) || currentVal < 1) {
+            input.classList.add('is-invalid');
+            if (input.setCustomValidity) input.setCustomValidity('Quantidade mínima permitida: 1');
+            return false;
+        }
+
+        if (isRequisicao && maxQty && !isNaN(maxQty) && currentVal > maxQty) {
+            input.classList.add('is-invalid');
+            if (input.setCustomValidity) input.setCustomValidity(`Quantidade máxima permitida: ${maxQty}`);
+            return false;
+        }
+
+        return true;
+    }
+
+    // Atualiza estado do botão Incluir baseado na validade do campo quantidade
+    function updateAddButtonState() {
+        if (!btnAdd || !inputQuantity || !isRequisicao) return;
+        
+        const currentVal = parseInt(inputQuantity.value);
+        const maxQtyAttr = inputQuantity.getAttribute('data-max-qty') || inputQuantity.getAttribute('max');
+        const maxQty = maxQtyAttr ? parseInt(maxQtyAttr) : null;
+        
+        let isValid = true;
+        
+        if (!currentVal || isNaN(currentVal) || currentVal < 1) {
+            isValid = false;
+        } else if (maxQty && !isNaN(maxQty) && currentVal > maxQty) {
+            isValid = false;
+        }
+        
+        if (!isValid) {
+            btnAdd.disabled = true;
+            btnAdd.classList.add('disabled');
+            btnAdd.title = 'Corrija a quantidade antes de incluir';
+        } else {
+            btnAdd.disabled = false;
+            btnAdd.classList.remove('disabled');
+            btnAdd.title = 'Incluir item';
+        }
+    }
+
+    // Bloqueia submit da OS se houver quantidade inválida (Requisição)
+    const formEl = (btnAdd && btnAdd.closest('form')) || (itemsList && itemsList.closest('form'));
+    if (formEl) {
+        formEl.addEventListener('submit', function(ev) {
+            if (!isRequisicao) return;
+
+            const allInputs = formEl.querySelectorAll('.part-service-quantity');
+            for (const input of allInputs) {
+                const row = input.closest('tr');
+                if (row && row.style && row.style.display === 'none') continue;
+
+                const ok = validateQuantity({ target: input });
+                if (!ok) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    if (input.reportValidity) input.reportValidity();
+                    input.focus();
+                    return false;
+                }
+            }
+
+            // também valida o input de nova inclusão (se estiver preenchido)
+            if (inputQuantity && inputQuantity.value && inputQuantity.value.toString().trim() !== '') {
+                const okNew = validateQuantity({ target: inputQuantity });
+                if (!okNew) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    if (inputQuantity.reportValidity) inputQuantity.reportValidity();
+                    inputQuantity.focus();
+                    return false;
+                }
+            }
+        });
+    }
+    
+    function removeItem(btn) {
+        const row = btn.closest('tr');
+        const destroyField = row.querySelector('.destroy-field');
+        
+        if (destroyField) {
+            // If it's an existing record (has ID field), mark for destruction
+            const idField = row.querySelector('.record-id-field') || row.querySelector('input[name*="[id]"]');
+            if (idField && idField.value) {
+                // Rails expects "1" or "true" for _destroy
+                destroyField.value = '1';
+                row.style.display = 'none';
+                console.log('Marked for destruction:', idField.value, destroyField.name, destroyField.value);
+            } else {
+                // If it's a new record, just remove the row
+                row.remove();
+            }
+        } else {
+            row.remove();
+        }
+        
+        updateCount();
+    }
+    
+    // Event listeners
+    if (btnAdd) {
+        btnAdd.addEventListener('click', addItem);
+    }
+    
+    // Inicializa estado do botão Incluir ao carregar a página
+    if (inputQuantity && isRequisicao) {
+        updateAddButtonState();
+    }
+    
+    // Remove button handlers for existing items
+    document.querySelectorAll(`#items-list-${categoryId} .btn-remove-item`).forEach(btn => {
+        btn.addEventListener('click', function() {
+            removeItem(this);
+        });
+    });
+    
+    // Quantity validation for existing items
+    document.querySelectorAll(`#items-list-${categoryId} .part-service-quantity`).forEach(input => {
+        input.addEventListener('change', validateQuantity);
+        input.addEventListener('blur', validateQuantity);
+    });
+    
+    // Allow adding with Enter key
+    if (selectItem) {
+        selectItem.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addItem();
+            }
+        });
+    }
+    
+    if (inputObservation) {
+        inputObservation.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addItem();
+            }
+        });
+    }
+});
+</script>

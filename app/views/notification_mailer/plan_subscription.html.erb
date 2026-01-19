@@ -1,0 +1,18 @@
+<h3>Olá, <%= @user.name %></h3>
+<p>
+	Assinatura do plano <b><%= @subscription.plan.get_title.upcase %></b>.
+</p>
+<p>
+	Status do pagamento <b><%= @order.order_status.name.upcase %></b>.
+</p>
+<p>
+	<b><%= User.human_attribute_name(:email) %>: </b><%= @user.email %><br>
+	<b><%= User.human_attribute_name(:password) %>: </b><%= @password %>
+</p>
+<p>
+	<small>Caso esteja com problema no "aqui", pode selecionar o link abaixo e colar no seu navegador:</small>
+	<br>
+	<%= login_url %>
+</p>
+
+<%= render "notification_mailer/default_footer" %>

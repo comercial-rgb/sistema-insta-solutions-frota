@@ -1,0 +1,21 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: contracts_path, text: Contract.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: Contract.model_name.human(count: 2),
+		url_new_path: new_contract_path,
+		policy_true: policy(Contract).new?,
+		objects: @contracts,
+		objects_path: contracts_path,
+		object_name: Contract.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: contracts_path(format: "csv", contracts_grid: (params[:contracts_grid].nil? ? "" : params[:contracts_grid].to_enum.to_h))
+	}
+%>

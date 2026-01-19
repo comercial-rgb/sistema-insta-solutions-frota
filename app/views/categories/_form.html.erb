@@ -1,0 +1,19 @@
+<div class="container">
+    <%= simple_form_for @category do |f| %>
+        <%= f.input :category_type_id, as: :hidden, input_html: {value: @category.category_type_id} %>
+
+        <div class="row">
+            <!-- Nome da categoria -->
+            <div class="col-12 col-md-6 mb-3">
+                <%= f.input :name, label: Category.human_attribute_name(:name) %>
+            </div>
+        </div>
+        
+        <%= render 'common_pages/save', f: f, return_path: categories_path(category_type_id: @category.category_type_id) %>
+    <% end %>
+</div>
+
+<%
+# End of file _form.html.erb
+# Path: ./app/views/categories/_form.html.erb
+%>

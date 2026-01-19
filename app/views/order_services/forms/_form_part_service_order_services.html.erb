@@ -1,0 +1,79 @@
+<%
+    if category_id == Category::SERVICOS_PECAS_ID
+        letter = 'a'
+        tooltip_text = 'Caso não encontre a peça nas opções apresentadas, clique para adicionar uma nova peça ao banco de dados.'
+        tooltip_message = 'Clique para adicionar uma nova peça a ordem de serviço.'
+    else
+        letter = 'o'
+        tooltip_text = 'Caso não encontre o serviço nas opções apresentadas, clique para adicionar um novo serviço ao banco de dados.'
+        tooltip_message = 'Clique para adicionar um novo serviço a ordem de serviço.'
+    end
+    
+    os = local_assigns[:order_service] || @order_service
+    is_requisicao = os&.order_service_type_id == OrderServiceType::REQUISICAO_ID
+%>
+<%= render 'order_services/modals/new_service_modal', category_id: category_id, letter: letter %>
+<div class="row">
+   
+    <div class="col-12 mb-3">
+        <h5 class="mt-4">
+            <%= form_title %>
+            <% unless disabled || is_requisicao %>
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newServiceModal<%=category_id%>" data-category-id="<%= category_id %>">
+                    <i class="bi bi-plus-circle"></i> 
+                    Adicionar nov<%= letter %>
+                    <span 
+                        class="ms-1" 
+                        data-bs-toggle="tooltip" 
+                        data-bs-placement="top" 
+                        title="<%= tooltip_text %>">
+                        <i class="bi bi-info-circle"></i>
+                    </span>
+                </button>
+            <% end %>
+        </h5>
+    </div>
+
+    <div class="col-12 multi-partserviceordeservice<%= category_name.to_s %>-block">
+        <% if !disabled %>
+            <% f.object.part_service_order_services.build(category_id: category_id) %>
+        <% end %>
+        <!-- Contador -->
+        <input type="hidden" value="<%= f.object.part_service_order_services.length.to_s %>" class="multi-partserviceordeservice<%= category_name.to_s %>-cont" disabled>
+        <% 
+            if @current_user.provider?
+                collection = f.object.part_service_order_services.select{|item| (!item.service.nil? && item.service.category_id == category_id) || (item.category_id == category_id && item.service.nil?)}
+            else
+                if f.object.persisted?
+                    collection = f.object.part_service_order_services.select{|item| (item.category_id == category_id || item.service&.category_id == category_id)}
+                else
+                    collection = disabled ? f.object.part_service_order_services.select{|item| item.service.category_id == category_id} : f.object.part_service_order_services.select{|item| item.category_id == category_id} 
+                end 
+            end
+            # Obtém o array completo para calcular posição global e evitar conflito de índices
+            all_part_services = f.object.part_service_order_services.to_a
+        %>
+        <% collection.each do |ps| %>
+            <% 
+              # Encontra a posição real no array completo para usar como índice único
+              global_position = all_part_services.index(ps) || 0
+            %>
+            <%= f.fields_for :part_service_order_services, ps, child_index: global_position do |part_service_order_service| %>
+                <div class="row multi-partserviceordeservice<%= category_name.to_s %> align-items-end">
+                    <%= render "order_services/forms/part_service_order_service_fields", f: f, part_service_order_service: part_service_order_service, category_id: category_id, text_label: text_label, disabled: disabled, order_service: order_service %>
+                    <% if !disabled %>
+                        <%= render 'common_pages/delete_multiple_relation', remove_path: delete_part_service_order_service_path(model_id: part_service_order_service.object.id), object: part_service_order_service.object, object_text: 'partserviceordeservice'+category_name.to_s  %>
+                    <% end %>
+                </div>
+            <% end %>
+        <% end %>
+    </div>
+
+    <% if !disabled %>
+        <!-- Botão de adicionar -->
+        <div class="col-12">
+            <%= render 'common_pages/add_multiple_relation', object_text: 'partserviceordeservice'+category_name.to_s, show_tooltip: true, tooltip_message: tooltip_message %>
+        </div>
+    <% end %>
+</div>
+

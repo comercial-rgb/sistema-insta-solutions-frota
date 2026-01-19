@@ -1,0 +1,40 @@
+pt-BR:
+  activerecord:
+    models:
+      <%= singular_table_name %>:
+        one: "<%= singular_table_name %>"
+        other: "<%= plural_table_name %>"
+    attributes:
+      <%= singular_table_name %>:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        <%- attributes.each do |attribute| -%>
+        <%- if attribute.reference? -%>
+        <%= attribute.name %>_id: "<%= attribute.name %>"
+        <%= attribute.name %>: "<%= attribute.name %>"
+        <%- else -%>
+        <%= attribute.name %>: "<%= attribute.name %>"
+        <%- end -%>
+        <%- end -%>
+en:
+  activerecord:
+    models:
+      <%= singular_table_name %>:
+        one: "<%= singular_table_name %>"
+        other: "<%= plural_table_name %>"
+    attributes:
+      <%= singular_table_name %>:
+        id: "ID"
+        created_at: 'Created at'
+        updated_at: 'Updated at'
+        actions: "Actions"
+        <%- attributes.each do |attribute| -%>
+        <%- if attribute.reference? -%>
+        <%= attribute.name %>_id: "<%= attribute.name %>"
+        <%= attribute.name %>: "<%= attribute.name %>"
+        <%- else -%>
+        <%= attribute.name %>: "<%= attribute.name %>"
+        <%- end -%>
+        <%- end -%>

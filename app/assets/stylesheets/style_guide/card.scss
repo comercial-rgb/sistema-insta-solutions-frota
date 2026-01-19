@@ -1,0 +1,39 @@
+//// Card - Modelo 1
+
+// $card-border-width: none;
+// $card-border-color: none;
+// $card-box-shadow: none;
+// $card-border-radius: 20px;
+// $card-bg: #F6F6F6;
+// $card-color: rgba(19, 18, 18, 0.8);
+// .card-title {
+//   color: #000000;
+//   font-size: 18px;
+//   font-weight: 700;
+//   line-height: 24px;
+// }
+// .card-text {
+//   font-size: 16px;
+//   font-weight: 400;
+//   line-height: 24px;
+// }
+
+//// Card - Modelo 2
+
+$card-border-width: none;
+$card-border-color: none;
+$card-box-shadow: rgba(160, 160, 160, 0.25);
+$card-border-radius: 15px;
+$card-bg: #FFFFFF;
+$card-color: rgba(19, 18, 18, 0.8);
+.card-title {
+  color: #000000;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 24px;
+}
+.card-text {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 24px;
+}

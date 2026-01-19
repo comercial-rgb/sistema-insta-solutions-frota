@@ -1,0 +1,115 @@
+<% os = @order_service %>
+
+<h2><%= OrderService.model_name.human %> - <%= os.code %></h2>
+<p class="muted">
+  <%= OrderService.human_attribute_name(:created_at) %>: <%= CustomHelper.get_text_date(os.created_at, 'datetime', :full) %>
+  · <%= OrderService.human_attribute_name(:order_service_status_id) %>: <%= os.order_service_status&.name %>
+</p>
+
+<div class="section">
+  <h3>Dados principais</h3>
+  <div class="grid">
+    <ul class="kv">
+      <li><strong><%= OrderService.human_attribute_name(:client_id) %>:</strong><span><%= os.client&.fantasy_name %></span></li>
+      <li><strong><%= OrderService.human_attribute_name(:manager_id) %>:</strong><span><%= os.manager&.name %></span></li>
+      <li><strong><%= OrderService.human_attribute_name(:provider_id) %>:</strong><span><%= os.provider&.name %></span></li>
+      <li><strong><%= OrderService.human_attribute_name(:provider_service_type_id) %>:</strong><span><%= os.provider_service_type&.name %></span></li>
+      <li><strong><%= OrderService.human_attribute_name(:order_service_type_id) %>:</strong><span><%= os.order_service_type&.name %></span></li>
+      <li><strong><%= OrderService.human_attribute_name(:commitment_id) %>:</strong><span><%= os.commitment&.get_text_name %></span></li>
+      <li><strong><%= OrderService.human_attribute_name(:vehicle_id) %>:</strong><span><%= os.vehicle&.getting_vehicle_data %></span></li>
+      <li><strong><%= Vehicle.human_attribute_name(:cost_center_id) %>:</strong><span><%= os.vehicle&.cost_center&.get_text_name %></span></li>
+      <li><strong><%= Vehicle.human_attribute_name(:sub_unit_id) %>:</strong><span><%= os.vehicle&.sub_unit&.get_text_name %></span></li>
+      <li><strong><%= OrderService.human_attribute_name(:km) %>:</strong><span><%= os.km %></span></li>
+      <li><strong><%= OrderService.human_attribute_name(:driver) %>:</strong><span><%= os.driver %></span></li>
+    </ul>
+  </div>
+</div>
+
+<% if os.details.present? %>
+  <div class="section">
+    <h3><%= OrderService.human_attribute_name(:details) %></h3>
+    <p><%= os.details %></p>
+  </div>
+<% end %>
+
+<% if os.attachments.any? %>
+  <div class="section">
+    <h3>Anexos</h3>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Arquivo</th>
+          <th><%= Attachment.human_attribute_name(:category) %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% os.attachments.each do |att| %>
+          <tr>
+            <td><%= att.attachment.filename %></td>
+            <td><%= att.category %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>
+
+<% if os.order_service_proposals.any? %>
+  <div class="section">
+    <h3><%= OrderService.human_attribute_name(:order_service_proposals) %> (sem valores)</h3>
+    <table class="table">
+      <thead>
+        <tr>
+          <th><%= OrderServiceProposal.human_attribute_name(:provider_id) %></th>
+          <th><%= OrderServiceProposal.human_attribute_name(:order_service_proposal_status_id) %></th>
+          <th><%= OrderServiceProposal.human_attribute_name(:details) %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% os.order_service_proposals.each do |proposal| %>
+          <tr>
+            <td><%= proposal.provider&.name %></td>
+            <td><%= proposal.order_service_proposal_status&.name %></td>
+            <td><%= proposal.respond_to?(:details) ? proposal.details : '' %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>
+
+<% approved_proposal = os.getting_order_service_proposal_approved %>
+<% if approved_proposal && approved_proposal.order_service_proposal_items.any? %>
+  <div class="section">
+    <h3>Pecas e servicos (sem valores)</h3>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Tipo</th>
+          <th><%= Service.human_attribute_name(:name) %></th>
+          <th><%= OrderServiceProposalItem.human_attribute_name(:brand) %></th>
+          <th><%= OrderServiceProposalItem.human_attribute_name(:quantity) %></th>
+          <th><%= OrderServiceProposalItem.human_attribute_name(:warranty_period) %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% approved_proposal.order_service_proposal_items.each do |item| %>
+          <% category_id = item.service&.category_id %>
+          <% tipo = category_id == Category::SERVICOS_PECAS_ID ? Service.human_attribute_name(:part) : Service.human_attribute_name(:service) %>
+          <tr>
+            <td><%= tipo %></td>
+            <td><%= item.service_name %></td>
+            <td><%= item.brand %></td>
+            <td><%= item.quantity %></td>
+            <td><%= item.warranty_period.presence || '-' %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+<% end %>
+
+<div class="section">
+  <h3>Carimbo</h3>
+  <p class="muted">Impresso em <%= Time.zone.now.strftime('%d/%m/%Y %H:%M') %> por <%= @current_user&.name %></p>
+</div>

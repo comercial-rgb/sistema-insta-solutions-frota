@@ -1,0 +1,6 @@
+<% if !link.nil? && !link.blank? %>
+	<% if !defined?(text) || text.nil? || text.blank? %>
+		<%= text = link %>
+	<% end %>
+	<%= link_to text, link, target: target %>
+<% end %>

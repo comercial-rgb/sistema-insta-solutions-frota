@@ -1,0 +1,39 @@
+<div class="bg-white h-100">
+    <div class="container py-3 px-1">
+        <div class="text-end">
+            <i class="bi bi-chevron-double-right text-light pointer icon-to-manage-menu-close" id="icon-to-open-menu"></i>
+        </div>
+        <div class="text-center">
+            <a href="<%= root_path %>">
+                <%= image_tag "logos/logo-icon-sulivam-softwares.png", width: '60%' %>
+            </a>
+        </div>
+        <div class="open-left-menu mt-6">
+            <ul class="list-group text-center">
+
+                <!-- Exemplo de item ativo: acrescentar class no li: bg-primary text-white -->
+                <li class="list-group-item bg-primary text-white">
+                    <a href="" class="text-decoration-none text-reset d-block">
+                        <i class="bi bi-person-badge fs-5"></i>
+                    </a>
+                </li>
+                <li class="list-group-item">
+                    <a href="" class="text-decoration-none text-reset d-block">
+                        <i class="bi bi-people fs-5"></i>
+                    </a>
+                </li>
+                <li class="list-group-item">
+                    <a href="" class="text-decoration-none text-reset d-block">
+                        <i class="bi bi-file-earmark-bar-graph fs-5"></i>
+                    </a>
+                </li>
+
+            </ul>
+        </div>
+    </div>
+</div>
+
+<%
+# End of file _closed_left_menu.html.erb
+# Path: ./app/views/layouts/new_layout_menu/_closed_left_menu.html.erb
+%>

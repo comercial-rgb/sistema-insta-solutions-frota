@@ -1,0 +1,19 @@
+<!-- Botão de excluir -->
+<div class="col-12">
+    <% if object.persisted? %>
+        <%= link_to remove_path, data: { title: t('model.delete'), rel: 'nofollow', confirm: t('model.confirm_action'), method: 'delete' }, class: 'btn btn-danger btn-sm mb-3' do %>
+            <i class="bi bi-trash-fill"></i>
+            <%= t('model.delete') %>
+        <% end %>
+    <% else %>
+        <button type="button" class="multi-<%= object_text %>-del btn btn-danger btn-sm mb-3">
+            <i class="bi bi-trash-fill"></i>
+            <%= t('model.delete') %>
+        </button>
+    <% end %>
+</div>
+
+<%
+# End of file _delete_multiple_relation.html.erb
+# Path: ./app/views/common_pages/_delete_multiple_relation.html.erb
+%>

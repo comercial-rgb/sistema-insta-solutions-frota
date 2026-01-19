@@ -1,0 +1,132 @@
+<%=render 'order_service_proposals/modals/reprove_order_service_proposal', order_service_proposal: record %>
+<%= render 'order_service_proposals/modals/approve_order_service_proposal', order_service_proposal: record %>
+<%= render 'order_service_proposals/modals/refuse_additional_approval', order_service_proposal: record %>
+<%= render 'order_service_proposals/modals/refuse_additional_authorization', order_service_proposal: record %>
+<%
+array_links = [
+  {
+    link_path: show_order_service_proposal_path(id: record.id),
+    link_method: :get,
+    link_title: OrderServiceProposal.human_attribute_name(:view_proposal),
+    confirm: nil,
+    link_image: 'bi bi-book',
+    text_action: OrderServiceProposal.human_attribute_name(:view_proposal),
+    link_policy: policy(record).show_order_service_proposal?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: edit_order_service_proposal_path(record),
+    link_method: :get,
+    link_title: 'Editar Proposta (Reavaliação)',
+    confirm: nil,
+    link_image: 'bi bi-pencil-square',
+    text_action: 'Editar Proposta',
+    link_policy: policy(record).edit_proposal_in_reevaluation?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: approve_order_service_proposal_path(id: record.id),
+    link_method: :post,
+    link_title: OrderServiceProposal.human_attribute_name(:approve_order_service_proposal),
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-check-circle-fill',
+    text_action: OrderServiceProposal.human_attribute_name(:approve_order_service_proposal),
+    link_policy: policy(record).approve_order_service_proposal?,
+    class: 'dropdown-item',
+    action_button: true,
+    data_bs_toggle: 'modal',
+    data_bs_target: '#approve_order_service_proposal_'+record.id.to_s
+  },
+  {
+    link_path: reprove_order_service_proposal_path(id: record.id),
+    link_method: :post,
+    link_title: OrderServiceProposal.human_attribute_name(:reprove_order_service_proposal),
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-x-circle-fill',
+    text_action: OrderServiceProposal.human_attribute_name(:reprove_order_service_proposal),
+    link_policy: policy(record).reprove_order_service_proposal?,
+    class: 'dropdown-item',
+    action_button: true,
+    data_bs_toggle: 'modal',
+    data_bs_target: '#reprove_order_service_proposal_'+record.id.to_s
+  },
+  {
+    link_path: refuse_additional_approval_path(id: record.id),
+    link_method: :post,
+    link_title: 'Recusar Pré-aprovação do Adicional',
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-x-circle',
+    text_action: 'Recusar Pré-aprovação',
+    link_policy: policy(record).manager_refuse_additional_approval?,
+    class: 'dropdown-item',
+    action_button: true,
+    data_bs_toggle: 'modal',
+    data_bs_target: '#refuse_additional_approval_'+record.id.to_s
+  },
+  {
+    link_path: refuse_additional_authorization_path(id: record.id),
+    link_method: :post,
+    link_title: 'Recusar Pré-autorização do Adicional',
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-x-circle',
+    text_action: 'Recusar Pré-autorização',
+    link_policy: policy(record).manager_refuse_additional_authorization?,
+    class: 'dropdown-item',
+    action_button: true,
+    data_bs_toggle: 'modal',
+    data_bs_target: '#refuse_additional_authorization_'+record.id.to_s
+  },
+  {
+    link_path: get_new_proposals_order_service_proposal_path(id: record.id),
+    link_method: :post,
+    link_title: OrderServiceProposal.human_attribute_name(:get_new_proposals_order_service_proposal),
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-send',
+    text_action: OrderServiceProposal.human_attribute_name(:get_new_proposals_order_service_proposal),
+    link_policy: policy(record).get_new_proposals_order_service_proposal?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: autorize_order_service_proposal_path(id: record.id),
+    link_method: :post,
+    link_title: OrderServiceProposal.human_attribute_name(:autorize_order_service_proposal),
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-bookmark-check-fill',
+    text_action: OrderServiceProposal.human_attribute_name(:autorize_order_service_proposal),
+    link_policy: policy(record).autorize_order_service_proposal?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: waiting_payment_order_service_proposal_path(id: record.id),
+    link_method: :post,
+    link_title: OrderServiceProposal.human_attribute_name(:waiting_payment_order_service_proposal),
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-check-square-fill',
+    text_action: OrderServiceProposal.human_attribute_name(:waiting_payment_order_service_proposal),
+    link_policy: policy(record).waiting_payment_order_service_proposal?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: paid_order_service_proposal_path(id: record.id),
+    link_method: :post,
+    link_title: OrderServiceProposal.human_attribute_name(:paid_order_service_proposal),
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-cash-coin',
+    text_action: OrderServiceProposal.human_attribute_name(:paid_order_service_proposal),
+    link_policy: policy(record).paid_order_service_proposal?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: order_service_proposal_path(record),
+    link_method: :delete,
+    link_title: t('model.delete'),
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-trash-fill',
+    text_action: t('model.delete'),
+    link_policy: policy(record).destroy?,
+    class: 'dropdown-item'
+  }
+]
+%>
+
+<%= render 'common_pages/datagrid_actions', array_links: array_links %>

@@ -1,0 +1,16 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: orientation_manuals_path, text: OrientationManual.model_name.human(count: 2)},
+	{active: false, href: edit_orientation_manual_path(@orientation_manual), text: @orientation_manual.get_text_name},
+	{active: true, href: '#', text: t('model.edit')},
+]
+%>
+
+<%= 
+render 'common_pages/edit', 
+objects_path: orientation_manuals_path, 
+page_title: OrientationManual.model_name.human(count: 2), 
+form_to_render: 'orientation_manuals/form',
+breadcrumbs: breadcrumbs
+%>

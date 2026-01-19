@@ -1,0 +1,33 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: commitments_path, text: Commitment.model_name.human(count: 2)},
+	{active: false, href: edit_commitment_path(@commitment), text: @commitment.get_text_name},
+	{active: true, href: '#', text: t('model.edit')},
+]
+
+if @current_user.admin? && @commitment.invalid?
+	form_to_render = 'commitments/form'
+else
+	form_to_render = 'commitments/form_cancel_commitment'
+end
+
+%>
+
+<% if policy(@commitment).inactivate? && @commitment.active? %>
+	<div class="container">
+		<div class="row mb-3">
+			<div class="col-12 d-flex justify-content-end">
+				<%= link_to t('model.inactivate', default: 'Inativar empenho'), inactivate_commitment_path(@commitment), method: :patch, class: 'btn btn-outline-danger btn-sm', data: { confirm: t('model.confirm_action') } %>
+			</div>
+		</div>
+	</div>
+<% end %>
+
+<%= 
+	render 'common_pages/edit', 
+	objects_path: commitments_path, 
+	page_title: Commitment.model_name.human(count: 2), 
+	form_to_render: form_to_render,
+	breadcrumbs: breadcrumbs
+%>

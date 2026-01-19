@@ -1,0 +1,10 @@
+<div class="row">
+	<!-- Tipo de pessoa -->
+	<div class="col-12 col-md-3 mb-3">
+		<%= f.association :person_type, collection: PersonType.all, as: :select, include_blank: false %>
+	</div>
+</div>
+
+<%= render 'users/forms/physical_person', f: f %>
+
+<%= render 'users/forms/juridical_person', f: f %>

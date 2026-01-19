@@ -1,0 +1,14 @@
+<%
+  # Aqui se deve passar o rating como valor numérico
+  # As estrelinhas são preenchidas de acordo
+  if rating.nil? || rating.blank?
+    rating = 0
+  end
+%>
+
+<% (1..5).each do |number| %>
+    <i class="bi bi-star<%= rating >= number ? '-fill' : '' %> text-primary"></i>
+<% end %>
+
+<% # End of file _rating.html.erb %>
+<% # Path: ./app/views/visitors/common/_rating.html.erb %>

@@ -1,0 +1,21 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: provider_service_types_path, text: ProviderServiceType.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: ProviderServiceType.model_name.human(count: 2),
+		url_new_path: new_provider_service_type_path,
+		policy_true: policy(ProviderServiceType).new?,
+		objects: @provider_service_types,
+		objects_path: provider_service_types_path,
+		object_name: ProviderServiceType.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: provider_service_types_path(format: "csv", provider_service_types_grid: (params[:provider_service_types_grid].nil? ? "" : params[:provider_service_types_grid].to_enum.to_h))
+	}
+%>

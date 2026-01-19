@@ -1,0 +1,10 @@
+<div class="row">
+  <div class="col-12 col-md-4 mb-3">
+    <%= f.input :gerencia_net_certificate %>
+    <% if f.object.gerencia_net_certificate.attached? %>
+      <%= link_to t("model.delete"), delete_gerencia_net_certificate_path, data: {confirm: t('model.confirm_action'), method: :delete} %>
+    <% end %>
+  </div>
+</div>
+
+<!-- / -->

@@ -1,0 +1,42 @@
+pt-BR:
+  activerecord:
+    models:
+      site_contact:
+        one: "Suporte"
+        other: "Suporte"
+    attributes:
+      site_contact:
+        id: "ID"
+        created_at: "Realizado em"
+        updated_at: "Atualizado em"
+        actions: "Ações"
+        site_contact_subject_id: "Assunto"
+        site_contact_subject: "Assunto"
+        name: "Nome"
+        email: "E-mail"
+        phone: "Telefone"
+        message: "Mensagem"
+        user_id: "Usuário"
+        user: "Usuário"
+        success_save: "Agradecemos seu contato"
+en:
+  activerecord:
+    models:
+      site_contact:
+        one: "Suporte"
+        other: "Suporte"
+    attributes:
+      site_contact:
+        id: "ID"
+        created_at: 'Created at'
+        updated_at: 'Updated at'
+        actions: "Actions"
+        site_contact_subject_id: "Assunto"
+        site_contact_subject: "Assunto"
+        name: "Nome"
+        email: "E-mail"
+        phone: "Telefone"
+        message: "Mensagem"
+        user_id: "Usuário"
+        user: "Usuário"
+        success_save: "Agradecemos seu contato"

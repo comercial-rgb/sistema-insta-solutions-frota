@@ -1,0 +1,17 @@
+<!-- Email -->
+<div class="col-12 col-md-4 mb-3">
+  <%= email.input :email, input_html: {type: "email"} %>
+</div>
+
+<!-- Tipo -->
+<div class="col-12 col-md-2 mb-3">
+  <%= email.association :email_type,
+  collection: EmailType.all,
+  as: :select,
+  include_blank: Email.human_attribute_name(:email_type_id) %>
+</div>
+
+<%
+# End of file _email_field.html.erb
+# Path: ./app/views/common_pages/emails/_email_field.html.erb
+%>

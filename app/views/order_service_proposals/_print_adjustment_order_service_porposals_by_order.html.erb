@@ -1,0 +1,13 @@
+<div class="d-none d-print-block fs-8px">       
+    <% @order_service_proposals_to_export.assets.each do |order_service_proposal| %>
+        <div class="pagebreak"></div>
+        <div class="border border-1 border-opacity-25 rounded-4 border-dark p-3 mt-5">
+            <%= render 'order_service_proposals/renders/print_order_service_data', record: @order_service, order_service_proposal: order_service_proposal %>
+        </div>
+        <div class="row py-3">
+            <div class="col-12">
+                <%= render 'order_service_proposals/renders/print_table_products_order_service_proposal_items', order_service_proposal: order_service_proposal %>
+            </div>
+        </div>
+    <% end %>
+</div>

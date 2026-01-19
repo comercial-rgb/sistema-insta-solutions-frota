@@ -1,0 +1,88 @@
+/**
+ *= require bootstrap-datepicker/dist/css/bootstrap-datepicker3.min.css
+ *= require select2/dist/css/select2.min.css
+ *= require swiper/swiper
+ *= require flatpickr/dist/flatpickr.min
+ *= require_self
+ */
+
+@import 'bootstrap-custom';
+@import 'custom-brown';
+@import 'datagrid-fix';
+@import 'flash';
+@import 'order';
+@import 'responsive';
+@import 'select2-fix';
+@import 'notifications';
+
+@import url("https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css");
+
+.pointer {
+    cursor: pointer;
+}
+
+@media print {
+    .pagebreak { page-break-before: always; } /* page-break-after works, as well */
+    .bg-danger-subtle {
+        background-color: #f8d7da !important; /* Cor equivalente ao bg-danger-subtle */
+        -webkit-print-color-adjust: exact; /* Garante que as cores sejam impressas corretamente no Chrome */
+        print-color-adjust: exact; /* Garante que as cores sejam impressas corretamente em outros navegadores */
+    }
+}
+
+.error {
+    color: red;
+}
+
+.checkbox-input-center {
+    margin-top: 40px !important;
+}
+
+.ck-editor__editable_inline {
+    min-height: 400px;
+}
+
+.offcanvas {
+    z-index: 1800px !important;
+}
+
+body {
+    margin-bottom: 60px;
+    /* Ensure this value matches the height of the footer */
+}
+
+.fixed-footer {
+    position: fixed;
+    bottom: 0;
+    background-color: #f8f9fa;
+    /* Light gray background */
+    padding: 10px 0;
+    box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.1);
+    height: 40px;
+    /* Ensure this matches the margin-bottom value */
+}
+
+/* Estilos para campos de quantidade em grupos de serviços */
+.part-service-quantity[readonly] {
+    background-color: #e9ecef !important;
+    cursor: not-allowed;
+    opacity: 1;
+}
+
+.part-service-quantity.is-invalid {
+    border-color: #dc3545 !important;
+    background-color: #f8d7da !important;
+}
+
+.quantity-alert {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.price-limit-alert {
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+}
+
+// End of file application.css.scss
+// Path: ./app/assets/stylesheets/application.css.scss

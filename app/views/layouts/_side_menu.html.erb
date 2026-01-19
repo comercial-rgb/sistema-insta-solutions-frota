@@ -1,0 +1,45 @@
+<div data-bs-zindex="1750" class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasRight" aria-labelledby="offcanvasRightLabel">
+    <div class="offcanvas-header">
+        <h5><%= t("menu.menu") %></h5>
+        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+
+    <div class="offcanvas-body">
+
+        <p class="text-muted text-center">
+            <%= t('session.welcome') %>, <b><%= @current_user.get_name %></b>
+        </p>
+
+        <div class="list-group list-group-flush">
+
+            <%= render "layouts/menu/menu_responsive_links", links: get_complete_menu(@current_user) %>
+
+            <!-- Settings -->
+            <% if policy(SystemConfiguration).edit? %>
+                <a
+                    href="<%= edit_system_configuration_path(1) %>"
+                    class="list-group-item list-group-item-action text-primary"
+                    title="<%= SystemConfiguration.model_name.human(count: 2) %>">
+                    <%= SystemConfiguration.model_name.human(count: 2) %>
+                </a>
+            <% end %>
+
+            <!-- Sign out -->
+            <a href="<%= logout_path %>" title="<%= t('menu.logout') %>" class="list-group-item list-group-item-action text-danger">
+                <b><%= t("menu.logout") %></b>
+            </a>
+
+        </div>
+
+        <div class="p-3 text-center">
+            <%= render 'sessions/locale' %>
+        </div>
+
+    </div>
+
+</div>
+
+<%
+# End of file side_menu.html.erb
+# Path: ./app/views/layouts/side_menu.html.erb
+%>

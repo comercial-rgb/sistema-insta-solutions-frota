@@ -1,0 +1,41 @@
+<div class="new-payment" <%= "hidden" if payment_transaction.due_date.nil? || payment_transaction.due_date > Date.today %>>
+	<!-- Se a data limite do pagamento venceu -->
+	<div class="col-12 text-center">
+		<span class="badge bg-danger"><%= Order.human_attribute_name(:old_payment_not_paid) %></span>
+	</div>
+
+	<%= simple_form_for current_order, url: generate_new_payment_subscription_path(id: subscription.id, order_id: current_order.id), method: :post do |f| %>
+		<%= f.input_field :id, value: current_order.id, as: :hidden %>
+		<div class="col-12 text-center mb-3 mt-3">
+			<button type="submit" class="btn btn-primary">
+				<%= Order.human_attribute_name(:generate_new_invoice_payment) %>
+			</button>
+		</div>
+	<% end %>
+</div>
+
+<div class="current-payment" <%= "hidden" if !payment_transaction.due_date.nil? && payment_transaction.due_date < Date.today %>>
+	<!-- Se a data limite do pagamento ainda está válida -->
+	<div class="col-12 pt-3 text-center">
+		<pre class="text-wrap w-100">
+			<code><%= payment_transaction.invoice_barcode_formatted %></code>
+		</pre>
+		<input class="input-hidden" id="link_text" value="<%= payment_transaction.invoice_barcode_formatted %>" readonly="true">
+		<button class="btn btn-primary pointer text-white mt-2" id="copy_text">
+			<%= Order.human_attribute_name(:copy_barcode) %>
+		</button>
+	</div>
+
+	<div class="col-12 pt-3 text-center mb-3">
+		<a class="btn btn-danger text-white" href="<%= payment_transaction.pdf_link %>" target="_blank">
+			<i class="bi bi-file-earmark-pdf"></i>
+			<%= PaymentTransaction.human_attribute_name(:download_pdf) %>
+		</a>
+		<div class="mt-2 mb-2">
+			<small>
+				<%= PaymentTransaction.human_attribute_name(:due_date) %> <b><%= CustomHelper.get_text_date(payment_transaction.due_date, "date", :default) unless payment_transaction.due_date.nil? %></b>
+			</small>
+		</div>
+	</div>
+
+</div>

@@ -1,0 +1,58 @@
+pt-BR:
+  activerecord:
+    models:
+      commitment:
+        one: "Empenho"
+        other: "Empenhos"
+    attributes:
+      commitment:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        client_id: "Cliente"
+        client: "Cliente"
+        cost_center_id: "Centro de custo"
+        cost_center: "Centro de custo"
+        contract_id: "Contrato"
+        contract: "Contrato"
+        commitment_number: "Nº do empenho"
+        commitment_value: "Valor do empenho"
+        canceled_value: "Valor anulado"
+        cancel_value: 'Anular valor'
+        cancel_commitments: "Anulação de valores"
+        cancel_commitments_success: "Anulação de valor cadastrada com sucesso"
+        already_consumed_value: "Valor já consumido"
+        pendent_value: "Valor pendente"
+        sub_unit: "Sub unidade"
+        sub_unit_id: "Sub unidade"
+        category_id: "Categoria (Peças/Serviços)"
+        category: "Categoria"
+en:
+  activerecord:
+    models:
+      commitment:
+        one: "Empenho"
+        other: "Empenhos"
+    attributes:
+      commitment:
+        id: "ID"
+        created_at: 'Created at'
+        updated_at: 'Updated at'
+        actions: "Actions"
+        client_id: "Cliente"
+        client: "Cliente"
+        cost_center_id: "Centro de custo"
+        cost_center: "Centro de custo"
+        contract_id: "Contrato"
+        contract: "Contrato"
+        commitment_number: "Nº do empenho"
+        commitment_value: "Valor do empenho"
+        canceled_value: "Valor anulado"
+        cancel_value: 'Anular valor'
+        cancel_commitments: "Anulação de valores"
+        cancel_commitments_success: "Anulação de valor cadastrada com sucesso"
+        already_consumed_value: "Valor já consumido"
+        pendent_value: "Valor pendente"
+        sub_unit: "Sub unidade"
+        sub_unit_id: "Sub unidade"

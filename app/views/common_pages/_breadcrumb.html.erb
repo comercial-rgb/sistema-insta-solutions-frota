@@ -1,0 +1,18 @@
+<nav aria-label="breadcrumb" class="d-print-none">
+  <div class="mb-3">
+    <ol class="breadcrumb bg-light px-3 py-2 rounded mb-0">
+      <% links.compact.reject { |l| l[:text].blank? }.each_with_index do |link, index| %>
+        <% is_last = (index == links.size - 1) %>
+        <li class="breadcrumb-item <%= 'active' if is_last %>" aria-current="<%= 'page' if is_last %>">
+          <% if is_last %>
+            <small class="fw-bold text-dark"><%= link[:text] %></small>
+          <% else %>
+            <a href="<%= link[:href] %>" target="<%= defined?(target) ? target : "_self" %>">
+              <small class="text-secondary"><%= link[:text] %></small>
+            </a>
+          <% end %>
+        </li>
+      <% end %>
+    </ol>
+  </div>
+</nav>

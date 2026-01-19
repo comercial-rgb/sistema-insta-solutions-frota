@@ -1,0 +1,98 @@
+<div class="nested-fields complement-item mb-2 p-2 border rounded position-relative" style="background-color: #ffffff;">
+  <button type="button" class="btn btn-danger btn-sm remove-complement-item position-absolute top-0 end-0 m-2" data-index="<%= f.options[:child_index] %>" style="z-index: 10; padding: 0.25rem 0.5rem;">
+    <i class="bi bi-trash"></i>
+  </button>
+  
+  <div class="row g-2">
+    <%= f.input :is_complement, as: :hidden, input_html: { value: true } %>
+    <%= f.input_field :category_id, as: :hidden, class: 'complement-category-id', value: (f.object.service&.category_id || f.object.category_id || Category::SERVICOS_PECAS_ID) %>
+    
+    <div class="col-md-2">
+      <label class="form-label" style="font-size: 0.875rem;">Tipo <span class="text-danger">*</span></label>
+      <div class="btn-group w-100" role="group">
+        <input type="radio" class="btn-check complement-type-radio" name="complement_type_<%= f.options[:child_index] %>" id="type_part_<%= f.options[:child_index] %>" value="<%= Category::SERVICOS_PECAS_ID %>" <%= 'checked' if (f.object.service&.category_id || f.object.category_id || Category::SERVICOS_PECAS_ID) == Category::SERVICOS_PECAS_ID %>>
+        <label class="btn btn-outline-primary btn-sm" for="type_part_<%= f.options[:child_index] %>">
+          <i class="bi bi-gear"></i> Peça
+        </label>
+        
+        <input type="radio" class="btn-check complement-type-radio" name="complement_type_<%= f.options[:child_index] %>" id="type_service_<%= f.options[:child_index] %>" value="<%= Category::SERVICOS_SERVICOS_ID %>" <%= 'checked' if (f.object.service&.category_id || f.object.category_id) == Category::SERVICOS_SERVICOS_ID %>>
+        <label class="btn btn-outline-success btn-sm" for="type_service_<%= f.options[:child_index] %>">
+          <i class="bi bi-wrench"></i> Serviço
+        </label>
+      </div>
+    </div>
+    
+    <div class="col-md-1">
+      <label class="form-label" style="font-size: 0.875rem;">Obs.</label>
+      <%= f.input_field :description, 
+          class: 'form-control form-control-sm', 
+          placeholder: 'Códigos...'
+      %>
+    </div>
+    
+    <div class="col-md-4">
+      <label class="form-label" style="font-size: 0.875rem;">Peça/Serviço <span class="text-danger">*</span></label>
+      <select class="form-select form-select-sm complement-service-select" name="order_service_proposal[provider_service_temps_attributes][<%= f.options[:child_index] %>][service_id]" required>
+        <option value="">Selecione...</option>
+        <% Service.all.order(:category_id, :name).each do |service| %>
+          <option value="<%= service.id %>" data-category-id="<%= service.category_id %>" <%= 'selected' if f.object.service_id == service.id %>><%= service.getting_formatted_name_with_type_and_price %></option>
+        <% end %>
+      </select>
+    </div>
+    
+    <div class="col-md-5"></div>
+  </div>
+  
+  <div class="row g-2 mt-1">
+    <div class="col-md-1">
+      <label class="form-label" style="font-size: 0.875rem;">Qtd. <span class="text-danger">*</span></label>
+      <%= f.input_field :quantity, 
+          as: :integer,
+          value: f.object.quantity || 1,
+          min: 1,
+          class: 'form-control form-control-sm complement-quantity',
+          required: true
+      %>
+    </div>
+    
+    <div class="col-md-2">
+      <label class="form-label" style="font-size: 0.875rem;">Preço <span class="text-danger">*</span></label>
+      <%= f.input_field :price, 
+          as: :string,
+          type: 'tel',
+          class: 'form-control form-control-sm complement-price',
+          required: true
+      %>
+    </div>
+    
+    <div class="col-md-2">
+      <label class="form-label" style="font-size: 0.875rem;">Garantia <span class="text-danger">*</span></label>
+      <%= f.input_field :warranty_period,
+          min: 0,
+          placeholder: 'Dias',
+          class: 'form-control form-control-sm',
+          required: true
+      %>
+    </div>
+    
+    <% brand_required = (f.object.service&.category_id || f.object.category_id || Category::SERVICOS_PECAS_ID) == Category::SERVICOS_PECAS_ID %>
+    <div class="col-md-2">
+      <label class="form-label" style="font-size: 0.875rem;">Marca <span class="text-danger complement-brand-required-indicator" <%= 'style="display:none;"'.html_safe unless brand_required %>>*</span></label>
+      <%= f.input_field :brand, 
+          class: 'form-control form-control-sm complement-brand',
+          required: brand_required
+      %>
+    </div>
+    
+    <div class="col-md-2">
+      <label class="form-label" style="font-size: 0.875rem;">Desconto (<%= @order_service.client&.discount_percent || 0 %>%)</label>
+      <input type="text" class="form-control form-control-sm only-read complement-discount" value="R$ 0,00" readonly style="background-color: #e9ecef;">
+      <input type="hidden" class="complement-discount-percent" value="<%= @order_service.client&.discount_percent || 0 %>">
+    </div>
+    
+    <div class="col-md-2">
+      <label class="form-label" style="font-size: 0.875rem;">Total</label>
+      <input type="text" class="form-control form-control-sm only-read complement-total" value="R$ 0,00" readonly style="background-color: #e9ecef;">
+    </div>
+  </div>
+</div>

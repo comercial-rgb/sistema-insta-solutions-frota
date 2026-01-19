@@ -1,0 +1,36 @@
+<!-- Modal -->
+<div class="modal fade" id="show_order_rejecteds_<%=order_service.id%>" tabindex="-1">
+
+    <div class="modal-dialog modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+
+            <!-- Cabeçalho -->
+            <div class="modal-header">
+
+                <!-- Título -->
+                <h5 class="modal-title" id="show_order_rejecteds_label_<%=order_service.id%>">
+                    <small class="text-muted"><%= order_service.code %></small>
+                </h5>
+
+                <!-- Botão fechar -->
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <% if order_service.rejected_providers.any? %>
+                    <div class="list-group">
+                        <% order_service.rejected_providers.each do |user| %>
+                            <div class="list-group-item d-flex align-items-center">
+                                <i class="bi bi-person-circle me-2"></i>
+                                <span><%= user.get_name %></span>
+                            </div>
+                        <% end %>
+                    </div>
+                <% else %>
+                    <div class="alert alert-info mb-0">
+                        Nenhum provedor rejeitado.
+                    </div>
+                <% end %>
+            </div>
+        </div>
+    </div>
+</div>

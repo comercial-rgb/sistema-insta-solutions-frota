@@ -1,0 +1,55 @@
+<%
+  image_url = ''
+  image_content_type = nil
+  image_filename = nil
+
+  if image.present?
+    # ActiveStorage (preferred): generate a relative path that does not require
+    # ActiveStorage::Current.url_options (unlike Disk service absolute URLs).
+    if image.respond_to?(:attached?)
+      if image.attached? && image.respond_to?(:blob) && image.blob.present?
+        image_content_type = image.blob.content_type
+        image_filename = image.blob.filename
+        image_url = rails_blob_path(image.blob, disposition: 'attachment')
+      end
+    elsif defined?(ActiveStorage::Attachment) && image.is_a?(ActiveStorage::Attachment)
+      image_content_type = image.blob&.content_type
+      image_filename = image.blob&.filename
+      image_url = rails_blob_path(image, disposition: 'attachment')
+    elsif defined?(ActiveStorage::Blob) && image.is_a?(ActiveStorage::Blob)
+      image_content_type = image.content_type
+      image_filename = image.filename
+      image_url = rails_blob_path(image, disposition: 'attachment')
+    elsif image.respond_to?(:url)
+      # Legacy/other attachment implementations
+      image_url = image.url
+      image_content_type = image.try(:content_type)
+      image_filename = image.try(:filename)
+    end
+  end
+
+  if defined?(accept)
+    accept = accept
+  else
+    accept = ".jpeg, .jpg, .png"
+  end
+%>
+
+<%= form.input attribute, label: label %>
+<% if !image_url.blank? %>
+  <% if image_content_type.to_s.include?("image") %>
+    <% begin %>
+      <%= link_to image_tag(image_url, width: '30%'), image_url, target: "_blank" %>
+    <% rescue Exception => e %>
+      <% Rails.logger.error e.message %>
+    <% end %>
+  <% else %>
+    <% begin %>
+      <%= link_to (image_filename || 'Arquivo'), image_url, target: "_blank" %>
+    <% rescue Exception => e %>
+      <% Rails.logger.error e.message %>
+    <% end %>
+  <% end %>
+
+  <%= render "common_pages/attachments/destroy_attachment", attachment: image %>
+<% end %>

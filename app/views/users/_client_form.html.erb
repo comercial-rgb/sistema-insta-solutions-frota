@@ -1,0 +1,21 @@
+<%= simple_form_for @user, validate: false do |f| %>
+
+	<!-- ID do perfil de usuário -->
+	<%= f.input :profile_id, as: :hidden, input_html: {value: @user.profile_id} %>
+
+	<%= render 'users/forms/personal_data', f: f %>
+
+	<%= render 'users/forms/client_form', f: f %>
+
+	<%= render 'common_pages/addresses/address', relation: :address, f: f %>
+	
+	<%= render 'common_pages/person_contacts/person_contacts', f: f %>
+
+	<%= render 'common_pages/save', f: f, return_path: (@current_user.id != @user.id) ? users_client_path : nil %>
+
+<% end %>
+
+<%
+# End of file _form.html.erb
+# Path: ./app/views/users/_form.html.erb
+%>

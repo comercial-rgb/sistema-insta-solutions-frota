@@ -1,0 +1,72 @@
+<%= address.input :address_area_id, as: :hidden, input_html: {value: address.object.address_area_id} %>
+<%= address.input :ownertable_type, as: :hidden, input_html: {value: address.object.ownertable_type} %>
+<%= address.input :ownertable_id, as: :hidden, input_html: {value: address.object.ownertable_id} %>
+<%= address.input :page_title, as: :hidden, input_html: {value: address.object.page_title} %>
+
+<div class="row align-items-end">
+    <!-- Cep -->
+    <div class="col-12">
+        <div class="row">
+            <% if defined?(show_name) && show_name %>
+                <div class="col-12 col-md-4 mb-3">
+                    <%= address.input :name %>
+                </div>
+            <% end %>
+            <div class="col-12 col-md-2 mb-3">
+                <%= address.input :zipcode, input_html: {class: 'cep user_address_change_zipcode', type: "tel"} %>
+            </div>
+            <% if defined?(show_geolocation_data) && show_geolocation_data %>
+                <!-- Latitude -->
+                <div class="col-12 col-md-3">
+                  <%= address.input :latitude, input_html: {class: 'form-control'} %>
+                </div>
+
+                <!-- Longitude -->
+                <div class="col-12 col-md-3">
+                  <%= address.input :longitude, input_html: {class: 'form-control'} %>
+                </div>
+            <% end %>
+        </div>
+    </div>
+
+    <!-- Logradouro -->
+    <div class="col-12 col-md-6 mb-3">
+        <%= address.input :address %>
+    </div>
+
+    <!-- Número -->
+    <div class="col-12 col-md-2 mb-3">
+        <%= address.input :number %>
+    </div>
+
+    <!-- Complemento -->
+    <div class="col-12 col-md-4 mb-3">
+        <%= address.input :complement %>
+    </div>
+
+    <!-- Bairro -->
+    <div class="col-12 col-md-4 mb-3">
+        <%= address.input :district %>
+    </div>
+
+    <!-- Estado -->
+    <div class="col-12 col-md-2 mb-3">
+        <%= address.association :state,
+        collection: State.all,
+        as: :select,
+        label_method: :acronym,
+        include_blank: t('model.select_option'),
+        input_html: {class: 'select2 user_address_change_state'} %>
+    </div>
+
+    <!-- Cidade -->
+    <div class="col-12 col-md-2 mb-3">
+        <%= address.association :city, collection: City.all, as: :select, include_blank: t('model.select_option') %>
+    </div>
+
+</div>
+
+<%
+# End of file _address_fields.html.erb
+# Path: ./app/views/common_pages/addresses/_address_fields.html.erb
+%>

@@ -1,0 +1,27 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: validate_users_path, text: User.human_attribute_name(:common_users)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= render 'users/modals/reason_disapprove' %>
+
+<%= 
+render 'common_pages/index', 
+attributes: {
+	page_title: User.human_attribute_name(:common_users), 
+	url_new_path: nil, 
+	policy_true: false, 
+	objects: @users, 
+	objects_path: validate_users_path, 
+	object_name: User.human_attribute_name(:common_user),
+	breadcrumbs: breadcrumbs,
+	objects_path_export: validate_users_path(format: "csv", validate_users_grid: (params[:validate_users_grid].nil? ? "" : params[:validate_users_grid].to_enum.to_h)),
+	select_all_registers: true,
+	render_select_all_registers: (render "common_pages/datagrid/select_all_registers", current_model: "user", current_models: "users", text_label: t("model.select_all")),
+	show_actions_registers: true,
+	render_show_actions_registers: (render "users/renders/button_actions")
+}
+%>

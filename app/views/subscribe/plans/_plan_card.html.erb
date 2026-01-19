@@ -1,0 +1,40 @@
+<%
+  current_data_plan_periodicity_id = nil
+  if !@current_user.nil?
+    current_data_plan_periodicity_id = @current_user.current_plan_id
+  end
+%>
+<div class="card mb-4">
+  <img src="<%= plan.get_image %>" class="card-img-top" alt="..." width="250" height="250">
+
+  <div class="card-header">
+    <%= plan.name %>
+  </div>
+
+  <div class="card-body">
+    
+    <p class="card-text">
+      <%= plan.description %>
+    </p>
+    
+    <% if !plan.is_free %>
+      <%= 
+        render "subscribe/plans/plan_periodicity", 
+        current_data_plan_periodicity_id: current_data_plan_periodicity_id,
+        plan: plan,
+        price_periodicity_text: "Mensal", 
+        price_periodicity: plan.get_price_by_periodicity(PlanPeriodicity::MENSAL_ID),
+        data_plan_periodicity: plan.get_data_plan_periodicity_by_periodicity(PlanPeriodicity::MENSAL_ID)
+      %>
+      <%= 
+        render "subscribe/plans/plan_periodicity", 
+        current_data_plan_periodicity_id: current_data_plan_periodicity_id,
+        plan: plan,
+        price_periodicity_text: "Anual", 
+        price_periodicity: plan.get_price_by_periodicity(PlanPeriodicity::ANUAL_ID),
+        data_plan_periodicity: plan.get_data_plan_periodicity_by_periodicity(PlanPeriodicity::ANUAL_ID)
+      %>
+    <% end %>
+
+  </div>
+</div>

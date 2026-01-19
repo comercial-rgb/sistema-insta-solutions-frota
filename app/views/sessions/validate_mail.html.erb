@@ -1,0 +1,21 @@
+<div class="container">
+    <div class="row">
+        <!-- Logo -->
+        <div class="col-12 text-center my-5">
+            <%= render 'layouts/logo', width: 540, height: 100 %>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12 text-center">
+            <h3><%= User.human_attribute_name(:success_validated_mail) %></h3>
+            <h5>
+                <%= User.human_attribute_name(:access_area_login) %> <a href="<%= login_path %>">AQUI</a>
+            </h5>
+        </div>
+    </div>
+</div>
+
+<%
+# End of file validate_mail.html.erb
+# Path: ./app/views/sessions/validate_mail.html.erb
+%>

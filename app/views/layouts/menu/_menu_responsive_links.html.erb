@@ -1,0 +1,35 @@
+<% for link in links %>
+    <% if link.key?(:submenus) %>
+        <% uniqueHash = 'menu_' + Digest::MD5.hexdigest(rand.to_s) %>
+        <button
+            class="list-group-item list-group-item-action"
+            type="button"
+            data-bs-toggle="collapse"
+            data-bs-target="#<%= uniqueHash %>"
+            aria-expanded="false"
+            aria-controls="<%= uniqueHash %>">
+            <%= link[:label] %>
+            <i class="bi bi-caret-down-fill"></i>
+        </button>
+
+        <div class="collapse list-group-flush" id="<%= uniqueHash %>">
+            <% for child in link[:submenus] %>
+                <a
+                    href="<%= child[:href] %>"
+                    class="list-group-item list-group-item-action border-bottom text-muted ps-4"
+                    target="<%= !child[:target].nil? ? child[:target] : '' %>">
+                    <%= child[:label] %>
+                </a>
+            <% end %>
+        </div>
+    <% elsif link.key?(:label) %>
+        <a href="<%= link[:href] %>" class="list-group-item list-group-item-action" target="<%= !link[:target].nil? ? link[:target] : ''%>">
+            <%= link[:label] %>
+        </a>
+    <% end %>
+<% end %>
+
+<%
+# End of file _menu_links.html.erb
+# Path: ./app/views/layouts/menu/_menu_links.html.erb
+%>

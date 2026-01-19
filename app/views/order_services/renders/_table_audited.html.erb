@@ -1,0 +1,98 @@
+<div class="table-responsive py-4">
+    <table class="table table-striped datatable-order-service-historic">
+        <thead>
+        <tr>
+            <th><%= t('audit.user') %></th>
+            <th><%= t('audit.order_service_code') %></th>
+            <th><%= t('audit.order_service_proposal_code') %></th>
+            <th><%= t('audit.change') %></th>
+            <th><%= t('audit.old_value') %></th>
+            <th><%= t('audit.new_value') %></th>
+            <th><%= t('audit.date') %></th>
+        </tr>
+        </thead>
+        <tbody>
+            <% audits.each do |audit| %>
+                <tr>
+                    <td><%= audit.user.try(:name) || t('audit.system_user') %></td>
+                    <td>
+                        <% 
+                            current_code = audit.auditable_type == 'OrderService' ? audit.auditable.code : '' 
+                            current_id = audit.auditable_type == 'OrderService' ? audit.auditable.id : '' 
+                        %>
+                        <% if !current_id.nil? && !current_id.blank? %>
+                            <%= link_to current_code, show_order_service_proposals_by_order_service_path(order_service_id: current_id), target: '_blank' %>
+                        <% end %>
+                    </td>
+                    <td>
+                        <% 
+                            current_code = audit.auditable_type == 'OrderServiceProposal' ? audit.auditable.code : '' 
+                            current_id = audit.auditable_type == 'OrderServiceProposal' ? audit.auditable.id : '' 
+                        %>
+                        <% if !current_id.nil? && !current_id.blank? %>
+                            <%= link_to current_code, show_order_service_proposal_path(id: current_id), target: '_blank' %>
+                        <% end %>
+                    </td>
+                    <td><%= t("audit.actions.#{audit.action}") %></td>
+                    
+                    <td>
+                        <!-- Status anterior -->
+                        <%
+                            current_span_class = ''
+                            if !audit.audited_changes.values[1].is_a?(Integer)
+                                begin
+                                    old_status_id = audit.audited_changes.values[1].first
+                                    old_status_name = audit.audited_changes.values[0].first
+                                    current_span_class = audit.auditable.getting_badge_color_by_status(old_status_id)
+                                rescue StandardError => e
+                                    Rails.logger.error "Error processing audit changes: #{e.message}"
+                                    old_status_id = nil
+                                    old_status_name = ''
+                                    current_span_class = 'badge-secondary'
+                                end
+                            end
+                        %>
+                        <span class="badge <%= current_span_class %>">
+                            <%= old_status_name %>
+                        </span>
+                    </td>
+                    <td>
+                        <!-- Novo status -->
+                        <%
+                            current_span_class = ''
+                            if !audit.audited_changes.values[1].is_a?(Integer)
+                                begin
+                                    new_status_id = audit.audited_changes.values[1].last
+                                    new_status_name = audit.audited_changes.values[0].last
+                                    current_span_class = audit.auditable.getting_badge_color_by_status(new_status_id)
+                                rescue StandardError => e
+                                    Rails.logger.error "Error processing audit changes: #{e.message}"
+                                    new_status_id = nil
+                                    new_status_name = ''
+                                    current_span_class = 'badge-secondary'
+                                end
+                            end
+
+                            canceled_or_reproved = false
+                            canceled_text = ''
+                            if audit.auditable_type == 'OrderService' && new_status_id == OrderServiceStatus::CANCELADA_ID
+                                canceled_or_reproved = true
+                                canceled_text = audit.auditable.cancel_justification
+                            elsif audit.auditable_type == 'OrderServiceProposal' && (new_status_id == OrderServiceProposalStatus::CANCELADA_ID || new_status_id == OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID)
+                                canceled_or_reproved = true
+                                canceled_text = audit.auditable.reason_reproved
+                            end
+                        %>
+                        <span class="badge <%= current_span_class %>">
+                            <%= new_status_name %>
+                        </span>                        
+                        <% if canceled_or_reproved %>
+                            <i class="bi bi-question-circle-fill pointer" data-bs-toggle="tooltip" title="<%= canceled_text %>"></i>
+                        <% end %>
+                    </td>
+                    <td><%= CustomHelper.get_text_date(audit.created_at, 'datetime', :full) %></td>
+                </tr>
+            <% end %>
+        </tbody>
+    </table>
+</div>

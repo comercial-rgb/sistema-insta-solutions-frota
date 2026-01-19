@@ -1,0 +1,16 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: vehicle_types_path, text: VehicleType.model_name.human(count: 2)},
+	{active: false, href: edit_vehicle_type_path(@vehicle_type), text: @vehicle_type.get_text_name},
+	{active: true, href: '#', text: t('model.edit')},
+]
+%>
+
+<%= 
+render 'common_pages/edit', 
+objects_path: vehicle_types_path, 
+page_title: VehicleType.model_name.human(count: 2), 
+form_to_render: 'vehicle_types/form',
+breadcrumbs: breadcrumbs
+%>

@@ -1,0 +1,43 @@
+<%
+    breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: true, href: visitors_new_site_contact_path, text: SiteContact.model_name.human}
+]
+%>
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12 col-md-8">
+            <%= render "form" %>
+        </div>
+        <div class="col-12 col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title text-center"><%= SystemConfiguration.human_attribute_name(:contact_data).upcase %></h5>
+                    <p class="card-text">
+                        <a target="_blank" class="text-decoration-none text-reset" href="tel:<%= format_phone(@system_configuration.phone) %>">
+                            <i class="bi bi-telephone-outbound-fill"></i>
+                            <%= @system_configuration.phone %>
+                        </a>
+                    </p>
+                    <p class="card-text">
+                        <a target="_blank" class="text-decoration-none text-reset" href="mailto:<%= @system_configuration.contact_mail %>">
+                            <i class="bi bi-envelope-check-fill"></i>
+                            <%= @system_configuration.contact_mail %>
+                        </a>
+                    </p>
+                    <p class="card-text">
+                        <div class="d-flex justify-content-start">
+                            <i class="bi bi-stopwatch me-1"></i>
+                            <%= simple_format(@system_configuration.attendance_data) %>
+                        </div>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

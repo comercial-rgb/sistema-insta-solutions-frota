@@ -1,0 +1,44 @@
+<% random_string = Digest::MD5.hexdigest rand.to_s %>
+<% if array_links.select{|object| object[:link_policy]}.length > 0 %>
+    <div class="dropdown position-static">
+        <button class="btn btn-dark btn-sm dropdown-toggle" type="button" id="<%= random_string %>" data-bs-toggle="dropdown" data-bs-offset="0,5" aria-expanded="false">
+            <%= t('model.management') %>
+        </button>
+
+        <ul class="dropdown-menu dropdown-menu-end shadow-lg" aria-labelledby="<%= random_string %>" style="max-height: 400px; overflow-y: auto;">
+            <% array_links.each do |link| %>
+                <li>
+                    <% if defined?(link[:action_button]) && !link[:action_button].nil? %>
+                        <% if link[:link_policy]%>
+                            <a class="dropdown-item pointer" data-bs-toggle="<%= link[:data_bs_toggle] %>" data-bs-target="<%= link[:data_bs_target] %>">
+                                <small>
+                                    <i class="<%= link[:link_image] %>"></i>
+                                    <%= link[:text_action] %>
+                                </small>
+                            </a>
+                        <% end %>
+                    <% elsif !link[:show_modal].nil? && link[:show_modal] %>
+                        <%= link_to link[:link_path], method: link[:link_method], data: {title: link[:link_title], confirm: link[:confirm], target: link[:target], toggle: link[:toggle]}, :class => link[:class] do %>
+                            <small>
+                                <i class="<%= link[:link_image] %>"></i>
+                                <%= link[:text_action] %>
+                            </small>
+                        <% end if link[:link_policy] %>
+                    <% else %>
+                        <%= link_to link[:link_path], method: link[:link_method], data: {title: link[:link_title], confirm: link[:confirm]}, target: link[:target], :class => link[:class], target: link[:target], id: link[:id] do %>
+                            <small>
+                                <i class="<%= link[:link_image] %>"></i>
+                                <%= link[:text_action] %>
+                            </small>
+                        <% end if link[:link_policy] %>
+                    <% end %>
+                </li>
+            <% end %>
+        </ul>
+    </div>
+<% end %>
+
+<%
+# End of file _datagrid_actions.html.erb
+# Path: ./app/views/common_pages/_datagrid_actions.html.erb
+%>

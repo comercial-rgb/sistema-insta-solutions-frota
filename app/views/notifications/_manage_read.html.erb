@@ -1,0 +1,5 @@
+<% if record.unread?(@current_user) %>
+	<span data-bs-toggle="tooltip" title="<%= Notification.human_attribute_name(:manage_read) %>" class="text-danger pointer read-notification read-notification-<%= record.id.to_s %>" id="read-notification-<%= record.id.to_s %>">
+		<label class="circle-read-notifications" for=""></label>
+	</span>
+<% end %>

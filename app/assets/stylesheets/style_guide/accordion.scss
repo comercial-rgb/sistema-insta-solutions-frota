@@ -1,0 +1,24 @@
+$accordion-border-color: #D9D9D9;
+.accordion-button:not(.collapsed) {
+    box-shadow: 0 0 #FFFFFF !important;
+}
+
+// Se o conteúdo for MAIOR, com textos:
+// $accordion-button-active-bg: rgba(240, 176, 56, 0.1);
+// $accordion-button-active-color: #F0B038;
+// $accordion-border-radius: 7px;
+// $accordion-inner-border-radius: 7px;
+// $accordion-button-padding-y: 28px;
+// $accordion-button-padding-x: 32px;
+// $accordion-body-padding-y: 28px;
+// $accordion-body-padding-x: 32px;
+
+// Se o conteúdo for MENOR, apenas com palavras:
+$accordion-button-active-bg: #FFFFFF;
+$accordion-button-active-color: #000000;
+$accordion-border-radius: 12px;
+$accordion-inner-border-radius: 12px;
+$accordion-button-padding-y: 18px;
+$accordion-button-padding-x: 24px;
+$accordion-body-padding-y: 18px;
+$accordion-body-padding-x: 24px;

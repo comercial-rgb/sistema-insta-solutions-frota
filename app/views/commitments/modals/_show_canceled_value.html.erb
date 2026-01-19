@@ -1,0 +1,47 @@
+<!-- Modal -->
+<div class="modal fade" id="show_canceled_value_<%=commitment.id%>" tabindex="-1">
+
+    <div class="modal-dialog modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+
+            <!-- Cabeçalho -->
+            <div class="modal-header">
+
+                <!-- Título -->
+                <h5 class="modal-title" id="show_canceled_value_label_<%=commitment.id%>">
+                    <small class="text-muted"><%= commitment.commitment_number %></small>
+                </h5>
+
+                <!-- Botão fechar -->
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Conteúdo -->
+            <div class="modal-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th><%= CancelCommitment.human_attribute_name(:date) %></th>
+                            <th><%= CancelCommitment.human_attribute_name(:value) %></th>
+                            <th><%= CancelCommitment.human_attribute_name(:number) %></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% commitment.cancel_commitments.order(:date, :number).each do |cancel_commitment| %>
+                            <tr>
+                                <td><%= CustomHelper.get_text_date(cancel_commitment.date, 'date', :default) %></td>
+                                <td><%= CustomHelper.to_currency(cancel_commitment.value) %></td>
+                                <td><%= cancel_commitment.number %></td>
+                            </tr>
+                        <% end %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%
+# End of file _show_canceled_value.html.erb
+# Path: ./app/views/categories/modals/_show_canceled_value.html.erb
+%>

@@ -1,0 +1,31 @@
+<%
+	breadcrumbs = [
+		{active: false, href: root_path, text: t('menu.initial_page')},
+		{active: false, href: '#', text: OrderService.model_name.human(count: 2)},
+		{active: false, href: show_order_services_path(order_service_status_id: @order_service.order_service_status_id), text: @order_service.order_service_status.name},
+		{active: false, href: show_order_service_proposals_by_order_service_path(order_service_id: @order_service.id), text: @order_service.code},
+		{active: true, href: '#', text: OrderServiceProposal.model_name.human(count: 2)}
+	]
+	select_all_registers = false
+	if [OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID, OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID, OrderServiceStatus::PAGA_ID].include?(@order_service.order_service_status_id)
+		select_all_registers = true
+	end
+%>
+<%= render 'order_service_proposals/modals/reason_reprove' %>
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: OrderServiceProposal.model_name.human(count: 2),
+		url_new_path: nil,
+		policy_true: false,
+		objects: @order_service_proposals,
+		objects_path: show_order_service_proposals_by_order_service_path(order_service_id: @order_service.id),
+		object_name: OrderServiceProposal.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: show_order_service_proposals_by_order_service_path(order_service_id: @order_service.id, format: "csv", order_service_proposals_list_grid: (params[:order_service_proposals_list_grid].nil? ? "" : params[:order_service_proposals_list_grid].to_enum.to_h)),
+		select_all_registers: select_all_registers,
+		render_select_all_registers: (render "common_pages/datagrid/select_all_registers", current_model: "order_service_proposal", current_models: "order_service_proposals", text_label: OrderServiceProposal.human_attribute_name(:select_all_proposals)),
+		show_actions_registers: true,
+		render_show_actions_registers: (render "order_service_proposals/renders/button_actions", order_service: @order_service)
+	}
+%>

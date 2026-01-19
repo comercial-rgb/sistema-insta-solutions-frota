@@ -1,0 +1,60 @@
+<div class="container">
+
+    <div class="row mb-3">
+        <div class="d-none d-md-block col-md-12 text-center">
+            <%= render 'common_pages/breadcrumb', links: attributes[:breadcrumbs] %>
+        </div>
+
+        <!-- Botão adicionar -->
+        <% if attributes[:policy_true] %>
+            <div class="col-12 text-end">
+                <%= link_to attributes[:url_new_path], class: 'btn btn-primary ms-auto mb-auto text-white' do %>
+                    <% if defined?(attributes[:add_new_text]) && !attributes[:add_new_text].nil? %>
+                        <%= attributes[:add_new_text] %>
+                    <% else %>
+                        <%= t('model.add_new') %>
+                    <% end %>
+                <% end %>
+            </div>
+        <% end %>
+    </div>
+
+    <% if defined?(attributes[:show_file_import]) && attributes[:show_file_import] %>
+        <%= 
+            render "common_pages/file_import", 
+            url_import: attributes[:url_import], 
+            url_download_file_model: attributes[:url_download_file_model], 
+            attribute_file: attributes[:attribute_file],
+            text_model: attributes[:text_model],
+            text_bottom_model: attributes[:text_bottom_model],
+            text_instructions: attributes[:text_instructions],
+            text_bottom_import_file: attributes[:text_bottom_import_file],
+            show_file_model: attributes[:show_file_model]
+        %>
+    <% end %>
+
+    <!-- Filtros -->
+    <% if defined?(attributes[:custom_filter_form]) && !attributes[:custom_filter_form].nil? %>
+        <div class="row">
+            <div class="col-12 mb-3">
+                <div class="p-3 bg-white radius-8">
+                    <%= render attributes[:custom_filter_form] %>
+                </div>
+            </div>
+        </div>
+    <% elsif (!defined?(attributes[:custom_filter_form]) || attributes[:custom_filter_form].nil?) && !attributes[:objects].nil? && attributes[:objects].filters.length > 0 %>
+        <div class="row">
+            <div class="col-12 mb-3">
+                <div class="p-3 bg-white radius-8">
+                    <%= datagrid_form_for attributes[:objects], method: :get, url: attributes[:objects_path], validate: false %>
+                </div>
+            </div>
+        </div>
+    <% end %>
+
+</div>
+
+<%
+# End of file _first_container.html.erb
+# Path: ./app/views/common_pages/index/_first_container.html.erb
+%>

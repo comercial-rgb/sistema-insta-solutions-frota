@@ -1,0 +1,22 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: site_contacts_path, text: SiteContact.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: SiteContact.model_name.human(count: 2),
+		url_new_path: new_site_contact_path,
+		policy_true: policy(SiteContact).new?,
+		objects: @site_contacts,
+		objects_path: site_contacts_path,
+		object_name: SiteContact.model_name.human,
+		breadcrumbs: breadcrumbs,
+		fluid: true,
+		objects_path_export: site_contacts_path(format: "csv", site_contacts_grid: (params[:site_contacts_grid].nil? ? "" : params[:site_contacts_grid].to_enum.to_h))
+	}
+%>

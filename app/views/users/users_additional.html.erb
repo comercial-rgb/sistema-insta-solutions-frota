@@ -1,0 +1,21 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: users_additional_path, text: User.human_attribute_name(:additional_users)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: User.human_attribute_name(:additional_users),
+		url_new_path: new_user_path(profile_id: Profile::ADDITIONAL_ID),
+		policy_true: policy(User).new?,
+		objects: @users,
+		objects_path: users_additional_path,
+		object_name: User.human_attribute_name(:additional_user),
+		breadcrumbs: breadcrumbs,
+		objects_path_export: users_additional_path(format: "csv", additionals_grid: (params[:additionals_grid].nil? ? "" : params[:additionals_grid].to_enum.to_h))
+	}
+%>

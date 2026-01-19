@@ -1,0 +1,54 @@
+<div class="modal fade" id="show_commitments_<%= contract.id %>" tabindex="-1" aria-labelledby="show_commitments_label_<%= contract.id %>" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="show_commitments_label_<%= contract.id %>">
+          <small class="text-muted"><%= contract.number.upcase %></small>
+          <div><%= Contract.model_name.human %> / <%= Commitment.model_name.human(count: 2) %></div>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <% if contract.commitments.blank? %>
+          <p class="text-muted mb-0">Nenhum empenho vinculado a este contrato.</p>
+        <% else %>
+          <div class="table-responsive">
+            <table class="table table-sm table-striped align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th><%= Commitment.human_attribute_name(:commitment_number) %></th>
+                  <th><%= CostCenter.model_name.human(count: 2) %></th>
+                  <th><%= SubUnit.model_name.human %></th>
+                  <th class="text-end"><%= Commitment.human_attribute_name(:commitment_value) %></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% contract.commitments.each do |commitment| %>
+                  <tr>
+                    <td><%= commitment.commitment_number %></td>
+                    <td>
+                      <% if commitment.cost_centers.any? %>
+                        <%= commitment.cost_centers.map(&:get_text_name).join(', ') %>
+                      <% elsif commitment.cost_center.present? %>
+                        <%= commitment.cost_center.get_text_name %>
+                      <% else %>
+                        -
+                      <% end %>
+                    </td>
+                    <td><%= commitment.sub_unit&.get_text_name %></td>
+                    <td class="text-end"><%= CustomHelper.to_currency(commitment.commitment_value) %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>
+
+<%
+# End of file _show_commitments.html.erb
+# Path: ./app/views/contracts/modals/_show_commitments.html.erb
+%>

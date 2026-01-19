@@ -1,0 +1,9 @@
+<% if @current_user.admin? %>
+    <div class="row" >
+        <div class="col-12 col-md-3">
+            <%= f.association :client, collection: User.client.order(:fantasy_name), label_method: :fantasy_name, as: :select, include_blank: t("model.select_option") %>
+        </div>
+    </div>
+<% elsif @current_user.manager? || @current_user.additional? %>
+    <%= f.input :client_id, as: :hidden, input_html: {value: @current_user.client_id} %>
+<% end %>

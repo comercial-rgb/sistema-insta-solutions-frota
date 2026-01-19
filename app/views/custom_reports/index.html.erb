@@ -1,0 +1,196 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: true, href: '#', text: 'Relatórios Personalizados'},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+  
+  <div class="row mb-4">
+    <div class="col-12">
+      <h4 class="mb-0">
+        <i class="bi bi-file-earmark-bar-graph text-primary"></i>
+        Relatórios Personalizados
+      </h4>
+      <p class="text-muted">Gere relatórios customizados de ordens de serviço com filtros avançados</p>
+    </div>
+  </div>
+
+  <!-- Card de Filtros -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+      <i class="bi bi-funnel me-2"></i>Filtros de Busca
+    </div>
+    <div class="card-body">
+      <%= form_with url: custom_reports_path, method: :get, local: true, class: 'row g-3' do |f| %>
+        
+        <!-- Cliente (apenas para admin) -->
+        <% if @current_user.admin? %>
+          <div class="col-md-3">
+            <%= label_tag :client_id, 'Cliente', class: 'form-label' %>
+            <%= select_tag :client_id, 
+                options_from_collection_for_select(@clients, :id, :name, params[:client_id]), 
+                { include_blank: 'Todos os clientes', class: 'form-select' } 
+            %>
+          </div>
+        <% end %>
+        
+        <!-- Período -->
+        <div class="col-md-3">
+          <%= label_tag :start_date, 'Data Inicial', class: 'form-label' %>
+          <%= date_field_tag :start_date, params[:start_date], class: 'form-control' %>
+        </div>
+        
+        <div class="col-md-3">
+          <%= label_tag :end_date, 'Data Final', class: 'form-label' %>
+          <%= date_field_tag :end_date, params[:end_date], class: 'form-control' %>
+        </div>
+        
+        <!-- Status -->
+        <div class="col-md-3">
+          <%= label_tag :status_id, 'Status da OS', class: 'form-label' %>
+          <%= select_tag :status_id, 
+              options_from_collection_for_select(OrderServiceStatus.order(:name), :id, :name, params[:status_id]), 
+              { include_blank: 'Todos os status', class: 'form-select' } 
+          %>
+        </div>
+        
+        <!-- Tipo de OS -->
+        <div class="col-md-3">
+          <%= label_tag :type_id, 'Tipo de OS', class: 'form-label' %>
+          <%= select_tag :type_id, 
+              options_from_collection_for_select(OrderServiceType.order(:name), :id, :name, params[:type_id]), 
+              { include_blank: 'Todos os tipos', class: 'form-select' } 
+          %>
+        </div>
+        
+        <!-- Botões de Ação -->
+        <div class="col-12">
+          <div class="d-flex gap-2">
+            <%= submit_tag 'Filtrar', class: 'btn btn-primary' %>
+            <%= link_to 'Limpar Filtros', custom_reports_path, class: 'btn btn-secondary' %>
+            
+            <div class="ms-auto d-flex gap-2">
+              <%= button_tag type: :submit, name: :format, value: 'pdf', class: 'btn btn-danger', formtarget: '_blank' do %>
+                <i class="bi bi-file-pdf me-1"></i> Exportar PDF
+              <% end %>
+              
+              <%= button_tag type: :submit, name: :format, value: 'csv', class: 'btn btn-success' do %>
+                <i class="bi bi-file-earmark-spreadsheet me-1"></i> Exportar CSV
+              <% end %>
+            </div>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Card de Resultados -->
+  <div class="card shadow-sm">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-list-ul me-2"></i>Resultados (<%= @order_services.count %> OS encontradas)</span>
+      <% if @order_services.any? %>
+        <span class="badge bg-primary">
+          Valor Total: <%= CustomHelper.to_currency(@order_services.sum(&:total_value)) %>
+        </span>
+      <% end %>
+    </div>
+    <div class="card-body p-0">
+      <% if @order_services.any? %>
+        <div class="table-responsive">
+          <table class="table table-hover table-striped align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Código</th>
+                <th>Cliente</th>
+                <th>Veículo</th>
+                <th>Placa</th>
+                <th>Tipo</th>
+                <th>Status</th>
+                <th>Data Criação</th>
+                <th class="text-end">Valor Total</th>
+                <th class="text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @order_services.each do |os| %>
+                <tr>
+                  <td>
+                    <strong><%= os.code %></strong>
+                  </td>
+                  <td><%= os.client&.fantasy_name.presence || os.client&.name || '-' %></td>
+                  <td>
+                    <%= "#{os.vehicle&.brand} #{os.vehicle&.model}".strip.presence || '-' %>
+                  </td>
+                  <td>
+                    <span class="badge bg-secondary"><%= os.vehicle&.board || '-' %></span>
+                  </td>
+                  <td>
+                    <span class="badge bg-info text-dark"><%= os.order_service_type&.name || '-' %></span>
+                  </td>
+                  <td>
+                    <span class="badge <%= os.getting_badge_color_by_status(os.order_service_status_id) %>">
+                      <%= os.order_service_status&.name || '-' %>
+                    </span>
+                  </td>
+                  <td><%= os.created_at.strftime('%d/%m/%Y') %></td>
+                  <td class="text-end">
+                    <strong><%= CustomHelper.to_currency(os.total_value || 0) %></strong>
+                  </td>
+                  <td class="text-center">
+                    <%= link_to order_service_path(os), class: 'btn btn-sm btn-outline-primary', title: 'Ver detalhes' do %>
+                      <i class="bi bi-eye"></i>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+            <tfoot class="table-light">
+              <tr>
+                <th colspan="7" class="text-end">TOTAL:</th>
+                <th class="text-end">
+                  <strong><%= CustomHelper.to_currency(@order_services.sum(&:total_value)) %></strong>
+                </th>
+                <th></th>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      <% else %>
+        <div class="text-center py-5">
+          <i class="bi bi-inbox display-1 text-muted"></i>
+          <p class="text-muted mt-3">
+            <% if params[:client_id].present? || params[:start_date].present? || params[:status_id].present? %>
+              Nenhuma ordem de serviço encontrada com os filtros aplicados.
+            <% else %>
+              Utilize os filtros acima para gerar seu relatório personalizado.
+            <% end %>
+          </p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // Validar datas ao filtrar
+    const form = document.querySelector('form');
+    const startDate = document.getElementById('start_date');
+    const endDate = document.getElementById('end_date');
+    
+    if (form && startDate && endDate) {
+      form.addEventListener('submit', function(e) {
+        if (startDate.value && endDate.value) {
+          if (new Date(startDate.value) > new Date(endDate.value)) {
+            e.preventDefault();
+            alert('A data inicial não pode ser maior que a data final!');
+            return false;
+          }
+        }
+      });
+    }
+  });
+</script>

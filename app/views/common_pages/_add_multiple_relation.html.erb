@@ -1,0 +1,18 @@
+<button type="button" class="btn btn-outline-success btn-sm multi-<%= object_text %>-add my-2">
+    <i class="bi bi-plus-circle-fill"></i>
+    <%= t('model.add') %>
+    <% if defined?(show_tooltip) && show_tooltip %>
+        <span 
+            class="ms-1" 
+            data-bs-toggle="tooltip" 
+            data-bs-placement="top" 
+            title="<%= tooltip_message %>">
+            <i class="bi bi-info-circle"></i>
+        </span>
+    <% end %>
+</button>
+
+<%
+# End of file _add_multiple_relation.html.erb
+# Path: ./app/views/common_pages/_add_multiple_relation.html.erb
+%>

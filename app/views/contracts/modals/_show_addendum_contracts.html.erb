@@ -1,0 +1,52 @@
+<!-- Modal -->
+<div class="modal fade" id="show_addendum_contracts_<%=contract.id%>" tabindex="-1">
+
+    <div class="modal-dialog modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+
+            <!-- Cabeçalho -->
+            <div class="modal-header">
+
+                <!-- Título -->
+                <h5 class="modal-title" id="show_addendum_contracts_label_<%=contract.id%>">
+                    <small class="text-muted"><%= contract.number.upcase %></small>
+                </h5>
+
+                <!-- Botão fechar -->
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Conteúdo -->
+            <div class="modal-body">
+                <div class="row">
+                    <% contract.addendum_contracts.each do |addendum_contract| %>
+                        <div class="col-12">
+                            <div class="card">
+                                <div class="card-header">
+                                    <h5 class="card-title">
+                                        <small class="text-muted"></small><%= addendum_contract.number.upcase %></small>
+                                    </h5>
+                                    <p>
+                                        <small class="text-muted">
+                                            <%= addendum_contract.name %>
+                                            <br>
+                                            <%= addendum_contract.number %>
+                                            <br>
+                                            <%= CustomHelper.to_currency(addendum_contract.total_value) %>
+                                        </small>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    <% end %>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<%
+# End of file _show_addendum_contracts.html.erb
+# Path: ./app/views/contracts/modals/_show_addendum_contracts.html.erb
+%>

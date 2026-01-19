@@ -1,0 +1,23 @@
+<!-- Descomentar caso queira timeout da conexão -->
+<%# if @current_user %>
+   <%# auto_session_timeout_js %>
+<%# end %>
+
+<!-- Scripts -->
+<% if !is_current_root_path? %>
+   <%= javascript_include_tag 'application', integrity: true %>
+   <%= csrf_meta_tags %>
+   <%= action_cable_meta_tag %>
+   <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+   <script defer src="https://sulivam-assets.s3.sa-east-1.amazonaws.com/ckeditor/ckeditor5-34/build/ckeditor.js"></script>
+   <%# <script src="https://assets.pagseguro.com.br/checkout-sdk-js/rc/dist/browser/pagseguro.min.js"></script> %>
+
+   <script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+   <script src="https:////cdn.datatables.net/1.10.20/js/jquery.dataTables.min.js"></script>
+   <script src="https://cdn.datatables.net/buttons/1.6.1/js/dataTables.buttons.min.js"></script>
+<% end %>
+
+<!-- Google Analytics -->
+<%= render 'layouts/scripts/google_analytics', current_id: get_current_id_google_analytics %>
+
+<!-- Fim scripts -->

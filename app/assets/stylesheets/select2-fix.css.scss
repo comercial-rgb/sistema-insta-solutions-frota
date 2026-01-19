@@ -1,0 +1,64 @@
+// .select2-container {
+//     z-index: 1500; /* Use a value higher than the modal's z-index */
+// }
+
+.select2-container--default .select2-selection--single {
+  border-radius: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.08);
+  background-color: rgba(128, 128, 128, 0.08);
+}
+
+.select2-container .select2-selection--single {
+  height: 38px;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+  padding-top: 4px;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+  font-size: 14px;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+  top: 5px;
+  right: 5px;
+}
+.datagrid-form {
+  .select2-container .select2-selection--single {
+    height: 38px;
+    box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075);
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__rendered {
+    padding-top: 4px;
+  }
+
+  .select2-container--default .select2-selection--single .select2-selection__arrow {
+    top: 7px;
+  }
+}
+
+.select2-selection__rendered img {
+  width: 25px;
+}
+
+.select2-results__option {
+  padding: 6px 8px;
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+  background-color: $primary;
+  color: white;
+}
+
+.select2-container--open .select2-dropdown--below {
+  background-color: #FAFAFA;
+  border: 1px solid rgba(128, 128, 128, 0.08);
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
+  box-shadow: 0 .5rem 1rem rgba($black, .15);
+}
+
+// End of file select2-fix.scss
+// Path: ./app/assets/stylesheets/select2-fix.scss

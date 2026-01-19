@@ -1,0 +1,117 @@
+.custom-display-menu-open {
+  @media (max-width: 991px) {
+    display: none;
+  }
+  @media (min-width: 992px) { 
+    width: 15%;
+    height: 100%;
+    background-color: #FFFFFF;
+    position: fixed;
+  }
+}
+
+.custom-display-menu-closed {
+  @media (max-width: 991px) {
+    display: none;
+  }
+  @media (min-width: 992px) { 
+    width: 6%;
+    height: 100%;
+    background-color: #FFFFFF;
+    position: fixed;
+  }
+}
+
+.open-left-menu {
+  .list-group {
+    border-radius: 8px;
+  }
+  .list-group-item {
+    background-color: transparent;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    line-height: 18px;
+    padding: 12px;
+    margin: 4px 0 4px 0;
+  }
+  .list-group-item:hover {
+    background-color: $primary;
+    color: #FFFFFF;
+  }
+}
+
+.custom-menu-sub-item {
+  padding: 12px 0 0 8px;
+}
+
+.custom-menu-sub-item:hover {
+  font-weight: 700;
+}
+
+.custom-menu-number-notification {
+  color: white;
+  font-size: 12px;
+  border-radius: 50%;
+  padding: 2px 6px 2px 6px;
+  background-color: $danger;
+  height: 50%;
+  position: relative;
+  left: -3px;
+}
+
+#dropdownTopMenuUser {
+  .dropdown-menu {
+    border-radius: 8px;
+    background-color: white;
+  }
+  .dropdown-item:hover {
+    background-color: transparent;
+  }
+  a:hover {
+    color: $primary;
+  }
+}
+
+.custom-display-screen-menu-open {
+  @media (max-width: 991px) {
+    width: 100%;
+  }
+  @media (min-width: 992px) { 
+    position: relative;
+    left: 15%;
+    width: 85%;
+  }
+}
+
+.custom-display-screen-menu-closed {
+  @media (max-width: 991px) {
+    width: 100%;
+  }
+  @media (min-width: 992px) { 
+    position: relative;
+    left: 6%;
+    width: 94%;
+  }
+}
+
+.custom-display-menu-open,
+.custom-display-menu-closed {
+  height: 100vh; /* Defina a altura conforme necessário */
+  overflow-y: auto; /* Habilita a rolagem vertical */
+}
+
+.custom-display-screen-menu-open {
+  height: 100vh; /* Defina a altura conforme necessário */
+}
+
+.custom-width-menu-logo-opened {
+  width: 70% !important;
+  max-width: 140px !important;
+  overflow-y: auto;
+}
+
+.custom-width-menu-logo-closed {
+  width: 80%;
+  overflow-y: auto;
+}

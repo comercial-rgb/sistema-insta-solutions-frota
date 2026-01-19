@@ -1,0 +1,36 @@
+pt-BR:
+  flash:
+    login_error: 'Acesso não permitido!'
+    login: 'Olá!'
+    logout: 'Até logo!'
+    create: 'Registro salvo com sucesso!'
+    login_mail_validation: 'Verifique seu e-mail para ativação da conta'
+    update: 'Registro atualizado com sucesso!'
+    destroy: 'Registro removido com sucesso!'
+    change_password: 'Link para recuperação de senha enviado para o e-mail informado'
+    change_password_error: 'Usuário não encontrado'
+    order:
+      error_adding_product_order: 'Falha ao aumentar quantidade do produto! <br>'
+      error_adding_product_order_part_2: ' é a quantidade máxima disponível.'
+      product_added: 'Produto adicionado ao carrinho com sucesso!'
+      error_add_product: 'Falha ao adicionar produto!'
+      error_remove_product: 'Erro ao remover produto!'
+      product_removed: 'Produto removido do carrinho com sucesso!'
+en:
+  flash:
+    login_error: 'Acesso não permitido!'
+    login: 'Olá!'
+    logout: 'Até logo!'
+    create: 'Registro salvo com sucesso!'
+    login_mail_validation: 'Verifique seu e-mail para ativação da conta'
+    update: 'Registro atualizado com sucesso!'
+    destroy: 'Registro removido com sucesso!'
+    change_password: 'Link para recuperação de senha enviado para o e-mail informado'
+    change_password_error: 'Usuário não encontrado'
+    order:
+      error_adding_product_order: 'Falha ao aumentar quantidade do produto! <br>'
+      error_adding_product_order_part_2: ' é a quantidade máxima disponível.'
+      product_added: 'Produto adicionado ao carrinho com sucesso!'
+      error_add_product: 'Falha ao adicionar produto!'
+      error_remove_product: 'Erro ao remover produto!'
+      product_removed: 'Produto removido do carrinho com sucesso!'

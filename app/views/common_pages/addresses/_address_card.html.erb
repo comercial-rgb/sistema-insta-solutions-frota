@@ -1,0 +1,29 @@
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-house-fill"></i>
+        <%= address.name.upcase %>
+    </div>
+    <div class="card-body">
+        <p class="card-text">
+            <%= address.zipcode %>
+        </p>
+        <p class="card-text">
+            <%= address.get_address_value_until_district %><br>
+            <%= address.get_city_and_state %>
+        </p>
+        <p class="card-text">
+            <% if policy(address.ownertable).edit_user_address?(address) %>
+                <%= link_to edit_user_address_path(id: address.id, page_title: @page_title), method: :get, class: "mb-1 text-decoration-none btn-sm btn btn-primary" do %>
+                    <i class="bi bi-pencil-fill"></i>
+                    <%= t('model.edit') %>
+                <% end %>
+            <% end %>
+            <% if policy(address.ownertable).destroy_user_address?(address) %>
+                <%= link_to destroy_user_address_path(id: address.id), method: :delete, class: "mb-1 text-decoration-none btn-sm btn btn-danger", data: {title: t('model.delete'), confirm: t('model.confirm_action')} do %>
+                    <i class="bi bi-trash-fill"></i>
+                    <%= t('model.delete') %>
+                <% end %>
+            <% end %>
+        </p>
+    </div>
+</div>

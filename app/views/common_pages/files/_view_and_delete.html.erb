@@ -1,0 +1,20 @@
+<%
+	# Exemplo
+    # render "common_pages/files/view_and_delete", 
+    # file_name: f.object.cnh_file.filename, 
+    # current_file: f.object.cnh_file,
+    # destroy_file_url: delete_file_path(id: f.object.id, file_to_destroy: "cnh_file")
+%>
+<% if !file_name.blank? %>
+	<%= link_to current_file.url, target: "_blank", class: "text-decoration-none" do %>
+		<i class="bi bi-eye-fill"></i>
+		<%= t("model.show_current_file") %>
+	<% end %>
+	<% if defined?(destroy_file_url) && !destroy_file_url.nil? %>
+		<br>
+		<%= link_to destroy_file_url, data: {confirm: t('model.confirm_action')}, method: :delete, class: "text-decoration-none" do %>
+			<i class="bi bi-trash-fill"></i>
+			<%= t("model.delete") %>
+		<% end %>
+	<% end %>
+<% end %>

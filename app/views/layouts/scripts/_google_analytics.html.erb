@@ -1,0 +1,13 @@
+<% if !current_id.nil? && !current_id.blank? && current_id.include?('UA') %>
+	<!-- Google tag (gtag.js) -->
+	<script async src="https://www.googletagmanager.com/gtag/js?id=<%= current_id %>"></script>
+	<script>
+		window.dataLayer = window.dataLayer || [];
+		function gtag() {
+			dataLayer.push(arguments);
+		}
+		gtag('js', new Date());
+
+		gtag('config', '<%= current_id %>');
+	</script>
+<% end %>

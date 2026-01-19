@@ -1,0 +1,14 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: false, href: edit_system_configuration_path(1), text: SystemConfiguration.model_name.human(count: 2)}
+]
+%>
+
+<%= 
+render 'common_pages/edit', 
+objects_path: edit_system_configuration_path(1), 
+page_title: SystemConfiguration.model_name.human(count: 2), 
+form_to_render: 'system_configurations/form',
+breadcrumbs: breadcrumbs
+%>

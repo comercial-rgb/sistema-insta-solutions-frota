@@ -1,0 +1,32 @@
+<!-- Modal -->
+<div class="modal fade order-service-proposal-modal" id="refuse_additional_approval_<%=order_service_proposal.id%>" tabindex="-1">
+
+    <div class="modal-dialog modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+
+            <!-- Cabeçalho -->
+            <div class="modal-header">
+
+                <!-- Título -->
+                <h5 class="modal-title" id="refuse_additional_approval_label_<%=order_service_proposal.id%>">
+                    Recusar Pré-aprovação - <small class="text-muted"><%= order_service_proposal.code %></small>
+                </h5>
+
+                <!-- Botão fechar -->
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <%= form_tag refuse_additional_approval_path(id: order_service_proposal.id), method: :post, class: 'form-order-service-proposal-to-validate' do |f| %>
+                        <div class="mb-3">
+                            <label class="form-label">Motivo da recusa</label>
+                            <%= text_area_tag :reason_refused, '', class: 'form-control', id: 'reason_refused_approval_'+order_service_proposal.id.to_s, autofocus: true, autocomplete: 'off' %>
+                        </div>
+                        <div class="mt-3 text-end">
+                            <button class="btn btn-danger btn-sm" type="submit" data-confirm="<%= t('model.confirm_action') %>"><%= t('model.send') %></button>
+                        </div>
+                <% end %>
+            </div>
+
+        </div>
+    </div>
+</div>

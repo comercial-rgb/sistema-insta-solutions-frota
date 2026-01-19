@@ -1,0 +1,42 @@
+<div class="card border border-1">
+    <div class="card-header">
+        <%= orientation_manual.name %>
+    </div>
+
+    <div class="card-body">
+        <p class="card-text">
+            <%= orientation_manual.description %><br>
+        </p>
+        <p class="card-text">
+            <% if orientation_manual.document.attached? %>
+                <div class="d-flex align-items-center mb-2">
+                    <i class="bi bi-file-earmark-arrow-down-fill fs-4 text-primary me-2"></i>
+                    <div>
+                        <%= link_to orientation_manual.document.url, class: "btn btn-outline-primary btn-sm mt-1", target: "_blank" do %>
+                            <i class="bi bi-download"></i> <%= t('model.download') %>
+                        <% end %>
+                    </div>
+                </div>
+            <% else %>
+                <span class="text-muted"><i class="bi bi-file-earmark-x-fill"></i> <%= t('model.no_document') %></span>
+            <% end %>
+        </p>
+        <% if policy(orientation_manual).edit? || policy(orientation_manual).destroy? %>
+            <hr>
+            <p class="card-text">
+                <% if policy(orientation_manual).edit? %>
+                    <%= link_to edit_orientation_manual_path(orientation_manual), method: :get, class: "mb-1 text-decoration-none btn-sm btn btn-primary" do %>
+                        <i class="bi bi-pencil-fill"></i>
+                        <%= t('model.edit') %>
+                    <% end %>
+                <% end %>
+                <% if policy(orientation_manual).destroy? %>
+                    <%= link_to orientation_manual_path(orientation_manual), method: :delete, class: "mb-1 text-decoration-none btn-sm btn btn-danger", data: {title: t('model.delete'), confirm: t('model.confirm_action')} do %>
+                        <i class="bi bi-trash-fill"></i>
+                        <%= t('model.delete') %>
+                    <% end %>
+                <% end %>
+            </p>
+        <% end %>
+    </div>
+</div>

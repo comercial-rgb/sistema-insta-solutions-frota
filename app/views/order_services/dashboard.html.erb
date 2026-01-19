@@ -1,0 +1,32 @@
+<%
+breadcrumbs = [
+    {active: false, href: root_path, text: t('menu.initial_page')},
+    {active: false, href: '#', text: OrderService.human_attribute_name(:dashboard)}
+]
+%>
+
+<div class="container">
+    <div class="row mb-3">
+        <div class="d-none d-md-block col-md-12 text-center">
+            <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 mb-3">
+            <div class="p-3 bg-white radius-8">
+                <%= datagrid_form_for @order_services, method: :get, url: dashboard_path, validate: false %>
+            </div>
+        </div>
+        <div class="col-12 text-center">
+            <%= hidden_field_tag 'echart_values', @echart_values.to_json %>
+            <div id="chartWatermark" style="width: 1200px; height:600px;"></div>
+        </div>
+    </div>
+
+</div>
+
+<%
+# End of file _first_container.html.erb
+# Path: ./app/views/common_pages/index/_first_container.html.erb
+%>

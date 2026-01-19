@@ -1,0 +1,75 @@
+<div class="mt-5 pt-5 d-none d-print-block">
+    <div class="row g-3">
+        <!-- Total parts without discount -->
+        <div class="col-3">
+            <label for="totalParts" class="form-label"><%= OrderServiceProposal.human_attribute_name(:total_parts_without_discount) %></label>
+            <input type="text" class="form-control" id="totalParts" value="R$ 0,00" disabled>
+        </div>
+
+        <!-- Parts discount -->
+        <div class="col-3">
+            <label for="partsDiscount" class="form-label"><%= OrderServiceProposal.human_attribute_name(:parts_discount) %></label>
+            <input type="text" class="form-control" id="partsDiscount" value="R$ 0,00" disabled>
+        </div>
+
+        <!-- Parts discount percentage -->
+        <div class="col-3">
+            <label for="percentPartsDiscount" class="form-label"><%= OrderServiceProposal.human_attribute_name(:percent_parts_discount) %> </label>
+            <input type="text" class="form-control" id="percentPartsDiscount" value="<%= CustomHelper.to_percentage(client.discount_percent, 2) %>" disabled>
+        </div>
+
+        <!-- Total parts with discount -->
+        <div class="col-3">
+            <label for="totalPartsWithDiscount" class="form-label"><%= OrderServiceProposal.human_attribute_name(:total_parts_with_discount) %></label>
+            <input type="text" class="form-control bg-danger-subtle" id="totalPartsWithDiscount" value="R$ 0,00" disabled>
+        </div>
+
+        <!-- Total labor without discount -->
+        <div class="col-3">
+            <label for="totalLabor" class="form-label"><%= OrderServiceProposal.human_attribute_name(:total_labor_without_discount) %></label>
+            <input type="text" class="form-control" id="totalLabor" value="R$ 0,00" disabled>
+        </div>
+
+        <!-- Labor discount -->
+        <div class="col-3">
+            <label for="laborDiscount" class="form-label"><%= OrderServiceProposal.human_attribute_name(:labor_discount) %></label>
+            <input type="text" class="form-control" id="laborDiscount" value="R$ 0,00" disabled>
+        </div>
+
+        <!-- Labor discount percentage -->
+        <div class="col-3">
+            <label for="percentLaborDiscount" class="form-label"><%= OrderServiceProposal.human_attribute_name(:percent_labor_discount) %> </label>
+            <input type="text" class="form-control" id="percentLaborDiscount" value="<%= CustomHelper.to_percentage(client.discount_percent, 2) %>" disabled>
+        </div>
+
+        <!-- Total labor with discount -->
+        <div class="col-3">
+            <label for="totalLaborWithDiscount" class="form-label"><%= OrderServiceProposal.human_attribute_name(:total_labor_with_discount) %></label>
+            <input type="text" class="form-control bg-danger-subtle" id="totalLaborWithDiscount" value="R$ 0,00" disabled>
+        </div>
+
+        <!-- Total order without discount -->
+        <div class="col-3">
+            <label for="totalOrder" class="form-label"><%= OrderServiceProposal.human_attribute_name(:total_order_without_discount) %></label>
+            <input type="text" class="form-control" id="totalOrder" value="R$ 0,00" disabled>
+        </div>
+
+        <!-- Total order discount -->
+        <div class="col-3">
+            <label for="totalOrderDiscount" class="form-label"><%= OrderServiceProposal.human_attribute_name(:total_order_discount) %></label>
+            <input type="text" class="form-control" id="totalOrderDiscount" value="R$ 0,00" disabled>
+        </div>
+
+        <!-- Total order discount percentage -->
+        <div class="col-3">
+            <label for="percentTotalOrderDiscount" class="form-label"><%= OrderServiceProposal.human_attribute_name(:percent_total_order_discount) %> </label>
+            <input type="text" class="form-control" id="percentTotalOrderDiscount" value="<%= CustomHelper.to_percentage(client.discount_percent, 2) %>" disabled>
+        </div>
+
+        <!-- Total order with discount -->
+        <div class="col-3">
+            <label for="totalOrderWithDiscount" class="form-label"><%= OrderServiceProposal.human_attribute_name(:total_order_with_discount) %></label>
+            <input type="text" class="form-control bg-danger-subtle" id="totalOrderWithDiscount" value="R$ 0,00" disabled>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,9 @@
+<div class="col-12 col-md-2">
+    <%= cancel_commitment.input :date, as: :string, input_html: {class: 'datepicker', :value => CustomHelper.get_text_date(cancel_commitment.object.date, 'date', :default), autocomplete: :off, type: "tel"} %>
+</div>
+<div class="col-12 col-md-2">
+    <%= cancel_commitment.input :value, input_html: {class: 'money', value: CustomHelper.to_currency(cancel_commitment.object.value), type: "tel"}, as: :string %>
+</div>
+<div class="col-12 col-md-3">
+    <%= cancel_commitment.input :number %>
+</div>

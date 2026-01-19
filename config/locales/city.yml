@@ -1,0 +1,42 @@
+pt-BR:
+  activerecord:
+    models:
+      city:
+        one: "Cidade"
+        other: "Cidades"
+    attributes:
+      city:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        name: "Nome"
+        country_id: "País"
+        country: "País"
+        state: "Estado"
+        state_id: "Estado"
+        latitude: "Latitude"
+        longitude: "Longitude"
+        ibge_code: "Código do IBGE"
+        quantity_population: "Quantidade da população"
+en:
+  activerecord:
+    models:
+      city:
+        one: "Cidade"
+        other: "Cidades"
+    attributes:
+      city:
+        id: "ID"
+        created_at: 'Created at'
+        updated_at: 'Updated at'
+        actions: "Actions"
+        name: "Nome"
+        country_id: "País"
+        country: "País"
+        state: "Estado"
+        state_id: "Estado"
+        latitude: "Latitude"
+        longitude: "Longitude"
+        ibge_code: "Código do IBGE"
+        quantity_population: "Quantidade da população"

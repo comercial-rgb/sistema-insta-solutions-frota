@@ -1,0 +1,23 @@
+<div class="row">
+   
+    <div class="col-12 mb-3 text-center">
+        <h5 class="mt-4"><%= OrderServiceInvoice.model_name.human(count: 2) %></h5>
+    </div>
+
+    <div class="col-12 multi-orderserviceinvoice-block">
+        <!-- Contador -->
+        <input type="hidden" value="<%= f.object.order_service_invoices.length.to_s %>" class="multi-orderserviceinvoice-cont" disabled>
+        <%= f.fields_for :order_service_invoices do |order_service_invoice| %>
+            <div class="row multi-orderserviceinvoice align-items-end">
+                <%= render "order_service_proposals/forms/order_service_invoice_fields", f: f, order_service_invoice: order_service_invoice %>
+                <%= render 'common_pages/delete_multiple_relation', remove_path: delete_order_service_invoice_path(model_id: order_service_invoice.object.id), object: order_service_invoice.object, object_text: 'orderserviceinvoice'  %>
+            </div>
+        <% end %>
+    </div>
+
+    <!-- Botão de adicionar -->
+    <div class="col-12">
+        <%= render 'common_pages/add_multiple_relation', object_text: 'orderserviceinvoice' %>
+    </div>
+</div>
+

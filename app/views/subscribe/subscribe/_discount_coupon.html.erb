@@ -1,0 +1,9 @@
+<div class="row py-3">
+    <div class="col-12 text-center">
+        <label><%= Subscription.human_attribute_name(:discount_coupon) %></label>
+        <%= text_field_tag "text-discount-coupon", nil, class: "wd-input no-space text-uppercase form-control" %>
+        <button type="button" class="btn btn-primary btn-sm text-white input-group-text border mt-2" id="insert-discount-coupon">
+            <%= Subscription.human_attribute_name(:insert_discount_coupon) %>
+        </button>
+    </div>
+</div>

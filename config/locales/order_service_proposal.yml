@@ -1,0 +1,215 @@
+pt-BR:
+  activerecord:
+    models:
+      order_service_proposal:
+        one: "Proposta"
+        other: "Propostas"
+    attributes:
+      order_service_proposal:
+        id: "ID"
+        created_at: 'Realizada em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        order_service_id: "Ordem de serviço"
+        order_service: "Ordem de serviço"
+        provider_id: "Fornecedor"
+        provider: "Fornecedor"
+        order_service_proposal_status_id: "Status"
+        order_service_proposal_status: "Status"
+        details: "Detalhes"
+        total_value: "Valor total final"
+        total_discount: "Desconto"
+        total_value_without_discount: "Valor total sem desconto"
+        new_order_service_proposal: "Gerar proposta"
+        edit_order_service_proposal: "Editar proposta"
+        files: "Anexos"
+        confirm_save: "Você tem certeza? Após confirmar, esta proposta não poderá ser editada."
+        confirm_insert_invoice: "Você tem certeza? Após confirmar, você não poderá mais atualizar os dados"
+        view_proposal: "Ver proposta"
+        general_data: "Informações gerais"
+        services_products: "Peças/Serviços"
+        code: "Código"
+        approve_order_service_proposal: 'Aprovar proposta'
+        reprove_order_service_proposal: 'Reprovar proposta'
+        autorize_order_service_proposal: 'Autorizar proposta'
+        waiting_payment_order_service_proposal: 'Aguardando pagamento'
+        paid_order_service_proposal: 'Marcar como paga'
+        reproved_with_success: "Proposta reprovada com sucesso!"
+        authorized_with_success: "Proposta autorizada com sucesso!"
+        waiting_payment_with_success: "Proposta atualizada como 'Aguardando pagamento' com sucesso!"
+        make_payment_with_success: "Proposta atualizada como 'Paga' com sucesso!"
+        approved_with_success: "Proposta aprovada com sucesso!"
+        reproved: "Reprovada"
+        reason_reproved: "Motivo da reprovação"
+        reproved_failed: "Falha ao reprovar proposta"
+        select_all_proposals: 'Selecionar todas as propostas'
+        reprove_order_services_proposals: "Reprovar propostas selecionadas"
+        all_reproved_with_success: "Proposta(s) reprovada(s) com sucesso"
+        another_proposal_approved: 'Outra proposta aprovada'
+        order_service_invoices: "Notas fiscais"
+        print_save: 'Imprimir/Salvar PDF'
+        value_above_limit: 'Valor da proposta maior que o valor disponível'
+        total_parts_without_discount: "Total de peças sem desconto"
+        parts_discount: "Desconto em peças"
+        percent_parts_discount: "Percentual de desconto em peças"
+        total_parts_with_discount: "Total de peças com desconto"
+        total_labor_without_discount: "Total de serviço sem desconto"
+        labor_discount: "Desconto em serviço"
+        percent_labor_discount: "Percentual de desconto em serviço"
+        total_labor_with_discount: "Total de serviço com desconto"
+        total_order_without_discount: "Total do pedido sem desconto"
+        total_order_discount: "Desconto total do pedido"
+        percent_total_order_discount: "Percentual de desconto total do pedido"
+        total_order_with_discount: "Total do pedido com desconto"
+        cancel_proposal: "Cancelar proposta"
+        cancel_proposal_success: "Proposta cancelada com sucesso"
+        rejected: "Rejeitada"
+        only_save: 'Salvar apenas'
+        save_and_submit: 'Salvar e enviar para avaliação'
+        proposal_initialized_with_success: "Proposta iniciada com sucesso!"
+        insert_data_items: "Inserir dados de peças/serviços"
+        view_data_items: "Visualizar dados de peças/serviços"
+        get_new_proposals_order_service_proposal: "Enviar OS para cotação"
+        send_proposal_to_all_providers_success: "Ordem de serviço enviada para cotações de outros fornecedores com sucesso!"
+        reason_approved: "Justificativa da aprovação (*)"
+        approved_failed: "Falha ao aprovar proposta"
+        confirm_save_and_submit: "Por favor, revise cuidadosamente as peças e serviços inseridos. Após a confirmação, os dados não poderão ser editados."
+      order_service_proposal/provider_service_temps:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        order_service_proposal: "Proposta"
+        order_service_proposal_id: "Proposta"
+        name: "Nome peça/serviço"
+        code: "Código"
+        price: "Valor unitário"
+        category: "Categoria"
+        category_id: "Categoria"
+        description: "Descrição"
+        quantity: "Quantidade"
+        discount: "Desconto"
+        total_value: "Valor total"
+        discount_temp: "Desconto"
+        total_temp: "Valor total"
+        warranty_period: "Tempo de garantia (dias)"
+        brand: "Marca"
+        parts: "Peças"
+        services: "Serviços"
+        service: "Serviço"
+        service_id: "Serviço"
+        # Complemento
+        is_complement: "Complemento"
+        parent_proposal: "Proposta original"
+        parent_proposal_id: "Proposta original"
+        complement_proposals: "Propostas de complemento"
+        new_complement: "Novo Complemento"
+        create_complement: "Criar Complemento"
+        complement_label: "[COMPLEMENTO]"
+        complement_items_title: "Itens do Complemento"
+        add_complement_item: "Adicionar item"
+        complement_warning: "Atenção: Os itens do complemento serão verificados contra o saldo disponível do empenho antes da aprovação."
+        complement_original_proposal: "Proposta Original"
+        complement_total_approved: "Valor total aprovado"
+        complement_available_balance: "Saldo disponível no empenho"
+        waiting_complement_approval: "Aguardando aprovação de complemento"
+en:
+  activerecord:
+    models:
+      order_service_proposal:
+        one: "Proposta"
+        other: "Propostas"
+    attributes:
+      order_service_proposal:
+        id: "ID"
+        created_at: 'Created at'
+        updated_at: 'Updated at'
+        actions: "Actions"
+        order_service_id: "Ordem de serviço"
+        order_service: "Ordem de serviço"
+        provider_id: "Fornecedor"
+        provider: "Fornecedor"
+        order_service_proposal_status_id: "Status"
+        order_service_proposal_status: "Status"
+        details: "Detalhes"
+        total_value: "Valor total final"
+        total_discount: "Desconto"
+        total_value_without_discount: "Valor total sem desconto"
+        new_order_service_proposal: "Gerar proposta"
+        edit_order_service_proposal: "Editar proposta"
+        files: "Anexos"
+        confirm_save: "Você tem certeza? Após confirmar, esta proposta não poderá ser editada."
+        confirm_insert_invoice: "Você tem certeza? Após confirmar, você não poderá mais atualizar os dados"
+        view_proposal: "Ver proposta"
+        general_data: "Informações gerais"
+        services_products: "Peças/Serviços"
+        code: "Código"
+        approve_order_service_proposal: 'Aprovar proposta'
+        reprove_order_service_proposal: 'Reprovar proposta'
+        autorize_order_service_proposal: 'Autorizar proposta'
+        waiting_payment_order_service_proposal: 'Aguardando pagamento'
+        paid_order_service_proposal: 'Marcar como paga'
+        reproved_with_success: "Proposta reprovada com sucesso!"
+        authorized_with_success: "Proposta autorizada com sucesso!"
+        waiting_payment_with_success: "Proposta atualizada como 'Aguardando pagamento' com sucesso!"
+        make_payment_with_success: "Proposta atualizada como 'Paga' com sucesso!"
+        approved_with_success: "Proposta aprovada com sucesso!"
+        reproved: "Reprovada"
+        reason_reproved: "Motivo da reprovação"
+        reproved_failed: "Falha ao reprovar proposta"
+        select_all_proposals: 'Selecionar todas as propostas'
+        reprove_order_services_proposals: "Reprovar propostas selecionadas"
+        all_reproved_with_success: "Proposta(s) reprovada(s) com sucesso"
+        another_proposal_approved: 'Outra proposta aprovada'
+        order_service_invoices: "Notas fiscais"
+        print_save: 'Imprimir/Salvar PDF'
+        value_above_limit: 'Valor da proposta maior que o valor disponível'
+        total_parts_without_discount: "Total de peças sem desconto"
+        parts_discount: "Desconto em peças"
+        percent_parts_discount: "Percentual de desconto em peças"
+        total_parts_with_discount: "Total de peças com desconto"
+        total_labor_without_discount: "Total de serviço sem desconto"
+        labor_discount: "Desconto em serviço"
+        percent_labor_discount: "Percentual de desconto em serviço"
+        total_labor_with_discount: "Total de serviço com desconto"
+        total_order_without_discount: "Total do pedido sem desconto"
+        total_order_discount: "Desconto total do pedido"
+        percent_total_order_discount: "Percentual de desconto total do pedido"
+        total_order_with_discount: "Total do pedido com desconto"
+        cancel_proposal: "Cancelar proposta"
+        cancel_proposal_success: "Proposta cancelada com sucesso"
+        rejected: "Rejeitada"
+        only_save: 'Salvar apenas'
+        save_and_submit: 'Salvar e enviar para avaliação'
+        proposal_initialized_with_success: "Proposta iniciada com sucesso!"
+        insert_data_items: "Inserir dados de peças/serviços"
+        view_data_items: "Visualizar dados de peças/serviços"
+        get_new_proposals_order_service_proposal: "Enviar OS para cotação"
+        send_proposal_to_all_providers_success: "Ordem de serviço enviada para cotações de outros fornecedores com sucesso!"
+        reason_approved: "Justificativa da aprovação (*)"
+        approved_failed: "Falha ao aprovar proposta"
+        confirm_save_and_submit: "Por favor, revise cuidadosamente as peças e serviços inseridos. Após a confirmação, os dados não poderão ser editados."
+      order_service_proposal/provider_service_temps:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        order_service_proposal: "Proposta"
+        order_service_proposal_id: "Proposta"
+        name: "Nome peça/serviço"
+        code: "Código"
+        price: "Valor unitário"
+        category: "Categoria"
+        category_id: "Categoria"
+        description: "Descrição"
+        quantity: "Quantidade"
+        discount: "Desconto"
+        total_value: "Valor total"
+        discount_temp: "Desconto"
+        total_temp: "Valor total"
+        warranty_period: "Tempo de garantia (dias)"
+        brand: "Marca"
+        parts: "Peças"
+        services: "Serviços"
+        service: "Serviço"
+        service_id: "Serviço"

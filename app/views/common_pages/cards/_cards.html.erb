@@ -1,0 +1,25 @@
+<div class="row align-items-end">
+
+  <!-- Título -->
+  <div class="col-12">
+    <h5 class="mt-4"><%= Card.model_name.human(count: 2) %></h5>
+  </div>
+
+  <div class="col-12">
+    <% f.object.cards.select{|item| item.persisted?}.each do |card| %>
+      <%= render 'common_pages/cards/saved_card', f: f, card: card %>
+    <% end %>
+  </div>
+
+</div>
+
+<div class="row">
+  <div class="col">
+    <h5><%= Card.human_attribute_name(:new_card) %></h5>
+  </div>
+</div>
+
+<%= f.fields_for :cards, f.object.cards.select{|item| !item.persisted? } do |card| %>
+  <%= render 'common_pages/cards/card_fields', f: f, card: card %>
+<% end %>
+<!-- Fim cartões -->

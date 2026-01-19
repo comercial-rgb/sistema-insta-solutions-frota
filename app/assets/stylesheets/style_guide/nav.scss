@@ -1,0 +1,13 @@
+$nav-link-color: #131212;
+$nav-pills-border-radius: 10px;
+$nav-link-padding-y: 0.9375rem;
+$nav-link-padding-x: 2.25rem;
+$nav-pills-link-active-color: #FFFFFF;
+$nav-pills-link-active-bg: #516BCC;
+
+// Colocar esta classe em uma div, abaixo da classe 'nav' e acima dos 'nav-item'
+.nav-bg {
+  background-color: #F4F4F4;
+  border-radius: 10px;
+  display: flex;
+}

@@ -1,0 +1,16 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: service_groups_path, text: ServiceGroup.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.add_new')},
+]
+%>
+
+<%= 
+render 'common_pages/new', 
+objects_path: service_groups_path, 
+page_title: ServiceGroup.model_name.human(count: 2), 
+form_to_render: 'service_groups/form',
+breadcrumbs: breadcrumbs
+%>
+

@@ -1,0 +1,7 @@
+<p><b><%= SiteContact.human_attribute_name(:name) %>:</b> <%= @site_contact.name %></p>
+<p><b><%= SiteContact.human_attribute_name(:email) %>:</b> <%= @site_contact.email %></p>
+<p><b><%= SiteContact.human_attribute_name(:phone) %>:</b> <%= @site_contact.phone %></p>
+<p><b><%= SiteContact.human_attribute_name(:site_contact_subject) %>:</b> <%= @site_contact.site_contact_subject.name unless @site_contact.site_contact_subject.nil? %></p>
+<p>
+	<b><%= SiteContact.human_attribute_name(:message) %>:</b><br> <%= @site_contact.message %>
+</p>

@@ -1,0 +1,32 @@
+<% 
+    random_hash = SecureRandom.alphanumeric(20) 
+    current_defined_select_all = (defined?(hide_select_all) && hide_select_all) ? 'hidden' : ''
+    if collection.length < 5
+        heightvh = 15
+    elsif collection.length < 20
+        heightvh = 25
+    else
+        heightvh = 60
+    end
+%>
+
+<label><%= label_text %></label>
+<div class="col-12 mb-2">
+    <input class="collection-filter-by-text" id="collection-filter-by-text#<%= register_name %>" type="text" style="width: 100%;" placeholder="<%= placeholder %>">
+</div>
+<label <%= current_defined_select_all %>>
+    <%= check_box_tag random_hash+'-checkboxes', '0', false, class:"form-check-input select-all-checkboxes", id: "select-all-checkboxes-"+random_hash %>
+    <%= t("model.select_all") %>
+</label>
+<div style="height: <%= heightvh %>vh; overflow-y: scroll; overflow-x: hidden;">
+    <%= collection_check_boxes(form_model, form_attribute, collection, value_register, label_register) do |b| %>
+        <div class="col-12 mt-2 linked-filter linked-filter-<%= register_name %>">
+            <%= b.label do %>
+            <%= b.check_box(class: "form-check-input check-box-tag-"+random_hash) %>
+                <span>
+                    <%= b.text %>
+                </span>
+            <% end %>
+        </div>
+    <% end %>
+</div>

@@ -1,0 +1,54 @@
+<div class="row">
+
+    <!-- Número do cartão -->
+    <div class="col-12 col-md-4 mb-3">
+        <%= card.input :number, input_html: {class: 'no-space card-number', type: "tel"} %>
+    </div>
+
+    <!-- Nome no cartão -->
+    <div class="col-12 col-md-4 mb-3">
+        <%= card.input :name, input_html: {class: 'insert_just_letter text-uppercase'} %>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Bandeira do cartão -->
+    <div class="col-12 col-md-2 mb-3">
+        <%= card.association :card_banner,
+        collection: CardBanner.all,
+        as: :select,
+        include_blank: t('model.select_option') %>
+    </div>
+
+    <!-- Mês de validade -->
+    <div class="col-12 col-md-2 mb-3">
+        <%= card.input :validate_date_month,
+        as: :select,
+        collection: Card.get_months,
+        label: Card.human_attribute_name(:validate_date_month),
+        include_blank: t('model.select_option') %>
+    </div>
+
+    <!-- Ano de validade -->
+    <div class="col-12 col-md-2 mb-3">
+        <%= card.input :validate_date_year,
+        as: :select,
+        collection: Card.get_years,
+        label: Card.human_attribute_name(:validate_date_year),
+        include_blank: t('model.select_option') %>
+    </div>
+
+    <!-- Código de segurança -->
+    <div class="col-12 col-md-2 mb-3">
+        <%= card.input :ccv_code, label: Card.human_attribute_name(:ccv_code), input_html: {class: 'card-ccv-code', type: "tel"} %>
+    </div>
+</div>
+
+<%= card.input :ownertable_type, as: :hidden, input_html: {value: card.object.ownertable_type} %>
+<%= card.input :ownertable_id, as: :hidden, input_html: {value: card.object.ownertable_id} %>
+<%= card.input :page_title, as: :hidden, input_html: {value: card.object.page_title} %>
+
+<%
+# End of file _card_fields.html.erb
+# Path: ./app/views/common_pages/cards/_card_fields.html.erb
+%>

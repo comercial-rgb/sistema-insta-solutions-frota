@@ -1,0 +1,21 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: commitments_path, text: Commitment.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: Commitment.model_name.human(count: 2),
+		url_new_path: new_commitment_path,
+		policy_true: policy(Commitment).new?,
+		objects: @commitments,
+		objects_path: commitments_path,
+		object_name: Commitment.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: commitments_path(format: "csv", commitments_grid: (params[:commitments_grid].nil? ? "" : params[:commitments_grid].to_enum.to_h))
+	}
+%>

@@ -1,0 +1,228 @@
+<div class="container">
+    <%= simple_form_for @service_group do |f| %>
+        <div class="row">
+            <!-- Nome -->
+            <div class="col-12 col-md-8 mb-3">
+                <%= f.input :name, label: ServiceGroup.human_attribute_name(:name) %>
+            </div>
+
+            <!-- Ativo -->
+            <div class="col-12 col-md-4 mb-3">
+                <%= f.input :active, label: ServiceGroup.human_attribute_name(:active), as: :boolean, input_html: { class: 'form-check-input' } %>
+            </div>
+        </div>
+
+        <!-- Peças e Serviços do Grupo -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <h5 class="mb-3">Peças e Serviços do Grupo</h5>
+                <p class="text-muted small">Defina individualmente cada peça ou serviço, sua quantidade limite e valor máximo permitido. Apenas os itens cadastrados aqui poderão ser selecionados nas Ordens de Serviço deste grupo.</p>
+                
+                <div id="service-group-items">
+                    <%= f.simple_fields_for :service_group_items do |item_form| %>
+                        <%= render 'service_group_item_fields', f: item_form %>
+                    <% end %>
+                </div>
+
+                <div class="mt-3">
+                    <button type="button" class="btn btn-sm btn-primary" id="add-service-item">
+                        + Adicionar Peça/Serviço
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <%= render 'common_pages/save', f: f, return_path: service_groups_path %>
+    <% end %>
+</div>
+
+<script type="text/javascript">
+// Garantir que jQuery está carregado antes de executar
+(function() {
+    function initServiceGroupForm() {
+        if (typeof jQuery === 'undefined' || typeof $ === 'undefined') {
+            console.log('jQuery ainda não carregado, tentando novamente...');
+            setTimeout(initServiceGroupForm, 100);
+            return;
+        }
+        
+        console.log('jQuery carregado! Inicializando formulário...');
+        
+        $(document).ready(function() {
+            const container = $('#service-group-items');
+            const addButton = $('#add-service-item');
+            
+            // Verificar se já foi inicializado
+            if (addButton.data('initialized')) {
+                console.log('Já inicializado, pulando...');
+                return;
+            }
+            addButton.data('initialized', true);
+            
+            console.log('Container encontrado:', container.length);
+            console.log('Botão encontrado:', addButton.length);
+            
+            // Inicializar Select2 nos campos existentes
+            try {
+                container.find('select').each(function() {
+                    if (!$(this).hasClass('select2-hidden-accessible')) {
+                        $(this).select2({
+                            width: '100%',
+                            language: 'pt-BR',
+                            placeholder: 'Selecione...'
+                        });
+                    }
+                });
+                console.log('Select2 inicializado');
+            } catch(e) {
+                console.error('Erro Select2:', e);
+            }
+            
+            // Inicializar máscaras
+            try {
+                if (typeof $.fn.maskMoney !== 'undefined') {
+                    container.find('.money').maskMoney({
+                        prefix: 'R$ ',
+                        showSymbol: true,
+                        decimal: ',',
+                        thousands: '.',
+                        symbolStay: true,
+                        selectAllOnFocus: true
+                    });
+                    console.log('Máscaras inicializadas');
+                }
+            } catch(e) {
+                console.error('Erro máscara:', e);
+            }
+            
+            // Adicionar item
+            addButton.off('click').on('click', function(e) {
+                e.preventDefault();
+                console.log('Adicionando item...');
+                
+                try {
+                    const firstField = container.find('.nested-fields').first();
+                    if (firstField.length === 0) {
+                        alert('Erro: Recarregue a página.');
+                        return;
+                    }
+                    
+                    const newIndex = new Date().getTime();
+                    
+                    // Clonar apenas o HTML sem eventos
+                    const newField = firstField.clone(false);
+                    
+                    // Remover classes e dados do Select2 do clone
+                    newField.find('.select2-container').remove();
+                    newField.find('select').removeClass('select2-hidden-accessible')
+                                          .removeAttr('data-select2-id')
+                                          .removeAttr('aria-hidden')
+                                          .removeAttr('tabindex');
+                    newField.find('[data-select2-id]').removeAttr('data-select2-id');
+                    
+                    // Remover máscara antiga dos inputs clonados
+                    newField.find('.money').each(function() {
+                        if ($(this).data('maskMoney')) {
+                            $(this).maskMoney('destroy');
+                        }
+                    });
+                    
+                    // Limpar valores
+                    newField.find('input[type="text"], input[type="hidden"]').val('');
+                    newField.find('select').val('');
+                    newField.find('input[name*="_destroy"]').remove();
+                    
+                    // Atualizar names e ids
+                    newField.find('input, select').each(function() {
+                        const $el = $(this);
+                        let name = $el.attr('name');
+                        let id = $el.attr('id');
+                        
+                        if (name) $el.attr('name', name.replace(/\[\d+\]/, '[' + newIndex + ']'));
+                        if (id) $el.attr('id', id.replace(/_\d+_/, '_' + newIndex + '_'));
+                    });
+                    
+                    // Atualizar labels
+                    newField.find('label').each(function() {
+                        const $el = $(this);
+                        let forAttr = $el.attr('for');
+                        if (forAttr) $el.attr('for', forAttr.replace(/_\d+_/, '_' + newIndex + '_'));
+                    });
+                    
+                    // Adicionar ao DOM primeiro
+                    container.append(newField);
+                    
+                    // Inicializar Select2 no novo campo
+                    newField.find('select').select2({
+                        width: '100%',
+                        language: 'pt-BR',
+                        placeholder: 'Selecione...'
+                    });
+                    
+                    // Inicializar máscara monetária DEPOIS de adicionar ao DOM
+                    setTimeout(function() {
+                        if (typeof $.fn.maskMoney !== 'undefined') {
+                            const moneyFields = newField.find('input.money');
+                            console.log('Campos input.money encontrados no novo field:', moneyFields.length);
+                            
+                            moneyFields.each(function() {
+                                const $input = $(this);
+                                console.log('Aplicando maskMoney em:', $input.attr('id'));
+                                
+                                // Remove máscara anterior se existir
+                                if ($input.data('maskMoney')) {
+                                    $input.maskMoney('destroy');
+                                }
+                                
+                                // Aplica nova máscara
+                                $input.maskMoney({
+                                    prefix: 'R$ ',
+                                    showSymbol: true,
+                                    decimal: ',',
+                                    thousands: '.',
+                                    symbolStay: true,
+                                    selectAllOnFocus: true
+                                });
+                            });
+                            
+                            console.log('MaskMoney aplicada nos novos campos');
+                        } else {
+                            console.error('jQuery maskMoney plugin não disponível');
+                        }
+                    }, 100);
+                    
+                    console.log('Item adicionado com sucesso!');
+                    
+                } catch(error) {
+                    console.error('Erro ao adicionar:', error);
+                    alert('Erro: ' + error.message);
+                }
+            });
+            
+            // Remover item
+            container.off('click', '.remove-item').on('click', '.remove-item', function(e) {
+                e.preventDefault();
+                const field = $(this).closest('.nested-fields');
+                const destroyInput = field.find('input[name*="_destroy"]');
+                
+                if (destroyInput.length > 0) {
+                    destroyInput.val('1');
+                    field.hide();
+                } else {
+                    field.remove();
+                }
+            });
+            
+            console.log('Formulário pronto!');
+        });
+    }
+    
+    // Iniciar
+    initServiceGroupForm();
+})();
+</script>
+
+<%
+# End of file _form.html.erb
+# Path: ./app/views/service_groups/_form.html.erb
+%>

@@ -1,0 +1,21 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: countries_path, text: Country.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: Country.model_name.human(count: 2),
+		url_new_path: new_country_path,
+		policy_true: policy(Country).new?,
+		objects: @countries,
+		objects_path: countries_path,
+		object_name: Country.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: countries_path(format: "csv", countries_grid: (params[:countries_grid].nil? ? "" : params[:countries_grid].to_enum.to_h))
+	}
+%>

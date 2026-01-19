@@ -1,0 +1,16 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: cost_centers_path, text: CostCenter.model_name.human(count: 2)},
+	{active: false, href: edit_cost_center_path(@cost_center), text: @cost_center.get_text_name},
+	{active: true, href: '#', text: t('model.edit')},
+]
+%>
+
+<%= 
+render 'common_pages/edit', 
+objects_path: cost_centers_path, 
+page_title: CostCenter.model_name.human(count: 2), 
+form_to_render: 'cost_centers/form',
+breadcrumbs: breadcrumbs
+%>

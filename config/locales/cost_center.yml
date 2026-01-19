@@ -1,0 +1,72 @@
+pt-BR:
+  activerecord:
+    models:
+      cost_center:
+        one: "Centro de custo"
+        other: "Centros de custo"
+    attributes:
+      cost_center:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        client_id: "Cliente"
+        client: "Cliente"
+        name: "Nome"
+        contract_number: "Número do contrato"
+        commitment_number: "Número empenho/autorização"
+        initial_consumed_balance: "Saldo consumido inicial"
+        description: "Descrição"
+        budget_value: "Valor do orçamento (R$)"
+        budget_type_id: "Tipo de orçamento"
+        budget_type: "Tipo de orçamento"
+        contract_initial_date: "Data inicial do contrato"
+        has_sub_units: "Possui sub-unidades?"
+        sub_units: "Sub-unidades"
+        contracts: "Contratos"
+        already_consumed_value: "Valor já consumido"
+        pendent_value: "Valor pendente"
+        invoice_name: 'Nome'
+        invoice_cnpj: 'CNPJ'
+        invoice_address: 'Endereço'
+        invoice_state: 'Estado'
+        invoice_state_id: 'Estado'
+        invoice_fantasy_name: 'Nome fantasia'
+        invoice_datum: 'Dados para emissão de notas fiscais'
+        general_data: "Dados gerais"
+en:
+  activerecord:
+    models:
+      cost_center:
+        one: "Centro de custo"
+        other: "Centros de custo"
+    attributes:
+      cost_center:
+        id: "ID"
+        created_at: 'Created at'
+        updated_at: 'Updated at'
+        actions: "Actions"
+        client_id: "Cliente"
+        client: "Cliente"
+        name: "Nome"
+        contract_number: "Número do contrato"
+        commitment_number: "Número empenho/autorização"
+        initial_consumed_balance: "Saldo consumido inicial"
+        description: "Descrição"
+        budget_value: "Valor do orçamento (R$)"
+        budget_type_id: "Tipo de orçamento"
+        budget_type: "Tipo de orçamento"
+        contract_initial_date: "Data inicial do contrato"
+        has_sub_units: "Possui sub-unidades?"
+        sub_units: "Sub-unidades"
+        contracts: "Contratos"
+        already_consumed_value: "Valor já consumido"
+        pendent_value: "Valor pendente"
+        invoice_name: 'Nome'
+        invoice_cnpj: 'CNPJ'
+        invoice_address: 'Endereço'
+        invoice_state: 'Estado'
+        invoice_state_id: 'Estado'
+        invoice_fantasy_name: 'Nome fantasia'
+        invoice_datum: 'Dados para emissão de notas fiscais'
+        general_data: "Dados gerais"
