@@ -7,7 +7,7 @@ breadcrumbs = [
 
 <div class="container-fluid">
   <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
-  
+
   <div class="row mb-4">
     <div class="col-12">
       <h4 class="mb-0">
@@ -31,7 +31,7 @@ breadcrumbs = [
           <div class="col-md-3">
             <%= label_tag :client_id, 'Cliente', class: 'form-label' %>
             <%= select_tag :client_id, 
-                options_from_collection_for_select(@clients, :id, :name, params[:client_id]), 
+                options_for_select(@clients_options, params[:client_id]), 
                 { include_blank: 'Todos os clientes', class: 'form-select' } 
             %>
           </div>
@@ -120,7 +120,7 @@ breadcrumbs = [
                   <td>
                     <strong><%= os.code %></strong>
                   </td>
-                  <td><%= os.client&.fantasy_name.presence || os.client&.name || '-' %></td>
+                  <td><%= os.client&.social_name.presence || os.client&.fantasy_name.presence || os.client&.name || '-' %></td>
                   <td>
                     <%= "#{os.vehicle&.brand} #{os.vehicle&.model}".strip.presence || '-' %>
                   </td>
@@ -128,7 +128,7 @@ breadcrumbs = [
                     <span class="badge bg-secondary"><%= os.vehicle&.board || '-' %></span>
                   </td>
                   <td>
-                    <span class="badge bg-info text-dark"><%= os.order_service_type&.name || '-' %></span>
+                    <%= render 'order_services/order_service_type_badge', record: os %>
                   </td>
                   <td>
                     <span class="badge <%= os.getting_badge_color_by_status(os.order_service_status_id) %>">

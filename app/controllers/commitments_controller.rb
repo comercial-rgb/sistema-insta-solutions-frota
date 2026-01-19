@@ -17,6 +17,7 @@ class CommitmentsController < ApplicationController
       .where(order_service_status_id: OrderServiceStatus::REQUIRED_ORDER_SERVICE_STATUSES)
       .includes(:vehicle, :cost_center, :order_service_status)
       .order(created_at: :desc)
+      .page(params[:approved_order_services_page]).per(20)
     
     # Calcula valores
     @total_consumed = Commitment.get_total_already_consumed_value(@commitment)

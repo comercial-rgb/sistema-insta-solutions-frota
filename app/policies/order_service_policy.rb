@@ -123,7 +123,7 @@ class OrderServicePolicy < ApplicationPolicy
   end
 
   def unreject_order_service?
-    (user.provider? && user.rejected_order_services.map(&:id).include?(record.id)) && (record.order_service_status_id == OrderServiceStatus::EM_ABERTO_ID)
+    (user.provider? && user.rejected_order_services.map(&:id).include?(record.id)) && ([OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID].include?(record.order_service_status_id))
   end
 
   def dashboard?

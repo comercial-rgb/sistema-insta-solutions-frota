@@ -83,6 +83,9 @@ class CostCentersController < ApplicationController
 
   def show
     authorize @cost_center
+
+    @commitments = @cost_center.commitments.order(created_at: :desc).page(params[:commitments_page]).per(20)
+    @vehicles = @cost_center.vehicles.order(:board).page(params[:vehicles_page]).per(15)
   end
 
   def destroy

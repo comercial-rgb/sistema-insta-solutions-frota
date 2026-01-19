@@ -6,11 +6,33 @@ class CustomReportsController < ApplicationController
   def index
     # Buscar clientes (Users com perfil de cliente)
     if @current_user.admin?
-      @clients = User.client.active.order(:name)
+      @clients = User.client.active.name_ordered
     else
       # Gestor/Adicional vê apenas seu próprio cliente
-      @clients = User.client.active.where(id: @current_user.client_id).order(:name)
+      @clients = User.client.active.where(id: @current_user.client_id).name_ordered
     end
+
+    @clients_options = @clients.map do |client|
+      social_name = client.social_name.to_s.strip
+      fantasy_name = client.fantasy_name.to_s.strip
+      fallback_name = client.name.to_s.strip
+
+      label = if social_name.present? && fantasy_name.present?
+        "#{social_name} (#{fantasy_name})"
+      else
+        social_name.presence || fantasy_name.presence || fallback_name
+      end
+
+      [label, client.id]
+    end
+
+    selected_client_id = if @current_user.admin?
+      params[:client_id]
+    else
+      @current_user.client_id
+    end
+
+    @selected_client = User.client.active.find_by(id: selected_client_id) if selected_client_id.present?
     
     # Inicializar como vazio se não houver filtros
     if has_filters?
@@ -60,8 +82,7 @@ class CustomReportsController < ApplicationController
       end_date = Date.parse(params[:end_date]) rescue nil
       scope = scope.where(created_at: start_date.beginning_of_day..end_date.end_of_day) if start_date && end_date
     end
-    
-    # Filtro por status
+
     if params[:status_id].present?
       scope = scope.where(order_service_status_id: params[:status_id])
     end
@@ -80,7 +101,11 @@ class CustomReportsController < ApplicationController
   end
 
   def render_pdf
-    pdf = generate_pdf_report(@order_services)
+    pdf = generate_pdf_report(
+      @order_services,
+      selected_client: @selected_client,
+      report_params: params.to_unsafe_h
+    )
     send_data pdf.render,
               filename: "relatorio_personalizado_#{Date.current.strftime('%Y%m%d')}.pdf",
               type: 'application/pdf',
@@ -98,7 +123,7 @@ class CustomReportsController < ApplicationController
       @order_services.each do |os|
         csv << [
           os.code,
-          os.client&.name || '-',
+          os.client&.social_name.presence || os.client&.fantasy_name.presence || os.client&.name || '-',
           "#{os.vehicle&.brand} #{os.vehicle&.model}".strip.presence || '-',
           os.vehicle&.board || '-',
           os.order_service_type&.name || '-',
@@ -140,22 +165,96 @@ class CustomReportsController < ApplicationController
               disposition: 'attachment'
   end
 
-  def generate_pdf_report(order_services)
-    Prawn::Document.new(page_size: 'A4', page_layout: :landscape) do |pdf|
+  def generate_pdf_report(order_services, selected_client: nil, report_params: {})
+    tempfiles_to_cleanup = []
+
+    pdf = Prawn::Document.new(page_size: 'A4', page_layout: :landscape) do |pdf|
       pdf.font_size 10
-      
-      # Título
-      pdf.text "Relatório Personalizado de Ordens de Serviço", size: 16, style: :bold, align: :center
-      pdf.move_down 5
-      pdf.text "Gerado em: #{Time.current.strftime('%d/%m/%Y às %H:%M')}", size: 10, align: :center
-      pdf.move_down 15
-      
-      # Filtros aplicados
-      if params[:client_id].present? || params[:start_date].present? || params[:status_id].present?
-        pdf.text "Filtros aplicados:", style: :bold
-        pdf.text "Cliente: #{User.client.find_by(id: params[:client_id])&.name || 'Todos'}"
-        pdf.text "Período: #{params[:start_date]} a #{params[:end_date]}" if params[:start_date].present?
-        pdf.text "Status: #{OrderServiceStatus.find_by(id: params[:status_id])&.name || 'Todos'}"
+
+      logo_path = Rails.root.join('app', 'assets', 'images', 'logos', 'logo.png')
+
+      client_label = selected_client&.social_name.presence ||
+        selected_client&.fantasy_name.presence ||
+        selected_client&.name
+
+      header_client_text = client_label.presence || 'Todos os clientes'
+      header_generated_at = Time.current.strftime('%d/%m/%Y às %H:%M')
+
+      header_top = pdf.cursor
+      pdf.bounding_box([0, header_top], width: pdf.bounds.width, height: 60) do
+        logo_drawn = false
+        if File.exist?(logo_path)
+          begin
+            pdf.image logo_path.to_s, fit: [160, 50], at: [0, 50]
+            logo_drawn = true
+          rescue Prawn::Errors::UnsupportedImageType, Prawn::Errors::UnsupportedImageFormat
+            begin
+              require 'mini_magick'
+              tmp = Tempfile.new(['instasolutions-logo', '.png'])
+              tmp.binmode
+              image = MiniMagick::Image.open(logo_path.to_s)
+              begin
+                image.interlace 'none'
+              rescue StandardError
+                # ignore
+              end
+              image.format 'png'
+              image.write tmp.path
+              tempfiles_to_cleanup << tmp
+
+              pdf.image tmp.path, fit: [160, 50], at: [0, 50]
+              logo_drawn = true
+            rescue StandardError
+              logo_drawn = false
+            end
+          end
+        end
+
+        pdf.text 'InstaSolutions', size: 16, style: :bold unless logo_drawn
+
+        pdf.bounding_box([175, 60], width: pdf.bounds.width - 175, height: 60) do
+          pdf.text 'Relatório Personalizado de Ordens de Serviço', size: 14, style: :bold
+          pdf.text "Cliente: #{header_client_text}", size: 10
+          if selected_client.present?
+            if selected_client.cnpj.present?
+              pdf.text "CNPJ: #{selected_client.cnpj}", size: 9
+            end
+
+            if selected_client.social_name.present? && selected_client.fantasy_name.present?
+              pdf.text "Nome fantasia: #{selected_client.fantasy_name}", size: 9
+            end
+          end
+          pdf.text "Gerado em: #{header_generated_at}", size: 9, color: '666666'
+        end
+      end
+
+      pdf.move_down 10
+
+      # Filtros aplicados (mostra apenas o que foi preenchido)
+      filters_lines = []
+      if report_params[:start_date].present? && report_params[:end_date].present?
+        filters_lines << "Período: #{report_params[:start_date]} a #{report_params[:end_date]}"
+      end
+
+      if report_params[:status_id].present?
+        filters_lines << "Status: #{OrderServiceStatus.find_by(id: report_params[:status_id])&.name || '-'}"
+      end
+
+      if report_params[:type_id].present?
+        filters_lines << "Tipo OS: #{OrderServiceType.find_by(id: report_params[:type_id])&.name || '-'}"
+      end
+
+      if report_params[:vehicle_id].present?
+        vehicle = Vehicle.find_by(id: report_params[:vehicle_id])
+        vehicle_label = if vehicle.present?
+          "#{vehicle.brand} #{vehicle.model}".strip.presence || vehicle.board
+        end
+        filters_lines << "Veículo: #{vehicle_label || '-'}"
+      end
+
+      if filters_lines.any?
+        pdf.text 'Filtros aplicados:', style: :bold
+        filters_lines.each { |line| pdf.text line, size: 9 }
         pdf.move_down 10
       end
       
@@ -167,7 +266,8 @@ class CustomReportsController < ApplicationController
           pdf.fill_rectangle [0, pdf.cursor], pdf.bounds.width, 20
           pdf.fill_color '000000'
           pdf.move_down 5
-          pdf.text "OS: #{os.code} | Cliente: #{os.client&.name&.truncate(30) || '-'} | Status: #{os.order_service_status&.name || '-'}", 
+          client_label = os.client&.social_name.presence || os.client&.fantasy_name.presence || os.client&.name
+          pdf.text "OS: #{os.code} | Cliente: #{client_label&.truncate(30) || '-'} | Status: #{os.order_service_status&.name || '-'}", 
                    color: 'FFFFFF', style: :bold, size: 10
           pdf.move_down 10
           
@@ -228,5 +328,8 @@ class CustomReportsController < ApplicationController
         pdf.text "Nenhuma ordem de serviço encontrada com os filtros aplicados.", align: :center
       end
     end
+
+    tempfiles_to_cleanup.each { |tmp| tmp.close! rescue nil }
+    pdf
   end
 end

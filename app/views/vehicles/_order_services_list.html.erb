@@ -1,4 +1,4 @@
-<div class="card mt-4 shadow-sm">
+<div class="card mt-4 shadow-sm" id="ordens-servico-veiculo">
   <div class="card-header d-flex justify-content-between align-items-center">
     <span class="fw-bold"><i class="bi bi-list-ul me-2"></i>Ordens de serviço deste veículo</span>
     <% total_count = @order_services_for_vehicle.respond_to?(:total_count) ? @order_services_for_vehicle.total_count : @order_services_for_vehicle.size %>
@@ -36,7 +36,9 @@
                     <%= render 'order_services/show_order_service_status', record: os %>
                   <% end %>
                 </td>
-                <td class="py-2 px-3" style="border-bottom: 1px solid #e9ecef;"><%= os.order_service_type&.name %></td>
+                <td class="py-2 px-3" style="border-bottom: 1px solid #e9ecef;">
+                  <%= render 'order_services/order_service_type_badge', record: os %>
+                </td>
                 <td class="py-2 px-3" style="border-bottom: 1px solid #e9ecef;"><%= l(os.updated_at, format: :short) rescue os.updated_at %></td>
                 <td class="py-2 px-3 text-end" style="border-bottom: 1px solid #e9ecef;">
                   <%= link_to edit_order_service_path(os), class: 'btn btn-outline-primary btn-sm' do %>
@@ -50,7 +52,7 @@
       </div>
       <% if @order_services_for_vehicle.respond_to?(:total_pages) && @order_services_for_vehicle.total_pages > 1 %>
         <div class="card-footer bg-white border-top d-flex justify-content-center py-2">
-          <%= paginate @order_services_for_vehicle, param_name: :os_page, theme: 'bootstrap-5' %>
+          <%= paginate @order_services_for_vehicle, param_name: :os_page, theme: 'bootstrap-5', params: request.query_parameters, anchor: 'ordens-servico-veiculo' %>
         </div>
       <% end %>
     <% end %>

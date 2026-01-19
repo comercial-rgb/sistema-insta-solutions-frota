@@ -20,7 +20,7 @@
             <!-- Caso a paginação seja customizada -->
             <%= attributes[:paginate_url] %>
         <% else %>
-            <%= paginate(attributes[:objects].assets) %>
+            <%= paginate(attributes[:objects].assets, params: request.query_parameters, anchor: attributes[:anchor]) %>
         <% end %>
 
     </div>

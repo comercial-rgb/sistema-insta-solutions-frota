@@ -1,0 +1,20 @@
+<% if record&.order_service_type.present? %>
+  <%
+    badge_class = case record.order_service_type_id
+    when OrderServiceType::DIAGNOSTICO_ID
+      'badge-os-diagnostico'
+    when OrderServiceType::COTACOES_ID
+      'badge-os-cotacoes'
+    when OrderServiceType::REQUISICAO_ID
+      'badge-os-requisicao'
+    else
+      'bg-secondary'
+    end
+  %>
+
+  <span class="badge <%= badge_class %>">
+    <%= record.order_service_type.name %>
+  </span>
+<% else %>
+  <span>-</span>
+<% end %>

@@ -5,16 +5,18 @@ class ContractsController < ApplicationController
     authorize @contract
     
     # Busca empenhos vinculados ao contrato
-    @commitments = @contract.commitments.includes(:cost_center, :sub_unit, :category).order(created_at: :desc)
+    commitments_relation = @contract.commitments.includes(:cost_center, :sub_unit, :category).order(created_at: :desc)
+    commitment_ids = commitments_relation.pluck(:id)
+    @commitments = commitments_relation.page(params[:commitments_page]).per(20)
     
     # Busca OSs aprovadas/autorizadas vinculadas ao contrato através dos empenhos
-    commitment_ids = @commitments.pluck(:id)
     @approved_order_services = OrderService
       .where(order_service_status_id: OrderServiceStatus::REQUIRED_ORDER_SERVICE_STATUSES)
       .where("commitment_id IN (?) OR commitment_parts_id IN (?) OR commitment_services_id IN (?)", 
              commitment_ids, commitment_ids, commitment_ids)
       .includes(:vehicle, :cost_center, :commitment, :order_service_status)
       .order(created_at: :desc)
+      .page(params[:approved_order_services_page]).per(20)
     
     # Calcula valores
     @total_value = @contract.get_total_value

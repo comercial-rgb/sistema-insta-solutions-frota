@@ -146,13 +146,7 @@ breadcrumbs = [
                   <% client = os.cost_center&.client %>
                   <td><%= (client&.social_name.presence || client&.fantasy_name.presence || client&.name.presence) || '-' %></td>
                   <td>
-                    <% if os.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID %>
-                      <span class="badge bg-primary">Diagnóstico</span>
-                    <% elsif os.order_service_type_id == OrderServiceType::COTACOES_ID %>
-                      <span class="badge bg-info">Cotação</span>
-                    <% elsif os.order_service_type_id == OrderServiceType::REQUISICAO_ID %>
-                      <span class="badge bg-warning">Requisição</span>
-                    <% end %>
+                    <%= render 'order_services/order_service_type_badge', record: os %>
                   </td>
                   <td><%= l(os.created_at, format: :short) %></td>
                   <td class="text-center">

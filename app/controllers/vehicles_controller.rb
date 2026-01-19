@@ -204,7 +204,7 @@ class VehiclesController < ApplicationController
     end
 
     @order_services_for_vehicle = order_services_scope
-      .page(params[:page])
+      .page(params[:os_modal_page])
       .per(15)
 
     render partial: 'vehicles/order_services_modal_table', locals: { order_services: @order_services_for_vehicle }

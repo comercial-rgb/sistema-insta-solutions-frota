@@ -157,9 +157,9 @@ breadcrumbs = [
   </div>
 
   <!-- OSs Aprovadas -->
-  <div class="card shadow-sm mb-4">
+  <div class="card shadow-sm mb-4" id="ordens-servico-aprovadas">
     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-      <span><i class="bi bi-check-circle me-2"></i>Ordens de Serviço Aprovadas (<%= @approved_order_services.count %>)</span>
+      <span><i class="bi bi-check-circle me-2"></i>Ordens de Serviço Aprovadas (<%= @approved_order_services.total_count %>)</span>
     </div>
     <div class="card-body">
       <% if @approved_order_services.empty? %>
@@ -200,6 +200,12 @@ breadcrumbs = [
             </tbody>
           </table>
         </div>
+
+        <% if @approved_order_services.total_pages > 1 %>
+          <div class="pt-3 d-flex justify-content-center">
+            <%= paginate @approved_order_services, param_name: :approved_order_services_page, params: request.query_parameters, anchor: 'ordens-servico-aprovadas' %>
+          </div>
+        <% end %>
       <% end %>
     </div>
   </div>

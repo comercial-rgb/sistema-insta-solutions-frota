@@ -56,21 +56,19 @@ class OrderService < ApplicationRecord
   scope :by_initial_updated_at, lambda { |value| where("order_services.updated_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
   scope :by_final_updated_at, lambda { |value| where("order_services.updated_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
 
-  # Scope para buscar OSs que foram aprovadas no período (usando histórico do Audited)
+  # Scope para buscar OSs que ENTRARAM no status AUTORIZADA no período (usando histórico do Audited)
   scope :approved_in_period, lambda { |start_date, end_date|
     if start_date.present? && end_date.present?
-      # Buscar OSs que mudaram para APROVADA no período especificado
-      approved_os_ids = Audited::Audit
-        .where(auditable_type: 'OrderService')
-        .where("audited_changes LIKE ?", "%order_service_status_id%")
-        .where("audited_changes LIKE ?", "%#{OrderServiceStatus::APROVADA_ID}%")
-        .where("created_at >= ? AND created_at <= ?", 
-               DateTime.parse("#{start_date} 00:00:00"), 
-               DateTime.parse("#{end_date} 23:59:59"))
-        .pluck(:auditable_id)
-        .uniq
-      
-      where(id: approved_os_ids)
+      start_time = Date.parse(start_date.to_s).beginning_of_day
+      end_time = Date.parse(end_date.to_s).end_of_day
+
+      # IMPORTANTe: usar associated_id (novo status) para pegar ENTRADA no status,
+      # e não confundir com SAÍDA (onde AUTORIZADA aparece como status antigo no audited_changes).
+      left_outer_joins(:audits)
+        .where(audits: { auditable_type: 'OrderService' })
+        .where(audits: { associated_id: OrderServiceStatus::AUTORIZADA_ID })
+        .where(audits: { created_at: start_time..end_time })
+        .distinct
     end
   }
 

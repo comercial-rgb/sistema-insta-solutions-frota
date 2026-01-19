@@ -32,7 +32,7 @@
                 <%= render 'order_services/show_order_service_status', record: os %>
               <% end %>
             </td>
-            <td><%= os.order_service_type&.name %></td>
+            <td><%= render 'order_services/order_service_type_badge', record: os %></td>
             <td><%= os.provider_service_type&.name %></td>
             <td><%= os.vehicle&.cost_center&.name %></td>
             <td><%= os.vehicle&.sub_unit&.get_text_name %></td>
@@ -46,6 +46,6 @@
 
 <% if order_services.present? %>
   <div class="d-flex justify-content-center mt-3">
-    <%= paginate order_services, param_name: :page %>
+    <%= paginate order_services, param_name: :os_modal_page, params: request.query_parameters %>
   </div>
 <% end %>

@@ -4,22 +4,12 @@
 		if record.provider_service_type
 			provider_service_type = record.provider_service_type.name
 		end
-		if record.order_service_type_id == OrderServiceType::COTACOES_ID
-			span_class = 'bg-primary'
-		elsif record.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID
-			span_class = 'bg-danger'
-		elsif record.order_service_type_id == OrderServiceType::REQUISICAO_ID
-			span_class = 'bg-brown text-white'
-		end
-        span_text = record.order_service_type.name
 	%>
 	<span>
 		<%= provider_service_type %>
 	</span>
 	<br>
-	<span class="badge <%= span_class %>">
-		<%= span_text %>
-	</span>
+	<%= render 'order_services/order_service_type_badge', record: record %>
 	<% if false %>
 		<br>
 		<span class="d-flex align-items-center gap-2">

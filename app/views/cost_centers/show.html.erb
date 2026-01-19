@@ -261,10 +261,10 @@ active_pendent_value = (active_budget_value - active_consumed_value).to_f
   <% end %>
 
   <!-- Empenhos -->
-  <% if @cost_center.commitments.any? %>
-    <div class="card shadow-sm mb-4">
+  <% if @commitments.any? %>
+    <div class="card shadow-sm mb-4" id="empenhos">
       <div class="card-header bg-dark text-white">
-        <i class="bi bi-cash-stack me-2"></i>Empenhos (<%= @cost_center.commitments.count %>)
+        <i class="bi bi-cash-stack me-2"></i>Empenhos (<%= @commitments.total_count %>)
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">
@@ -280,7 +280,7 @@ active_pendent_value = (active_budget_value - active_consumed_value).to_f
               </tr>
             </thead>
             <tbody>
-              <% @cost_center.commitments.limit(20).each do |commitment| %>
+              <% @commitments.each do |commitment| %>
                 <% commitment_values = Commitment.getting_values_to_commitment(commitment) %>
                 <tr>
                   <td>
@@ -302,9 +302,9 @@ active_pendent_value = (active_budget_value - active_consumed_value).to_f
             </tbody>
           </table>
         </div>
-        <% if @cost_center.commitments.count > 20 %>
-          <div class="p-3 text-center">
-            <small class="text-muted">Mostrando os 20 primeiros empenhos de <%= @cost_center.commitments.count %> no total.</small>
+        <% if @commitments.total_pages > 1 %>
+          <div class="p-3 d-flex justify-content-center">
+            <%= paginate @commitments, param_name: :commitments_page, params: request.query_parameters, anchor: 'empenhos' %>
           </div>
         <% end %>
       </div>
@@ -312,10 +312,10 @@ active_pendent_value = (active_budget_value - active_consumed_value).to_f
   <% end %>
 
   <!-- Veículos -->
-  <% if @cost_center.vehicles.any? %>
-    <div class="card shadow-sm mb-4">
+  <% if @vehicles.any? %>
+    <div class="card shadow-sm mb-4" id="veiculos">
       <div class="card-header" style="background-color: #6f42c1; color: white;">
-        <i class="bi bi-truck me-2"></i>Veículos (<%= @cost_center.vehicles.count %>)
+        <i class="bi bi-truck me-2"></i>Veículos (<%= @vehicles.total_count %>)
       </div>
       <div class="card-body p-0">
         <div class="table-responsive">
@@ -330,7 +330,7 @@ active_pendent_value = (active_budget_value - active_consumed_value).to_f
               </tr>
             </thead>
             <tbody>
-              <% @cost_center.vehicles.limit(20).each do |vehicle| %>
+              <% @vehicles.each do |vehicle| %>
                 <tr>
                   <td>
                     <%= link_to vehicle.board, edit_vehicle_path(vehicle), class: 'text-decoration-none' %>
@@ -350,9 +350,9 @@ active_pendent_value = (active_budget_value - active_consumed_value).to_f
             </tbody>
           </table>
         </div>
-        <% if @cost_center.vehicles.count > 20 %>
-          <div class="p-3 text-center">
-            <small class="text-muted">Mostrando os 20 primeiros veículos de <%= @cost_center.vehicles.count %> no total.</small>
+        <% if @vehicles.total_pages > 1 %>
+          <div class="p-3 d-flex justify-content-center">
+            <%= paginate @vehicles, param_name: :vehicles_page, params: request.query_parameters, anchor: 'veiculos' %>
           </div>
         <% end %>
       </div>
