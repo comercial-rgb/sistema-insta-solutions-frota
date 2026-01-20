@@ -10,7 +10,7 @@ class VehicleModelsController < ApplicationController
   end
 
   def manage_prices
-    @services = Service.where(active: true).order(:name)
+    @services = Service.order(:name)
     @reference_prices = @vehicle_model.reference_prices.includes(:service).order('services.name')
   end
 
