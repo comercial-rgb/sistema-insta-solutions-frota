@@ -20,12 +20,12 @@ class VehicleModelsGrid
   column :model
   column :version
   
-  column :prices_count, header: 'Peças Cadastradas', order: false do |record|
+  column :prices_count, header: 'Peças Cadastradas', order: false, html: true do |record|
     count = record.reference_prices.active.count
     if count > 0
-      content_tag(:span, count, class: 'badge bg-success')
+      "<span class='badge bg-success'>#{count}</span>".html_safe
     else
-      content_tag(:span, '0', class: 'badge bg-secondary')
+      "<span class='badge bg-secondary'>0</span>".html_safe
     end
   end
   
