@@ -1,0 +1,47 @@
+<%= simple_form_for @vehicle_model do |f| %>
+  <%= f.error_notification %>
+
+  <div class="row">
+    <div class="col-md-6">
+      <%= f.association :vehicle_type, collection: VehicleType.all, include_blank: false %>
+    </div>
+    <div class="col-md-6">
+      <%= f.input :active, as: :boolean %>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-4">
+      <%= f.input :brand, label: 'Marca' %>
+    </div>
+    <div class="col-md-4">
+      <%= f.input :model, label: 'Modelo' %>
+    </div>
+    <div class="col-md-4">
+      <%= f.input :version, label: 'Versão' %>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <%= f.input :full_name, label: 'Nome Completo', hint: 'Preenchido automaticamente se deixar em branco' %>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <%= f.input :code_cilia, label: 'Código Cilia' %>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <%= f.input :aliases, as: :text, label: 'Aliases (JSON)', hint: 'Ex: ["FIAT MOBI", "MOBI 1.0"]' %>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <%= f.button :submit, class: 'btn btn-primary' %>
+    <%= link_to 'Cancelar', vehicle_models_path, class: 'btn btn-secondary' %>
+  </div>
+<% end %>

@@ -1,5 +1,6 @@
 class Vehicle < ApplicationRecord
   after_initialize :default_values
+  after_save :try_auto_link_vehicle_model
 
   default_scope {
     includes(:client, :cost_center, :vehicle_type)
@@ -47,6 +48,7 @@ class Vehicle < ApplicationRecord
   belongs_to :cost_center, optional: true
   belongs_to :sub_unit, optional: true
   belongs_to :vehicle_type, optional: true
+  belongs_to :vehicle_model, optional: true
   belongs_to :category, optional: true
   belongs_to :state, optional: true
   belongs_to :city, optional: true
@@ -153,6 +155,28 @@ class Vehicle < ApplicationRecord
       result = last_order_service.km
     end
     return result
+  end
+  
+  # Auto-vinculação com VehicleModel baseado em model_text
+  def try_auto_link_vehicle_model
+    return if vehicle_model_id.present? # Já vinculado manualmente
+    return if model_text.blank?
+    return if vehicle_type_id.blank?
+    
+    # Normalizar o texto para busca
+    normalized = VehicleModel.normalize_text(model_text)
+    self.model_text_normalized = normalized
+    
+    # Tentar encontrar modelo correspondente
+    matched_model = VehicleModel.find_by_text_match(
+      text: normalized,
+      vehicle_type_id: vehicle_type_id
+    )
+    
+    if matched_model
+      self.vehicle_model_id = matched_model.id
+      Rails.logger.info "Vehicle #{id} auto-linked to VehicleModel #{matched_model.id} (#{matched_model.display_name})"
+    end
   end
 
   private

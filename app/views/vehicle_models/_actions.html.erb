@@ -1,0 +1,7 @@
+<%= link_to edit_vehicle_model_path(record), class: 'btn btn-sm btn-warning', title: 'Editar' do %>
+  <i class="bi bi-pencil"></i>
+<% end %>
+
+<%= link_to vehicle_model_path(record), method: :delete, data: { confirm: 'Tem certeza?' }, class: 'btn btn-sm btn-danger', title: 'Excluir' do %>
+  <i class="bi bi-trash"></i>
+<% end %>

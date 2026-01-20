@@ -133,6 +133,26 @@ module MenuHelper
 			})
 		end
 
+		if policy(VehicleModel).index?
+			# Modelos de Veículos
+			menu_links.push({
+				opened: is_current_controller?("vehicle_models"),
+				icon: "bi bi-car-front",
+				label: "Modelos de Veículos",
+				href: vehicle_models_path
+			})
+		end
+
+		if policy(ReferencePrice).index?
+			# Preços de Referência
+			menu_links.push({
+				opened: is_current_controller?("reference_prices"),
+				icon: "bi bi-currency-dollar",
+				label: "Preços de Referência",
+				href: reference_prices_path
+			})
+		end
+
 		if policy(Service).index?
 			# Produtos/serviços
 			menu_links.push({

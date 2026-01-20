@@ -234,6 +234,9 @@ Rails.application.routes.draw do
 			get :order_services
 		end
 	end
+	
+	resources :vehicle_models
+	resources :reference_prices
 
 	resources :commitments do
 		member do

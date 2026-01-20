@@ -1,6 +1,7 @@
 class OrderServiceProposalItem < ApplicationRecord
   after_initialize :default_values
   before_validation :recalculate_totals
+  validate :check_reference_price, if: :should_validate_price?
 
   default_scope {
     order(:id)
@@ -48,6 +49,37 @@ class OrderServiceProposalItem < ApplicationRecord
 
   def default_values
     self.quantity ||= 1
+  end
+  
+  def should_validate_price?
+    # Valida apenas se for peça e tiver veículo vinculado a um modelo
+    return false unless service_id.present?
+    return false unless order_service_proposal&.order_service&.vehicle.present?
+    return false unless get_category_id == Category::SERVICOS_PECAS_ID
+    
+    vehicle = order_service_proposal.order_service.vehicle
+    vehicle.vehicle_model_id.present?
+  end
+  
+  def check_reference_price
+    return unless unity_value.present?
+    
+    vehicle = order_service_proposal.order_service.vehicle
+    ref_price = ReferencePrice.find_for_vehicle_and_service(
+      vehicle_id: vehicle.id,
+      service_id: service_id
+    )
+    
+    if ref_price
+      max_allowed = ref_price.max_allowed_price
+      
+      if unity_value > max_allowed
+        errors.add(:unity_value, 
+          "R$ #{CustomHelper.to_currency(unity_value)} excede o máximo permitido de #{CustomHelper.to_currency(max_allowed)} " +
+          "(Ref. Cilia: #{CustomHelper.to_currency(ref_price.reference_price)} + #{ref_price.percentage_increase}%)"
+        )
+      end
+    end
   end
 
 end

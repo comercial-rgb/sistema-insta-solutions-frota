@@ -1,0 +1,2 @@
+module ReferencePricesHelper
+end

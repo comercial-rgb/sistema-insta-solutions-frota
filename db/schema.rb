@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_01_14_120638) do
+ActiveRecord::Schema[7.1].define(version: 2026_01_20_163937) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -554,6 +554,22 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_14_120638) do
     t.index ["reader_type", "reader_id"], name: "index_read_marks_on_reader_type_and_reader_id"
   end
 
+  create_table "reference_prices", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "vehicle_model_id", null: false
+    t.bigint "service_id", null: false
+    t.decimal "reference_price", precision: 15, scale: 2, null: false
+    t.decimal "max_percentage", precision: 5, scale: 2, default: "110.0"
+    t.text "observation"
+    t.string "source"
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_reference_prices_on_active"
+    t.index ["service_id"], name: "index_reference_prices_on_service_id"
+    t.index ["vehicle_model_id", "service_id"], name: "index_reference_prices_on_model_and_service", unique: true
+    t.index ["vehicle_model_id"], name: "index_reference_prices_on_vehicle_model_id"
+  end
+
   create_table "rejected_order_services_providers", id: false, charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "order_service_id"
     t.bigint "provider_id"
@@ -754,6 +770,24 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_14_120638) do
     t.index ["user_status_id"], name: "index_users_on_user_status_id"
   end
 
+  create_table "vehicle_models", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "vehicle_type_id"
+    t.string "brand", null: false
+    t.string "model", null: false
+    t.string "version"
+    t.string "full_name"
+    t.text "aliases"
+    t.string "code_cilia"
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_vehicle_models_on_active"
+    t.index ["brand"], name: "index_vehicle_models_on_brand"
+    t.index ["code_cilia"], name: "index_vehicle_models_on_code_cilia", unique: true
+    t.index ["model"], name: "index_vehicle_models_on_model"
+    t.index ["vehicle_type_id"], name: "index_vehicle_models_on_vehicle_type_id"
+  end
+
   create_table "vehicle_types", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name"
     t.datetime "created_at", null: false
@@ -790,13 +824,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_14_120638) do
     t.string "fipe_code"
     t.string "model_text"
     t.string "value_text"
+    t.bigint "vehicle_model_id"
+    t.string "model_text_normalized"
     t.index ["category_id"], name: "index_vehicles_on_category_id"
     t.index ["city_id"], name: "index_vehicles_on_city_id"
     t.index ["client_id"], name: "index_vehicles_on_client_id"
     t.index ["cost_center_id"], name: "index_vehicles_on_cost_center_id"
     t.index ["fuel_type_id"], name: "index_vehicles_on_fuel_type_id"
+    t.index ["model_text_normalized"], name: "index_vehicles_on_model_text_normalized"
     t.index ["state_id"], name: "index_vehicles_on_state_id"
     t.index ["sub_unit_id"], name: "index_vehicles_on_sub_unit_id"
+    t.index ["vehicle_model_id"], name: "index_vehicles_on_vehicle_model_id"
     t.index ["vehicle_type_id"], name: "index_vehicles_on_vehicle_type_id"
   end
 
@@ -853,6 +891,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_14_120638) do
   add_foreign_key "provider_service_temps", "categories"
   add_foreign_key "provider_service_temps", "order_service_proposals"
   add_foreign_key "provider_service_temps", "services"
+  add_foreign_key "reference_prices", "services"
+  add_foreign_key "reference_prices", "vehicle_models"
   add_foreign_key "rejected_order_services_providers", "order_services"
   add_foreign_key "rejected_order_services_providers", "users", column: "provider_id"
   add_foreign_key "service_group_items", "service_groups"
@@ -872,6 +912,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_14_120638) do
   add_foreign_key "users", "states"
   add_foreign_key "users", "user_statuses"
   add_foreign_key "users", "users", column: "client_id"
+  add_foreign_key "vehicle_models", "vehicle_types"
   add_foreign_key "vehicles", "categories"
   add_foreign_key "vehicles", "cities"
   add_foreign_key "vehicles", "cost_centers"
@@ -879,5 +920,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_14_120638) do
   add_foreign_key "vehicles", "states"
   add_foreign_key "vehicles", "sub_units"
   add_foreign_key "vehicles", "users", column: "client_id"
+  add_foreign_key "vehicles", "vehicle_models"
   add_foreign_key "vehicles", "vehicle_types"
 end
