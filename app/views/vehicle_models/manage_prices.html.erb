@@ -157,10 +157,8 @@ breadcrumbs = [
                 
                 <!-- Paginação -->
                 <div class="row mt-4">
-                  <div class="col-12">
-                    <%= paginate @available_services, theme: 'twitter-bootstrap-4', 
-                                 pagination_class: 'pagination-sm justify-content-center',
-                                 param_name: :page %>
+                  <div class="col-12 d-flex justify-content-center">
+                    <%= paginate @available_services, param_name: :page %>
                   </div>
                 </div>
               <% else %>
