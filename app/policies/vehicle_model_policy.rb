@@ -27,6 +27,14 @@ class VehicleModelPolicy < ApplicationPolicy
     user.admin?
   end
   
+  def manage_prices?
+    user.admin?
+  end
+  
+  def update_prices?
+    user.admin?
+  end
+  
   def import?
     user.admin?
   end
