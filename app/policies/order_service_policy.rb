@@ -46,6 +46,9 @@ class OrderServicePolicy < ApplicationPolicy
   end
 
   def can_edit?
+    # Se a OS não foi persistida ainda (nova), permite edição
+    return true unless record.persisted?
+    
     # Fornecedor: pode editar Diagnóstico em aberto quando atribuído a ele
     return true if user.provider? && record.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID && record.order_service_status_id == OrderServiceStatus::EM_ABERTO_ID && record.provider_id == user.id
     
@@ -186,12 +189,18 @@ class OrderServicePolicy < ApplicationPolicy
   # Permissão especial para ADMIN editar campos de empenho, contrato e centro de custo
   # mesmo quando já existem propostas (desde que a OS esteja em status editável)
   def can_edit_commitment_fields?
+    # Se não foi persistida, permite edição
+    return true unless record.persisted?
+    
     user.admin? && [OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID].include?(record.order_service_status_id)
   end
   
   # Verifica se pode editar campo específico de fornecedor/placa/empenho
   # Para Diagnóstico: pode trocar fornecedor, placa ou empenho quando sem propostas
   def can_edit_basic_fields?
+    # Se não foi persistida, permite edição
+    return true unless record.persisted?
+    
     return false unless can_edit?
     
     # Para Diagnóstico: permite editar fornecedor, placa e empenho
