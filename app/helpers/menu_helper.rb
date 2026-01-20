@@ -143,24 +143,6 @@ module MenuHelper
 			})
 		end
 
-			# Preços de Referência
-			menu_links.push({
-				opened: is_current_controller?("reference_prices"),
-				icon: "bi bi-currency-dollar",
-				label: "Preços de Referência",
-				href: reference_prices_path
-			})
-		end
-
-		if policy(Service).index?
-			# Produtos/serviços
-			menu_links.push({
-				opened: is_current_controller?("services"),
-				icon: "bi bi-three-dots-vertical",
-				label: Service.model_name.human(count: 2),
-				href: services_path
-			})
-		end
 
 		if policy(VehicleType).index?
 			# Tipos de veículos
