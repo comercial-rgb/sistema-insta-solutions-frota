@@ -17,7 +17,7 @@
     <div class="col-12">
       <%= datagrid_form_for @grid, url: vehicle_models_path, method: :get %>
       <%= datagrid_table(@grid, class: 'table table-striped table-hover') %>
-      <%= paginate @grid.assets, theme: 'twitter-bootstrap-4' %>
+      <%= paginate @grid.assets %>
     </div>
   </div>
 </div>
