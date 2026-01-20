@@ -105,8 +105,28 @@ breadcrumbs = [
               <% available_services = @services.where.not(id: existing_service_ids) %>
               
               <% if available_services.any? %>
-                <% available_services.first(5).each do |service| %>
-                  <div class="row mb-2 align-items-end">
+                <!-- Campo de pesquisa -->
+                <div class="row mb-3">
+                  <div class="col-md-6">
+                    <div class="input-group">
+                      <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                      </span>
+                      <input type="text" 
+                             id="service-search" 
+                             class="form-control" 
+                             placeholder="Pesquisar peça/serviço pelo nome...">
+                    </div>
+                    <small class="text-muted">
+                      Mostrando <span id="visible-count"><%= [available_services.count, 5].min %></span> 
+                      de <span id="total-count"><%= available_services.count %></span> peças/serviços disponíveis
+                    </small>
+                  </div>
+                </div>
+                
+                <!-- Lista de serviços -->
+                <% available_services.each do |service| %>
+                  <div class="row mb-2 align-items-end service-row" data-service-name="<%= service.name.downcase %>">
                     <div class="col-md-4">
                       <label class="form-label small"><%= service.name %></label>
                     </div>
@@ -137,13 +157,6 @@ breadcrumbs = [
                     </div>
                   </div>
                 <% end %>
-                
-                <% if available_services.count > 5 %>
-                  <p class="text-muted small mt-3">
-                    + <%= available_services.count - 5 %> peças/serviços disponíveis.
-                    Adicione as principais e salve. Depois você pode adicionar mais.
-                  </p>
-                <% end %>
               <% else %>
                 <p class="text-muted">Todas as peças/serviços já foram cadastradas para este modelo.</p>
               <% end %>
@@ -169,4 +182,52 @@ breadcrumbs = [
 .form-control-sm {
   font-size: 0.875rem;
 }
+.service-row {
+  display: none;
+}
+.service-row.visible {
+  display: flex;
+}
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const searchInput = document.getElementById('service-search');
+  const serviceRows = document.querySelectorAll('.service-row');
+  const visibleCountSpan = document.getElementById('visible-count');
+  const totalCountSpan = document.getElementById('total-count');
+  const totalCount = serviceRows.length;
+  
+  // Mostrar apenas os primeiros 5 inicialmente
+  let visibleCount = 0;
+  serviceRows.forEach((row, index) => {
+    if (index < 5) {
+      row.classList.add('visible');
+      visibleCount++;
+    }
+  });
+  
+  // Atualizar contadores
+  totalCountSpan.textContent = totalCount;
+  visibleCountSpan.textContent = visibleCount;
+  
+  // Função de pesquisa
+  searchInput.addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase().trim();
+    visibleCount = 0;
+    
+    serviceRows.forEach(row => {
+      const serviceName = row.getAttribute('data-service-name');
+      
+      if (searchTerm === '' || serviceName.includes(searchTerm)) {
+        row.classList.add('visible');
+        visibleCount++;
+      } else {
+        row.classList.remove('visible');
+      }
+    });
+    
+    visibleCountSpan.textContent = visibleCount;
+  });
+});
+</script>
