@@ -143,7 +143,6 @@ module MenuHelper
 			})
 		end
 
-		if policy(ReferencePrice).index?
 			# Preços de Referência
 			menu_links.push({
 				opened: is_current_controller?("reference_prices"),
