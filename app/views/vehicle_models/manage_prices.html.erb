@@ -1,0 +1,172 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: vehicle_models_path, text: VehicleModel.model_name.human(count: 2)},
+	{active: true, href: '#', text: 'Gerenciar Preços'},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', breadcrumbs: breadcrumbs %>
+
+  <div class="row mb-3">
+    <div class="col-12">
+      <h3>
+        <i class="bi bi-currency-dollar"></i>
+        Preços de Referência - <%= @vehicle_model.display_name %>
+      </h3>
+      <p class="text-muted">
+        <strong>Tipo:</strong> <%= @vehicle_model.vehicle_type&.name || '-' %> |
+        <strong>Marca:</strong> <%= @vehicle_model.brand %> |
+        <strong>Modelo:</strong> <%= @vehicle_model.model %>
+        <% if @vehicle_model.version.present? %>
+          | <strong>Versão:</strong> <%= @vehicle_model.version %>
+        <% end %>
+      </p>
+    </div>
+  </div>
+
+  <%= form_with url: update_prices_vehicle_model_path(@vehicle_model), method: :patch, local: true do |f| %>
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Preços Cadastrados (<%= @reference_prices.count %>)</h5>
+          </div>
+          <div class="card-body">
+            <% if @reference_prices.any? %>
+              <div class="table-responsive">
+                <table class="table table-hover">
+                  <thead>
+                    <tr>
+                      <th>Peça/Serviço</th>
+                      <th width="15%">Preço Ref. (R$)</th>
+                      <th width="12%">% Máx.</th>
+                      <th width="15%">Fonte</th>
+                      <th width="8%">Ativo</th>
+                      <th width="8%">Remover</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% @reference_prices.each do |rp| %>
+                      <tr>
+                        <td><strong><%= rp.service.name %></strong></td>
+                        <td>
+                          <%= text_field_tag "reference_prices[#{rp.service_id}][reference_price]", 
+                                             number_with_precision(rp.reference_price, precision: 2),
+                                             class: 'form-control form-control-sm',
+                                             placeholder: '0.00' %>
+                        </td>
+                        <td>
+                          <%= number_field_tag "reference_prices[#{rp.service_id}][max_percentage]", 
+                                               rp.max_percentage,
+                                               class: 'form-control form-control-sm',
+                                               min: 100,
+                                               step: 0.1 %>
+                        </td>
+                        <td>
+                          <%= text_field_tag "reference_prices[#{rp.service_id}][source]", 
+                                             rp.source,
+                                             class: 'form-control form-control-sm',
+                                             placeholder: 'Ex: Cilia Jan/2026' %>
+                        </td>
+                        <td class="text-center">
+                          <%= check_box_tag "reference_prices[#{rp.service_id}][active]", '1', 
+                                            rp.active, 
+                                            class: 'form-check-input' %>
+                        </td>
+                        <td class="text-center">
+                          <%= check_box_tag "remove_prices[#{rp.service_id}]", '1', false,
+                                            class: 'form-check-input',
+                                            title: 'Marcar para remover' %>
+                        </td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
+            <% else %>
+              <p class="text-muted">Nenhum preço cadastrado ainda.</p>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header bg-success text-white">
+            <h5 class="mb-0">Adicionar Novos Preços</h5>
+          </div>
+          <div class="card-body">
+            <div id="new-prices-container">
+              <% existing_service_ids = @reference_prices.pluck(:service_id) %>
+              <% available_services = @services.where.not(id: existing_service_ids) %>
+              
+              <% if available_services.any? %>
+                <% available_services.first(5).each do |service| %>
+                  <div class="row mb-2 align-items-end">
+                    <div class="col-md-4">
+                      <label class="form-label small"><%= service.name %></label>
+                    </div>
+                    <div class="col-md-2">
+                      <%= text_field_tag "reference_prices[#{service.id}][reference_price]", 
+                                         nil,
+                                         class: 'form-control form-control-sm',
+                                         placeholder: 'Preço (R$)' %>
+                    </div>
+                    <div class="col-md-2">
+                      <%= number_field_tag "reference_prices[#{service.id}][max_percentage]", 
+                                           110,
+                                           class: 'form-control form-control-sm',
+                                           min: 100,
+                                           step: 0.1,
+                                           placeholder: '% Máx.' %>
+                    </div>
+                    <div class="col-md-2">
+                      <%= text_field_tag "reference_prices[#{service.id}][source]", 
+                                         nil,
+                                         class: 'form-control form-control-sm',
+                                         placeholder: 'Fonte' %>
+                    </div>
+                    <div class="col-md-2 text-center">
+                      <%= check_box_tag "reference_prices[#{service.id}][active]", '1', true, 
+                                        class: 'form-check-input' %>
+                      <label class="form-check-label small">Ativo</label>
+                    </div>
+                  </div>
+                <% end %>
+                
+                <% if available_services.count > 5 %>
+                  <p class="text-muted small mt-3">
+                    + <%= available_services.count - 5 %> peças/serviços disponíveis.
+                    Adicione as principais e salve. Depois você pode adicionar mais.
+                  </p>
+                <% end %>
+              <% else %>
+                <p class="text-muted">Todas as peças/serviços já foram cadastradas para este modelo.</p>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row">
+      <div class="col-12">
+        <%= f.submit 'Salvar Alterações', class: 'btn btn-primary' %>
+        <%= link_to 'Cancelar', vehicle_models_path, class: 'btn btn-secondary' %>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<style>
+.table td {
+  vertical-align: middle;
+}
+.form-control-sm {
+  font-size: 0.875rem;
+}
+</style>

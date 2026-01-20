@@ -232,11 +232,16 @@ Rails.application.routes.draw do
 	resources :vehicles do
 		member do
 			get :order_services
-		end
 	end
-	
-	resources :vehicle_models
-	resources :reference_prices
+end
+
+resources :vehicle_models do
+	member do
+		get :manage_prices
+		patch :update_prices
+	end
+end
+resources :reference_prices
 
 	resources :commitments do
 		member do

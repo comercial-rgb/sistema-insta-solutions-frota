@@ -20,8 +20,13 @@ class VehicleModelsGrid
   column :model
   column :version
   
-  column :reference_prices_count, header: 'Peças Cilia' do |record|
-    record.reference_prices_count
+  column :prices_count, header: 'Peças Cadastradas', order: false do |record|
+    count = record.reference_prices.active.count
+    if count > 0
+      content_tag(:span, count, class: 'badge bg-success')
+    else
+      content_tag(:span, '0', class: 'badge bg-secondary')
+    end
   end
   
   column :active, header: 'Status' do |record|
