@@ -1,23 +1,22 @@
-<div class="container-fluid">
-  <div class="row mb-3">
-    <div class="col-12">
-      <h2><i class="bi bi-currency-dollar"></i> Preços de Referência (Cilia)</h2>
-    </div>
-  </div>
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: reference_prices_path, text: ReferencePrice.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
 
-  <div class="row mb-3">
-    <div class="col-12">
-      <%= link_to new_reference_price_path, class: 'btn btn-primary' do %>
-        <i class="bi bi-plus-circle"></i> Novo Preço
-      <% end %>
-    </div>
-  </div>
-
-  <div class="row">
-    <div class="col-12">
-      <%= datagrid_form_for @grid, url: reference_prices_path, method: :get %>
-      <%= datagrid_table(@grid, class: 'table table-striped table-hover') %>
-      <%= paginate @grid.assets %>
-    </div>
-  </div>
-</div>
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: ReferencePrice.model_name.human(count: 2),
+		url_new_path: new_reference_price_path,
+		policy_true: policy(ReferencePrice).new?,
+		objects: @grid,
+		objects_path: reference_prices_path,
+		object_name: ReferencePrice.model_name.human,
+		breadcrumbs: breadcrumbs,
+		show_file_model: false,
+		show_file_import: false
+	}
+%>

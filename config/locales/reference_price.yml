@@ -1,0 +1,18 @@
+pt-BR:
+  activerecord:
+    models:
+      reference_price:
+        one: Preço de Referência
+        other: Preços de Referência
+    attributes:
+      reference_price:
+        vehicle_model: Modelo de Veículo
+        vehicle_model_id: Modelo de Veículo
+        service: Peça/Serviço
+        service_id: Peça/Serviço
+        reference_price: Preço Ref. Cilia
+        max_percentage: % Máx.
+        source: Fonte
+        active: Ativo
+        created_at: Criado em
+        updated_at: Atualizado em
