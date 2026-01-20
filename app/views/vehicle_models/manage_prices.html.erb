@@ -101,10 +101,7 @@ breadcrumbs = [
           </div>
           <div class="card-body">
             <div id="new-prices-container">
-              <% existing_service_ids = @reference_prices.pluck(:service_id) %>
-              <% available_services = @services.where.not(id: existing_service_ids) %>
-              
-              <% if available_services.any? %>
+              <% if @available_services.any? %>
                 <!-- Campo de pesquisa -->
                 <div class="row mb-3">
                   <div class="col-md-6">
@@ -118,14 +115,14 @@ breadcrumbs = [
                              placeholder="Pesquisar peça/serviço pelo nome...">
                     </div>
                     <small class="text-muted">
-                      Mostrando <span id="visible-count"><%= [available_services.count, 5].min %></span> 
-                      de <span id="total-count"><%= available_services.count %></span> peças/serviços disponíveis
+                      Mostrando <span id="visible-count"><%= @available_services.count %></span> 
+                      de <span id="total-count"><%= @available_services.total_count %></span> peças/serviços disponíveis
                     </small>
                   </div>
                 </div>
                 
                 <!-- Lista de serviços -->
-                <% available_services.each do |service| %>
+                <% @available_services.each do |service| %>
                   <div class="row mb-2 align-items-end service-row" data-service-name="<%= service.name.downcase %>">
                     <div class="col-md-4">
                       <label class="form-label small"><%= service.name %></label>
@@ -157,6 +154,15 @@ breadcrumbs = [
                     </div>
                   </div>
                 <% end %>
+                
+                <!-- Paginação -->
+                <div class="row mt-4">
+                  <div class="col-12">
+                    <%= paginate @available_services, theme: 'twitter-bootstrap-4', 
+                                 pagination_class: 'pagination-sm justify-content-center',
+                                 param_name: :page %>
+                  </div>
+                </div>
               <% else %>
                 <p class="text-muted">Todas as peças/serviços já foram cadastradas para este modelo.</p>
               <% end %>
@@ -195,26 +201,16 @@ document.addEventListener('DOMContentLoaded', function() {
   const searchInput = document.getElementById('service-search');
   const serviceRows = document.querySelectorAll('.service-row');
   const visibleCountSpan = document.getElementById('visible-count');
-  const totalCountSpan = document.getElementById('total-count');
-  const totalCount = serviceRows.length;
   
-  // Mostrar apenas os primeiros 5 inicialmente
-  let visibleCount = 0;
-  serviceRows.forEach((row, index) => {
-    if (index < 5) {
-      row.classList.add('visible');
-      visibleCount++;
-    }
+  // Mostrar todos os itens da página inicialmente
+  serviceRows.forEach(row => {
+    row.classList.add('visible');
   });
-  
-  // Atualizar contadores
-  totalCountSpan.textContent = totalCount;
-  visibleCountSpan.textContent = visibleCount;
   
   // Função de pesquisa
   searchInput.addEventListener('input', function() {
     const searchTerm = this.value.toLowerCase().trim();
-    visibleCount = 0;
+    let visibleCount = 0;
     
     serviceRows.forEach(row => {
       const serviceName = row.getAttribute('data-service-name');

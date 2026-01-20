@@ -12,6 +12,10 @@ class VehicleModelsController < ApplicationController
   def manage_prices
     @services = Service.order(:name)
     @reference_prices = @vehicle_model.reference_prices.includes(:service).order('services.name')
+    
+    # Paginação para serviços disponíveis
+    existing_service_ids = @reference_prices.pluck(:service_id)
+    @available_services = @services.where.not(id: existing_service_ids).page(params[:page]).per(40)
   end
 
   def update_prices
