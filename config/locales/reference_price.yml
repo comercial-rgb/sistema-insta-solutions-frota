@@ -11,7 +11,7 @@ pt-BR:
         service: Peça/Serviço
         service_id: Peça/Serviço
         reference_price: Preço Ref. Cilia
-        max_percentage: % Máx.
+        max_percentage: "% Máx."
         source: Fonte
         active: Ativo
         created_at: Criado em
