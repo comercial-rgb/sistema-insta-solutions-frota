@@ -42,11 +42,11 @@
         <td>
           <% if item.is_complement %>
             <span
-              class="badge bg-warning text-dark me-1 px-1 py-0"
+              class="badge badge-complemento me-1"
               data-bs-toggle="tooltip"
               data-bs-placement="top"
               title="Item incluído via complemento">
-              <i class="bi bi-plus-square"></i>
+              + Complemento
             </span>
           <% end %>
           <%= item.service_name.presence || item.service&.name || '-' %><br>
@@ -55,6 +55,7 @@
           <% end %>
         </td>
         <td>
+          <%= price_comparison_arrow(item, order_service_proposal.order_service) %>
           <span value="<%= unity_value %>">
             <%= CustomHelper.to_currency(unity_value).delete('R$ ') %>
           </span>

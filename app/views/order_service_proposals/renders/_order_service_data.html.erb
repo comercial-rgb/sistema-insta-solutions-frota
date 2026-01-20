@@ -38,6 +38,29 @@
           <div class="col-12 col-md-6">
             <strong><%= OrderService.human_attribute_name(:order_service_type_id) %>:</strong>
             <span class="text-dark"><%= record.order_service_type.name %></span>
+            
+            <%# Card Emergencial/Cotações para OS tipo Diagnóstico %>
+            <% if record.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID %>
+              <% 
+                # Contar propostas aprovadas (não canceladas/reprovadas)
+                approved_proposals_count = record.order_service_proposals
+                  .where.not(order_service_proposal_status_id: [
+                    OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
+                    OrderServiceProposalStatus::CANCELADA_ID,
+                    OrderServiceProposalStatus::EM_CADASTRO_ID
+                  ])
+                  .count
+              %>
+              <% if approved_proposals_count == 1 %>
+                <span class="badge badge-emergencial ms-2">
+                  <i class="bi bi-lightning-fill"></i> Emergencial
+                </span>
+              <% elsif approved_proposals_count > 1 %>
+                <span class="badge badge-cotacoes-diag ms-2">
+                  <i class="bi bi-cart-check-fill"></i> Cotações
+                </span>
+              <% end %>
+            <% end %>
           </div>
 
           <%# Mostrar fornecedor selecionado para Diagnóstico - ocultar para outros fornecedores %>

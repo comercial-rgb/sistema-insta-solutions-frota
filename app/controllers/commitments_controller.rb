@@ -133,6 +133,18 @@ class CommitmentsController < ApplicationController
 
   def update
     authorize @commitment
+    
+    # Verificar se admin está editando valor e se ficará negativo
+    if @current_user.admin? && commitment_params[:commitment_value].present?
+      new_value = commitment_params[:commitment_value].to_s.gsub(/[^\d,]/, '').gsub(',', '.').to_f
+      total_consumed = Commitment.get_total_already_consumed_value(@commitment)
+      
+      if new_value < total_consumed
+        remaining = new_value - total_consumed
+        flash.now[:warning] = "⚠️ ATENÇÃO: O valor do empenho (#{CustomHelper.to_currency(new_value)}) é menor que o já consumido (#{CustomHelper.to_currency(total_consumed)}). O saldo disponível ficará NEGATIVO: #{CustomHelper.to_currency(remaining)}."
+      end
+    end
+    
     @commitment.update(commitment_params)
     if @commitment.valid?
       flash[:success] = t('flash.update')

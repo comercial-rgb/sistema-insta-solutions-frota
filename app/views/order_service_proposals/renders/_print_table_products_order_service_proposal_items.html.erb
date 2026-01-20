@@ -6,11 +6,11 @@
             <div class="row">
                 <div class="col-12 col-md-6 ">
                     <h3 class="text-center fs-12px"><%= Service.human_attribute_name(:parts) %></h3>
-                    <%= render 'order_service_proposals/renders/table_data', order_service_proposal_items: order_service_proposal.order_service_proposal_items.select{|item| item.get_category_id == Category::SERVICOS_PECAS_ID}, label_column: Service.human_attribute_name(:part) %>
+                    <%= render 'order_service_proposals/renders/table_data', order_service_proposal_items: order_service_proposal.order_service_proposal_items.select{|item| item.get_category_id == Category::SERVICOS_PECAS_ID}, label_column: Service.human_attribute_name(:part), order_service_proposal: order_service_proposal %>
                 </div>
                 <div class="col-12 col-md-6 ">
                     <h3 class="text-center fs-12px"><%= Service.human_attribute_name(:services) %></h3>
-                    <%= render 'order_service_proposals/renders/table_data', order_service_proposal_items: order_service_proposal.order_service_proposal_items.select{|item| item.get_category_id == Category::SERVICOS_SERVICOS_ID}, label_column: Service.human_attribute_name(:service) %>
+                    <%= render 'order_service_proposals/renders/table_data', order_service_proposal_items: order_service_proposal.order_service_proposal_items.select{|item| item.get_category_id == Category::SERVICOS_SERVICOS_ID}, label_column: Service.human_attribute_name(:service), order_service_proposal: order_service_proposal %>
                 </div>
             </div>
         </div>

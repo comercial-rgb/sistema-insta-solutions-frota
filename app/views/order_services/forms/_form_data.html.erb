@@ -5,6 +5,12 @@
     <% end %>
 <% end %>
 
+<%
+    # Variáveis de desabilitação podem vir do partial pai ou usar valor padrão
+    disabled_basic_fields = local_assigns.fetch(:disabled_basic_fields, disabled)
+    disabled_commitment_fields = local_assigns.fetch(:disabled_commitment_fields, disabled)
+%>
+
 <% if f.object.persisted? %>
     <div class="row">
         <div class="col-12 text-center">
@@ -33,7 +39,7 @@
 
 <div class="row">
     <div class="col-12 col-md-3">
-        <%= f.association :vehicle, disabled: disabled, collection: Vehicle.getting_data_by_user(@current_user), label_method: :board, as: :select, include_blank: t('model.select_option') %>
+        <%= f.association :vehicle, disabled: disabled_basic_fields, collection: Vehicle.getting_data_by_user(@current_user), label_method: :board, as: :select, include_blank: t('model.select_option') %>
     </div>
     <% if !f.object.persisted? %>
         <div class="col-12 col-md-4">
@@ -84,7 +90,7 @@
                         global_collection = global_commitments
                     end
                 %>
-                <%= f.association :commitment, disabled: disabled, collection: global_collection, label: 'Empenho Global (Peças e Serviços)', label_method: :get_formatted_name_with_pendent_value, as: :select, include_blank: t('model.select_option') %>
+                <%= f.association :commitment, disabled: disabled_commitment_fields, collection: global_collection, label: 'Empenho Global (Peças e Serviços)', label_method: :get_formatted_name_with_pendent_value, as: :select, include_blank: t('model.select_option') %>
             </div>
             
             <!-- Empenhos Separados -->
@@ -98,7 +104,7 @@
                         parts_collection = []
                     end 
                 %>
-                <%= f.association :commitment_parts, disabled: disabled, collection: parts_collection, label: OrderService.human_attribute_name(:commitment_parts_id), label_method: :get_formatted_name_with_pendent_value, as: :select, include_blank: t('model.select_option') %>
+                <%= f.association :commitment_parts, disabled: disabled_commitment_fields, collection: parts_collection, label: OrderService.human_attribute_name(:commitment_parts_id), label_method: :get_formatted_name_with_pendent_value, as: :select, include_blank: t('model.select_option') %>
             </div>
             
             <div id="div-with-services-commitment" class="col-12 col-md-6" style="<%= (has_services && !has_global) ? '' : 'display:none;' %>">
@@ -111,7 +117,7 @@
                         services_collection = []
                     end 
                 %>
-                <%= f.association :commitment_services, disabled: disabled, collection: services_collection, label: OrderService.human_attribute_name(:commitment_services_id), label_method: :get_formatted_name_with_pendent_value, as: :select, include_blank: t('model.select_option') %>
+                <%= f.association :commitment_services, disabled: disabled_commitment_fields, collection: services_collection, label: OrderService.human_attribute_name(:commitment_services_id), label_method: :get_formatted_name_with_pendent_value, as: :select, include_blank: t('model.select_option') %>
             </div>
         </div>
     </div>
@@ -119,13 +125,13 @@
 
 <div class="row mt-2">
     <div class="col-12 col-md-3">
-        <%= f.association :provider_service_type, disabled: disabled, collection: ProviderServiceType.all, as: :select, include_blank: t('model.select_option') %>
+        <%= f.association :provider_service_type, disabled: disabled_basic_fields, collection: ProviderServiceType.all, as: :select, include_blank: t('model.select_option') %>
     </div>
     <div class="col-12 col-md-3">
-        <%= f.association :maintenance_plan, disabled: disabled, collection: MaintenancePlan.all, as: :select, include_blank: t('model.select_option') %>
+        <%= f.association :maintenance_plan, disabled: disabled_basic_fields, collection: MaintenancePlan.all, as: :select, include_blank: t('model.select_option') %>
     </div>
     <div class="col-12 col-md-3">
-        <%= f.association :order_service_type, disabled: disabled, collection: OrderServiceType.all, as: :select, include_blank: false %>
+        <%= f.association :order_service_type, disabled: disabled_basic_fields, collection: OrderServiceType.all, as: :select, include_blank: false %>
     </div>
     <div class="col-12 col-md-3" id="div-with-service-group-selection" <%= 'hidden' if f.object.order_service_type_id != OrderServiceType::REQUISICAO_ID %> >
         <% 
@@ -166,7 +172,7 @@
                 User.provider.name_ordered
             end
         %>
-        <%= f.association :provider, disabled: disabled, label_method: :get_name, collection: providers_collection, as: :select, include_blank: t('model.select_option') %>
+        <%= f.association :provider, disabled: disabled_basic_fields, label_method: :get_name, collection: providers_collection, as: :select, include_blank: t('model.select_option') %>
     </div>
 </div>
 
@@ -202,7 +208,7 @@
                 end
             end
         %>
-        <%= f.input :km, disabled: disabled, required: client_needs_km %>
+        <%= f.input :km, disabled: disabled_basic_fields, required: client_needs_km %>
         <% if client_needs_km %>
             <small class="text-danger d-block" style="margin-top: -8px; font-size: 0.75rem;">
                 <i class="bi bi-exclamation-circle-fill"></i> <strong>KM obrigatório</strong> para este cliente
@@ -210,10 +216,10 @@
         <% end %>
     </div>
     <div class="col-12 col-md-6">
-        <%= f.input :driver, disabled: disabled %>
+        <%= f.input :driver, disabled: disabled_basic_fields %>
     </div>
     <div class="col-12">
-        <%= f.input :details, disabled: disabled %>
+        <%= f.input :details, disabled: disabled_basic_fields %>
     </div>
 </div>
 

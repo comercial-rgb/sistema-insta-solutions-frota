@@ -27,6 +27,11 @@ class CommitmentPolicy < ApplicationPolicy
   def edit?
     update?
   end
+  
+  # Admin pode editar Valor do empenho e N° do empenho mesmo com OS aprovadas
+  def can_edit_value_and_number?
+    user.admin? && record.persisted?
+  end
 
   def inactivate?
     general_can_access? && record.persisted?

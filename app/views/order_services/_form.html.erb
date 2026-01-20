@@ -9,12 +9,28 @@
             can_edit_items = true
         end
         
-        # Disabled para campos gerais (não os itens de peças/serviços)
+        # ===== REGRAS DE DESABILITAÇÃO DE CAMPOS =====
         if @current_user.provider?
+            # Fornecedor: desabilita após inserir dados
             disabled = f.object.data_inserted_by_provider
+            disabled_basic_fields = disabled
+            disabled_commitment_fields = disabled
         else
-            # Admin/Manager/Additional podem editar campos se a OS estiver em status editável
-            disabled = f.object.persisted? && ![OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID, OrderServiceStatus::EM_REAVALIACAO_ID].include?(f.object.order_service_status_id)
+            # Admin/Manager/Additional: regras baseadas na policy
+            # Campos básicos (fornecedor, placa, km, etc): usa can_edit_basic_fields?
+            disabled_basic_fields = !policy(f.object).can_edit_basic_fields?
+            
+            # Campos de empenho/contrato/centro de custo: ADMIN tem permissão especial
+            # mesmo quando há propostas ativas (desde que status seja editável)
+            if @current_user.admin?
+                disabled_commitment_fields = !policy(f.object).can_edit_commitment_fields?
+            else
+                # Gestor/Adicional: mesma regra dos campos básicos
+                disabled_commitment_fields = disabled_basic_fields
+            end
+            
+            # Para compatibilidade com código existente
+            disabled = disabled_basic_fields
         end
         
         # Para itens de peças/serviços, usar can_edit_items
@@ -29,10 +45,20 @@
         </div>
     </div>
     
-    <% if f.object.persisted? %>
+    <% 
+        # No modo de edição, renderizar o formulário completo para permitir alterações
+        # conforme as novas regras de permissão
+        render_editable_form = f.object.persisted? && (
+            policy(f.object).can_edit_basic_fields? || 
+            policy(f.object).can_edit_commitment_fields? ||
+            policy(f.object).manage_parts_services?
+        )
+    %>
+    
+    <% if f.object.persisted? && !render_editable_form %>
         <%= render 'order_service_proposals/renders/order_service_data', record: @order_service, order_service_proposal: nil %>
     <% else %>
-        <%= render 'order_services/forms/form_data', f: f, disabled: disabled %>
+        <%= render 'order_services/forms/form_data', f: f, disabled: disabled, disabled_basic_fields: disabled_basic_fields, disabled_commitment_fields: disabled_commitment_fields %>
     <% end %>
 
     <% if @warranty_items.present? %>

@@ -1,8 +1,12 @@
 <%
     current_disabled = defined?(disabled) ? disabled : false
     # Na edição, bloquear todos exceto: centro de custo, categoria e número do empenho
+    # Admin pode editar valor e número mesmo com OS aprovadas
     is_editing = @commitment.persisted?
     edit_blocked = is_editing && !current_disabled
+    
+    # Admin tem permissão especial para editar valor e número
+    can_admin_edit_value_and_number = @current_user.admin? && is_editing
 %>
 <%= simple_form_for(@commitment) do |f| %>
 
@@ -55,7 +59,9 @@
             <%= f.association :sub_unit, disabled: (current_disabled || edit_blocked), collection: SubUnit.getting_data_by_user(@current_user, f.object.client_id), as: :select, include_blank: t('model.select_option') %>
         </div>
         <div class="col-12 col-md-3">
-            <%= f.input :commitment_number, disabled: current_disabled %>
+            <%# Admin pode editar número mesmo quando campo está bloqueado para outros %>
+            <% numero_disabled = can_admin_edit_value_and_number ? false : current_disabled %>
+            <%= f.input :commitment_number, disabled: numero_disabled %>
         </div>
     </div>
 
@@ -64,7 +70,20 @@
             <%= f.association :contract, disabled: (current_disabled || edit_blocked), collection: Contract.getting_by_client_id(@current_user, f.object.client_id), label_method: :get_formatted_name_with_disponible_value, as: :select, include_blank: t('model.select_option') %>
         </div>
         <div class="col-12 col-md-3">
-            <%= f.input :commitment_value, disabled: (current_disabled || edit_blocked), input_html: {class: 'money', value: CustomHelper.to_currency(f.object.commitment_value), type: "tel"}, as: :string %>
+            <%# Admin pode editar valor mesmo quando campo está bloqueado para outros %>
+            <% valor_disabled = can_admin_edit_value_and_number ? false : (current_disabled || edit_blocked) %>
+            <%= f.input :commitment_value, disabled: valor_disabled, input_html: {class: 'money', value: CustomHelper.to_currency(f.object.commitment_value), type: "tel", 'data-commitment-value': f.object.commitment_value}, as: :string %>
+            <% if can_admin_edit_value_and_number && is_editing %>
+                <% total_consumed = Commitment.get_total_already_consumed_value(f.object) %>
+                <% if total_consumed > 0 %>
+                    <small class="text-info d-block mt-1">
+                        <i class="bi bi-info-circle"></i> Valor já consumido: <strong><%= CustomHelper.to_currency(total_consumed) %></strong>
+                    </small>
+                    <small class="text-warning d-block">
+                        <i class="bi bi-exclamation-triangle"></i> Se alterar para valor menor que o consumido, o saldo ficará negativo.
+                    </small>
+                <% end %>
+            <% end %>
         </div>
         <div class="col-12 col-md-3">
             <%= f.association :category, disabled: current_disabled, collection: Category.where(id: [Category::SERVICOS_PECAS_ID, Category::SERVICOS_SERVICOS_ID]), as: :select, include_blank: 'Global (Peças e Serviços)' %>
@@ -74,10 +93,19 @@
     <% if is_editing && !current_disabled %>
         <div class="row mt-3">
             <div class="col-12">
-                <div class="alert alert-info" role="alert">
-                    <i class="bi bi-info-circle me-2"></i>
-                    <strong>Atenção:</strong> Na edição de empenhos, apenas o <strong>Centro de Custo</strong>, <strong>Categoria</strong> e <strong>N° do Empenho</strong> podem ser alterados.
-                </div>
+                <% if can_admin_edit_value_and_number %>
+                    <div class="alert alert-warning" role="alert">
+                        <i class="bi bi-shield-check me-2"></i>
+                        <strong>Permissão Admin:</strong> Você pode editar <strong>Valor do Empenho</strong>, <strong>N° do Empenho</strong>, <strong>Centro de Custo</strong> e <strong>Categoria</strong>.
+                        <br>
+                        <small>⚠️ Atenção: Se reduzir o valor abaixo do já consumido, o saldo disponível ficará negativo.</small>
+                    </div>
+                <% else %>
+                    <div class="alert alert-info" role="alert">
+                        <i class="bi bi-info-circle me-2"></i>
+                        <strong>Atenção:</strong> Na edição de empenhos, apenas o <strong>Centro de Custo</strong>, <strong>Categoria</strong> e <strong>N° do Empenho</strong> podem ser alterados.
+                    </div>
+                <% end %>
             </div>
         </div>
     <% end %>

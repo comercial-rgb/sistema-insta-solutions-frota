@@ -76,7 +76,8 @@
                     %>
                     <%= render 'order_service_proposals/renders/table_data',
                       order_service_proposal_items: parts_items,
-                      label_column: Service.human_attribute_name(:part)     
+                      label_column: Service.human_attribute_name(:part),
+                      order_service_proposal: order_service_proposal     
                     %>
                   </div>
                 </div>
@@ -96,7 +97,8 @@
                     %>
                     <%= render 'order_service_proposals/renders/table_data',
                       order_service_proposal_items: services_items,
-                      label_column: Service.human_attribute_name(:service)
+                      label_column: Service.human_attribute_name(:service),
+                      order_service_proposal: order_service_proposal
                     %>
                   </div>
                 </div>

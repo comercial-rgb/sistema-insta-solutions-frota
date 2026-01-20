@@ -46,7 +46,19 @@ class OrderServicePolicy < ApplicationPolicy
   end
 
   def can_edit?
-    (user.provider? && (record.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID && record.order_service_status_id == OrderServiceStatus::EM_ABERTO_ID && record.provider_id == user.id)) || ([OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID].include?(record.order_service_status_id) && (user.admin? || ((user.manager? && record.client_id == user.client_id))))
+    # Fornecedor: pode editar Diagnóstico em aberto quando atribuído a ele
+    return true if user.provider? && record.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID && record.order_service_status_id == OrderServiceStatus::EM_ABERTO_ID && record.provider_id == user.id
+    
+    # Admin/Gestor/Adicional: podem editar OS quando:
+    # 1. OS está em status editável (Em Aberto ou Aguardando Avaliação)
+    # 2. Não existem propostas ativas (não canceladas/reprovadas)
+    if user.admin? || (user.manager? && record.client_id == user.client_id) || (user.additional? && record.client_id == user.client_id)
+      is_editable_status = [OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID].include?(record.order_service_status_id)
+      has_no_active_proposals = !record.has_active_proposals?
+      return is_editable_status && has_no_active_proposals
+    end
+    
+    false
   end
 
   def update?
@@ -169,6 +181,30 @@ class OrderServicePolicy < ApplicationPolicy
     [OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID].include?(record.order_service_status_id) &&
     [OrderServiceType::COTACOES_ID, OrderServiceType::REQUISICAO_ID].include?(record.order_service_type_id) &&
     (user.admin? || user.manager? || (user.additional? && record.client_id == user.client_id))
+  end
+  
+  # Permissão especial para ADMIN editar campos de empenho, contrato e centro de custo
+  # mesmo quando já existem propostas (desde que a OS esteja em status editável)
+  def can_edit_commitment_fields?
+    user.admin? && [OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID].include?(record.order_service_status_id)
+  end
+  
+  # Verifica se pode editar campo específico de fornecedor/placa/empenho
+  # Para Diagnóstico: pode trocar fornecedor, placa ou empenho quando sem propostas
+  def can_edit_basic_fields?
+    return false unless can_edit?
+    
+    # Para Diagnóstico: permite editar fornecedor, placa e empenho
+    if record.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID
+      return true
+    end
+    
+    # Para Cotações/Requisições: permite editar todos os campos básicos
+    if [OrderServiceType::COTACOES_ID, OrderServiceType::REQUISICAO_ID].include?(record.order_service_type_id)
+      return true
+    end
+    
+    false
   end
 
 end
