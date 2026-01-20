@@ -991,15 +991,12 @@ class OrderServicesController < ApplicationController
 
   def new
     authorize OrderService
-    if Rails.env.development?
-      generate_data_order_service
-    else
-      @order_service = OrderService.new
-    end
+    @order_service = OrderService.new(order_service_status_id: OrderServiceStatus::EM_CADASTRO_ID)
     build_initial_relations
   end
 
   def generate_data_order_service
+    # Método mantido para compatibilidade, mas não é mais usado
     @order_service = FactoryBot.build(:order_service, order_service_status_id: OrderServiceStatus::EM_CADASTRO_ID)
   end
 
