@@ -479,7 +479,7 @@ class OrderServiceProposalsController < ApplicationController
     justification_required = @order_service_proposal.requires_approval_justification?
 
     if justification_required && reason.blank?
-      flash[:error] = "É necessário justificar a aprovação para itens repetidos em 30 dias ou ainda em garantia."
+      flash[:error] = "É necessário justificar a aprovação para itens com preços acima da tabela de referência."
       return redirect_back(fallback_location: :back)
     end
 

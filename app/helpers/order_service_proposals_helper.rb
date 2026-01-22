@@ -63,4 +63,54 @@ module OrderServiceProposalsHelper
       ''.html_safe
     end
   end
+  
+  # Verifica se o item possui preço de referência Cilia configurado
+  def has_reference_price?(item, order_service)
+    return false unless item.service_id.present?
+    return false unless order_service&.vehicle&.vehicle_model_id.present?
+    
+    ReferencePrice.find_for_vehicle_and_service(
+      vehicle_id: order_service.vehicle_id,
+      service_id: item.service_id
+    ).present?
+  end
+  
+  # Badge visual para item sem preço de referência (minimalista)
+  def reference_price_badge(item, order_service)
+    return '' unless item.service_id.present?
+    
+    # Verificar se é peça (apenas peças têm preço de referência)
+    category_id = item.get_category_id
+    return '' unless category_id == Category::SERVICOS_PECAS_ID
+    
+    # Verificar se preço excede referência
+    price_check = item.price_vs_reference
+    
+    if price_check[:exceeded]
+      # Badge discreto para preço excedido - MINIMALISTA
+      percentage = price_check[:percentage]
+      tooltip = "⚠️ Preço #{percentage}% acima do permitido<br>Ref. Cilia: #{CustomHelper.to_currency(price_check[:reference_price])}<br>Máx: #{CustomHelper.to_currency(price_check[:max_allowed])}"
+      
+      %{<span class="badge badge-price-exceeded ms-1" data-bs-toggle="tooltip" data-bs-html="true" title="#{tooltip}"><i class="bi bi-exclamation-circle"></i> +#{percentage}%</span>}.html_safe
+    elsif has_reference_price?(item, order_service)
+      # Badge discreto - item OK com texto pequeno
+      %{<span class="badge badge-price-ok ms-1" data-bs-toggle="tooltip" title="Preço dentro da referência Cilia"><i class="bi bi-check-circle-fill"></i> <small>Ref. Cilia</small></span>}.html_safe
+    else
+      # Badge discreto - sem referência com texto pequeno
+      %{<span class="badge badge-no-reference ms-1" data-bs-toggle="tooltip" title="Sem preço de referência - revisar manualmente"><i class="bi bi-info-circle"></i> <small>Sem Ref.</small></span>}.html_safe
+    end
+  end
+  
+  # Verifica se a proposta tem itens sem preço de referência
+  def has_items_without_reference?(proposal)
+    return false unless proposal.order_service&.vehicle&.vehicle_model_id.present?
+    
+    proposal.order_service_proposal_items.any? do |item|
+      next false unless item.service_id.present?
+      category_id = item.get_category_id
+      next false unless category_id == Category::SERVICOS_PECAS_ID
+      
+      !has_reference_price?(item, proposal.order_service)
+    end
+  end
 end

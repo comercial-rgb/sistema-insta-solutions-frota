@@ -277,51 +277,24 @@ class OrderServiceProposal < ApplicationRecord
   end
 
   def approval_justification_triggers
+    # 🎯 Justificativa obrigatória APENAS para itens com preço acima da tabela de referência
     vehicle_id = order_service&.vehicle_id
     return [] if vehicle_id.blank?
 
-    current_service_ids = order_service_proposal_items.pluck(:service_id).compact
-    return [] if current_service_ids.blank?
-
-    # 🔒 Ajuste: fornecedores costumam reutilizar serviços genéricos (ex.: "Mão de obra").
-    # Para evitar falsos positivos, o critério "repetido em 30 dias" será aplicado
-    # apenas para PEÇAS. Para SERVIÇOS, só dispara se houver garantia (> 0).
-    current_part_service_ids = Service
-      .where(id: current_service_ids, category_id: Category::SERVICOS_PECAS_ID)
-      .pluck(:id)
-
-    valid_statuses = OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES
-
-    OrderServiceProposalItem
-      .joins(order_service_proposal: :order_service)
-      .includes(:service)
-      .where(order_services: { vehicle_id: vehicle_id })
-      .where(order_service_proposals: { order_service_proposal_status_id: valid_statuses })
-      .where(service_id: current_service_ids)
-      .where.not(order_service_proposals: { id: id })
-      .order(created_at: :desc)
-      .group_by(&:service_id)
-      .map do |_service_id, records|
-        last_item = records.first
-        next if last_item.nil?
-
-        warranty_period = last_item.warranty_period.to_i
-        # A garantia começa a contar a partir da data de autorização
-        # Se warranty_start_date não estiver preenchido, usa created_at (comportamento legado)
-        warranty_start = last_item.warranty_start_date || last_item.created_at.to_date
-        warranty_expires_at = warranty_period > 0 ? warranty_start + warranty_period.days : nil
-        # Critério 30 dias apenas para PEÇAS (evita pedir justificativa para "Mão de obra")
-        within_30_days = current_part_service_ids.include?(last_item.service_id) && (warranty_start >= 30.days.ago.to_date)
-        within_warranty = warranty_expires_at.present? && warranty_expires_at >= Time.zone.today
-
-        next unless within_30_days || within_warranty
-
+    order_service_proposal_items
+      .select { |item| item.get_category_id == Category::SERVICOS_PECAS_ID }
+      .map do |item|
+        price_check = item.price_vs_reference
+        
+        next unless price_check[:exceeded]
+        
         {
-          service_name: last_item.service_name.presence || last_item.service&.name,
-          last_date: warranty_start,
-          within_30_days: within_30_days,
-          within_warranty: within_warranty,
-          warranty_expires_at: warranty_expires_at
+          service_name: item.service_name.presence || item.service&.name,
+          exceeded: true,
+          percentage: price_check[:percentage],
+          reference_price: price_check[:reference_price],
+          max_allowed: price_check[:max_allowed],
+          current_price: price_check[:current_price]
         }
       end
       .compact

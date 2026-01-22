@@ -21,25 +21,46 @@
                 <%= form_tag approve_order_service_proposal_path(id: order_service_proposal.id), method: :post, class: 'form-order-service-proposal-to-validate' do |f| %>
                     <% if justification_required %>
                         <div class="alert alert-warning">
-                            <p class="mb-2">Foi identificado item repetido nos últimos 30 dias ou ainda em garantia. Informe uma justificativa para seguir com a aprovação.</p>
+                            <p class="mb-2"><i class="bi bi-exclamation-triangle"></i> Foram identificados itens com preços acima da tabela de referência. Informe uma justificativa para seguir com a aprovação:</p>
                             <ul class="mb-0 ps-3">
                                 <% justification_triggers.each do |trigger| %>
                                     <li>
-                                        <strong><%= trigger[:service_name] || 'Serviço' %></strong>
-                                        <% if trigger[:within_30_days] %>
-                                            (repetido em <%= l(trigger[:last_date]) %>)
-                                        <% end %>
-                                        <% if trigger[:within_warranty] && trigger[:warranty_expires_at].present? %>
-                                            (garantia até <%= l(trigger[:warranty_expires_at]) %>)
-                                        <% end %>
+                                        <strong><%= trigger[:service_name] || 'Peça' %></strong>
+                                        — Preço +<%= trigger[:percentage] %>% acima do permitido
+                                        <br>
+                                        <small class="text-muted">
+                                            Ref. Cilia: <%= CustomHelper.to_currency(trigger[:reference_price]) %> |
+                                            Máx. permitido: <%= CustomHelper.to_currency(trigger[:max_allowed]) %> |
+                                            Preço atual: <%= CustomHelper.to_currency(trigger[:current_price]) %>
+                                        </small>
                                     </li>
                                 <% end %>
                             </ul>
                         </div>
                     <% end %>
                     <div class="mb-3">
-                        <label class="form-label"><%= OrderServiceProposal.human_attribute_name(:reason_approved) %></label>
-                        <%= text_area_tag :reason_approved, '', class: 'form-control', id: 'reason_approved_'+order_service_proposal.id.to_s, autofocus: true, autocomplete: 'off', required: justification_required %>
+                        <label class="form-label">
+                            <%= OrderServiceProposal.human_attribute_name(:reason_approved) %>
+                            <% if justification_required %>
+                                <span class="text-danger">*</span>
+                            <% end %>
+                        </label>
+                        <%= text_area_tag :reason_approved, '', 
+                            class: 'form-control', 
+                            id: 'reason_approved_'+order_service_proposal.id.to_s, 
+                            rows: 4,
+                            autofocus: true, 
+                            autocomplete: 'off', 
+                            required: justification_required,
+                            placeholder: justification_required ? 
+                                "Exemplos de justificativas:\n• Peça original de fábrica com qualidade superior\n• Única opção disponível no mercado no momento\n• Especificação técnica diferenciada exigida pelo fabricante\n• Fornecedor com melhor prazo de entrega em situação emergencial" : 
+                                "Observações sobre a aprovação (opcional)" %>
+                        <% if justification_required %>
+                            <small class="form-text text-muted">
+                                <i class="bi bi-info-circle"></i> 
+                                Explique o motivo para aprovar itens com preços acima da tabela de referência
+                            </small>
+                        <% end %>
                     </div>
                     <div class="mt-3 text-end">
                         <button class="btn btn-primary btn-sm" type="submit" data-confirm="<%= t('model.confirm_action') %>"><%= t('model.send') %></button>

@@ -1,7 +1,8 @@
 class OrderServiceProposalItem < ApplicationRecord
   after_initialize :default_values
   before_validation :recalculate_totals
-  validate :check_reference_price, if: :should_validate_price?
+  # validate :check_reference_price, if: :should_validate_price?
+  # ⚠️ Validação desabilitada - agora apenas mostra aviso visual (não bloqueia)
 
   default_scope {
     order(:id)
@@ -49,6 +50,41 @@ class OrderServiceProposalItem < ApplicationRecord
 
   def default_values
     self.quantity ||= 1
+  end
+  
+  # Verifica se o preço do item excede a referência Cilia
+  # Retorna hash com informações para exibição de badges e justificativas
+  def price_vs_reference
+    result = {
+      exceeded: false,
+      percentage: 0,
+      reference_price: nil,
+      max_allowed: nil,
+      current_price: unity_value.to_f
+    }
+    
+    return result unless should_validate_price?
+    return result unless unity_value.present?
+    
+    vehicle = order_service_proposal.order_service.vehicle
+    ref_price = ReferencePrice.find_for_vehicle_and_service(
+      vehicle_id: vehicle.id,
+      service_id: service_id
+    )
+    
+    return result unless ref_price
+    
+    max_allowed = ref_price.max_allowed_price
+    result[:reference_price] = ref_price.reference_price.to_f
+    result[:max_allowed] = max_allowed.to_f
+    
+    if unity_value > max_allowed
+      percentage_over = (((unity_value - ref_price.reference_price) / ref_price.reference_price) * 100).round(0)
+      result[:exceeded] = true
+      result[:percentage] = percentage_over
+    end
+    
+    result
   end
   
   def should_validate_price?

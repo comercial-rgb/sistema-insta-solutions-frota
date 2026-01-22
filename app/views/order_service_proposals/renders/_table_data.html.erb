@@ -49,7 +49,9 @@
               + Complemento
             </span>
           <% end %>
-          <%= item.service_name.presence || item.service&.name || '-' %><br>
+          <%= item.service_name.presence || item.service&.name || '-' %>
+          <%= reference_price_badge(item, order_service_proposal.order_service) %>
+          <br>
           <% if is_part %>
             <small class="text-muted"><b><%= OrderServiceProposalItem.human_attribute_name(:brand) %>: </b><%= item.brand %></small>
           <% end %>
