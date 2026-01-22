@@ -123,6 +123,16 @@ module MenuHelper
 			})
 		end
 
+		if policy(Service).index?
+			# Peças e Serviços
+			menu_links.push({
+				opened: is_current_controller?("services"),
+				icon: "bi bi-tools",
+				label: "Peças e Serviços",
+				href: services_path
+			})
+		end
+
 		if policy(Vehicle).index?
 			# Veículos
 			menu_links.push({
