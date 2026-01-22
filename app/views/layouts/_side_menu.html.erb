@@ -1,6 +1,9 @@
 <div data-bs-zindex="1750" class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasRight" aria-labelledby="offcanvasRightLabel">
     <div class="offcanvas-header">
-        <h5><%= t("menu.menu") %></h5>
+        <div class="d-flex align-items-center">
+            <%= image_tag 'logos/logo.png', width: 120, class: 'me-3', alt: 'Logo' %>
+            <h5 class="mb-0"><%= t("menu.menu") %></h5>
+        </div>
         <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
 

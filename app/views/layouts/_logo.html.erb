@@ -4,11 +4,7 @@
 <!-- Logo -->
 <a href="<%= root_path %>">
     <figure class="m-0">
-        <% if @system_configuration.client_logo.attached? %>
-            <%= image_tag rails_blob_path(@system_configuration.client_logo, only_path: true), width: width, height: height, class: current_custom_class %>
-        <% else %>
-            <span class="<%= current_custom_class %>"><%= @system_configuration.page_title || 'Sistema' %></span>
-        <% end %>
+        <%= image_tag 'logos/logo.png', width: width, height: height, class: current_custom_class, alt: @system_configuration.page_title || 'Sistema' %>
     </figure>
 </a>
 
