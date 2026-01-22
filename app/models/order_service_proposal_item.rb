@@ -37,21 +37,6 @@ class OrderServiceProposalItem < ApplicationRecord
     self.id.to_s
   end
 
-  private
-
-  def recalculate_totals
-    quantity = (self.quantity.presence || 0).to_d
-    unity_value = (self.unity_value.presence || 0).to_d
-    discount = (self.discount.presence || 0).to_d
-
-    self.total_value_without_discount = (unity_value * quantity).round(2)
-    self.total_value = (self.total_value_without_discount.to_d - discount).round(2)
-  end
-
-  def default_values
-    self.quantity ||= 1
-  end
-  
   # Verifica se o preço do item excede a referência Cilia
   # Retorna hash com informações para exibição de badges e justificativas
   def price_vs_reference
@@ -95,6 +80,21 @@ class OrderServiceProposalItem < ApplicationRecord
     
     vehicle = order_service_proposal.order_service.vehicle
     vehicle.vehicle_model_id.present?
+  end
+
+  private
+
+  def recalculate_totals
+    quantity = (self.quantity.presence || 0).to_d
+    unity_value = (self.unity_value.presence || 0).to_d
+    discount = (self.discount.presence || 0).to_d
+
+    self.total_value_without_discount = (unity_value * quantity).round(2)
+    self.total_value = (self.total_value_without_discount.to_d - discount).round(2)
+  end
+
+  def default_values
+    self.quantity ||= 1
   end
   
   def check_reference_price

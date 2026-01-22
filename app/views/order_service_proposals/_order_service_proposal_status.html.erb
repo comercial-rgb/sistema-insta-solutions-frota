@@ -1,7 +1,11 @@
 <div class="table-actions">
 
 	<%
-		if record.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID
+		status_name = record.order_service_proposal_status&.name&.downcase || ''
+		
+		# Mapear status por nome em vez de ID (mais robusto para diferentes ambientes)
+		case status_name
+		when /aguardando avalia(ç|c)(ã|a)o/i, /em aberto/i
 			# Se está pendente de aprovação do gestor
 			if record.pending_manager_approval
 				span_class = 'bg-secondary'
@@ -14,10 +18,10 @@
 				span_class = 'bg-warning'
 				span_text = record.order_service_proposal_status.name
 			end
-		elsif record.order_service_proposal_status_id == OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID
-            span_class = 'bg-danger'
+		when /reprovada/i
+			span_class = 'bg-danger'
 			span_text = record.order_service_proposal_status.name
-		elsif record.order_service_proposal_status_id == OrderServiceProposalStatus::APROVADA_ID
+		when /aprovada/i
 			# Se ainda está pendente de autorização do gestor após aprovação
 			if record.pending_manager_authorization
 				span_class = 'bg-secondary'
@@ -26,33 +30,40 @@
 				span_class = 'bg-info'
 				span_text = record.order_service_proposal_status.name
 			end
-		elsif record.order_service_proposal_status_id == OrderServiceProposalStatus::NOTAS_INSERIDAS_ID
-            span_class = 'bg-info'
-			span_text = record.order_service_proposal_status.name
-		elsif record.order_service_proposal_status_id == OrderServiceProposalStatus::AUTORIZADA_ID
-            span_class = 'bg-primary'
-			span_text = record.order_service_proposal_status.name
-		elsif record.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID
-			span_class = 'bg-warning'
-			span_text = record.order_service_proposal_status.name
-		elsif record.order_service_proposal_status_id == OrderServiceProposalStatus::PAGA_ID
-			span_class = 'bg-success'
-			span_text = record.order_service_proposal_status.name
-		elsif record.order_service_proposal_status_id == OrderServiceProposalStatus::CANCELADA_ID
-			span_class = 'bg-danger'
-			span_text = record.order_service_proposal_status.name
-		elsif record.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID
+		when /notas.*inseridas/i, /notas fiscais/i
 			span_class = 'bg-info'
 			span_text = record.order_service_proposal_status.name
+		when /autorizada/i
+			span_class = 'bg-primary'
+			span_text = record.order_service_proposal_status.name
+		when /aguardando pagamento/i
+			span_class = 'bg-warning'
+			span_text = record.order_service_proposal_status.name
+		when /paga/i
+			span_class = 'bg-success'
+			span_text = record.order_service_proposal_status.name
+		when /cancelada/i
+			span_class = 'bg-danger'
+			span_text = record.order_service_proposal_status.name
+		when /complemento/i
+			span_class = 'bg-info'
+			span_text = record.order_service_proposal_status.name
+		when /cadastro/i
+			span_class = 'bg-secondary'
+			span_text = record.order_service_proposal_status.name
+		else
+			# Caso padrão para status não mapeados
+			span_class = 'bg-secondary'
+			span_text = record.order_service_proposal_status&.name || 'Status desconhecido'
 		end
 
 		# Só exibe "Valor acima do limite" se:
-		# 1. Status é AGUARDANDO_AVALIACAO_ID
+		# 1. Status é "aguardando avaliação" (por nome, não ID)
 		# 2. Não pode ser gerenciado por valor pendente (commitment insuficiente)
 		# 3. Não está em aprovações pendentes (manager)
 		# 4. A OS tem commitment associado (se não tem, não faz sentido validar valor)
 		# 5. O usuário atual NÃO é fornecedor (fornecedor não precisa ver essa validação)
-		if record.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID && 
+		if status_name =~ /aguardando avalia(ç|c)(ã|a)o|em aberto/i &&
 		   !record.can_manage_by_pendent_value && 
 		   !record.pending_manager_approval && 
 		   !record.pending_manager_authorization &&
@@ -63,8 +74,8 @@
 		end
 	%>
 
-	<span class="badge <%= span_class %>">
-		<%= span_text.html_safe %>
+	<span class="badge <%= span_class || 'bg-secondary' %>">
+		<%= (span_text || 'Status desconhecido').html_safe %>
 	</span>
 
 	<% if record.reproved || (!record.reason_approved.nil? && !record.reason_approved.blank?) || (!record.reason_refused_approval.nil? && !record.reason_refused_approval.blank?) %>

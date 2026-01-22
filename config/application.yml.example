@@ -1,14 +1,35 @@
 # Exemplo de arquivo de configuração do Figaro
 # Copie este arquivo para application.yml e preencha com suas credenciais
 
-# Banco de Dados
+# ========================================
+# DESENVOLVIMENTO (Local)
+# ========================================
 DATABASE_USERNAME_DEVELOPMENT: "root"
 DATABASE_PASSWORD_DEVELOPMENT: "sua_senha"
 
+# ========================================
+# TESTES
+# ========================================
 DATABASE_USERNAME_TEST: "root"
 DATABASE_PASSWORD_TEST: "sua_senha"
 
+# ========================================
+# STAGING/HOMOLOGAÇÃO (Ambiente de Teste)
+# ========================================
+DATABASE_DATABASE_STAGING: "sistema_insta_solutions_staging"
+DATABASE_USERNAME_STAGING: "root"
+DATABASE_PASSWORD_STAGING: "senha_staging"
+DATABASE_HOST_STAGING: "localhost"
+DATABASE_PORT_STAGING: "3306"
+STAGING_HOST: "staging.seudominio.com.br"
+
+# ========================================
+# PRODUÇÃO (Ambiente Público)
+# ========================================
+DATABASE_DATABASE_PRODUCTION: "sistema_insta_solutions_production"
 DATABASE_USERNAME_PRODUCTION: "root"
-DATABASE_PASSWORD_PRODUCTION: "sua_senha"
+DATABASE_PASSWORD_PRODUCTION: "senha_producao"
+DATABASE_HOST_PRODUCTION: "localhost"
+DATABASE_PORT_PRODUCTION: "3306"
 
 # Outras configurações podem ser necessárias aqui

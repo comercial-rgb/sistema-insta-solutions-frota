@@ -1,11 +1,13 @@
 <% if record&.order_service_type.present? %>
   <%
-    badge_class = case record.order_service_type_id
-    when OrderServiceType::DIAGNOSTICO_ID
+    # Usa o nome do tipo em vez do ID (mais robusto entre ambientes)
+    type_name = record.order_service_type.name.downcase
+    badge_class = case type_name
+    when /diagn(ó|o)stico/i, /emergencial/i
       'badge-os-diagnostico'
-    when OrderServiceType::COTACOES_ID
+    when /cota(ç|c)(õ|o)es/i
       'badge-os-cotacoes'
-    when OrderServiceType::REQUISICAO_ID
+    when /requisi(ç|c)(ã|a)o/i
       'badge-os-requisicao'
     else
       'bg-secondary'
@@ -17,7 +19,7 @@
   </span>
   
   <%# Badge Emergencial/Cotações para OS tipo Diagnóstico %>
-  <% if record.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID %>
+  <% if type_name =~ /diagn(ó|o)stico|emergencial/i %>
     <% 
       # Contar propostas aprovadas (não canceladas/reprovadas)
       approved_proposals_count = record.order_service_proposals

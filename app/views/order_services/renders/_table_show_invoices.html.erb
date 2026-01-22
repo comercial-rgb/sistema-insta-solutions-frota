@@ -131,11 +131,11 @@
                 <tr class="table-secondary fw-bold">
                 <td colspan="8" class="text-end">Total:</td>
                 <td>
-                    <% sum_parts = order_service_invoices_grouped[OrderServiceInvoiceType::PECAS_ID].sum(&:value) if !order_service_invoices_grouped[OrderServiceInvoiceType::PECAS_ID].nil? %>
+                    <% sum_parts = order_service_invoices_grouped&.[]( OrderServiceInvoiceType::PECAS_ID)&.sum(&:value) %>
                     <%= CustomHelper.to_currency(sum_parts) %>
                 </td>
                 <td>
-                    <% sum_services = order_service_invoices_grouped[OrderServiceInvoiceType::SERVICOS_ID].sum(&:value) if !order_service_invoices_grouped[OrderServiceInvoiceType::SERVICOS_ID].nil? %>
+                    <% sum_services = order_service_invoices_grouped&.[](OrderServiceInvoiceType::SERVICOS_ID)&.sum(&:value) %>
                     <%= CustomHelper.to_currency(sum_services) %>
                 </td>
             <% end %>

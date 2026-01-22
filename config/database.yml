@@ -11,6 +11,9 @@
 development:
   variables:
     sql_mode: TRADITIONAL
+    character_set_client: utf8mb4
+    character_set_connection: utf8mb4
+    character_set_results: utf8mb4
   adapter: mysql2
   encoding: utf8mb4
   collation: utf8mb4_unicode_ci
@@ -21,6 +24,7 @@ development:
   password: "rot123"
   host: 127.0.0.1
   port: 3306
+  init_command: "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci"
 
 # Warning: The database defined as "test" will be erased and
 # re-generated from your development database when you run "rake".
@@ -35,6 +39,19 @@ test:
   username: <%= ENV['DATABASE_USERNAME_DEVELOPMENT'] %>
   password: <%= ENV['DATABASE_PASSWORD_DEVELOPMENT'] %>
   host: 127.0.0.1
+
+staging:
+  variables:
+    sql_mode: TRADITIONAL
+  adapter: mysql2
+  encoding: utf8mb4
+  collation: utf8mb4_unicode_ci
+  pool: 5
+  database: <%= ENV['DATABASE_DATABASE_STAGING'] %>
+  username: <%= ENV['DATABASE_USERNAME_STAGING'] %>
+  password: <%= ENV['DATABASE_PASSWORD_STAGING'] %>
+  host: <%= ENV['DATABASE_HOST_STAGING'] %>
+  port: <%= ENV['DATABASE_PORT_STAGING'] %>
 
 production:
   variables:

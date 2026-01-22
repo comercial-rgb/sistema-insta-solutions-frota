@@ -236,9 +236,9 @@ class OrderServicesController < ApplicationController
         .approved_in_current_month(filter_audit, current_month)}
       else
         if method == "show_invoices" && !params[:order_services_invoice_grid].nil?
-          client_id = params[:order_services_invoice_grid][:client_id]
+          client_id = params[:order_services_invoice_grid][:client_id].presence
         elsif method == "index" && !params[:order_services_grid].nil?
-          client_id = params[:order_services_grid][:client_id]
+          client_id = params[:order_services_grid][:client_id].presence
         end
         
         # Aba FATURAS: sempre usa histórico para pegar OSs autorizadas no período

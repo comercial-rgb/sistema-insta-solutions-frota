@@ -1,0 +1,160 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:  # Permite deploy manual via interface do GitHub
+
+env:
+  RUBY_VERSION: 3.2.2
+  NODE_VERSION: 18
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: test_db
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ env.RUBY_VERSION }}
+        bundler-cache: true
+    
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        bundle install --jobs 4 --retry 3
+        yarn install
+    
+    - name: Setup Database
+      env:
+        RAILS_ENV: test
+        DATABASE_HOST: 127.0.0.1
+        DATABASE_USERNAME: root
+        DATABASE_PASSWORD: password
+      run: |
+        bundle exec rails db:create
+        bundle exec rails db:schema:load
+    
+    - name: Run Tests
+      env:
+        RAILS_ENV: test
+        DATABASE_HOST: 127.0.0.1
+        DATABASE_USERNAME: root
+        DATABASE_PASSWORD: password
+      run: |
+        bundle exec rspec
+        # ou: bundle exec rails test
+
+  deploy:
+    name: Deploy to Production
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://seudominio.com.br
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    
+    - name: Backup Database
+      env:
+        PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY_PRODUCTION }}
+        HOST: ${{ secrets.PRODUCTION_HOST }}
+        USER: ubuntu
+      run: |
+        echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
+        
+        ssh -o StrictHostKeyChecking=no -i private_key ${USER}@${HOST} '
+          # Backup do banco antes do deploy
+          mysqldump -h ${{ secrets.RDS_HOST }} \
+                    -u ${{ secrets.RDS_USERNAME }} \
+                    -p${{ secrets.RDS_PASSWORD }} \
+                    sistema_insta_solutions_production \
+                    > /tmp/backup_$(date +%Y%m%d_%H%M%S).sql
+          
+          # Upload backup para S3
+          aws s3 cp /tmp/backup_*.sql s3://insta-solutions-backups/
+        '
+        
+        rm -f private_key
+    
+    - name: Deploy to EC2 Production
+      env:
+        PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY_PRODUCTION }}
+        HOST: ${{ secrets.PRODUCTION_HOST }}
+        USER: ubuntu
+      run: |
+        echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
+        
+        ssh -o StrictHostKeyChecking=no -i private_key ${USER}@${HOST} '
+          cd /var/www/sistema-insta-solutions
+          
+          # Pull latest code
+          git fetch origin main
+          git reset --hard origin/main
+          
+          # Install dependencies
+          bundle install --deployment --without development test
+          yarn install --production
+          
+          # Run migrations
+          RAILS_ENV=production bundle exec rails db:migrate
+          
+          # Precompile assets
+          RAILS_ENV=production bundle exec rails assets:precompile
+          
+          # Clear cache
+          RAILS_ENV=production bundle exec rails tmp:cache:clear
+          
+          # Restart application
+          mkdir -p tmp
+          touch tmp/restart.txt
+          
+          # Restart Passenger/Puma/Nginx
+          sudo systemctl restart nginx || true
+          sudo systemctl restart puma || true
+        '
+        
+        rm -f private_key
+    
+    - name: Health Check
+      run: |
+        sleep 10
+        response=$(curl -s -o /dev/null -w "%{http_code}" https://seudominio.com.br)
+        if [ $response -eq 200 ]; then
+          echo "✅ Deploy successful! Site is UP"
+        else
+          echo "❌ Deploy failed! Site returned HTTP $response"
+          exit 1
+        fi
+    
+    - name: Notify Team
+      if: always()
+      run: |
+        echo "🚀 Production Deploy Status: ${{ job.status }}"
+        # Adicione notificação Slack, Email, etc.
