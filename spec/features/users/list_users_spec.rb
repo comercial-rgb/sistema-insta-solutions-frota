@@ -23,7 +23,7 @@ RSpec.feature "Users::List", type: :feature do
 	context 'Administrator access' do
 		let(:admin) { create :user }
 
-		background do
+		before do
 			login admin.cpf, admin.password
 		end
 

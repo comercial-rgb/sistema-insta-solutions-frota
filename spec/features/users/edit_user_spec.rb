@@ -5,7 +5,7 @@ RSpec.feature "Users::Edit", type: :feature do
 	context 'Planner' do
 		let(:planner) { create :user, :planner }
 
-		background do
+		before do
 			login planner.cpf, planner.password
 		end
 

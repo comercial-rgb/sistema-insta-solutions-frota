@@ -2,7 +2,7 @@ require "rails_helper"
 
 feature "Recover Pass" do
 
-  background do
+  before do
     visit login_path
     click_link ('Esqueci minha senha')
   end
