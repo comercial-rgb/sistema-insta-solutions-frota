@@ -798,7 +798,7 @@ class OrderService < ApplicationRecord
     order_service_proposal_approved = order_service.getting_order_service_proposal_approved
     order_service_invoices = []
     if order_service_proposal_approved
-      order_service_invoices = order_service_proposal_approved.order_service_invoices.sort_by{|item| item.order_service_invoice_type_id}
+      order_service_invoices = order_service_proposal_approved.order_service_invoices.sort_by{|item| item.order_service_invoice_type_id.to_i}
       order_service_invoices_grouped = order_service_proposal_approved.order_service_invoices.group_by(&:order_service_invoice_type_id)
     end
     return [order_service_invoices, order_service_invoices_grouped, order_service_proposal_approved]

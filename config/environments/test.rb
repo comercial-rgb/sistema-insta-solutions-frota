@@ -40,8 +40,8 @@ Rails.application.configure do
   # Raises error for missing translations
   # config.action_view.raise_on_missing_translations = true
 
-  # Credenciais da Amazon AWS S3
-  config.active_storage.service = :amazon
+  # Use local storage for tests (faster and doesn't require AWS credentials)
+  config.active_storage.service = :local
   # config.paperclip_defaults = {
   #   :storage => :s3,
   #   :s3_host_name => 's3-sa-east-1.amazonaws.com',

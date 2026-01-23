@@ -188,7 +188,7 @@ Rails.application.routes.draw do
 	get '/getting_service_values_new_product', :to => 'services#getting_service_values_new_product', :as => 'getting_service_values_new_product'
 	
 	# Importação em massa de serviços/peças
-	resource :services_import, only: [:new, :create] do
+	resource :services_import, only: [:new, :create], controller: 'services_import' do
 		get :template, on: :collection
 	end
 
