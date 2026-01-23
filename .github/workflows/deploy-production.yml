@@ -49,6 +49,7 @@ jobs:
         DATABASE_HOST: 127.0.0.1
         DATABASE_USERNAME: root
         DATABASE_PASSWORD: password
+        DATABASE_NAME: sistema_insta_solutions_test
       run: |
         bundle exec rails db:create
         bundle exec rails db:schema:load
@@ -59,6 +60,7 @@ jobs:
         DATABASE_HOST: 127.0.0.1
         DATABASE_USERNAME: root
         DATABASE_PASSWORD: password
+        DATABASE_NAME: sistema_insta_solutions_test
       run: |
         bundle exec rspec
         # ou: bundle exec rails test
