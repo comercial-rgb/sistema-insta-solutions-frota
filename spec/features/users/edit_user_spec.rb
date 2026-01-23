@@ -102,7 +102,7 @@ RSpec.feature "Users::Edit", type: :feature do
 		let(:admin) { create :user }
 		let(:other_user) { create :user }
 
-		background do
+		before do
 			login admin.cpf, admin.password
 		end
 
