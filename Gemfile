@@ -228,8 +228,10 @@ group :development do
   gem 'rb-inotify', :require=>false
   gem 'spring-commands-rspec'
   # gem 'passenger', '~> 5.0', '>= 5.0.30'
-  gem 'puma'
 end
+
+# Web Server
+gem 'puma'
 
 gem 'cpf_faker'
 gem 'factory_bot_rails'
