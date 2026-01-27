@@ -112,7 +112,7 @@
                     <%= f.button :submit, name: 'only_save', class: 'btn-secondary', value: OrderService.human_attribute_name(:only_save) %>
                     <%= f.button :submit, name: 'save_and_insert_values', class: 'btn-primary', value: OrderService.human_attribute_name(:save_and_insert_values), data: {confirm: t('model.confirm_action')} %>
                 <% end %>
-            <% elsif @current_user.manager? || @current_user.additional? %>
+            <% elsif @current_user.admin? || @current_user.manager? || @current_user.additional? %>
                 <% if f.object.persisted? %>
                     <% if f.object.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID %>
                         <% if f.object.data_inserted_by_provider && !f.object.release_quotation %>

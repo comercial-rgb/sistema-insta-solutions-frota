@@ -242,9 +242,7 @@ class OrderServicesGrid
   end
 
   column(:order_service_status_id, html: false, if: :check_show_order_service_status, order: :order_service_status_id, header: OrderService.human_attribute_name(:order_service_status_id) ) do |record, grid|
-    if record.order_service_status
-      record.order_service_status.name
-    end
+    record.order_service_status&.name || 'Status não definido'
   end
 
   column(:order_service_status_id, html: true, if: :check_show_order_service_status, order: :order_service_status_id, header: OrderService.human_attribute_name(:order_service_status_id) ) do |record, grid|

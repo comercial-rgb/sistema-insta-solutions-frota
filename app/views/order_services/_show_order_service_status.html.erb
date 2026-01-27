@@ -22,7 +22,7 @@
         end
     %>
 
-	<% span_text = record.order_service_status.name %>
+	<% span_text = record.order_service_status&.name || 'Status não definido' %>
 	<span class="badge <%= span_class %>"><%= span_text %></span>
 
 </div>

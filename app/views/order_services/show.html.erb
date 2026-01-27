@@ -13,7 +13,7 @@ breadcrumbs = [
     <div class="col-12">
       <h4 class="mb-0">
         <%= @order_service.code %>
-        <small class="text-muted">- <%= @order_service.order_service_status.name %></small>
+        <small class="text-muted">- <%= @order_service.order_service_status&.name || 'Status não definido' %></small>
       </h4>
     </div>
   </div>

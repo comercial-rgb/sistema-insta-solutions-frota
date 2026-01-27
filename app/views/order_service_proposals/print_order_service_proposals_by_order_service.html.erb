@@ -2,7 +2,7 @@
 	breadcrumbs = [
 		{active: false, href: root_path, text: t('menu.initial_page')},
 		{active: false, href: '#', text: OrderService.model_name.human(count: 2)},
-		{active: false, href: show_order_services_path(order_service_status_id: @order_service.order_service_status_id), text: @order_service.order_service_status.name},
+		{active: false, href: show_order_services_path(order_service_status_id: @order_service.order_service_status_id || OrderServiceStatus::EM_CADASTRO_ID), text: @order_service.order_service_status&.name || 'Status não definido'},
 		{active: false, href: edit_order_service_path(@order_service.id), text: @order_service.code},
 		{active: false, href: print_order_service_proposals_by_order_service_path(order_service_id: @order_service.id), text: @order_service.code, text: OrderServiceProposal.model_name.human(count: 2)},
 		{active: true, href: '#', text: t('model.list')}
