@@ -247,8 +247,8 @@ group :test do
   # gem "chromedriver-helper"
   # gem 'email_spec'
   # gem 'capybara'
-  # gem 'database_cleaner'
+  gem 'database_cleaner-active_record'
   # gem 'launchy'
   # gem 'selenium-webdriver'
-  # gem "shoulda-matchers", "< 3.0.0", require: false
+  gem "shoulda-matchers", "~> 6.0"
 end
