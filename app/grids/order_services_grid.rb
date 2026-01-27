@@ -395,7 +395,11 @@ class OrderServicesGrid
     result = OrderService.getting_invoice_data(record)
     order_service_invoices = result[0]
     if order_service_invoices.length > 0
-      order_service_invoices.map{|item| "("+item.order_service_invoice_type.name+") "+item.number}.join(", ")
+      order_service_invoices.map do |item|
+        type_name = item.order_service_invoice_type&.name.presence || 'Sem tipo'
+        number = item.number.to_s
+        "(#{type_name}) #{number}".strip
+      end.join(", ")
     end
   end
 

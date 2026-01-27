@@ -247,7 +247,11 @@ module MenuHelper
 
 	# Lista de status de OS com ordenação única para todos os perfis
 	def build_order_service_status_submenus(current_user)
-		OrderServiceStatus.menu_ordered.where.not(id: OrderServiceStatus::EM_CADASTRO_ID).map do |order_service_status|
+		# IMPORTANTE: Buscar apenas os IDs que estão no MENU_ORDER (não inclui 9 e 11)
+		# Usar unscoped para não herdar default_scope order(:id)
+		OrderServiceStatus.unscoped.where(id: OrderServiceStatus::MENU_ORDER).order(
+			Arel.sql("FIELD(id, #{OrderServiceStatus::MENU_ORDER.join(',')})")
+		).map do |order_service_status|
 			# Para admin/gestor/adicional, a aba APROVADA não deve contar OS que possuem complemento pendente
 			# (essas ficam no pseudo-status "Aguardando Aprovação de Complemento").
 			if (current_user.admin? || current_user.manager? || current_user.additional?) && order_service_status.id.to_i == OrderServiceStatus::APROVADA_ID
@@ -301,7 +305,10 @@ module MenuHelper
 		end
 
 		# 2. Status de OS ordenados, inserindo "Aguardando aprovação de complemento" após Aprovada
-		OrderServiceStatus.menu_ordered.where.not(id: OrderServiceStatus::EM_CADASTRO_ID).each do |order_service_status|
+		# IMPORTANTE: Excluir EM_CADASTRO_ID (9) para não duplicar "Em aberto"
+		OrderServiceStatus.unscoped.where(id: OrderServiceStatus::MENU_ORDER).order(
+			Arel.sql("FIELD(id, #{OrderServiceStatus::MENU_ORDER.join(',')})")
+		).each do |order_service_status|
 			# Para admin/gestor/adicional, a aba APROVADA não deve contar OS que possuem complemento pendente
 			# (essas ficam no pseudo-status "Aguardando Aprovação de Complemento").
 			if (current_user.admin? || current_user.manager? || current_user.additional?) && order_service_status.id.to_i == OrderServiceStatus::APROVADA_ID

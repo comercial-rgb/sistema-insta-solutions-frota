@@ -1,18 +1,21 @@
 class OrderServiceProposalStatus < ApplicationRecord
   after_initialize :default_values
 
-  # IDs atualizados conforme banco de dados atual
-  EM_CADASTRO_ID = 1
+  # IDs conforme banco de dados real (order_service_proposal_statuses)
+  # 1=Em aberto, 2=Aguardando avaliação, 3=Aprovada, 4=Notas fiscais inseridas
+  # 5=Autorizada, 6=Aguardando pagamento, 7=Paga, 8=Proposta reprovada
+  # 9=Cancelada, 10=Em cadastro, 11=Aguardando aprovação de complemento
+  EM_ABERTO_ID = 1
+  AGUARDANDO_AVALIACAO_ID = 2
+  APROVADA_ID = 3
+  NOTAS_INSERIDAS_ID = 4
+  AUTORIZADA_ID = 5
+  AGUARDANDO_PAGAMENTO_ID = 6
+  PAGA_ID = 7
+  PROPOSTA_REPROVADA_ID = 8
+  CANCELADA_ID = 9
+  EM_CADASTRO_ID = 10
   AGUARDANDO_APROVACAO_COMPLEMENTO_ID = 11
-  EM_ABERTO_ID = 12
-  AGUARDANDO_AVALIACAO_ID = 13
-  APROVADA_ID = 14
-  NOTAS_INSERIDAS_ID = 15
-  AUTORIZADA_ID = 16
-  AGUARDANDO_PAGAMENTO_ID = 17
-  PAGA_ID = 18
-  PROPOSTA_REPROVADA_ID = 19
-  CANCELADA_ID = 20
 
   REQUIRED_PROPOSAL_STATUSES = [
     OrderServiceProposalStatus::APROVADA_ID,
