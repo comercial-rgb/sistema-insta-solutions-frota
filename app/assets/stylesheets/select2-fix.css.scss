@@ -60,5 +60,17 @@
   box-shadow: 0 .5rem 1rem rgba($black, .15);
 }
 
+// Forçar largura 100% nos selects de grupo de serviço e fornecedor
+#div-with-service-group-selection,
+#div-with-provider-selection {
+  .select2-container {
+    width: 100% !important;
+  }
+  
+  select {
+    width: 100% !important;
+  }
+}
+
 // End of file select2-fix.scss
 // Path: ./app/assets/stylesheets/select2-fix.scss

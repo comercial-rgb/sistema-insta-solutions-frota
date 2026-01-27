@@ -7,7 +7,7 @@
 <div class="col-12 col-md-3 mb-3">
     <%= data_bank.association :bank,
     collection: Bank.all,
-    label_method: :get_formatted_name,
+    label_method: lambda { |bank| ApplicationController.helpers.safe_utf8(bank.get_formatted_name) },
     include_blank: t('model.select_option'),
     label: DataBank.human_attribute_name(:bank) %>
 </div>

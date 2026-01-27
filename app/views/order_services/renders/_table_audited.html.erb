@@ -17,80 +17,109 @@
                     <td><%= audit.user.try(:name) || t('audit.system_user') %></td>
                     <td>
                         <% 
-                            current_code = audit.auditable_type == 'OrderService' ? audit.auditable.code : '' 
-                            current_id = audit.auditable_type == 'OrderService' ? audit.auditable.id : '' 
+                            current_code = (audit.auditable_type == 'OrderService' && audit.auditable.present?) ? audit.auditable.code : '' 
+                            current_id = (audit.auditable_type == 'OrderService' && audit.auditable.present?) ? audit.auditable.id : '' 
                         %>
-                        <% if !current_id.nil? && !current_id.blank? %>
+                        <% if current_id.present? %>
                             <%= link_to current_code, show_order_service_proposals_by_order_service_path(order_service_id: current_id), target: '_blank' %>
                         <% end %>
                     </td>
                     <td>
                         <% 
-                            current_code = audit.auditable_type == 'OrderServiceProposal' ? audit.auditable.code : '' 
-                            current_id = audit.auditable_type == 'OrderServiceProposal' ? audit.auditable.id : '' 
+                            current_code = (audit.auditable_type == 'OrderServiceProposal' && audit.auditable.present?) ? audit.auditable.code : '' 
+                            current_id = (audit.auditable_type == 'OrderServiceProposal' && audit.auditable.present?) ? audit.auditable.id : '' 
                         %>
-                        <% if !current_id.nil? && !current_id.blank? %>
+                        <% if current_id.present? %>
                             <%= link_to current_code, show_order_service_proposal_path(id: current_id), target: '_blank' %>
                         <% end %>
                     </td>
-                    <td><%= t("audit.actions.#{audit.action}") %></td>
+                    <td><%= t("audit.actions.#{audit.action}") rescue audit.action %></td>
                     
                     <td>
                         <!-- Status anterior -->
                         <%
-                            current_span_class = ''
-                            if !audit.audited_changes.values[1].is_a?(Integer)
-                                begin
-                                    old_status_id = audit.audited_changes.values[1].first
-                                    old_status_name = audit.audited_changes.values[0].first
-                                    current_span_class = audit.auditable.getting_badge_color_by_status(old_status_id)
-                                rescue StandardError => e
-                                    Rails.logger.error "Error processing audit changes: #{e.message}"
-                                    old_status_id = nil
-                                    old_status_name = ''
-                                    current_span_class = 'badge-secondary'
+                            old_status_display = '-'
+                            old_badge_class = 'badge-secondary'
+                            
+                            begin
+                                if audit.audited_changes.present? && audit.audited_changes['order_service_status'].present?
+                                    status_array = audit.audited_changes['order_service_status']
+                                    old_status_name = status_array.first
+                                    
+                                    if old_status_name.present? && old_status_name != '-'
+                                        # Corrigir encoding UTF-8
+                                        old_status_display = old_status_name.to_s.encode('UTF-8', invalid: :replace, undef: :replace, replace: '?')
+                                        
+                                        # Buscar cor pelo NOME do status (mais confiável devido à renumeração de IDs)
+                                        old_badge_class = OrderService.getting_badge_color_by_status_name(old_status_name) rescue 'badge-secondary'
+                                    end
                                 end
+                            rescue => e
+                                Rails.logger.error "Erro ao processar status antigo: #{e.message}"
                             end
                         %>
-                        <span class="badge <%= current_span_class %>">
-                            <%= old_status_name %>
-                        </span>
+                        <% if old_status_display != '-' %>
+                            <span class="badge <%= old_badge_class %>"><%= old_status_display %></span>
+                        <% else %>
+                            <span class="text-muted">-</span>
+                        <% end %>
                     </td>
                     <td>
                         <!-- Novo status -->
                         <%
-                            current_span_class = ''
-                            if !audit.audited_changes.values[1].is_a?(Integer)
-                                begin
-                                    new_status_id = audit.audited_changes.values[1].last
-                                    new_status_name = audit.audited_changes.values[0].last
-                                    current_span_class = audit.auditable.getting_badge_color_by_status(new_status_id)
-                                rescue StandardError => e
-                                    Rails.logger.error "Error processing audit changes: #{e.message}"
-                                    new_status_id = nil
-                                    new_status_name = ''
-                                    current_span_class = 'badge-secondary'
+                            new_status_display = '-'
+                            new_badge_class = 'badge-secondary'
+                            
+                            begin
+                                if audit.audited_changes.present? && audit.audited_changes['order_service_status'].present?
+                                    status_array = audit.audited_changes['order_service_status']
+                                    new_status_name = status_array.last
+                                    
+                                    if new_status_name.present? && new_status_name != '-'
+                                        # Corrigir encoding UTF-8
+                                        new_status_display = new_status_name.to_s.encode('UTF-8', invalid: :replace, undef: :replace, replace: '?')
+                                        
+                                        # Buscar cor pelo NOME do status (mais confiável devido à renumeração de IDs)
+                                        new_badge_class = OrderService.getting_badge_color_by_status_name(new_status_name) rescue 'badge-secondary'
+                                    end
                                 end
+                            rescue => e
+                                Rails.logger.error "Erro ao processar novo status: #{e.message}"
                             end
-
-                            canceled_or_reproved = false
-                            canceled_text = ''
-                            if audit.auditable_type == 'OrderService' && new_status_id == OrderServiceStatus::CANCELADA_ID
-                                canceled_or_reproved = true
-                                canceled_text = audit.auditable.cancel_justification
-                            elsif audit.auditable_type == 'OrderServiceProposal' && (new_status_id == OrderServiceProposalStatus::CANCELADA_ID || new_status_id == OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID)
-                                canceled_or_reproved = true
-                                canceled_text = audit.auditable.reason_reproved
+                            
+                            # Verificar se há justificativa de cancelamento/reprovação
+                            show_tooltip = false
+                            tooltip_text = ''
+                            
+                            begin
+                                if audit.auditable.present? && new_status_id.present?
+                                    if audit.auditable_type == 'OrderService' && new_status_id == OrderServiceStatus::CANCELADA_ID
+                                        tooltip_text = audit.auditable.cancel_justification.to_s
+                                        show_tooltip = tooltip_text.present?
+                                    elsif audit.auditable_type == 'OrderServiceProposal' && [OrderServiceProposalStatus::CANCELADA_ID, OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID].include?(new_status_id)
+                                        tooltip_text = audit.auditable.reason_reproved.to_s
+                                        show_tooltip = tooltip_text.present?
+                                    end
+                                    
+                                    if show_tooltip
+                                        tooltip_text = tooltip_text.encode('UTF-8', invalid: :replace, undef: :replace, replace: '?')
+                                    end
+                                end
+                            rescue => e
+                                Rails.logger.error "Erro ao processar tooltip: #{e.message}"
+                                show_tooltip = false
                             end
                         %>
-                        <span class="badge <%= current_span_class %>">
-                            <%= new_status_name %>
-                        </span>                        
-                        <% if canceled_or_reproved %>
-                            <i class="bi bi-question-circle-fill pointer" data-bs-toggle="tooltip" title="<%= canceled_text %>"></i>
+                        <% if new_status_display != '-' %>
+                            <span class="badge <%= new_badge_class %>"><%= new_status_display %></span>
+                            <% if show_tooltip %>
+                                <i class="bi bi-question-circle-fill pointer" data-bs-toggle="tooltip" title="<%= tooltip_text %>"></i>
+                            <% end %>
+                        <% else %>
+                            <span class="text-muted">-</span>
                         <% end %>
                     </td>
-                    <td><%= CustomHelper.get_text_date(audit.created_at, 'datetime', :full) %></td>
+                    <td><%= CustomHelper.get_text_date(audit.created_at, 'datetime', :full) rescue audit.created_at.strftime('%d/%m/%Y %H:%M') %></td>
                 </tr>
             <% end %>
         </tbody>

@@ -14,4 +14,8 @@ class PersonType < ApplicationRecord
 	FISICA_ID = 1
 	JURIDICA_ID = 2
 
+	def display_name
+		name.to_s.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')
+	end
+
 end

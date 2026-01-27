@@ -358,7 +358,3 @@ Se tiver dúvidas ou problemas:
 4. Contatar a equipe de desenvolvimento
 
 ---
-
-**Documentação criada por:** GitHub Copilot  
-**Data:** 22/01/2026  
-**Versão:** 1.0

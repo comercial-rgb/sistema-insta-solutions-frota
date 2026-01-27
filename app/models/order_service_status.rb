@@ -6,16 +6,17 @@ class OrderServiceStatus < ApplicationRecord
   }
 
   TEMP_REJEITADA_ID = -1
-  EM_CADASTRO_ID = 1
-  EM_ABERTO_ID = 2
-  EM_REAVALIACAO_ID = 3
-  AGUARDANDO_AVALIACAO_PROPOSTA_ID = 4
-  APROVADA_ID = 5
-  NOTA_FISCAL_INSERIDA_ID = 6
-  AUTORIZADA_ID = 7
-  AGUARDANDO_PAGAMENTO_ID = 8
-  PAGA_ID = 9
-  CANCELADA_ID = 10
+  EM_ABERTO_ID = 1
+  AGUARDANDO_AVALIACAO_PROPOSTA_ID = 2
+  APROVADA_ID = 3
+  NOTA_FISCAL_INSERIDA_ID = 4
+  AUTORIZADA_ID = 5
+  AGUARDANDO_PAGAMENTO_ID = 6
+  PAGA_ID = 7
+  CANCELADA_ID = 8
+  EM_CADASTRO_ID = 9
+  EM_REAVALIACAO_ID = 10
+  AGUARDANDO_APROVACAO_COMPLEMENTO_ID = 11
 
   REQUIRED_ORDER_SERVICE_STATUSES = [
     OrderServiceStatus::APROVADA_ID,
@@ -28,18 +29,19 @@ class OrderServiceStatus < ApplicationRecord
   scope :by_id, lambda { |value| where("order_service_statuses.id = ?", value) if !value.nil? && !value.blank? }
   # scope :by_name, lambda { |value| where("LOWER(order_service_statuses.name) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
   
-  # Ordenação customizada para o menu (Em reavaliação após Em aberto)
+  # Ordenação customizada para o menu (ordem correta conforme solicitado)
+  # EM_CADASTRO_ID e AGUARDANDO_APROVACAO_COMPLEMENTO_ID são excluídos no menu_helper
   MENU_ORDER = [
-    EM_CADASTRO_ID,
-    EM_ABERTO_ID,
-    EM_REAVALIACAO_ID,
-    AGUARDANDO_AVALIACAO_PROPOSTA_ID,
-    APROVADA_ID,
-    NOTA_FISCAL_INSERIDA_ID,
-    AUTORIZADA_ID,
-    AGUARDANDO_PAGAMENTO_ID,
-    PAGA_ID,
-    CANCELADA_ID
+    EM_ABERTO_ID,             # 1
+    EM_REAVALIACAO_ID,        # 10
+    AGUARDANDO_AVALIACAO_PROPOSTA_ID,  # 2
+    APROVADA_ID,              # 3
+    # AGUARDANDO_APROVACAO_COMPLEMENTO_ID (pseudo-status, inserido manualmente)
+    NOTA_FISCAL_INSERIDA_ID,  # 4
+    AUTORIZADA_ID,            # 5
+    AGUARDANDO_PAGAMENTO_ID,  # 6
+    PAGA_ID,                  # 7
+    CANCELADA_ID              # 8
   ]
   
   scope :menu_ordered, -> {

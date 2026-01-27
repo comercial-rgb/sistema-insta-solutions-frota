@@ -366,7 +366,8 @@ class UsersController < ApplicationController
       @user.password = new_password
       @user.password_confirmation = new_password
       @user.save(validate: false)
-      NotificationMailer.reset_password(@user, @system_configuration, new_password).deliver_later
+      # Email não será enviado - admin visualiza a senha diretamente
+      # NotificationMailer.reset_password(@user, @system_configuration, new_password).deliver_later
       data = {
         result: true,
         password: new_password

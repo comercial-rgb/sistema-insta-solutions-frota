@@ -1,9 +1,9 @@
 class OrderServiceType < ApplicationRecord
   after_initialize :default_values
 
-  REQUISICAO_ID = 3
-  COTACOES_ID = 4
-  DIAGNOSTICO_ID = 5  # Anteriormente EMERGENCIAL_ID
+  COTACOES_ID = 1      # Cotações
+  DIAGNOSTICO_ID = 2   # Diagnóstico (anteriormente Emergencial)
+  REQUISICAO_ID = 3    # Requisição
 
   default_scope {
     order(:id)

@@ -9,7 +9,7 @@ class ApplicationController < ActionController::Base
   protect_from_forgery with: :exception
 
   before_action :authenticate_user, 
-  :current_user, :get_system_configuration
+  :current_user, :get_system_configuration, :set_active_storage_url_options
   
   # before_action :set_action_cable_identifier, :validate_new_order
 
@@ -54,6 +54,10 @@ class ApplicationController < ActionController::Base
 
   def set_action_cable_identifier
     cookies.encrypted[:user_id] = current_user&.id
+  end
+
+  def set_active_storage_url_options
+    ActiveStorage::Current.url_options = { host: request.host, port: request.port, protocol: request.protocol }
   end
   
 end

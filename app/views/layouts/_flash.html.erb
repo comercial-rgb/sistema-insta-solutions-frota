@@ -21,7 +21,16 @@ Para habilitar, basta utilizar o próprio método "flash" do rails.
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content">
                     <div class="modal-header <%= flash_class key %>">
-                        <img src="<%= ensure_custom_favicon('16x16') %>" class="rounded me-2" alt="Logo" width="16" height="16">
+                        <% 
+                          icon_class = case key.to_s
+                            when 'success' then 'bi-check-circle-fill'
+                            when 'error' then 'bi-x-circle-fill'
+                            when 'notice' then 'bi-info-circle-fill'
+                            when 'alert' then 'bi-exclamation-triangle-fill'
+                            else 'bi-info-circle-fill'
+                          end
+                        %>
+                        <i class="bi <%= icon_class %> me-2" style="font-size: 1.25rem;"></i>
                         <h5 class="modal-title" id="toastModalLabel"><%= flash_title key %></h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>

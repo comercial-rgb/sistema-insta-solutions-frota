@@ -19,7 +19,7 @@ development:
   collation: utf8mb4_unicode_ci
   reconnect: true
   database: sistema_insta_solutions_development
-  pool: 5
+  pool: 20
   username: root
   password: "rot123"
   host: 127.0.0.1

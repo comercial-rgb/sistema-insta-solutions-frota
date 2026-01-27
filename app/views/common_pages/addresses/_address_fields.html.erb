@@ -61,7 +61,7 @@
 
     <!-- Cidade -->
     <div class="col-12 col-md-2 mb-3">
-        <%= address.association :city, collection: City.all, as: :select, include_blank: t('model.select_option') %>
+        <%= address.association :city, collection: City.all, as: :select, label_method: lambda { |city| ApplicationController.helpers.safe_utf8(city.name) }, include_blank: t('model.select_option') %>
     </div>
 
 </div>

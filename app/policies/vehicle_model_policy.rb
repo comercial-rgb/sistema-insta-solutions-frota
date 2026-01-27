@@ -28,7 +28,7 @@ class VehicleModelPolicy < ApplicationPolicy
   end
   
   def manage_prices?
-    user.admin?
+    user.admin? || user.manager? || user.additional?
   end
   
   def update_prices?

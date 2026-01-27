@@ -125,7 +125,7 @@
 
 <div class="row mt-2">
     <div class="col-12 col-md-3">
-        <%= f.association :provider_service_type, disabled: disabled_basic_fields, collection: ProviderServiceType.all, as: :select, include_blank: t('model.select_option') %>
+        <%= f.association :provider_service_type, disabled: disabled_basic_fields, collection: ProviderServiceType.all, label_method: :display_name, as: :select, include_blank: t('model.select_option') %>
     </div>
     <div class="col-12 col-md-3">
         <%= f.association :maintenance_plan, disabled: disabled_basic_fields, collection: MaintenancePlan.all, as: :select, include_blank: t('model.select_option') %>
@@ -133,15 +133,15 @@
     <div class="col-12 col-md-3">
         <%= f.association :order_service_type, disabled: disabled_basic_fields, collection: OrderServiceType.all, as: :select, include_blank: false %>
     </div>
-    <div class="col-12 col-md-3" id="div-with-service-group-selection" <%= 'hidden' if f.object.order_service_type_id != OrderServiceType::REQUISICAO_ID %> >
+    <div class="col-12 col-md-3 d-none" id="div-with-service-group-selection">
         <% 
             # Para Requisição: NUNCA desabilitar o select de grupo de serviços
             # Isso permite que o JavaScript carregue os limites corretamente
             service_group_disabled = f.object.order_service_type_id == OrderServiceType::REQUISICAO_ID ? false : disabled
         %>
-        <%= f.association :service_group, disabled: service_group_disabled, collection: ServiceGroup.active, as: :select, include_blank: t('model.select_option') %>
+        <%= f.association :service_group, disabled: service_group_disabled, collection: ServiceGroup.active, as: :select, include_blank: t('model.select_option'), input_html: { class: 'form-control w-100', style: 'width: 100% !important;' } %>
     </div>
-    <div class="col-12 col-md-3" id="div-with-provider-selection" <%= 'hidden' if f.object.order_service_type_id != OrderServiceType::DIAGNOSTICO_ID %> >
+    <div class="col-12 col-md-3 d-none" id="div-with-provider-selection">
         <% 
             # Filtrar fornecedores pelo ESTADO DO ENDEREÇO que corresponde aos 
             # "Estados para recebimento de propostas" do cliente
@@ -172,7 +172,7 @@
                 User.provider.name_ordered
             end
         %>
-        <%= f.association :provider, disabled: disabled_basic_fields, label_method: :get_name, collection: providers_collection, as: :select, include_blank: t('model.select_option') %>
+        <%= f.association :provider, disabled: disabled_basic_fields, label_method: :get_name, collection: providers_collection, as: :select, include_blank: t('model.select_option'), input_html: { class: 'form-control w-100', style: 'width: 100% !important;' } %>
     </div>
 </div>
 

@@ -125,12 +125,42 @@ class OrderService < ApplicationRecord
 
   scope :approved_in_current_month, lambda { |filter, current_month|
     if filter && current_month
-      # Filtra OSs que entraram no status AUTORIZADA no período, independente do status atual
-      left_outer_joins(:audits)
-        .where(audits: { auditable_type: 'OrderService' })
-        .where(audits: { associated_id: OrderServiceStatus::AUTORIZADA_ID })
-        .where(audits: { created_at: current_month })
-        .distinct
+      # REGRA DE NEGÓCIO: Pega OSs que foram AUTORIZADAS (saíram de "Nota fiscal inserida" para "Autorizada")
+      # 
+      # ATENÇÃO: O sistema teve renumeração de IDs de status!
+      # - IDs antigos (antes da renumeração): Nota fiscal = 4, Autorizada = 5
+      # - IDs novos (depois da renumeração): Nota fiscal = 6, Autorizada = 7
+      # 
+      # A query busca AMBOS os conjuntos de IDs para pegar todas as OSs, antigas e novas
+      
+      sql = <<-SQL
+        SELECT DISTINCT audits.auditable_id
+        FROM audits
+        WHERE audits.auditable_type = 'OrderService'
+        AND (
+          (audits.associated_id = 5 AND audits.audited_changes LIKE '%order_service_status_id%4%5%')
+          OR
+          (audits.associated_id = 7 AND audits.audited_changes LIKE '%order_service_status_id%6%7%')
+        )
+        AND audits.created_at BETWEEN '#{current_month.first}' AND '#{current_month.last}'
+        AND audits.id IN (
+          SELECT MIN(a2.id)
+          FROM audits a2
+          WHERE a2.auditable_type = 'OrderService'
+          AND a2.auditable_id = audits.auditable_id
+          AND (
+            (a2.associated_id = 5 AND a2.audited_changes LIKE '%order_service_status_id%4%5%')
+            OR
+            (a2.associated_id = 7 AND a2.audited_changes LIKE '%order_service_status_id%6%7%')
+          )
+          GROUP BY a2.auditable_id
+        )
+      SQL
+      
+      result = ActiveRecord::Base.connection.execute(sql)
+      os_ids = result.map { |row| row[0] }.uniq
+      
+      where(id: os_ids) if os_ids.any?
     end
   }
 
@@ -382,27 +412,63 @@ class OrderService < ApplicationRecord
   end
 
   def getting_badge_color_by_status(order_service_status_id)
+    # IMPORTANTE: O sistema teve renumeração de IDs de status!
+    # Suporta AMBOS os conjuntos de IDs (antigos e novos) para compatibilidade com histórico
     case order_service_status_id
-    when OrderServiceStatus::EM_ABERTO_ID
+    when 1, OrderServiceStatus::EM_ABERTO_ID  # Em aberto (antigo: 1, novo: 2)
       return 'bg-light text-black'
-    when OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID
+    when 2, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID  # Aguardando avaliação (antigo: 2, novo: 4)
       return 'bg-info text-white'
-    when OrderServiceStatus::EM_REAVALIACAO_ID
+    when 3, OrderServiceStatus::EM_REAVALIACAO_ID  # Em reavaliação (antigo: 3, novo: 3)
       return 'bg-warning text-dark'
-    when OrderServiceStatus::APROVADA_ID
+    when OrderServiceStatus::APROVADA_ID  # Aprovada (novo: 5)
       return 'bg-secondary'
-    when OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID
+    when 4, OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID  # Nota fiscal inserida (antigo: 4, novo: 6)
       return 'bg-warning text-black'
-    when OrderServiceStatus::AUTORIZADA_ID
+    when 5, OrderServiceStatus::AUTORIZADA_ID  # Autorizada (antigo: 5, novo: 7)
       return 'bg-primary'
-    when OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID
+    when 6, OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID  # Aguardando pagamento (antigo: 6, novo: 8)
       return 'bg-warning text-black'
-    when OrderServiceStatus::PAGA_ID
+    when 7, OrderServiceStatus::PAGA_ID  # Paga (antigo: 7, novo: 9)
       return 'bg-success'
-    when OrderServiceStatus::CANCELADA_ID
+    when OrderServiceStatus::CANCELADA_ID  # Cancelada (novo: 10)
       return 'bg-danger'
     else
       return 'text-black'
+    end
+  end
+  
+  # Método para obter a cor do badge pelo NOME do status
+  # Mais confiável que por ID devido à renumeração de IDs do sistema
+  def self.getting_badge_color_by_status_name(status_name)
+    return 'badge-secondary' if status_name.blank?
+    
+    # Normalizar o nome para comparação (lowercase, sem acentos)
+    name = status_name.to_s.downcase
+    
+    # Usar include? para matching parcial (funciona com ou sem acentos corrompidos)
+    if name.include?('cadastro')
+      'bg-secondary text-white'
+    elsif name.include?('aberto')
+      'bg-light text-black'
+    elsif name.include?('reavalia')
+      'bg-warning text-dark'
+    elsif name.include?('aguardando avalia') || name.include?('aguardando avalia')
+      'bg-info text-white'
+    elsif name.include?('aprovada')
+      'bg-secondary'
+    elsif name.include?('nota fiscal')
+      'bg-warning text-black'
+    elsif name.include?('autorizada')
+      'bg-primary'
+    elsif name.include?('aguardando pagamento')
+      'bg-warning text-black'
+    elsif name.include?('paga') && !name.include?('pagamento')
+      'bg-success'
+    elsif name.include?('cancelada')
+      'bg-danger'
+    else
+      'badge-secondary'
     end
   end
   
@@ -716,13 +782,17 @@ class OrderService < ApplicationRecord
       end
     end
 
-    # 4) Saldo restante = empenhos criados - consumido (não negativo)
-    pendent_value = [total_commitments_value - total_consumed, 0].max
+    # 4) Saldo restante do contrato = saldo inicial - consumido (não negativo)
+    remaining_contract_value = [total_contracts_value - total_consumed, 0].max
+    
+    # 5) Saldo disponível para empenho = saldo inicial - empenhos criados (não negativo)
+    available_for_commitment = [total_contracts_value - total_commitments_value, 0].max
 
     {
       'Saldo inicial' => total_contracts_value.round(2),
-      'Saldo restante' => pendent_value.round(2),
-      'Saldo consumido' => total_consumed.round(2)
+      'Saldo consumido' => total_consumed.round(2),
+      'Saldo restante' => remaining_contract_value.round(2),
+      'Saldo disponível para empenho' => available_for_commitment.round(2)
     }
   end
 

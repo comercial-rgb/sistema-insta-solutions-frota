@@ -50,12 +50,16 @@ module ApplicationHelper
 		link_to(body, phone, html_options)
 	end
 
+	def safe_utf8(text)
+		text.to_s.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')
+	end
+
 	# Método para retornar a classe correta para renderizar o
 	# "toast" do bootstrap de forma customizada
 	def flash_class(level)
 		case level
 		when 'notice' then "bg-info text-white"
-		when 'success' then "bg-primary text-white"
+		when 'success' then "bg-success text-white"
 		when 'error' then "bg-danger text-white"
 		when 'alert' then "bg-warning text-dark"
 		end

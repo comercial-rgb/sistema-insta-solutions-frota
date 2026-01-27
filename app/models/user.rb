@@ -364,7 +364,7 @@ class User < ActiveRecord::Base
 	def get_profile_image
 		result = "icons/profile-empty-new.webp"
 		if self.profile_image.attached?
-			result = self.profile_image.url
+			result = Rails.application.routes.url_helpers.rails_blob_path(self.profile_image, only_path: true)
 		end
 		return result
 	end

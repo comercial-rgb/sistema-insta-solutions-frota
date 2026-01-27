@@ -4,6 +4,9 @@ breadcrumbs = [
 	{active: false, href: vehicle_models_path, text: VehicleModel.model_name.human(count: 2)},
 	{active: true, href: '#', text: 'Gerenciar Preços'},
 ]
+
+# Verificar se o usuário tem permissão para editar (somente admin)
+can_edit = policy(@vehicle_model).update_prices?
 %>
 
 <div class="container-fluid">
@@ -14,6 +17,9 @@ breadcrumbs = [
       <h3>
         <i class="bi bi-currency-dollar"></i>
         Preços de Referência - <%= @vehicle_model.display_name %>
+        <% unless can_edit %>
+          <span class="badge bg-secondary ms-2">Visualização</span>
+        <% end %>
       </h3>
       <p class="text-muted">
         <strong>Tipo:</strong> <%= @vehicle_model.vehicle_type&.name || '-' %> |
@@ -44,7 +50,9 @@ breadcrumbs = [
                       <th width="12%">% Máx.</th>
                       <th width="15%">Fonte</th>
                       <th width="8%">Ativo</th>
-                      <th width="8%">Remover</th>
+                      <% if can_edit %>
+                        <th width="8%">Remover</th>
+                      <% end %>
                     </tr>
                   </thead>
                   <tbody>
@@ -55,31 +63,37 @@ breadcrumbs = [
                           <%= text_field_tag "reference_prices[#{rp.service_id}][reference_price]", 
                                              number_with_precision(rp.reference_price, precision: 2),
                                              class: 'form-control form-control-sm',
-                                             placeholder: '0.00' %>
+                                             placeholder: '0.00',
+                                             disabled: !can_edit %>
                         </td>
                         <td>
                           <%= number_field_tag "reference_prices[#{rp.service_id}][max_percentage]", 
                                                rp.max_percentage,
                                                class: 'form-control form-control-sm',
                                                min: 100,
-                                               step: 0.1 %>
+                                               step: 0.1,
+                                               disabled: !can_edit %>
                         </td>
                         <td>
                           <%= text_field_tag "reference_prices[#{rp.service_id}][source]", 
                                              rp.source,
                                              class: 'form-control form-control-sm',
-                                             placeholder: 'Ex: Cilia Jan/2026' %>
+                                             placeholder: 'Ex: Cilia Jan/2026',
+                                             disabled: !can_edit %>
                         </td>
                         <td class="text-center">
                           <%= check_box_tag "reference_prices[#{rp.service_id}][active]", '1', 
                                             rp.active, 
-                                            class: 'form-check-input' %>
-                        </td>
-                        <td class="text-center">
-                          <%= check_box_tag "remove_prices[#{rp.service_id}]", '1', false,
                                             class: 'form-check-input',
-                                            title: 'Marcar para remover' %>
+                                            disabled: !can_edit %>
                         </td>
+                        <% if can_edit %>
+                          <td class="text-center">
+                            <%= check_box_tag "remove_prices[#{rp.service_id}]", '1', false,
+                                              class: 'form-check-input',
+                                              title: 'Marcar para remover' %>
+                          </td>
+                        <% end %>
                       </tr>
                     <% end %>
                   </tbody>
@@ -93,12 +107,13 @@ breadcrumbs = [
       </div>
     </div>
 
-    <div class="row mb-4">
-      <div class="col-12">
-        <div class="card">
-          <div class="card-header bg-success text-white">
-            <h5 class="mb-0">Adicionar Novos Preços</h5>
-          </div>
+    <% if can_edit %>
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header bg-success text-white">
+              <h5 class="mb-0">Adicionar Novos Preços</h5>
+            </div>
           <div class="card-body">
             <div id="new-prices-container">
               <% if @available_services.any? %>
@@ -169,11 +184,14 @@ breadcrumbs = [
         </div>
       </div>
     </div>
+    <% end %>
 
     <div class="row">
       <div class="col-12">
-        <%= f.submit 'Salvar Alterações', class: 'btn btn-primary' %>
-        <%= link_to 'Cancelar', vehicle_models_path, class: 'btn btn-secondary' %>
+        <% if can_edit %>
+          <%= f.submit 'Salvar Alterações', class: 'btn btn-primary' %>
+        <% end %>
+        <%= link_to 'Voltar', vehicle_models_path, class: 'btn btn-secondary' %>
       </div>
     </div>
   <% end %>

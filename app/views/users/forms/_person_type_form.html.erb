@@ -1,7 +1,7 @@
 <div class="row">
 	<!-- Tipo de pessoa -->
 	<div class="col-12 col-md-3 mb-3">
-		<%= f.association :person_type, collection: PersonType.all, as: :select, include_blank: false %>
+		<%= f.association :person_type, collection: PersonType.all, label_method: :display_name, as: :select, include_blank: false %>
 	</div>
 </div>
 

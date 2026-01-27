@@ -26,7 +26,7 @@
             form_attribute: :provider_service_type_ids,
             collection: ProviderServiceType.order(:name),
             value_register: :id,
-            label_register: :name,
+            label_register: :display_name,
             placeholder: t("model.find_filter")
         %>
     </div>

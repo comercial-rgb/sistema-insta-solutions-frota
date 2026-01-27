@@ -82,10 +82,6 @@ class ServicesImportController < ApplicationController
     category_name = row['categoria']&.strip&.downcase
     code = row['codigo']&.strip
     price = parse_currency(row['preco'])
-    description = row['descricao']&.strip
-    brand = row['marca']&.strip
-    warranty_period = row['periodo_garantia']&.to_i || 30
-    provider_id = row['fornecedor_id']&.to_i
     
     # Validações básicas
     raise 'Nome é obrigatório' if name.blank?
@@ -105,27 +101,20 @@ class ServicesImportController < ApplicationController
     service = Service.find_by('LOWER(name) = ? AND category_id = ?', name.downcase, category_id)
     
     if service
-      # Atualizar existente
+      # Atualizar existente (apenas código e preço)
       service.update!(
         code: code.presence || service.code,
-        price: price.presence || service.price,
-        description: description.presence || service.description,
-        brand: brand.presence || service.brand,
-        warranty_period: warranty_period > 0 ? warranty_period : service.warranty_period,
-        provider_id: provider_id.presence || service.provider_id
+        price: price.presence || service.price
       )
       results[:updated] += 1
     else
-      # Criar novo
+      # Criar novo (campos essenciais)
       Service.create!(
         name: name,
         category_id: category_id,
         code: code,
         price: price || 0,
-        description: description,
-        brand: brand,
-        warranty_period: warranty_period,
-        provider_id: provider_id || @current_user.id
+        provider_id: @current_user.id
       )
       results[:success] += 1
     end
@@ -145,15 +134,15 @@ class ServicesImportController < ApplicationController
   
   def generate_template_csv
     CSV.generate(col_sep: ';', encoding: 'UTF-8') do |csv|
-      # Cabeçalho
-      csv << ['nome', 'categoria', 'codigo', 'preco', 'descricao', 'marca', 'periodo_garantia', 'fornecedor_id']
+      # Cabeçalho (apenas campos essenciais)
+      csv << ['nome', 'categoria', 'codigo', 'preco']
       
       # Exemplos
-      csv << ['Filtro de Óleo', 'peca', 'FO-001', '45.50', 'Filtro de óleo lubrificante', 'Mann', '30', '']
-      csv << ['Filtro de Ar', 'peca', 'FA-001', '38.90', 'Filtro de ar motor', 'Tecfil', '30', '']
-      csv << ['Pastilha de Freio Dianteira', 'peca', 'PF-001', '89.00', 'Pastilha de freio jogo dianteiro', 'Bosch', '90', '']
-      csv << ['Mão de Obra Troca de Óleo', 'servico', 'MO-001', '50.00', 'Serviço de troca de óleo', '', '30', '']
-      csv << ['Alinhamento e Balanceamento', 'servico', 'AB-001', '80.00', 'Serviço de alinhamento e balanceamento', '', '30', '']
+      csv << ['Filtro de Óleo', 'peca', 'FO-001', '45.50']
+      csv << ['Filtro de Ar', 'peca', 'FA-001', '38.90']
+      csv << ['Pastilha de Freio Dianteira', 'peca', 'PF-001', '89.00']
+      csv << ['Mão de Obra Troca de Óleo', 'servico', 'MO-001', '50.00']
+      csv << ['Alinhamento e Balanceamento', 'servico', 'AB-001', '80.00']
     end
   end
 end

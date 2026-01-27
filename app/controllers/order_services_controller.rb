@@ -167,7 +167,16 @@ class OrderServicesController < ApplicationController
       end
     end
 
-    @order_services_without_filter = order_services_grid_class.new(:current_user => @current_user)
+    # @order_services_without_filter precisa ter mês/ano para popular os filtros corretamente
+    if order_services_grid.nil? || order_services_grid.blank?
+      @order_services_without_filter = order_services_grid_class.new(:current_user => @current_user)
+    else
+      # Manter apenas filtros de período (mês/ano) para popular os dropdowns
+      grid_params_for_filter = { current_user: @current_user }
+      grid_params_for_filter[:month] = order_services_grid[:month] if order_services_grid[:month]
+      grid_params_for_filter[:year] = order_services_grid[:year] if order_services_grid[:year]
+      @order_services_without_filter = order_services_grid_class.new(grid_params_for_filter)
+    end
 
     if @current_user.manager? || @current_user.additional?
       client_id = @current_user.client_id
@@ -937,20 +946,19 @@ class OrderServicesController < ApplicationController
     provider_ids.concat(@order_services_without_filter.assets.map(&:provider_id))
     providers = User.provider.name_ordered.where(id: [provider_ids]).order(:name).map {|c| [c.get_name, c.id] }.uniq
 
-    @order_services.clients = clients
-    @order_services.managers = managers
-    @order_services.cost_centers = cost_centers
-    @order_services.vehicles = vehicles
-    @order_services.provider_service_types = provider_service_types
-    @order_services.order_service_types = order_service_types
-    @order_services.providers = providers
-    @order_services.commitments = commitments
-    @order_services.sub_units = sub_units
-    @order_services.method = method
-
-    @order_services_to_export.method = method
-    @order_services_to_export.commitments = commitments
-    @order_services_to_export.sub_units = sub_units
+    # Atribuir dados para todos os grids (incluindo filtros)
+    [@order_services, @order_services_to_export, @order_services_without_filter].each do |grid|
+      grid.clients = clients
+      grid.managers = managers
+      grid.cost_centers = cost_centers
+      grid.vehicles = vehicles
+      grid.provider_service_types = provider_service_types
+      grid.order_service_types = order_service_types
+      grid.providers = providers
+      grid.commitments = commitments
+      grid.sub_units = sub_units
+      grid.method = method
+    end
 
     if !order_service_status_id.nil?
       @order_services.current_order_service_status_id = order_service_status_id.to_i

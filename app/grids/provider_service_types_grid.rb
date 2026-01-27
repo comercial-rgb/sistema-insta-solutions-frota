@@ -30,7 +30,7 @@ class ProviderServiceTypesGrid
   end
 
   column(:name, order: :name, if: :check_user, header: ProviderServiceType.human_attribute_name(:name) ) do |record, grid|
-    record.name
+    record.display_name
   end
 
   column(:actions, if: :check_user, html: true, header: ProviderServiceType.human_attribute_name(:actions) ) do |record, grid|

@@ -12,6 +12,15 @@ param(
 $ErrorActionPreference = "Continue"
 $ProgressPreference = 'SilentlyContinue'  # Acelera downloads
 
+# Garante UTF-8 no terminal (evita acentos corrompidos no output)
+try {
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+    $OutputEncoding = [System.Text.Encoding]::UTF8
+    chcp 65001 | Out-Null
+} catch {
+    # ignore
+}
+
 # ================================================================
 # FUNÇÕES AUXILIARES
 # ================================================================

@@ -237,7 +237,7 @@ function generateWatermarkChart(chartDomId, chartData){
                 radius: [0, '30%'],
                 center: ['75%', '75%'],
                 name: 'Saldo do contrato',
-                color: ['#f2c94c', '#f2994a', '#f6e27f'], // tons de amarelo/laranja
+                color: ['#3498db', '#e74c3c', '#2ecc71', '#f39c12'], // azul, vermelho, verde, laranja
                 data: Object.keys(themeJson).map(function (key) {
                     return {
                         name: key,

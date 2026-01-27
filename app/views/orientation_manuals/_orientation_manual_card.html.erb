@@ -1,18 +1,18 @@
 <div class="card border border-1">
     <div class="card-header">
-        <%= orientation_manual.name %>
+        <%= safe_utf8(orientation_manual.name) %>
     </div>
 
     <div class="card-body">
         <p class="card-text">
-            <%= orientation_manual.description %><br>
+            <%= safe_utf8(orientation_manual.description) %><br>
         </p>
         <p class="card-text">
             <% if orientation_manual.document.attached? %>
                 <div class="d-flex align-items-center mb-2">
                     <i class="bi bi-file-earmark-arrow-down-fill fs-4 text-primary me-2"></i>
                     <div>
-                        <%= link_to orientation_manual.document.url, class: "btn btn-outline-primary btn-sm mt-1", target: "_blank" do %>
+                        <%= link_to rails_blob_path(orientation_manual.document, disposition: "attachment"), class: "btn btn-outline-primary btn-sm mt-1", target: "_blank" do %>
                             <i class="bi bi-download"></i> <%= t('model.download') %>
                         <% end %>
                     </div>

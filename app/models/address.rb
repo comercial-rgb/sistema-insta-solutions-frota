@@ -98,6 +98,10 @@ class Address < ActiveRecord::Base
 		return text
 	end
 
+	def safe_district
+		district.to_s.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')
+	end
+
 	def get_city_and_state
 		text = ''
 		if !self.city.nil?

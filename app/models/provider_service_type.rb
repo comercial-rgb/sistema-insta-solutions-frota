@@ -14,7 +14,11 @@ class ProviderServiceType < ApplicationRecord
   validates_presence_of :name
 
   def get_text_name
-    self.name.to_s
+    display_name
+  end
+
+  def display_name
+    name.to_s.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')
   end
 
   private

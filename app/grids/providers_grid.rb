@@ -41,7 +41,7 @@ class ProvidersGrid
     relation.by_email(value)
   end
 
-  filter(:provider_service_type_id, :enum, if: :check_user, select: proc { ProviderServiceType.order(:name).map {|c| [c.name, c.id] }}, header: User.human_attribute_name(:provider_service_type_id), include_blank: I18n.t('model.select_option') ) do |value, relation, grid|
+  filter(:provider_service_type_id, :enum, if: :check_user, select: proc { ProviderServiceType.order(:name).map {|c| [c.display_name, c.id] }}, header: User.human_attribute_name(:provider_service_type_id), include_blank: I18n.t('model.select_option') ) do |value, relation, grid|
     relation.by_provider_service_type_id(value)
   end
 
@@ -66,7 +66,7 @@ class ProvidersGrid
   end
 
   column(:address, if: :check_user, header: Address.model_name.human ) do |record, grid|
-    record.address&.get_address_value
+    ApplicationController.helpers.safe_utf8(record.address&.get_address_value)
   end
 
   column(:_cpf_cnpj, if: :check_user, header: User.human_attribute_name(:cpf_cnpj) ) do |record, grid|

@@ -42,7 +42,7 @@ class OrderServiceProposalsGrid
     relation.by_code(value)
   end
 
-  filter(:provider_service_type_id, :enum, if: :check_user, select: proc { ProviderServiceType.order(:name).map {|c| [c.name, c.id] }}, header: OrderService.human_attribute_name(:provider_service_type_id), include_blank: I18n.t('model.select_option') ) do |value, relation, grid|
+  filter(:provider_service_type_id, :enum, if: :check_user, select: proc { ProviderServiceType.order(:name).map {|c| [c.display_name, c.id] }}, header: OrderService.human_attribute_name(:provider_service_type_id), include_blank: I18n.t('model.select_option') ) do |value, relation, grid|
     relation.by_provider_service_type_id(value)
   end
 

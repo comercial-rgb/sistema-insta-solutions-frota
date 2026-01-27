@@ -38,6 +38,11 @@ Rails.application.configure do
   # Checks for improperly declared sprockets dependencies.
   # Raises helpful error messages.
   config.assets.raise_runtime_errors = true
+  
+  # Desabilitar cache de assets para evitar problemas de permissão no Windows
+  config.assets.configure do |env|
+    env.cache = ActiveSupport::Cache.lookup_store(:null_store)
+  end
 
   # Raises error for missing translations
   # config.action_view.raise_on_missing_translations = true

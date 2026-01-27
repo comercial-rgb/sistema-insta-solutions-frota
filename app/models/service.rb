@@ -23,6 +23,7 @@ class Service < ApplicationRecord
   validates_presence_of :name, :category_id
 
   validates :name, uniqueness: { scope: :category_id, case_sensitive: false }
+  validate :check_similar_names
 
   has_one_attached :image
 
@@ -119,6 +120,39 @@ class Service < ApplicationRecord
     self.name ||= ""
     self.description ||= ""
     self.category_id ||= Category::SERVICOS_PECAS_ID
+  end
+
+  def check_similar_names
+    return if name.blank?
+    
+    # Normaliza o nome: lowercase, remove acentos, espaços extras e caracteres especiais
+    normalized_name = I18n.transliterate(name.to_s.downcase.strip.gsub(/\s+/, ' '))
+    
+    # Busca serviços similares na mesma categoria (excluindo o próprio registro se for update)
+    similar_services = Service.where(category_id: category_id)
+    similar_services = similar_services.where.not(id: id) if persisted?
+    
+    similar_services.each do |service|
+      existing_normalized = I18n.transliterate(service.name.to_s.downcase.strip.gsub(/\s+/, ' '))
+      
+      # Verifica similaridade exata após normalização
+      if normalized_name == existing_normalized
+        errors.add(:name, "já existe um item similar: '#{service.name}' (categoria: #{service.category.name})")
+        return
+      end
+      
+      # Verifica se um nome está contido no outro (ex: "amortecedor" e "amortecedor dianteiro")
+      if normalized_name.length > 3 && existing_normalized.length > 3
+        if normalized_name.include?(existing_normalized) || existing_normalized.include?(normalized_name)
+          # Apenas alerta se a diferença for muito pequena (menos de 5 caracteres)
+          diff = (normalized_name.length - existing_normalized.length).abs
+          if diff <= 5
+            errors.add(:name, "muito similar a: '#{service.name}' (categoria: #{service.category.name})")
+            return
+          end
+        end
+      end
+    end
   end
 
 end

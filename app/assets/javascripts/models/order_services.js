@@ -1,13 +1,89 @@
 $(document).ready(function () {
 
+    // ==================== DECLARAÇÃO DE FUNÇÕES ====================
+    
+    // Oculta ou mostra os botões de cadastrar nova peça/serviço
+    function hideNewServiceButtons(hide) {
+        if (hide) {
+            $('button[data-bs-target^="#newServiceModal"]').closest('.mt-2, .btn-outline-primary').hide();
+        } else {
+            $('button[data-bs-target^="#newServiceModal"]').closest('.mt-2, .btn-outline-primary').show();
+        }
+    }
+    
+    // Altera o tipo do campo quantidade (text para cotações, number para requisição)
+    function changeQuantityFieldType(type) {
+        $('.part-service-quantity').each(function() {
+            var $input = $(this);
+            var currentValue = $input.val();
+            var classes = $input.attr('class');
+            var id = $input.attr('id');
+            var placeholder = type === 'text' ? 'Ex: 1, 2-3, etc' : '';
+            
+            // Criar novo input do tipo desejado
+            var $newInput = $('<input>')
+                .attr('type', type)
+                .attr('class', classes)
+                .attr('id', id)
+                .val(currentValue);
+            
+            if (type === 'number') {
+                $newInput.attr('min', '1').attr('max', '9999');
+            } else {
+                $newInput.attr('placeholder', placeholder);
+            }
+            
+            // Substituir o input antigo pelo novo
+            $input.replaceWith($newInput);
+        });
+    }
+
+    // ====================INICIALIZAÇÃO ====================
+    
     // Verificar tipo de OS ao carregar a página e ajustar campos/botões conforme necessário
     var initialOrderServiceTypeId = $('#order_service_order_service_type_id').val();
-    if (initialOrderServiceTypeId == 3) { // Requisição
+    
+    console.log('🔍 Inicializando formulário de OS - Tipo selecionado:', initialOrderServiceTypeId);
+    
+    // Função para corrigir largura do Select2
+    function fixSelect2Width() {
+        $('#div-with-service-group-selection .select2-container, #div-with-provider-selection .select2-container').css('width', '100%');
+    }
+    
+    // Aplicar configuração inicial baseada no tipo
+    // IDs reais do banco: 1=Cotações, 2=Diagnóstico, 3=Requisição
+    if (initialOrderServiceTypeId == '3') { 
+        // REQUISIÇÃO - Mostra Grupo de Serviços, esconde Fornecedor
+        console.log('✓ Configurando para REQUISIÇÃO');
+        $('#div-with-service-group-selection').removeClass('d-none').show();
+        $('#div-with-provider-selection').addClass('d-none').hide();
+        $('.quantity-field-container').show();
         hideNewServiceButtons(true);
         changeQuantityFieldType('number');
-    } else if (initialOrderServiceTypeId == 4) { // Cotações
+        setTimeout(fixSelect2Width, 100);
+    } else if (initialOrderServiceTypeId == '2') { 
+        // DIAGNÓSTICO - Mostra Fornecedor, esconde Grupo de Serviços
+        console.log('✓ Configurando para DIAGNÓSTICO');
+        $('#div-with-provider-selection').removeClass('d-none').show();
+        $('#div-with-service-group-selection').addClass('d-none').hide();
+        $('.quantity-field-container').hide();
+        setTimeout(fixSelect2Width, 100);
+    } else if (initialOrderServiceTypeId == '1') { 
+        // COTAÇÕES - Esconde ambos
+        console.log('✓ Configurando para COTAÇÕES');
+        $('#div-with-provider-selection').addClass('d-none').hide();
+        $('#div-with-service-group-selection').addClass('d-none').hide();
+        $('.quantity-field-container').show();
+        changeQuantityFieldType('text');
+    } else {
+        // Qualquer outro tipo
+        $('#div-with-provider-selection').addClass('d-none').hide();
+        $('#div-with-service-group-selection').addClass('d-none').hide();
+        $('.quantity-field-container').show();
         changeQuantityFieldType('text');
     }
+
+    // ==================== EVENT HANDLERS ====================
 
     $(document).on('change', '#order_services_grid_client_id', function () {
         var client_id = $(this).find(":selected").val();
@@ -229,11 +305,14 @@ $(document).ready(function () {
 
     $(document).on('change', '#order_service_order_service_type_id', function () {
         var order_service_type_id = $(this).find(":selected").val();
-        // 3 = Requisição, 4 = Cotações, 5 = Diagnóstico
-        if (order_service_type_id == 3) {
-            // Requisição - esconde fornecedor, mostra grupo, mostra quantidade (number)
-            hideElement('div-with-provider-selection', true);
-            hideElement('div-with-service-group-selection', false);
+        console.log('🔄 Tipo de OS alterado para:', order_service_type_id);
+        
+        // IDs reais do banco: 1=Cotações, 2=Diagnóstico, 3=Requisição
+        if (order_service_type_id == '3') {
+            // REQUISIÇÃO - Mostra Grupo de Serviços, esconde Fornecedor
+            console.log('→ Mudando para REQUISIÇÃO');
+            $('#div-with-service-group-selection').removeClass('d-none').show();
+            $('#div-with-provider-selection').addClass('d-none').hide();
             $('.quantity-field-container').show();
             adjustObservationWidth(true);
             // Limpar fornecedor selecionado
@@ -242,10 +321,30 @@ $(document).ready(function () {
             hideNewServiceButtons(true);
             // Campo quantidade como number
             changeQuantityFieldType('number');
-        } else if (order_service_type_id == 4) {
-            // Cotações - esconde fornecedor e grupo, mostra quantidade (text livre)
-            hideElement('div-with-provider-selection', true);
-            hideElement('div-with-service-group-selection', true);
+            // Corrigir largura do Select2
+            setTimeout(fixSelect2Width, 100);
+            
+        } else if (order_service_type_id == '2') {
+            // DIAGNÓSTICO - Mostra Fornecedor, esconde Grupo de Serviços
+            console.log('→ Mudando para DIAGNÓSTICO');
+            $('#div-with-provider-selection').removeClass('d-none').show();
+            $('#div-with-service-group-selection').addClass('d-none').hide();
+            $('.quantity-field-container').hide();
+            adjustObservationWidth(false);
+            // Limpar grupo de serviços selecionado
+            $('#order_service_service_group_id').val('').trigger('change');
+            resetServiceSelects();
+            clearServiceGroupLimits();
+            // Mostrar botões de cadastrar nova peça/serviço
+            hideNewServiceButtons(false);
+            // Corrigir largura do Select2
+            setTimeout(fixSelect2Width, 100);
+            
+        } else {
+            // COTAÇÕES (4) ou qualquer outro - Esconde ambos os campos
+            console.log('→ Mudando para COTAÇÕES/OUTRO');
+            $('#div-with-provider-selection').addClass('d-none').hide();
+            $('#div-with-service-group-selection').addClass('d-none').hide();
             $('.quantity-field-container').show();
             adjustObservationWidth(true);
             // Limpar seleções
@@ -257,63 +356,15 @@ $(document).ready(function () {
             hideNewServiceButtons(false);
             // Campo quantidade como text (aceita texto livre)
             changeQuantityFieldType('text');
-        } else if (order_service_type_id == 5) {
-            // Diagnóstico - mostra fornecedor, esconde grupo, esconde quantidade
-            hideElement('div-with-provider-selection', false);
-            hideElement('div-with-service-group-selection', true);
-            $('.quantity-field-container').hide();
-            adjustObservationWidth(false);
-            // Limpar grupo de serviços selecionado
-            $('#order_service_service_group_id').val('').trigger('change');
-            resetServiceSelects();
-            clearServiceGroupLimits();
-            // Mostrar botões de cadastrar nova peça/serviço
-            hideNewServiceButtons(false);
         }
     });
-    
-    // Oculta ou mostra os botões de cadastrar nova peça/serviço
-    function hideNewServiceButtons(hide) {
-        if (hide) {
-            $('button[data-bs-target^="#newServiceModal"]').closest('.mt-2, .btn-outline-primary').hide();
-        } else {
-            $('button[data-bs-target^="#newServiceModal"]').closest('.mt-2, .btn-outline-primary').show();
-        }
-    }
-    
-    // Altera o tipo do campo quantidade (text para cotações, number para requisição)
-    function changeQuantityFieldType(type) {
-        $('.part-service-quantity').each(function() {
-            var $input = $(this);
-            var currentValue = $input.val();
-            var classes = $input.attr('class');
-            var id = $input.attr('id');
-            var placeholder = type === 'text' ? 'Ex: 1, 2-3, etc' : '';
-            
-            // Criar novo input do tipo desejado
-            var $newInput = $('<input>')
-                .attr('type', type)
-                .attr('class', classes)
-                .attr('id', id)
-                .val(currentValue);
-            
-            if (type === 'number') {
-                $newInput.attr('min', '1').attr('max', '9999');
-            } else {
-                $newInput.attr('placeholder', placeholder);
-            }
-            
-            // Substituir o input antigo pelo novo
-            $input.replaceWith($newInput);
-        });
-    }
     
     // Ajusta a largura do campo observação
     function adjustObservationWidth(showQuantity) {
         if (showQuantity) {
-            $('.observation-field-container').removeClass('col-md-7').addClass('col-md-5');
+            $('.observation-field-container').removeClass('col-md-5').addClass('col-md-3');
         } else {
-            $('.observation-field-container').removeClass('col-md-5').addClass('col-md-7');
+            $('.observation-field-container').removeClass('col-md-3').addClass('col-md-5');
         }
     }
     

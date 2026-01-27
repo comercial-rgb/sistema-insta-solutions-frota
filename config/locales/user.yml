@@ -11,6 +11,7 @@ pt-BR:
         updated_at: 'Atualizado em'
         actions: "Ações"
         access_data: 'Dados de acesso'
+        password_management: 'Gerenciamento de Senha'
         status: "Status de acesso"
         only_status_text: "Status"
         client_registered: "Cliente registrado com sucesso!"
