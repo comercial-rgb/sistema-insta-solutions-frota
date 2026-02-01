@@ -12,7 +12,10 @@
     </div>
 
     <div class="col-12 <%= custom_class_file_field %>">
-        <%= f.input attribute, as: :file, disabled: custom_disabled, input_html: {multiple: 'multiple'}, label: false %>
+        <%= f.input attribute, as: :file, disabled: custom_disabled, input_html: {multiple: 'multiple', accept: 'image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx'}, label: false %>
+        <small class="text-muted d-block mt-1">
+            <i class="bi bi-info-circle"></i> Aceita múltiplos arquivos: fotos (JPG, PNG), vídeos (MP4, AVI), PDF e documentos
+        </small>
     </div>
 </div>
 

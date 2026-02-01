@@ -70,6 +70,22 @@ breadcrumbs = [
     </div>
 
     <div class="col-md-2 mb-3">
+      <div class="card shadow-sm border-dark">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Valor Aprovado</h6>
+              <h3 class="mb-0 text-dark" style="font-size: 1.3rem;"><%= CustomHelper.to_currency(@total_valor_aprovado) %></h3>
+            </div>
+            <div class="text-dark">
+              <i class="bi bi-cash-stack fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-2 mb-3">
       <div class="card shadow-sm border-primary">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-center">
@@ -100,22 +116,6 @@ breadcrumbs = [
         </div>
       </div>
     </div>
-
-    <div class="col-md-2 mb-3">
-      <div class="card shadow-sm border-dark">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="text-muted mb-1">Valor Aprovado</h6>
-              <h3 class="mb-0 text-dark" style="font-size: 1.3rem;"><%= CustomHelper.to_currency(@total_valor_aprovado) %></h3>
-            </div>
-            <div class="text-dark">
-              <i class="bi bi-cash-stack fs-1"></i>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 
   <!-- OSs Disponíveis (Em Aberto - sem proposta do fornecedor) -->
@@ -123,48 +123,146 @@ breadcrumbs = [
     <div class="card shadow-sm mb-4">
       <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
         <span><i class="bi bi-hourglass-split me-2"></i>OSs Disponíveis para Resposta (<%= @os_em_aberto.count %>)</span>
-        <%= link_to order_services_path(order_service_status_id: OrderServiceStatus::EM_ABERTO_ID), class: 'btn btn-sm btn-light' do %>
-          Ver Todas <i class="bi bi-arrow-right"></i>
-        <% end %>
-      </div>
-      <div class="card-body">
-        <div class="table-responsive">
-          <table class="table table-hover align-middle mb-0">
-            <thead class="table-light">
-              <tr>
-                <th>Código</th>
-                <th>Cliente</th>
-                <th>Tipo</th>
-                <th>Data Abertura</th>
-                <th class="text-center">Ações</th>
-              </tr>
-            </thead>
-            <tbody>
-              <% @os_em_aberto.each do |os| %>
-                <tr>
-                  <td><%= os.code %></td>
-                  <% client = os.cost_center&.client %>
-                  <td><%= (client&.social_name.presence || client&.fantasy_name.presence || client&.name.presence) || '-' %></td>
-                  <td>
-                    <%= render 'order_services/order_service_type_badge', record: os %>
-                  </td>
-                  <td><%= l(os.created_at, format: :short) %></td>
-                  <td class="text-center">
-                    <%= link_to new_order_service_proposal_path(order_service_id: os.id), class: 'btn btn-sm btn-primary', title: 'Criar proposta para esta OS' do %>
-                      <i class="bi bi-reply-fill"></i> Responder
-                    <% end %>
-                  </td>
-                </tr>
-              <% end %>
-            </tbody>
-          </table>
+        <div>
+          <%= link_to rejections_provider_dashboard_path, class: 'btn btn-sm btn-danger me-2', title: 'Ver OSs rejeitadas' do %>
+            <i class="bi bi-x-circle"></i> Minhas Rejeições
+          <% end %>
+          <%= link_to order_services_path(order_service_status_id: OrderServiceStatus::EM_ABERTO_ID), class: 'btn btn-sm btn-light' do %>
+            Ver Todas <i class="bi bi-arrow-right"></i>
+          <% end %>
         </div>
       </div>
+      <div class="card-body">
+        <%= form_with url: bulk_reject_provider_dashboard_path, method: :post, id: 'bulk_reject_form' do |f| %>
+          <div class="mb-3 d-flex justify-content-between align-items-center">
+            <div>
+              <button type="button" id="select-all-btn" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-check-square"></i> Selecionar Todas
+              </button>
+              <button type="button" id="unselect-all-btn" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-square"></i> Desmarcar Todas
+              </button>
+            </div>
+            <div>
+              <span id="selected-count" class="me-2">0 selecionadas</span>
+              <button type="submit" class="btn btn-sm btn-danger" id="reject-btn" disabled>
+                <i class="bi bi-x-circle"></i> Rejeitar Selecionadas
+              </button>
+            </div>
+          </div>
+          
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 50px;">
+                    <input type="checkbox" id="select-all-checkbox" class="form-check-input">
+                  </th>
+                  <th>Código</th>
+                  <th>Cliente</th>
+                  <th>Tipo</th>
+                  <th>Data Abertura</th>
+                  <th class="text-center">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @os_em_aberto.each do |os| %>
+                  <tr>
+                    <td>
+                      <%= check_box_tag 'order_service_ids[]', os.id, false, class: 'form-check-input os-checkbox' %>
+                    </td>
+                    <td><%= os.code %></td>
+                    <% client = os.cost_center&.client %>
+                    <% sub_unit = os.vehicle&.sub_unit || os.commitment&.sub_unit %>
+                    <% cost_center = os.cost_center %>
+                    <td>
+                      <div>
+                        <strong><%= (client&.social_name.presence || client&.fantasy_name.presence || client&.name.presence || '-').to_s.force_encoding('UTF-8') %></strong>
+                      </div>
+                      <div class="text-muted" style="font-size: 0.85rem;">
+                        <%= (cost_center&.name || 'Centro de custo não definido').to_s.force_encoding('UTF-8') %> - <%= (sub_unit&.name || 'Subunidade não definida').to_s.force_encoding('UTF-8') %>
+                      </div>
+                    </td>
+                    <td>
+                      <%= render 'order_services/order_service_type_badge', record: os %>
+                    </td>
+                    <td><%= l(os.created_at, format: :short) %></td>
+                    <td class="text-center">
+                      <%= link_to new_order_service_proposal_path(order_service_id: os.id), class: 'btn btn-sm btn-primary', title: 'Criar proposta para esta OS' do %>
+                        <i class="bi bi-reply-fill"></i> Responder
+                      <% end %>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        <% end %>
+      </div>
     </div>
+    
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        const selectAllCheckbox = document.getElementById('select-all-checkbox');
+        const selectAllBtn = document.getElementById('select-all-btn');
+        const unselectAllBtn = document.getElementById('unselect-all-btn');
+        const osCheckboxes = document.querySelectorAll('.os-checkbox');
+        const rejectBtn = document.getElementById('reject-btn');
+        const selectedCount = document.getElementById('selected-count');
+        const form = document.getElementById('bulk_reject_form');
+        
+        function updateSelectedCount() {
+          const count = document.querySelectorAll('.os-checkbox:checked').length;
+          selectedCount.textContent = count + ' selecionada' + (count !== 1 ? 's' : '');
+          rejectBtn.disabled = count === 0;
+        }
+        
+        selectAllCheckbox.addEventListener('change', function() {
+          osCheckboxes.forEach(cb => cb.checked = this.checked);
+          updateSelectedCount();
+        });
+        
+        selectAllBtn.addEventListener('click', function() {
+          osCheckboxes.forEach(cb => cb.checked = true);
+          selectAllCheckbox.checked = true;
+          updateSelectedCount();
+        });
+        
+        unselectAllBtn.addEventListener('click', function() {
+          osCheckboxes.forEach(cb => cb.checked = false);
+          selectAllCheckbox.checked = false;
+          updateSelectedCount();
+        });
+        
+        osCheckboxes.forEach(cb => {
+          cb.addEventListener('change', function() {
+            updateSelectedCount();
+            selectAllCheckbox.checked = document.querySelectorAll('.os-checkbox:checked').length === osCheckboxes.length;
+          });
+        });
+        
+        form.addEventListener('submit', function(e) {
+          const count = document.querySelectorAll('.os-checkbox:checked').length;
+          if (count === 0) {
+            e.preventDefault();
+            alert('Selecione pelo menos uma OS para rejeitar.');
+            return false;
+          }
+          
+          if (!confirm('Deseja realmente rejeitar ' + count + ' OS(s)? Você poderá reverter esta ação depois.')) {
+            e.preventDefault();
+            return false;
+          }
+        });
+      });
+    </script>
   <% else %>
     <div class="alert alert-info">
       <i class="bi bi-info-circle me-2"></i>
       Não há OSs disponíveis para resposta no momento.
+      <%= link_to rejections_provider_dashboard_path, class: 'btn btn-sm btn-danger ms-2' do %>
+        <i class="bi bi-x-circle"></i> Ver Minhas Rejeições
+      <% end %>
     </div>
   <% end %>
 
@@ -196,7 +294,16 @@ breadcrumbs = [
                   <td><%= proposal.code %></td>
                   <td><%= proposal.order_service.code %></td>
                   <% client = proposal.order_service.cost_center&.client %>
-                  <td><%= (client&.social_name.presence || client&.fantasy_name.presence || client&.name.presence) || '-' %></td>
+                  <% sub_unit = proposal.order_service.vehicle&.sub_unit || proposal.order_service.commitment&.sub_unit %>
+                  <% cost_center = proposal.order_service.cost_center %>
+                  <td>
+                    <div>
+                      <strong><%= (client&.social_name.presence || client&.fantasy_name.presence || client&.name.presence) || '-' %></strong>
+                    </div>
+                    <div class="text-muted" style="font-size: 0.85rem;">
+                      <%= cost_center&.name || 'Centro de custo não definido' %> - <%= sub_unit&.name || 'Subunidade não definida' %>
+                    </div>
+                  </td>
                   <td><%= CustomHelper.to_currency(proposal.total_value) %></td>
                   <td><%= l(proposal.created_at, format: :short) %></td>
                   <td class="text-center">
@@ -241,7 +348,16 @@ breadcrumbs = [
                   <td><%= proposal.code %></td>
                   <td><%= proposal.order_service.code %></td>
                   <% client = proposal.order_service.cost_center&.client %>
-                  <td><%= (client&.social_name.presence || client&.fantasy_name.presence || client&.name.presence) || '-' %></td>
+                  <% sub_unit = proposal.order_service.vehicle&.sub_unit || proposal.order_service.commitment&.sub_unit %>
+                  <% cost_center = proposal.order_service.cost_center %>
+                  <td>
+                    <div>
+                      <strong><%= (client&.social_name.presence || client&.fantasy_name.presence || client&.name.presence) || '-' %></strong>
+                    </div>
+                    <div class="text-muted" style="font-size: 0.85rem;">
+                      <%= cost_center&.name || 'Centro de custo não definido' %> - <%= sub_unit&.name || 'Subunidade não definida' %>
+                    </div>
+                  </td>
                   <td><%= CustomHelper.to_currency(proposal.total_value) %></td>
                   <td><%= l(proposal.updated_at, format: :short) %></td>
                   <td class="text-center">
@@ -286,7 +402,16 @@ breadcrumbs = [
                   <td><%= proposal.code %></td>
                   <td><%= proposal.order_service.code %></td>
                   <% client = proposal.order_service.cost_center&.client %>
-                  <td><%= (client&.social_name.presence || client&.fantasy_name.presence || client&.name.presence) || '-' %></td>
+                  <% sub_unit = proposal.order_service.vehicle&.sub_unit || proposal.order_service.commitment&.sub_unit %>
+                  <% cost_center = proposal.order_service.cost_center %>
+                  <td>
+                    <div>
+                      <strong><%= (client&.social_name.presence || client&.fantasy_name.presence || client&.name.presence) || '-' %></strong>
+                    </div>
+                    <div class="text-muted" style="font-size: 0.85rem;">
+                      <%= cost_center&.name || 'Centro de custo não definido' %> - <%= sub_unit&.name || 'Subunidade não definida' %>
+                    </div>
+                  </td>
                   <td><%= CustomHelper.to_currency(proposal.total_value_with_complements) %></td>
                   <td><%= l(proposal.updated_at, format: :short) %></td>
                   <td class="text-center">

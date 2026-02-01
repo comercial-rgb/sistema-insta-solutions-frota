@@ -5,6 +5,21 @@
     <% end %>
 <% end %>
 
+<%# Fornecedor: enviar valores via hidden fields quando campos estão desabilitados %>
+<% if @current_user.provider? && f.object.persisted? %>
+    <%= f.hidden_field :client_id %>
+    <%= f.hidden_field :vehicle_id %>
+    <%= f.hidden_field :provider_service_type_id %>
+    <%= f.hidden_field :maintenance_plan_id %>
+    <%= f.hidden_field :order_service_type_id %>
+    <%= f.hidden_field :provider_id %>
+    <%= f.hidden_field :commitment_id %>
+    <%= f.hidden_field :commitment_parts_id %>
+    <%= f.hidden_field :commitment_services_id %>
+    <%= f.hidden_field :service_group_id %>
+    <%= f.hidden_field :manager_id %>
+<% end %>
+
 <%
     # Variáveis de desabilitação podem vir do partial pai ou usar valor padrão
     disabled_basic_fields = local_assigns.fetch(:disabled_basic_fields, disabled)
@@ -39,7 +54,17 @@
 
 <div class="row">
     <div class="col-12 col-md-3">
-        <%= f.association :vehicle, disabled: disabled_basic_fields, collection: Vehicle.getting_data_by_user(@current_user), label_method: :board, as: :select, include_blank: t('model.select_option') %>
+        <% if @current_user.provider? && f.object.persisted? && f.object.vehicle.present? %>
+            <%# Para fornecedores, mostrar info do veículo ao invés de select desabilitado %>
+            <div class="form-group">
+                <label class="form-label"><%= OrderService.human_attribute_name(:vehicle) %> <abbr title="obrigatório">*</abbr></label>
+                <div class="form-control bg-light">
+                    <%= f.object.vehicle.board %> - <%= f.object.vehicle.brand %> <%= f.object.vehicle.model %>
+                </div>
+            </div>
+        <% else %>
+            <%= f.association :vehicle, disabled: disabled_basic_fields, collection: Vehicle.getting_data_by_user(@current_user), label_method: :board, as: :select, include_blank: t('model.select_option') %>
+        <% end %>
     </div>
     <% if !f.object.persisted? %>
         <div class="col-12 col-md-4">
@@ -85,7 +110,13 @@
             <div id="div-with-global-commitment" class="col-12 col-md-12" style="<%= has_global ? '' : 'display:none;' %>">
                 <% 
                     if f.object.persisted?
-                        global_collection = f.object.commitment ? [f.object.commitment] : global_commitments
+                        # Admin pode trocar empenho mesmo com propostas ativas
+                        if @current_user.admin? && !disabled_commitment_fields
+                            global_collection = global_commitments
+                        else
+                            # Outros usuários veem apenas o empenho atual
+                            global_collection = f.object.commitment ? [f.object.commitment] : global_commitments
+                        end
                     else
                         global_collection = global_commitments
                     end
@@ -97,7 +128,13 @@
             <div id="div-with-parts-commitment" class="col-12 col-md-6" style="<%= (has_parts && !has_global) ? '' : 'display:none;' %>">
                 <% 
                     if f.object.persisted?
-                        parts_collection = f.object.commitment_parts ? [f.object.commitment_parts] : []
+                        # Admin pode trocar empenho mesmo com propostas ativas
+                        if @current_user.admin? && !disabled_commitment_fields
+                            parts_collection = parts_commitments
+                        else
+                            # Outros usuários veem apenas o empenho atual
+                            parts_collection = f.object.commitment_parts ? [f.object.commitment_parts] : []
+                        end
                     elsif f.object.client_id.present?
                         parts_collection = parts_commitments
                     else
@@ -110,7 +147,13 @@
             <div id="div-with-services-commitment" class="col-12 col-md-6" style="<%= (has_services && !has_global) ? '' : 'display:none;' %>">
                 <% 
                     if f.object.persisted?
-                        services_collection = f.object.commitment_services ? [f.object.commitment_services] : []
+                        # Admin pode trocar empenho mesmo com propostas ativas
+                        if @current_user.admin? && !disabled_commitment_fields
+                            services_collection = services_commitments
+                        else
+                            # Outros usuários veem apenas o empenho atual
+                            services_collection = f.object.commitment_services ? [f.object.commitment_services] : []
+                        end
                     elsif f.object.client_id.present?
                         services_collection = services_commitments
                     else
@@ -138,8 +181,21 @@
             # Para Requisição: NUNCA desabilitar o select de grupo de serviços
             # Isso permite que o JavaScript carregue os limites corretamente
             service_group_disabled = f.object.order_service_type_id == OrderServiceType::REQUISICAO_ID ? false : disabled
+            
+            # Filtrar grupos pelo cliente (se cliente estiver definido)
+            client_for_group = nil
+            if @current_user.manager? || @current_user.additional?
+                client_for_group = User.find_by(id: @current_user.client_id, profile_id: Profile::CLIENT_ID)
+            elsif f.object.client.present?
+                client_for_group = f.object.client
+            elsif @current_user.client?
+                client_for_group = User.find_by(id: @current_user.id, profile_id: Profile::CLIENT_ID)
+            end
+            
+            # Aplicar filtro de cliente nos grupos (se grupo não tem clientes, está disponível para todos)
+            available_groups = client_for_group ? ServiceGroup.active.available_for_client(client_for_group.id) : ServiceGroup.active
         %>
-        <%= f.association :service_group, disabled: service_group_disabled, collection: ServiceGroup.active, as: :select, include_blank: t('model.select_option'), input_html: { class: 'form-control w-100', style: 'width: 100% !important;' } %>
+        <%= f.association :service_group, disabled: service_group_disabled, collection: available_groups, as: :select, include_blank: t('model.select_option'), input_html: { class: 'form-control w-100', style: 'width: 100% !important;' } %>
     </div>
     <div class="col-12 col-md-3 d-none" id="div-with-provider-selection">
         <% 
@@ -216,10 +272,18 @@
         <% end %>
     </div>
     <div class="col-12 col-md-6">
-        <%= f.input :driver, disabled: disabled_basic_fields %>
+        <% if @current_user.provider? && f.object.persisted? %>
+            <%= f.input :driver, disabled: true, input_html: { readonly: true, class: 'bg-light' } %>
+        <% else %>
+            <%= f.input :driver, disabled: disabled_basic_fields %>
+        <% end %>
     </div>
     <div class="col-12">
-        <%= f.input :details, disabled: disabled_basic_fields %>
+        <% if @current_user.provider? && f.object.persisted? %>
+            <%= f.input :details, disabled: true, input_html: { readonly: true, class: 'bg-light', rows: 3 } %>
+        <% else %>
+            <%= f.input :details, disabled: disabled_basic_fields %>
+        <% end %>
     </div>
 </div>
 
