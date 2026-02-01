@@ -22,9 +22,6 @@
                             <% cost_centers.each do |cost_center| %>
                                 <li class="list-group-item">
                                     <strong><%= cost_center.name %></strong>
-                                    <% if cost_center.code.present? %>
-                                        <br><small class="text-muted">Código: <%= cost_center.code %></small>
-                                    <% end %>
                                 </li>
                             <% end %>
                         </ul>
