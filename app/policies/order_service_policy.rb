@@ -186,13 +186,17 @@ class OrderServicePolicy < ApplicationPolicy
     (user.admin? || user.manager? || (user.additional? && record.client_id == user.client_id))
   end
   
-  # Permissão especial para ADMIN editar campos de empenho, contrato e centro de custo
+  # Permissão especial para ADMIN/GESTOR/ADICIONAL editar campos de empenho, contrato e centro de custo
   # mesmo quando já existem propostas (desde que a OS esteja em status editável)
   def can_edit_commitment_fields?
     # Se não foi persistida, permite edição
     return true unless record.persisted?
     
-    user.admin? && [OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID].include?(record.order_service_status_id)
+    # Admin, Gestor ou Adicional (do mesmo cliente) podem editar empenho mesmo com propostas
+    (user.admin? || 
+     (user.manager? && record.client_id == user.client_id) || 
+     (user.additional? && record.client_id == user.client_id)) &&
+    [OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID].include?(record.order_service_status_id)
   end
   
   # Verifica se pode editar campo específico de fornecedor/placa/empenho

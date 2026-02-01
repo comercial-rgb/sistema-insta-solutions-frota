@@ -110,11 +110,11 @@
             <div id="div-with-global-commitment" class="col-12 col-md-12" style="<%= has_global ? '' : 'display:none;' %>">
                 <% 
                     if f.object.persisted?
-                        # Admin pode trocar empenho mesmo com propostas ativas
-                        if @current_user.admin? && !disabled_commitment_fields
+                        # Admin/Gestor/Adicional podem trocar empenho mesmo com propostas ativas
+                        if (@current_user.admin? || @current_user.manager? || @current_user.additional?) && !disabled_commitment_fields
                             global_collection = global_commitments
                         else
-                            # Outros usuários veem apenas o empenho atual
+                            # Outros usuários (fornecedor) veem apenas o empenho atual
                             global_collection = f.object.commitment ? [f.object.commitment] : global_commitments
                         end
                     else
@@ -128,11 +128,11 @@
             <div id="div-with-parts-commitment" class="col-12 col-md-6" style="<%= (has_parts && !has_global) ? '' : 'display:none;' %>">
                 <% 
                     if f.object.persisted?
-                        # Admin pode trocar empenho mesmo com propostas ativas
-                        if @current_user.admin? && !disabled_commitment_fields
+                        # Admin/Gestor/Adicional podem trocar empenho mesmo com propostas ativas
+                        if (@current_user.admin? || @current_user.manager? || @current_user.additional?) && !disabled_commitment_fields
                             parts_collection = parts_commitments
                         else
-                            # Outros usuários veem apenas o empenho atual
+                            # Outros usuários (fornecedor) veem apenas o empenho atual
                             parts_collection = f.object.commitment_parts ? [f.object.commitment_parts] : []
                         end
                     elsif f.object.client_id.present?
@@ -147,11 +147,11 @@
             <div id="div-with-services-commitment" class="col-12 col-md-6" style="<%= (has_services && !has_global) ? '' : 'display:none;' %>">
                 <% 
                     if f.object.persisted?
-                        # Admin pode trocar empenho mesmo com propostas ativas
-                        if @current_user.admin? && !disabled_commitment_fields
+                        # Admin/Gestor/Adicional podem trocar empenho mesmo com propostas ativas
+                        if (@current_user.admin? || @current_user.manager? || @current_user.additional?) && !disabled_commitment_fields
                             services_collection = services_commitments
                         else
-                            # Outros usuários veem apenas o empenho atual
+                            # Outros usuários (fornecedor) veem apenas o empenho atual
                             services_collection = f.object.commitment_services ? [f.object.commitment_services] : []
                         end
                     elsif f.object.client_id.present?

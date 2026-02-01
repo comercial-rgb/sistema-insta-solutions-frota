@@ -11,23 +11,19 @@
         
         # ===== REGRAS DE DESABILITAÇÃO DE CAMPOS =====
         if @current_user.provider?
-            # Fornecedor: desabilita após inserir dados
-            disabled = f.object.data_inserted_by_provider
-            disabled_basic_fields = disabled
-            disabled_commitment_fields = disabled
+            # Fornecedor: SEMPRE desabilita campos do cabeçalho (veículo, tipo, km, etc)
+            # Pode apenas adicionar peças/serviços
+            disabled = true  # Sempre desabilitado para fornecedor
+            disabled_basic_fields = true  # Campos do cabeçalho sempre desabilitados
+            disabled_commitment_fields = true  # Empenho/contrato sempre desabilitado
         else
             # Admin/Manager/Additional: regras baseadas na policy
             # Campos básicos (fornecedor, placa, km, etc): usa can_edit_basic_fields?
             disabled_basic_fields = !policy(f.object).can_edit_basic_fields?
             
-            # Campos de empenho/contrato/centro de custo: ADMIN tem permissão especial
+            # Campos de empenho/contrato/centro de custo: ADMIN/GESTOR/ADICIONAL têm permissão especial
             # mesmo quando há propostas ativas (desde que status seja editável)
-            if @current_user.admin?
-                disabled_commitment_fields = !policy(f.object).can_edit_commitment_fields?
-            else
-                # Gestor/Adicional: mesma regra dos campos básicos
-                disabled_commitment_fields = disabled_basic_fields
-            end
+            disabled_commitment_fields = !policy(f.object).can_edit_commitment_fields?
             
             # Para compatibilidade com código existente
             disabled = disabled_basic_fields
