@@ -120,17 +120,18 @@ class CostCenter < ApplicationRecord
   end
 
   def self.sum_budget_value(cost_center)
-    # Commitment value - Cancel commitment value
-    commitment_value = cost_center.commitments.sum(:commitment_value).to_f
-    cancel_commitment_value = cost_center.commitments.joins(:cancel_commitments).sum('cancel_commitments.value').to_f
+    # Commitment value - Cancel commitment value (apenas empenhos ativos)
+    active_commitments = cost_center.commitments.where(active: true)
+    commitment_value = active_commitments.sum(:commitment_value).to_f
+    cancel_commitment_value = active_commitments.joins(:cancel_commitments).sum('cancel_commitments.value').to_f
     result = commitment_value - cancel_commitment_value
     return result
   end
 
   def self.sum_budget_value_contract(cost_center)
-    # Commitment value - Cancel commitment value
-    commitments = cost_center.commitments.includes(:contract)
-    contracts = commitments.map(&:contract).compact.uniq
+    # Commitment value - Cancel commitment value (apenas empenhos e contratos ativos)
+    active_commitments = cost_center.commitments.where(active: true).includes(:contract)
+    contracts = active_commitments.map(&:contract).compact.uniq.select(&:active)
     result = contracts.map { |contract| contract.get_total_value }.sum.to_f
     return result
   end

@@ -75,6 +75,8 @@ class Contract < ApplicationRecord
   end
 
   def get_total_value
+    # Retorna 0 se o contrato estiver inativo
+    return 0 unless self.active
     @total_value ||= self.total_value + self.addendum_contracts.select { |item| item.active }.sum(&:total_value)
   end
 
