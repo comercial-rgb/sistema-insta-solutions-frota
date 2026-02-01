@@ -1,0 +1,41 @@
+<%= simple_form_for @user, validate: false do |f| %>
+
+	<!-- ID do perfil de usuário -->
+	<%= f.input :profile_id, as: :hidden, input_html: {value: @user.profile_id} %>
+
+	<%= render 'users/forms/personal_data', f: f %>
+
+    <%= render 'users/forms/person_type_form', f: f %>
+
+    <div class="row">
+        <div class="col-12 col-md-2 mb-3 checkbox-input-center">
+            <%= f.input :optante_simples %>
+        </div>
+    </div>
+
+	<%= render 'common_pages/addresses/address', relation: :address, f: f %>
+
+    <%= render 'common_pages/data_banks/data_bank', f: f %>
+	
+	<div class="col-12 col-md-4">
+        <%= 
+            render "common_pages/filter_registers_by_text_checkboxes",
+            label_text: User.human_attribute_name(:provider_service_types),
+            register_name: "provider-service-type",
+            form_model: :user,
+            form_attribute: :provider_service_type_ids,
+            collection: ProviderServiceType.order(:name),
+            value_register: :id,
+            label_register: :display_name,
+            placeholder: t("model.find_filter")
+        %>
+    </div>
+
+	<%= render 'common_pages/save', f: f, return_path: (@current_user.id != @user.id) ? users_provider_path : nil %>
+
+<% end %>
+
+<%
+# End of file _form.html.erb
+# Path: ./app/views/users/_form.html.erb
+%>

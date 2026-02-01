@@ -1,0 +1,16 @@
+<%%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: <%= plural_table_name %>_path, text: <%= singular_table_name.split("_").join(" ").titleize.gsub(" ","") %>.model_name.human(count: 2)},
+	{active: false, href: edit_<%= singular_table_name %>_path(@<%= singular_table_name %>), text: @<%= singular_table_name %>.get_text_name},
+	{active: true, href: '#', text: t('model.edit')},
+]
+%>
+
+<%%= 
+render 'common_pages/edit', 
+objects_path: <%= plural_table_name %>_path, 
+page_title: <%= singular_table_name.split("_").join(" ").titleize.gsub(" ","") %>.model_name.human(count: 2), 
+form_to_render: '<%= plural_table_name %>/form',
+breadcrumbs: breadcrumbs
+%>

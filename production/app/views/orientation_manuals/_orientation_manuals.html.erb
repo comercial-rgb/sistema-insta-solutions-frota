@@ -1,0 +1,7 @@
+<div class="row">
+	<% orientation_manuals.each do |orientation_manual| %>
+		<div class="col-12 col-md-3 mb-3">
+			<%= render "orientation_manuals/orientation_manual_card", orientation_manual: orientation_manual %>
+		</div>
+	<% end %>
+</div>

@@ -1,0 +1,28 @@
+<div class="row">
+
+    <!-- Título -->
+    <div class="col-12">
+        <h5 class="mt-4"><%= PersonContact.model_name.human(count: 2) %></h5>
+    </div>
+
+    <!-- Campos multiplos dinamicos (dados bancarios) -->
+    <div class="col-12 multi-person-contact-block">
+
+        <!-- Contador -->
+        <input type="hidden" value="<%= f.object.person_contacts.length.to_s %>" class="multi-person-contact-cont" disabled>
+
+        <%= f.fields_for :person_contacts do |person_contact| %>
+        <div class="row multi-person-contact align-items-end">
+            <%= render 'common_pages/person_contacts/person_contact_fields', f: f, person_contact: person_contact  %>
+            <%= render 'common_pages/delete_multiple_relation', remove_path: delete_person_contact_path(model_id: person_contact.object.id), object: person_contact.object, object_text: 'person-contact'  %>
+        </div>
+        <% end %>
+    </div>
+
+    <!-- Botão de adicionar -->
+    <div class="col-12">
+        <%= render 'common_pages/add_multiple_relation', object_text: 'person-contact' %>
+    </div>
+
+</div>
+<!-- Fim dados bancários cadastro múltiplo -->

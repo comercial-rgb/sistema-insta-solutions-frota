@@ -1,0 +1,24 @@
+  <!-- Input de arquivo -->
+  <div class="row">
+
+    <div class="col-12">
+      <h5 class="mt-4"><%= Attachment.model_name.human %></h5>
+    </div>
+
+    <%= f.fields_for :attachment do |attachment| %>
+    <div class="col-12 col-md-2">
+
+      <%= attachment.input :attachment, input_html: {class: ''}, label: Attachment.human_attribute_name(:attachment) %>
+
+      <% if attachment.object.persisted? && attachment.object.attachment.attached? %>
+        <!-- Descrição do anexo -->
+        <small class="form-text text-muted">
+          <%= t('model.current_file') %>:
+          <%= link_to attachment.object.attachment.filename, attachment.object.attachment.url, target: '_blank' %>
+        </small>
+      <% end %>
+
+    </div>
+    <% end %>
+
+  </div>

@@ -111,6 +111,7 @@ class ServiceGroupsController < ApplicationController
       :name, 
       :value_limit, 
       :active,
+      client_ids: [],
       service_group_items_attributes: [:id, :service_id, :quantity, :max_value, :_destroy]
     )
     

@@ -1,0 +1,273 @@
+pt-BR:
+  activerecord:
+    models:
+      user:
+        one: "Usuário"
+        other: "Usuários"
+    attributes:
+      user:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        access_data: 'Dados de acesso'
+        password_management: 'Gerenciamento de Senha'
+        status: "Status de acesso"
+        only_status_text: "Status"
+        client_registered: "Cliente registrado com sucesso!"
+        name: "Nome"
+        email: "E-mail de acesso"
+        only_email_text: "E-mail"
+        access_user: 'Usuário de acesso'
+        password: "Senha"
+        is_blocked: "Bloqueado?"
+        password_confirmation: "Confirmação de senha"
+        profile_id: "Eu sou"
+        profile: "Eu sou"
+        profile_type: "Tipo do usuário"
+        phone: 'Telefone'
+        cpf: 'CPF'
+        rg: 'RG'
+        birthday: 'Data de Nascimento'
+        admin_user: 'Administrador'
+        admin_users: 'Administradores'
+        common_user: 'Usuário'
+        common_users: 'Usuários'
+        client_user: 'Cliente'
+        client_users: 'Clientes'
+        manager_user: 'Gerente'
+        manager_users: 'Gerentes'
+        additional_user: 'Adicional'
+        additional_users: 'Adicionais'
+        provider_user: 'Fornecedor'
+        provider_users: 'Fornecedores'
+        client: "Cliente"
+        client_id: "Cliente"
+        reactived: 'Reativado'
+        active: 'Ativo'
+        inactive: 'Bloqueado'
+        set_active: 'Reativar'
+        set_inactive: 'Bloquear'
+        cpf_cnpj: 'CPF / CNPJ'
+        person_type_id: 'Tipo de pessoa'
+        person_type: 'Tipo de pessoa'
+        cnpj: 'CNPJ'
+        social_name: 'Razão social'
+        fantasy_name: 'Nome fantasia'
+        my_data: 'Meus dados'
+        company_data: 'Dados da empresa'
+        cpf_registration: "CPF/Matrícula"
+        general_data: "Dados gerais"
+        personal_data: 'Dados pessoais'
+        responsible_data: 'Dados do responsável'
+        sex_id: 'Sexo'
+        sex: 'Sexo'
+        users: 'Usuários'
+        profile_image: 'Imagem de perfil'
+        accept_therm: 'Termos'
+        current_password: 'Senha atual'
+        invalid_password: 'Senha inválida'
+        change_access_data: 'Alterar dados de acesso'
+        change_data: 'Alterar dados'
+        wrong_current_password: 'Senha atual incorreta'
+        civil_state: "Estado civil"
+        civil_state_id: "Estado civil"
+        property_regime: "Regime de bens"
+        property_regime_id: "Regime de bens"
+        cellphone: "Celular"
+        profession: "Profissão"
+        provider: "Provider Login Social"
+        uid: "UID Login Social"
+        invalid_current_password: 'Senha atual incorreta'
+        payment_type: "Tipo de pagamento"
+        payment_type_id: "Tipo de pagamento"
+        reset_user_password: "Resetar senha"
+        reset_user_password_success: "Nova senha enviada com sucesso para o usuário!"
+        current_plan: "Plano atual"
+        current_plan_id: "Plano atual"
+        set_manually_plan: "Liberar acesso a algum plano manualmente"
+        manually_plan: "Plano liberado manualmente"
+        limit_date_manually_plan: "Data limite de uso de plano liberado"
+        new_password_sent: "Nova senha enviada com sucesso!"
+        closing_modal_reset_password: "Após fechar este pop-up a nova senha não poderá mais ser visualizada."
+        copy_password: "Copiar senha"
+        manually_plan: "Plano liberado"
+        manually_plan_id: "Plano liberado"
+        user_status: "Status de validação"
+        user_status_id: "Status de validação"
+        validate_users: "Aguardando aprovação"
+        approve_users: "Aprovar selecionado(s)"
+        disapprove_users: "Reprovar selecionado(s)"
+        approved_users: "Usuário(s) aprovado(s) com sucesso!"
+        disapproved_users: "Usuário(s) reprovado(s) com sucesso!"
+        reason_disapprove: "Motivo da reprovação"
+        external_register: "Cadastro externo"
+        success_validated_mail: "Seu e-mail foi validado com sucesso!"
+        access_area_login: "Acesse a área de login ou clique"
+        municipal_inscription: "Inscrição municipal"
+        state_inscription: "Inscrição estadual"
+        discount_percent: "% de desconto"
+        department: "Departamento"
+        state: "Estado"
+        state_id: "Estado"
+        city: "Cidade"
+        city_id: "Cidade"
+        provider_service_type_id: "Tipo de serviço"
+        provider_service_types: "Tipos de serviços"
+        client_cost_centers: "Centros de custos (do cliente)"
+        associated_cost_centers: "Centros de custos"
+        associated_sub_units: "Sub-unidades"
+        cost_center_id: "Centro de custo"
+        state_city: "Estado/Cidade"
+        states: "Estados para recebimento de propostas"
+        registration: "Matrícula"
+        optante_simples: "Optante pelo SIMPLES"
+        needs_km: "Necessita controle de KM"
+      user/cards:
+        id: 'ID'
+        nickname: "Apelido do cartão"
+        name: "Nome impresso no cartão"
+        number: "Número do cartão"
+        validate_date_month: "Validade (Mês)"
+        validate_date_year: "Validade (Ano)"
+        expiration_date: "Data de Validade"
+        ccv_code: "CCV (Código)"
+        card_banner_id: "Bandeira"
+        card_banner: "Bandeira"
+        principal: 'Principal'
+en:
+  activerecord:
+    models:
+      user:
+        one: "Usuário"
+        other: "Usuários"
+    attributes:
+      user:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        access_data: 'Dados de acesso'
+        status: "Status de acesso"
+        only_status_text: "Status"
+        client_registered: "Cliente registrado com sucesso!"
+        name: "Nome"
+        email: "E-mail de acesso"
+        only_email_text: "E-mail"
+        password: "Senha"
+        is_blocked: "Bloqueado?"
+        password_confirmation: "Confirmação de senha"
+        profile_id: "Eu sou"
+        profile: "Eu sou"
+        profile_type: "Tipo do usuário"
+        phone: 'Telefone'
+        cpf: 'CPF'
+        rg: 'RG'
+        birthday: 'Data de Nascimento'
+        admin_user: 'Administrador'
+        admin_users: 'Administradores'
+        common_user: 'Usuário'
+        common_users: 'Usuários'
+        client_user: 'Cliente'
+        client_users: 'Clientes'
+        manager_user: 'Gerente'
+        manager_users: 'Gerentes'
+        additional_user: 'Adicional'
+        additional_users: 'Adicionais'
+        provider_user: 'Fornecedor'
+        provider_users: 'Fornecedores'
+        client: "Cliente"
+        client_id: "Cliente"
+        reactived: 'Reativado'
+        active: 'Ativo'
+        inactive: 'Bloqueado'
+        set_active: 'Reativar'
+        set_inactive: 'Bloquear'
+        cpf_cnpj: 'CPF / CNPJ'
+        person_type_id: 'Tipo de pessoa'
+        person_type: 'Tipo de pessoa'
+        cnpj: 'CNPJ'
+        social_name: 'Razão social'
+        fantasy_name: 'Nome fantasia'
+        my_data: 'Meus dados'
+        company_data: 'Dados da empresa'
+        cpf_registration: "CPF/Matrícula"
+        general_data: "Dados gerais"
+        personal_data: 'Dados pessoais'
+        responsible_data: 'Dados do responsável'
+        sex_id: 'Sexo'
+        sex: 'Sexo'
+        users: 'Usuários'
+        profile_image: 'Imagem de perfil'
+        accept_therm: 'Termos'
+        current_password: 'Senha atual'
+        invalid_password: 'Senha inválida'
+        change_access_data: 'Alterar dados de acesso'
+        change_data: 'Alterar dados'
+        wrong_current_password: 'Senha atual incorreta'
+        civil_state: "Estado civil"
+        civil_state_id: "Estado civil"
+        property_regime: "Regime de bens"
+        property_regime_id: "Regime de bens"
+        cellphone: "Celular"
+        profession: "Profissão"
+        provider: "Provider Login Social"
+        uid: "UID Login Social"
+        invalid_current_password: 'Senha atual incorreta'
+        payment_type: "Tipo de pagamento"
+        payment_type_id: "Tipo de pagamento"
+        reset_user_password: "Resetar senha"
+        reset_user_password_success: "Nova senha enviada com sucesso para o usuário!"
+        current_plan: "Plano atual"
+        current_plan_id: "Plano atual"
+        set_manually_plan: "Liberar acesso a algum plano manualmente"
+        manually_plan: "Plano liberado manualmente"
+        manually_plan_id: "Plano liberado manualmente"
+        limit_date_manually_plan: "Data limite de uso de plano liberado"
+        new_password_sent: "Nova senha enviada com sucesso!"
+        closing_modal_reset_password: "Após fechar este pop-up a nova senha não poderá mais ser visualizada."
+        copy_password: "Copiar senha"
+        manually_plan: "Plano liberado"
+        manually_plan_id: "Plano liberado"
+        user_status: "Status de validação"
+        user_status_id: "Status de validação"
+        validate_users: "Aguardando aprovação"
+        approve_users: "Aprovar selecionado(s)"
+        disapprove_users: "Reprovar selecionado(s)"
+        approved_users: "Usuário(s) aprovado(s) com sucesso!"
+        disapproved_users: "Usuário(s) reprovado(s) com sucesso!"
+        reason_disapprove: "Motivo da reprovação"
+        external_register: "Cadastro externo"
+        success_validated_mail: "Seu e-mail foi validado com sucesso!"
+        access_area_login: "Acesse a área de login ou clique"
+        municipal_inscription: "Inscrição municipal"
+        state_inscription: "Inscrição estadual"
+        discount_percent: "% de desconto"
+        department: "Departamento"
+        state: "Estado"
+        state_id: "Estado"
+        city: "Cidade"
+        city_id: "Cidade"
+        provider_service_type_id: "Tipo de serviço"
+        provider_service_types: "Tipos de serviços"
+        client_cost_centers: "Centros de custos (do cliente)"
+        associated_cost_centers: "Centros de custos"
+        associated_sub_units: "Sub-unidades"
+        cost_center_id: "Centro de custo"
+        state_city: "Estado/Cidade"
+        states: "Estados para recebimento de propostas"
+        registration: "Matrícula"
+        optante_simples: "Optante pelo SIMPLES"
+        needs_km: "Necessita controle de KM"
+      user/cards:
+        id: 'ID'
+        nickname: "Apelido do cartão"
+        name: "Nome impresso no cartão"
+        number: "Número do cartão"
+        validate_date_month: "Validade (Mês)"
+        validate_date_year: "Validade (Ano)"
+        expiration_date: "Data de Validade"
+        ccv_code: "CCV (Código)"
+        card_banner_id: "Bandeira"
+        card_banner: "Bandeira"
+        principal: 'Principal'

@@ -1,0 +1,22 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: vehicle_models_path, text: VehicleModel.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: VehicleModel.model_name.human(count: 2),
+		url_new_path: new_vehicle_model_path,
+		policy_true: policy(VehicleModel).new?,
+		objects: @grid,
+		objects_path: vehicle_models_path,
+		object_name: VehicleModel.model_name.human,
+		breadcrumbs: breadcrumbs,
+		show_file_model: false,
+		show_file_import: false
+	}
+%>

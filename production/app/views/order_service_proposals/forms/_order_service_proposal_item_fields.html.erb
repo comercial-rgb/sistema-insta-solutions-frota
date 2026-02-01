@@ -1,0 +1,25 @@
+<div class="col-12 col-md-4">
+    <%= 
+        order_service_proposal_item.association :service, 
+        label_method: :getting_formatted_name_with_price, 
+        collection: collection, 
+        as: :select, 
+        include_blank: t('model.select_option'),
+        input_html: {class: 'order_service_proposal_item_service'},
+        label: OrderServiceProposalItem.human_attribute_name(:name)
+    %>
+</div>
+
+<div class="col-12 col-md-2">
+    <%= order_service_proposal_item.input :quantity, input_html: {min: 1, class: 'order_service_proposal_item_quantity'} %>
+</div>
+
+<div class="col-12 col-md-2">
+    <%= order_service_proposal_item.input :discount_temp, input_html: {class: 'only-read'} %>
+    <%= order_service_proposal_item.input :discount, as: :hidden, input_html: {class: 'order_service_proposal_item_discount_'+multi_item_id} %>
+</div>
+
+<div class="col-12 col-md-2">
+    <%= order_service_proposal_item.input :total_temp, input_html: {class: 'only-read'} %>
+    <%= order_service_proposal_item.input :total_value, as: :hidden, input_html: {class: 'order_service_proposal_item_total_value_'+multi_item_id} %>
+</div>

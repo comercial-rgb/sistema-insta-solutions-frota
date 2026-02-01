@@ -1,0 +1,35 @@
+@import '_custom_variables';
+
+$link-color: '';
+$breadcrumb-divider-color: '';
+$breadcrumb-active-color: '';
+$breadcrumb-item-padding-x: '';
+$breadcrumb-divider: '';
+
+@if $breadcrumb-type == one {
+  $link-color: $secondary;
+  $breadcrumb-divider-color: $secondary;
+  $breadcrumb-active-color: #000000;
+  $breadcrumb-item-padding-x: .5rem;
+  $breadcrumb-divider: quote("/");
+} @else if $breadcrumb-type == two {
+  $link-color: rgba(0, 0, 0, 0.6);
+  $breadcrumb-divider-color: rgba(41, 45, 50, 0.6);
+  $breadcrumb-active-color: $primary;
+  $breadcrumb-item-padding-x: 9px;
+  $breadcrumb-divider: url("icons/icon-chevron-right.svg");
+} @else if $breadcrumb-type == three {
+  $link-color: rgba(0, 0, 0, 0.6);
+  $breadcrumb-divider-color: rgba(41, 45, 50, 0.6);
+  $breadcrumb-active-color: $success;
+  $breadcrumb-item-padding-x: 20px;
+  $breadcrumb-divider: none;
+}
+
+$breadcrumb-font-size: 16px;
+
+.breadcrumb-item.active {
+  a {
+    text-decoration: none !important;
+  }
+}

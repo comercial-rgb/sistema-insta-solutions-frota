@@ -1,0 +1,51 @@
+<% 
+	plan = subscription.plan
+	data_plan_periodicity = subscription.data_plan_periodicity
+%>
+
+<% if plan && data_plan_periodicity %>
+	<div class="card">
+		<div class="card-header">
+			<%= render "subscribe/subscription_status", record: subscription %>
+			<b><%= data_plan_periodicity.plan_periodicity.name.upcase %></b>
+			<br>
+			<b><%= Subscription.human_attribute_name(:start_date) %>:</b> <%= CustomHelper.get_text_date(subscription.start_date, 'date', :default) %>
+			<% if !subscription.cancel_date.nil? && subscription.subscription_status_id == SubscriptionStatus::ATIVA_ID %>
+				-
+				<b><%= Subscription.human_attribute_name(:cancel_date) %>:</b> <%= CustomHelper.get_text_date(subscription.cancel_date, 'date', :default) %>
+			<% end %>
+			<% if subscription.cancel_date.nil? && subscription.subscription_status_id == SubscriptionStatus::ATIVA_ID %>
+				-
+				<b><%= Subscription.human_attribute_name(:renewal_date) %>:</b> <%= CustomHelper.get_text_date(subscription.renewal_date, 'date', :default) %>
+			<% end %>
+			<% if !subscription.end_date.nil? %>
+				-
+				<b><%= Subscription.human_attribute_name(:end_date) %>:</b> <%= CustomHelper.get_text_date(subscription.end_date, 'date', :default) %>
+			<% end %>
+			<p class="card-text">
+				<b><%= CustomHelper.to_currency(subscription.plan_price) %></b>
+			</p>
+			<% if policy(subscription).cancel_subscription? %>
+				<p class="card-text text-start">
+					<%= link_to cancel_subscription_path(id: subscription.id), data: {confirm: t('model.confirm_action')}, method: :put, class: "text-decoration-none btn-sm btn btn-danger" do %>
+						<i class="bi bi-trash-fill"></i>
+						<%= Subscription.human_attribute_name(:cancel_subscription) %>
+					<% end %>
+				</p>
+			<% end %>
+			<% if policy(subscription).delete_subscription? %>
+				<p class="card-text text-end">
+					<%= link_to delete_subscription_path(id: subscription.id), data: {confirm: t('model.confirm_action')}, method: :delete, class: "text-decoration-none btn-sm btn btn-danger" do %>
+						<i class="bi bi-trash-fill"></i>
+						<%= t("model.delete") %>
+					<% end %>
+				</p>
+			<% end %>
+		</div>
+		<div class="card-body">
+			<p class="card-text">
+				<%= render 'subscribe/subscription/details', subscription: subscription %>
+			</p>
+		</div>
+	</div>
+<% end %>

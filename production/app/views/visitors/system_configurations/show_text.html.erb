@@ -1,0 +1,22 @@
+<div class="container my-5">
+	<div class="row">
+
+		<header class="col-12 text-center mb-5">
+			<% if @current_user.nil? %>
+				<%= render 'layouts/logo', width: 350, height: nil %>
+			<% end %>
+			<h2 class="mt-5"><%= @page_name_to_show %></h2>
+		</header>
+
+		<!-- Page content -->
+		<section class="col-12 mb-5 show-text-institutional">
+			<%= @text_to_show.html_safe %>
+		</section>
+
+	</div>
+</div>
+
+<%
+# End of file show_text.html.erb
+# Path: ./app/views/visitors/system_configurations/show_text.html.erb
+%>

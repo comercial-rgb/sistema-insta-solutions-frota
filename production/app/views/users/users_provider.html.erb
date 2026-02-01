@@ -1,0 +1,21 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: users_provider_path, text: User.human_attribute_name(:provider_users)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: User.human_attribute_name(:provider_users),
+		url_new_path: new_user_path(profile_id: Profile::PROVIDER_ID),
+		policy_true: (policy(User).new? && @current_user.admin?),
+		objects: @users,
+		objects_path: users_provider_path,
+		object_name: User.human_attribute_name(:provider_user),
+		breadcrumbs: breadcrumbs,
+		objects_path_export: users_provider_path(format: "csv", providers_grid: (params[:providers_grid].nil? ? "" : params[:providers_grid].to_enum.to_h))
+	}
+%>

@@ -78,12 +78,29 @@ class VehiclesController < ApplicationController
 
   def update
     authorize @vehicle
-    @vehicle.update(vehicle_params)
-    if @vehicle.valid?
-      flash[:success] = t('flash.update')
-      redirect_to vehicles_path
-    else
-      flash[:error] = @vehicle.errors.full_messages.join('<br>')
+    
+    Rails.logger.info "🔍 [VEHICLE UPDATE] ID: #{@vehicle.id}, Params: #{vehicle_params.inspect}"
+    Rails.logger.info "🔍 [VEHICLE UPDATE] cost_center_id antes: #{@vehicle.cost_center_id}"
+    
+    begin
+      update_result = @vehicle.update(vehicle_params)
+      
+      Rails.logger.info "🔍 [VEHICLE UPDATE] Update result: #{update_result}"
+      Rails.logger.info "🔍 [VEHICLE UPDATE] cost_center_id depois: #{@vehicle.cost_center_id}"
+      
+      if @vehicle.valid?
+        flash[:success] = t('flash.update')
+        redirect_to vehicles_path
+      else
+        Rails.logger.error "❌ [VEHICLE UPDATE] Erros de validação: #{@vehicle.errors.full_messages.join(', ')}"
+        flash[:error] = @vehicle.errors.full_messages.join('<br>')
+        build_initial_relations
+        render :edit
+      end
+    rescue => e
+      Rails.logger.error "❌ [VEHICLE UPDATE] Exceção: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      flash[:error] = "Erro ao atualizar veículo: #{e.message}"
       build_initial_relations
       render :edit
     end

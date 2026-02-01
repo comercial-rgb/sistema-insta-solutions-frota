@@ -1,0 +1,11 @@
+<% if false %>
+    <select class="select-with-images change_locale" style="width: 70px;">
+        <option <%= 'selected' if session[:locale].nil? || session[:locale] == 'pt-BR' %> value="pt-BR" id="pt-BR" data-display-image="<%= image_url('icons/icon-brasil.png') %>" data-image="<%= image_url('icons/icon-brasil.png') %>"></option>
+        <option <%= 'selected' if session[:locale].nil? || session[:locale] == 'en' %> value="en" id="en" data-display-image="<%= image_url('icons/icon-estados-unidos.png') %>" data-image="<%= image_url('icons/icon-estados-unidos.png') %>"></option>
+    </select>
+<% end %>
+
+<%
+# End of file _locale.html.erb
+# Path: ./app/views/sessions/_locale.html.erb
+%>

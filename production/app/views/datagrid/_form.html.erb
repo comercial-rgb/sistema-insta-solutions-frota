@@ -1,0 +1,37 @@
+<% if grid.filters.length > 0 %>
+    <%= form_for grid, options do |f| -%>
+
+        <% 
+            # if grid.class.name == 'HomePropertiesGrid' 
+            #     custom_div_class = "col-12 col-sm-6 col-md-3"
+            #     div_dflex = "text-end"
+            # else
+            #     custom_div_class = "col-12 col-sm-6 col-md-3"
+            #     div_dflex = "text-end"
+            # end
+            custom_div_class = "col-12 col-sm-6 col-md-3"
+            div_dflex = "text-end"
+        %>
+
+        <div class="row mb-3">
+            <% grid.filters.each do |filter| %>
+                <div class="<%= custom_div_class %> py-2">
+                    <%= f.datagrid_label filter, class: 'form-label d-block mb-0' %>
+                    <%= f.datagrid_filter filter, class: 'form-control form-control-sm d-inline-block' %>
+                </div>
+            <% end %>
+        </div>
+
+        <div class="datagrid-actions <%= div_dflex %>">
+            <% empty_parameter = Rails.version >= "4.1.0" && Rails.version <= '4.1.2' ? nil : {}-%>
+            <%= link_to I18n.t('datagrid.form.reset').html_safe, url_for(grid.to_param => empty_parameter), :class => "btn btn-sm btn-light" %>
+            <%= f.submit I18n.t("datagrid.form.search").html_safe, :class => "btn btn-sm btn-dark ms-2" %>
+            <%# https://github.com/rails/rails/pull/14949 -%>
+        </div>
+    <% end -%>
+<% end %>
+
+<%
+# End of file _form.html.erb
+# Path: ./app/views/datagrid/_form.html.erb
+%>

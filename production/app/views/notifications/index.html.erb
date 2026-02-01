@@ -1,0 +1,21 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: notifications_path, text: Notification.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: Notification.model_name.human(count: 2),
+		url_new_path: new_notification_path,
+		policy_true: policy(Notification).new?,
+		objects: @notifications,
+		objects_path: notifications_path,
+		object_name: Notification.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: (@current_user.admin? ? notifications_path(format: "csv", notifications_grid: (params[:notifications_grid].nil? ? "" : params[:notifications_grid].to_enum.to_h)) : false)
+	}
+%>

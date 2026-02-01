@@ -1,0 +1,32 @@
+<div class="table-actions">
+	<%
+		provider_service_type = ''
+		if record.provider_service_type
+			provider_service_type = record.provider_service_type.name
+		end
+	%>
+	<span>
+		<%= provider_service_type %>
+	</span>
+	<br>
+	<%= render 'order_services/order_service_type_badge', record: record %>
+	<% if false %>
+		<br>
+		<span class="d-flex align-items-center gap-2">
+			<span>
+				<% if record.data_inserted_by_provider %>
+					<i data-bs-toggle="tooltip" title="Já inserido pelo fornecedor" class="bi bi-check-circle-fill text-success"></i>
+				<% else %>
+					<i data-bs-toggle="tooltip" title="Ainda não inserido pelo fornecedor" class="bi bi-x-circle-fill text-secondary"></i>
+				<% end %>
+			</span>
+			<span>
+				<% if record.release_quotation %>
+					<i data-bs-toggle="tooltip" title="Cotação liberada" class="bi bi-check-circle-fill text-success"></i>
+				<% else %>
+					<i data-bs-toggle="tooltip" title="Cotação não liberada" class="bi bi-x-circle-fill text-secondary"></i>
+				<% end %>
+			</span>
+		</span>
+	<% end %>
+</div>

@@ -10,8 +10,8 @@ Rails.application.configure do
   # Rake tasks automatically ignore this option for performance.
   config.eager_load = true
 
-  # Full error reports are disabled and caching is turned on.
-  config.consider_all_requests_local       = false
+  # Full error reports are ENABLED for debugging - CHANGE BACK TO false AFTER DEBUG
+  config.consider_all_requests_local       = true
   config.action_controller.perform_caching = true
 
   # Enable Rack::Cache to put a simple HTTP cache in front of your application
@@ -93,7 +93,7 @@ Rails.application.configure do
     nil
   ]
 
-  # Credenciais da Amazon AWS S3
+  # Armazenamento na AWS S3
   config.active_storage.service = :amazon
   # config.paperclip_defaults = {
   #   :storage => :s3,
@@ -109,15 +109,26 @@ Rails.application.configure do
 
   config.action_mailer.default_url_options = { :host => ENV['HOST'] }
   Rails.application.routes.default_url_options[:host] = ENV['HOST']
+  
+  # Habilitar erros de entrega de e-mail para debug
+  config.action_mailer.raise_delivery_errors = true
+  config.action_mailer.perform_deliveries = true
 
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.smtp_settings = {
     :address => ENV['SMTP_ADDRESS'],
-    :port => ENV['SMTP_PORT'],
+    :port => ENV['SMTP_PORT'].to_i,
     :user_name => ENV['SMTP_USERNAME'],
     :password => ENV['SMTP_PASSWORD'],
-    :authentication => :login,
-    :enable_starttls_auto => true
+    :authentication => :plain,
+    :enable_starttls_auto => true,
+    :domain => ENV['HOST']
   }
+
+  # Permitir acesso via domínio configurado
+  config.hosts << "app.frotainstasolutions.com.br"
+  config.hosts << "frotainstasolutions.com.br"
+  config.hosts << "3.226.131.200"
+  config.hosts << "localhost"
 
 end

@@ -1,0 +1,8 @@
+pt-BR:
+    users:
+        panel_title_1: 'Dados gerais'
+        panel_title_2: 'Dados de acesso'
+en:
+    users:
+        panel_title_1: 'Dados gerais'
+        panel_title_2: 'Dados de acesso'

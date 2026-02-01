@@ -1,0 +1,22 @@
+pt-BR:
+  activerecord:
+    models:
+      attachment:
+        one: "Anexo"
+        other: "Anexos"
+    attributes:
+      attachment:
+        attachment: "Anexo"
+        attachment_type: "Tipo"
+        images: "Imagens"
+en:
+  activerecord:
+    models:
+      attachment:
+        one: "Anexo"
+        other: "Anexos"
+    attributes:
+      attachment:
+        attachment: "Anexo"
+        attachment_type: "Tipo"
+        images: "Imagens"

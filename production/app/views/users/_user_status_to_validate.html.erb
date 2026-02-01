@@ -1,0 +1,10 @@
+<div class="table-actions">
+	<%
+		if record.user_status_id == UserStatus::AGUARDANDO_AVALIACAO_ID
+			span_class = 'bg-primary'
+		else
+			span_class = 'bg-danger'
+		end
+	%>
+	<span class="badge <%= span_class %>"><%= record.user_status.name %></span>
+</div>

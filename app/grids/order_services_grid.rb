@@ -274,11 +274,11 @@ class OrderServicesGrid
 
   column(:provider_id, if: :check_admin, order: :provider_id, header: OrderService.human_attribute_name(:provider_id) ) do |record, grid|
     if record.provider
-      record.provider.name
+      record.provider.fantasy_name.presence || record.provider.name
     else
       order_service_proposal_approved = record.getting_order_service_proposal_approved
       if order_service_proposal_approved
-        order_service_proposal_approved.provider.name
+        order_service_proposal_approved.provider.fantasy_name.presence || order_service_proposal_approved.provider.name
       end
     end
   end
@@ -305,9 +305,21 @@ class OrderServicesGrid
     end
   end
 
-  column(:commitment_id, if: :check_not_provider, header: OrderService.human_attribute_name(:commitment_id) ) do |record, grid|
+  column(:commitment_id, if: :check_not_provider, html: false, header: OrderService.human_attribute_name(:commitment_id) ) do |record, grid|
     if record.commitment
-      record.commitment.get_text_name
+      # Para CSV/Excel, exibir texto completo
+      cost_centers = record.commitment.cost_centers.any? ? record.commitment.cost_centers : [record.commitment.cost_center].compact
+      if cost_centers.count > 1
+        "#{record.commitment.commitment_number} (#{cost_centers.count} Centros de Custo)"
+      else
+        record.commitment.get_text_name
+      end
+    end
+  end
+
+  column(:commitment_id, if: :check_not_provider, html: true, header: OrderService.human_attribute_name(:commitment_id) ) do |record, grid|
+    if record.commitment
+      render "show_commitment_data", record: record
     end
   end
 

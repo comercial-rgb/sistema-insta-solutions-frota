@@ -1,0 +1,352 @@
+<% if !@current_user.admin? %>
+    <%= hidden_field_tag 'order_service[client_id]', @current_user.client_id %>
+    <% if (@current_user.manager? || @current_user.additional?) && !f.object.persisted? %>
+        <%= hidden_field_tag 'order_service[manager_id]', @current_user.id %>
+    <% end %>
+<% end %>
+
+<%
+    # Variáveis de desabilitação podem vir do partial pai ou usar valor padrão
+    disabled_basic_fields = local_assigns.fetch(:disabled_basic_fields, disabled)
+    disabled_commitment_fields = local_assigns.fetch(:disabled_commitment_fields, disabled)
+%>
+
+<% if f.object.persisted? %>
+    <div class="row">
+        <div class="col-12 text-center">
+            <h4><%= OrderService.model_name.human %>: <%= f.object.code %></h4>
+        </div>
+        <% if policy(f.object).show_order_service_proposals_by_order_service? %>
+            <div class="col-12 text-center py-3">
+                <a href="<%= show_order_service_proposals_by_order_service_path(order_service_id: f.object.id) %>" class="btn btn-primary">
+                    <%= OrderService.human_attribute_name(:show_order_service_proposals) %>
+                </a>
+            </div>
+        <% end %>
+    </div>
+<% end %>
+
+<div class="row">
+    <% if @current_user.admin? %>
+        <div class="col-12 col-md-3">
+            <%= f.association :client, disabled: disabled, collection: User.client.order(:fantasy_name), label_method: :fantasy_name, as: :select, include_blank: t('model.select_option') %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.association :manager, disabled: disabled, collection: User.manager, as: :select, include_blank: t('model.select_option') %>
+        </div>
+    <% end %>
+</div>
+
+<div class="row">
+    <div class="col-12 col-md-3">
+        <%= f.association :vehicle, disabled: disabled_basic_fields, collection: Vehicle.getting_data_by_user(@current_user), label_method: :board, as: :select, include_blank: t('model.select_option') %>
+    </div>
+    <% if !f.object.persisted? %>
+        <div class="col-12 col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title"><%= OrderService.human_attribute_name(:last_order_service_vehicle) %></h5>
+                    <p class="card-text">
+                        <%= OrderService.human_attribute_name(:code) %>:
+                        <b><span id="order-service-code">-</span><br></b>
+                        <%= OrderService.human_attribute_name(:created_at) %>:
+                        <b><span id="order-service-created-at">-</span><br></b>
+                        <%= OrderService.human_attribute_name(:provider_service_type_id) %>:
+                        <b><span id="order-service-provider-service-type">-</span><br></b>
+                        <%= OrderService.human_attribute_name(:order_service_status_id) %>:
+                        <b><span id="order-service-status">-</span></b>
+                    </p>
+                </div>
+            </div>
+        </div>
+    <% end %>
+    <div class="col-12 col-md-8">
+        <div class="row">
+            <% 
+                if f.object.client_id.present?
+                    all_commitments = Commitment.getting_data_by_user(@current_user, f.object.client_id, f.object.get_cost_center_id, f.object.get_sub_unit_id)
+                    global_commitments = all_commitments.select { |c| c.category_id.nil? }
+                    parts_commitments = all_commitments.select { |c| c.category_id == Category::SERVICOS_PECAS_ID }
+                    services_commitments = all_commitments.select { |c| c.category_id == Category::SERVICOS_SERVICOS_ID }
+                    has_global = global_commitments.any?
+                    has_parts = parts_commitments.any?
+                    has_services = services_commitments.any?
+                else
+                    has_global = false
+                    has_parts = false
+                    has_services = false
+                    global_commitments = []
+                    parts_commitments = []
+                    services_commitments = []
+                end
+            %>
+            
+            <!-- Empenho Global -->
+            <div id="div-with-global-commitment" class="col-12 col-md-12" style="<%= has_global ? '' : 'display:none;' %>">
+                <% 
+                    if f.object.persisted?
+                        global_collection = f.object.commitment ? [f.object.commitment] : global_commitments
+                    else
+                        global_collection = global_commitments
+                    end
+                %>
+                <%= f.association :commitment, disabled: disabled_commitment_fields, collection: global_collection, label: 'Empenho Global (Peças e Serviços)', label_method: :get_formatted_name_with_pendent_value, as: :select, include_blank: t('model.select_option') %>
+            </div>
+            
+            <!-- Empenhos Separados -->
+            <div id="div-with-parts-commitment" class="col-12 col-md-6" style="<%= (has_parts && !has_global) ? '' : 'display:none;' %>">
+                <% 
+                    if f.object.persisted?
+                        parts_collection = f.object.commitment_parts ? [f.object.commitment_parts] : []
+                    elsif f.object.client_id.present?
+                        parts_collection = parts_commitments
+                    else
+                        parts_collection = []
+                    end 
+                %>
+                <%= f.association :commitment_parts, disabled: disabled_commitment_fields, collection: parts_collection, label: OrderService.human_attribute_name(:commitment_parts_id), label_method: :get_formatted_name_with_pendent_value, as: :select, include_blank: t('model.select_option') %>
+            </div>
+            
+            <div id="div-with-services-commitment" class="col-12 col-md-6" style="<%= (has_services && !has_global) ? '' : 'display:none;' %>">
+                <% 
+                    if f.object.persisted?
+                        services_collection = f.object.commitment_services ? [f.object.commitment_services] : []
+                    elsif f.object.client_id.present?
+                        services_collection = services_commitments
+                    else
+                        services_collection = []
+                    end 
+                %>
+                <%= f.association :commitment_services, disabled: disabled_commitment_fields, collection: services_collection, label: OrderService.human_attribute_name(:commitment_services_id), label_method: :get_formatted_name_with_pendent_value, as: :select, include_blank: t('model.select_option') %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-2">
+    <div class="col-12 col-md-3">
+        <%= f.association :provider_service_type, disabled: disabled_basic_fields, collection: ProviderServiceType.all, label_method: :display_name, as: :select, include_blank: t('model.select_option') %>
+    </div>
+    <div class="col-12 col-md-3">
+        <%= f.association :maintenance_plan, disabled: disabled_basic_fields, collection: MaintenancePlan.all, as: :select, include_blank: t('model.select_option') %>
+    </div>
+    <div class="col-12 col-md-3">
+        <%= f.association :order_service_type, disabled: disabled_basic_fields, collection: OrderServiceType.all, as: :select, include_blank: false %>
+    </div>
+    <div class="col-12 col-md-3 d-none" id="div-with-service-group-selection">
+        <% 
+            # Para Requisição: NUNCA desabilitar o select de grupo de serviços
+            # Isso permite que o JavaScript carregue os limites corretamente
+            service_group_disabled = f.object.order_service_type_id == OrderServiceType::REQUISICAO_ID ? false : disabled
+        %>
+        <%= f.association :service_group, disabled: service_group_disabled, collection: ServiceGroup.active, as: :select, include_blank: t('model.select_option'), input_html: { class: 'form-control w-100', style: 'width: 100% !important;' } %>
+    </div>
+    <div class="col-12 col-md-3 d-none" id="div-with-provider-selection">
+        <% 
+            # Filtrar fornecedores pelo ESTADO DO ENDEREÇO que corresponde aos 
+            # "Estados para recebimento de propostas" do cliente
+            # Prioridade: Manager/Additional usam sempre seu client_id, depois tenta client da OS
+            if @current_user.manager? || @current_user.additional?
+                client_for_state = User.where(id: @current_user.client_id, profile_id: Profile::CLIENT_ID).first
+            elsif f.object.client.present?
+                client_for_state = f.object.client
+            elsif @current_user.client?
+                client_for_state = @current_user
+            else
+                client_for_state = nil
+            end
+            
+            # Usa os "Estados para recebimento de propostas" do cliente (has_and_belongs_to_many :states)
+            # Cruza com o ESTADO DO ENDEREÇO do fornecedor (addresses.state_id)
+            if client_for_state.present?
+                client_state_ids = client_for_state.states.pluck(:id)
+            else
+                client_state_ids = []
+            end
+            
+            providers_collection = if client_state_ids.present? && client_state_ids.any?
+                # Filtra fornecedores cujo ESTADO DO ENDEREÇO está nos estados aceitos pelo cliente
+                User.provider.by_provider_state_ids(client_state_ids).name_ordered
+            else
+                # Se cliente não tem estados configurados, mostra todos os fornecedores
+                User.provider.name_ordered
+            end
+        %>
+        <%= f.association :provider, disabled: disabled_basic_fields, label_method: :get_name, collection: providers_collection, as: :select, include_blank: t('model.select_option'), input_html: { class: 'form-control w-100', style: 'width: 100% !important;' } %>
+    </div>
+</div>
+
+<% if f.object.order_service_type_id == OrderServiceType::REQUISICAO_ID && f.object.service_group.present? %>
+    <div class="row mt-2">
+        <div class="col-12">
+            <div class="alert alert-warning" role="alert">
+                <i class="bi bi-exclamation-triangle-fill"></i> <strong>Ordem de Serviço tipo Requisição com Grupo de Serviços</strong>
+                <hr>
+                <p class="mb-1"><strong>Grupo Selecionado:</strong> <%= f.object.service_group.name %></p>
+                <p class="mb-2"><strong>⚠️ ATENÇÃO:</strong> Cada peça/serviço possui limites individuais de <u>quantidade máxima</u> e <u>valor máximo</u> definidos no cadastro do grupo.</p>
+                <p class="mb-0 small text-muted">
+                    <strong>Importante:</strong> Você só poderá adicionar as peças/serviços que estão cadastradas neste grupo, 
+                    respeitando as quantidades e valores máximos permitidos para cada item.
+                </p>
+            </div>
+        </div>
+    </div>
+<% end %>
+
+<div class="row">
+    <div class="col-12 col-md-3">
+        <% 
+            # Determinar se o cliente exige KM (para registros novos e existentes)
+            client_needs_km = false
+            if f.object.persisted? && f.object.client.present?
+                client_needs_km = f.object.client.needs_km
+            elsif !f.object.persisted? && @current_user.present?
+                # Para novo registro, verificar se usuário é gestor/adicional do cliente
+                if @current_user.manager? || @current_user.additional?
+                    client = User.find_by(id: @current_user.client_id)
+                    client_needs_km = client&.needs_km || false
+                end
+            end
+        %>
+        <%= f.input :km, disabled: disabled_basic_fields, required: client_needs_km %>
+        <% if client_needs_km %>
+            <small class="text-danger d-block" style="margin-top: -8px; font-size: 0.75rem;">
+                <i class="bi bi-exclamation-circle-fill"></i> <strong>KM obrigatório</strong> para este cliente
+            </small>
+        <% end %>
+    </div>
+    <div class="col-12 col-md-6">
+        <%= f.input :driver, disabled: disabled_basic_fields %>
+    </div>
+    <div class="col-12">
+        <%= f.input :details, disabled: disabled_basic_fields %>
+    </div>
+</div>
+
+<% 
+    # Determinar se o cliente exige fotos do veículo (para registros novos e existentes)
+    client_requires_photos = false
+    if f.object.persisted? && f.object.client.present?
+        client_requires_photos = f.object.client.require_vehicle_photos
+    elsif !f.object.persisted? && @current_user.present?
+        # Para novo registro, verificar se usuário é gestor/adicional do cliente
+        if @current_user.manager? || @current_user.additional?
+            client = User.find_by(id: @current_user.client_id)
+            client_requires_photos = client&.require_vehicle_photos || false
+        end
+    end
+%>
+
+<% if client_requires_photos %>
+    <% has_approved_proposal = f.object.order_service_proposals.any? { |p| p.order_service_proposal_status_id == OrderServiceProposalStatus::APROVADA_ID } %>
+
+    <% if @current_user.admin? || @current_user.manager? || @current_user.additional? %>
+        <div class="alert alert-info mt-3" role="alert">
+            <i class="bi bi-info-circle-fill"></i> <strong>Atenção:</strong> Este cliente exige anexar fotos do veículo (frontal, laterais, traseira e hodômetro).
+        </div>
+        
+        <div class="card mb-3">
+            <div class="card-header bg-light">
+                <i class="bi bi-camera-fill"></i> Fotos do veículo
+            </div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Frontal <span class="text-danger">*</span></label>
+                        <%= f.file_field :vehicle_photos, multiple: true, direct_upload: true, class: 'form-control', disabled: disabled, accept: 'image/*', name: 'order_service[vehicle_photos][]' %>
+                        <small class="text-muted">Foto da parte frontal do veículo</small>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Lateral direita <span class="text-danger">*</span></label>
+                        <%= f.file_field :vehicle_photos, multiple: true, direct_upload: true, class: 'form-control', disabled: disabled, accept: 'image/*', name: 'order_service[vehicle_photos][]' %>
+                        <small class="text-muted">Foto do lado direito do veículo</small>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Lateral esquerda <span class="text-danger">*</span></label>
+                        <%= f.file_field :vehicle_photos, multiple: true, direct_upload: true, class: 'form-control', disabled: disabled, accept: 'image/*', name: 'order_service[vehicle_photos][]' %>
+                        <small class="text-muted">Foto do lado esquerdo do veículo</small>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Traseira <span class="text-danger">*</span></label>
+                        <%= f.file_field :vehicle_photos, multiple: true, direct_upload: true, class: 'form-control', disabled: disabled, accept: 'image/*', name: 'order_service[vehicle_photos][]' %>
+                        <small class="text-muted">Foto da parte traseira do veículo</small>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Hodômetro <span class="text-danger">*</span></label>
+                        <%= f.file_field :vehicle_photos, multiple: true, direct_upload: true, class: 'form-control', disabled: disabled, accept: 'image/*', name: 'order_service[vehicle_photos][]' %>
+                        <small class="text-muted">Foto do painel mostrando a quilometragem</small>
+                    </div>
+                </div>
+                
+                <% if f.object.vehicle_photos.attached? && f.object.persisted? %>
+                    <div class="mt-3">
+                        <h6>Fotos anexadas:</h6>
+                        <div class="row g-2">
+                            <% f.object.vehicle_photos.each do |photo| %>
+                                <div class="col-4 col-md-2">
+                                    <%= image_tag photo, class: 'img-thumbnail', style: 'max-height: 100px;' %>
+                                </div>
+                            <% end %>
+                        </div>
+                    </div>
+                <% end %>
+            </div>
+        </div>
+
+    <% elsif @current_user.provider? %>
+        <% if has_approved_proposal %>
+            <div class="alert alert-info mt-3" role="alert">
+                <i class="bi bi-info-circle-fill"></i> <strong>Fornecedor:</strong> Anexe fotos das peças trocadas e do veículo.
+            </div>
+            <div class="card mb-3">
+                <div class="card-header bg-light">
+                    <i class="bi bi-images"></i> Peças trocadas e fotos do veículo
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Peças trocadas / Serviços <span class="text-danger">*</span></label>
+                            <%= f.file_field :parts_photos, multiple: true, direct_upload: true, class: 'form-control', accept: 'image/*' %>
+                            <small class="text-muted">Pode anexar mais de uma foto das peças/serviços executados.</small>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Frontal <span class="text-danger">*</span></label>
+                            <%= f.file_field :vehicle_photos, multiple: true, direct_upload: true, class: 'form-control', accept: 'image/*', name: 'order_service[vehicle_photos][]' %>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Lateral direita <span class="text-danger">*</span></label>
+                            <%= f.file_field :vehicle_photos, multiple: true, direct_upload: true, class: 'form-control', accept: 'image/*', name: 'order_service[vehicle_photos][]' %>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Lateral esquerda <span class="text-danger">*</span></label>
+                            <%= f.file_field :vehicle_photos, multiple: true, direct_upload: true, class: 'form-control', accept: 'image/*', name: 'order_service[vehicle_photos][]' %>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Traseira <span class="text-danger">*</span></label>
+                            <%= f.file_field :vehicle_photos, multiple: true, direct_upload: true, class: 'form-control', accept: 'image/*', name: 'order_service[vehicle_photos][]' %>
+                        </div>
+                        <div class="col-12 col-md-6">
+                            <label class="form-label">Hodômetro <span class="text-danger">*</span></label>
+                            <%= f.file_field :vehicle_photos, multiple: true, direct_upload: true, class: 'form-control', accept: 'image/*', name: 'order_service[vehicle_photos][]' %>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        <% else %>
+            <div class="alert alert-info mt-3" role="alert">
+                <i class="bi bi-info-circle-fill"></i> Aguardar aprovação da proposta para anexar fotos de peças e serviços.
+            </div>
+        <% end %>
+    <% end %>
+<% end %>
+
+<%= 
+    render "common_pages/attachments/multi_attachs", 
+    attribute: :files, 
+    contents: f.object.attachments.select{|item| item.persisted?}, 
+    f: f, 
+    page_title: OrderService.human_attribute_name(:files),
+    class_attachments: 'col-md-4',
+    can_delete: false,
+    disabled: disabled
+%>

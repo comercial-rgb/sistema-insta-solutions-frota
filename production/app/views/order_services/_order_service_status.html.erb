@@ -1,0 +1,42 @@
+<div class="table-actions">
+
+	<% if record.order_service_status_id == OrderServiceStatus::CANCELADA_ID %>
+		<i class="bi bi-question-circle-fill pointer" data-bs-toggle="tooltip" title="<%= record.cancel_justification %>"></i>
+	<% end %>
+
+	<% if defined?(order_service_proposal) && policy(order_service_proposal).show_order_service_proposal? %>
+		
+		<%= link_to show_order_service_proposal_path(id: order_service_proposal.id), class: 'my-3 btn btn-primary btn-sm' do %>
+			<%= OrderServiceProposal.human_attribute_name(:view_proposal) %>
+		<% end %>
+
+		<% if policy(order_service_proposal).edit? %>
+			<%= link_to edit_order_service_proposal_path(id: order_service_proposal.id), data: {confirm: t('model.confirm_action'), method: :get}, class: 'my-3 btn btn-warning text-white btn-sm' do %>
+				<%= OrderServiceProposal.human_attribute_name(:edit_order_service_proposal) %>
+			<% end %>
+		<% end %>
+
+		<% if policy(order_service_proposal).cancel_order_service_proposal? %>
+			<%= link_to cancel_order_service_proposal_path(id: order_service_proposal.id), data: {confirm: t('model.confirm_action'), method: :post}, class: 'my-3 btn btn-danger btn-sm' do %>
+				<%= OrderServiceProposal.human_attribute_name(:cancel_proposal) %>
+			<% end %>
+		<% end %>
+		
+		<% if order_service_proposal.reproved %>
+			<br>
+			<span class="badge bg-danger">
+				<%= order_service_proposal.order_service_proposal_status.name %>
+			</span>
+			<i class="bi bi-question-circle-fill pointer" data-bs-toggle="tooltip" title="<%= order_service_proposal.reason_reproved %>"></i>
+		<% elsif (!order_service_proposal.reason_approved.nil? && !order_service_proposal.reason_approved.blank?) && policy(OrderServiceProposal).can_view_reason_approved? %>
+			<i class="bi bi-question-circle-fill pointer" data-bs-toggle="tooltip" title="<%= order_service_proposal.reason_approved %>"></i>
+		<% end %>
+
+		<% if policy(OrderServiceProposal).destroy? %>
+			<%= link_to order_service_proposal_path(order_service_proposal.id), method: :delete, class: 'my-3 btn btn-danger btn-sm' do %>
+				<%= t('model.delete') %>
+			<% end %>
+		<% end %>
+	<% end %>
+
+</div>

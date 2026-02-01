@@ -1,0 +1,26 @@
+<%
+    if order_service_proposal.order_service_invoices.select{ |item| item[:id].nil? }.length == 0
+        order_service_proposal.order_service_invoices.build
+    end
+%>
+<%= simple_form_for(order_service_proposal) do |f| %>
+    <div class="alert alert-warning mt-2" role="alert">
+        <strong class="text-danger">ATENÇÃO FORNECEDOR:</strong> As notas fiscais de serviços devem apresentar o valor líquido (já com desconto) detalhando (valor bruto e desconto) nas observações, enquanto as notas fiscais de peças apresentar os valores brutos e inserir o desconto nos campos pertinentes. Favor incluir nos campos de observação <span class="fw-bold">N° OS, placa, órgão solicitante</span> em ambas notas fiscais.
+    </div>
+    <div class="alert alert-warning" role="alert">
+        <span class="text-danger">Os valores das notas fiscais terão que ser iguais ao dos orçamentos aprovado, não podendo haver divergências.</span>
+        <span class="fw-bold text-danger">Notas com divergências poderão ser rejeitadas.</span>
+    </div>
+    <%= f.input :order_service_proposal_status_id, as: :hidden, input_html: {value: (@current_user.admin? ? f.object.order_service_proposal_status_id : OrderServiceProposalStatus::NOTAS_INSERIDAS_ID)} %>
+    <%= render 'order_service_proposals/forms/form_order_service_invoices', f:f, order_service_proposal: @order_service_proposal %>
+    <div class="row my-3">
+        <div class="col-12 mt-3">
+            <span class='text-danger'><b><%= OrderServiceInvoice.human_attribute_name(:save_button_message).upcase %></b></span>
+        </div>
+        <div class="col-12 mb-3 text-end">
+            <button type="submit" class="btn btn-primary" data-bs-toggle="tooltip" title="Valide todos os dados e o valor total das notas" id="button_insert_invoice" data-confirm="<%= OrderServiceProposal.human_attribute_name(:confirm_insert_invoice) %>">
+                <%= t('model.save') %>
+            </button>
+        </div>
+    </div>
+<% end %>

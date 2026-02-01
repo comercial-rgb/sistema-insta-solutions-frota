@@ -1,0 +1,60 @@
+<div class="card mt-4 shadow-sm" id="ordens-servico-veiculo">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span class="fw-bold"><i class="bi bi-list-ul me-2"></i>Ordens de serviço deste veículo</span>
+    <% total_count = @order_services_for_vehicle.respond_to?(:total_count) ? @order_services_for_vehicle.total_count : @order_services_for_vehicle.size %>
+    <% if total_count > 0 %>
+      <span class="badge bg-secondary"><%= total_count %> OS</span>
+    <% end %>
+  </div>
+  <div class="card-body p-0">
+    <% if @order_services_for_vehicle.blank? %>
+      <p class="text-muted px-3 py-3 mb-0">Nenhuma OS vinculada a este veículo.</p>
+    <% else %>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle mb-0" style="border-collapse: separate; border-spacing: 0;">
+          <thead>
+            <tr style="background-color: #f8f9fa;">
+              <th class="fw-bold py-2 px-3" style="border-bottom: 2px solid #dee2e6;">Código</th>
+              <th class="fw-bold py-2 px-3" style="border-bottom: 2px solid #dee2e6;">Status</th>
+              <th class="fw-bold py-2 px-3" style="border-bottom: 2px solid #dee2e6;">Tipo</th>
+              <th class="fw-bold py-2 px-3" style="border-bottom: 2px solid #dee2e6;">Atualizado em</th>
+              <th class="fw-bold py-2 px-3" style="border-bottom: 2px solid #dee2e6;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @order_services_for_vehicle.each_with_index do |os, index| %>
+              <tr style="<%= index.even? ? 'background-color: #ffffff;' : 'background-color: #f8f9fa;' %>">
+                <td class="py-2 px-3" style="border-bottom: 1px solid #e9ecef;">
+                  <% if policy(os).show_historic? %>
+                    <%= link_to (os.code.presence || os.id), show_historic_path(id: os.id), class: 'text-decoration-none fw-semibold' %>
+                  <% else %>
+                    <%= os.code.presence || os.id %>
+                  <% end %>
+                </td>
+                <td class="py-2 px-3" style="border-bottom: 1px solid #e9ecef;">
+                  <% if os.order_service_status.present? %>
+                    <%= render 'order_services/show_order_service_status', record: os %>
+                  <% end %>
+                </td>
+                <td class="py-2 px-3" style="border-bottom: 1px solid #e9ecef;">
+                  <%= render 'order_services/order_service_type_badge', record: os %>
+                </td>
+                <td class="py-2 px-3" style="border-bottom: 1px solid #e9ecef;"><%= l(os.updated_at, format: :short) rescue os.updated_at %></td>
+                <td class="py-2 px-3 text-end" style="border-bottom: 1px solid #e9ecef;">
+                  <%= link_to edit_order_service_path(os), class: 'btn btn-outline-primary btn-sm' do %>
+                    <i class="bi bi-eye"></i> Ver
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+      <% if @order_services_for_vehicle.respond_to?(:total_pages) && @order_services_for_vehicle.total_pages > 1 %>
+        <div class="card-footer bg-white border-top d-flex justify-content-center py-2">
+          <%= paginate @order_services_for_vehicle, param_name: :os_page, theme: 'bootstrap-5', params: request.query_parameters, anchor: 'ordens-servico-veiculo' %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</div>

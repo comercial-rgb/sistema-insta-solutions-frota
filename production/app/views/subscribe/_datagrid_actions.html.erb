@@ -1,0 +1,16 @@
+<%
+array_links = [
+  {
+    link_path: subscription_path(id: record.id),
+    link_method: :get,
+    link_title: t('model.show_details'),
+    confirm: nil,
+    link_image: 'bi bi-card-list',
+    text_action: t('model.show_details'),
+    link_policy: policy(record).subscription?,
+    class: 'dropdown-item'
+  }
+]
+%>
+
+<%= render 'common_pages/datagrid_actions', array_links: array_links %>

@@ -1,0 +1,23 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: subscriptions_path, text: Subscription.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: Subscription.model_name.human(count: 2),
+		url_new_path: nil,
+		policy_true: false,
+		objects: @subscriptions,
+		objects_path: subscriptions_path,
+		object_name: Subscription.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: subscriptions_path(format: "csv", subscriptions_grid: (params[:subscriptions_grid].nil? ? "" : params[:subscriptions_grid].to_enum.to_h)),
+		custom_table_data: (render "subscribe/subscription/subscriptions", subscriptions: @subscriptions_to_export.assets),
+		remove_pagination: true
+	}
+%>

@@ -1,0 +1,32 @@
+pt-BR:
+  activerecord:
+    models:
+      person_contact:
+        one: "Contato"
+        other: "Contatos"
+    attributes:
+      person_contact:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        name: 'Nome'
+        email: 'E-mail'
+        phone: 'Telefone/Ramal'
+        office: 'Cargo/departamento'
+en:
+  activerecord:
+    models:
+      person_contact:
+        one: "Contato"
+        other: "Contatos"
+    attributes:
+      person_contact:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        name: 'Nome'
+        email: 'E-mail'
+        phone: 'Telefone/Ramal'
+        office: 'Cargo/departamento'

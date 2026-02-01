@@ -1,9 +1,10 @@
 class NotificationMailer < ApplicationMailer
 
-	default from: I18n.t('session.project')+' <naoresponder@frotainstasolutions.com.br>'
+	default from: I18n.t('session.project')+' <comercial@instasolutions.com.br>'
 	TO_DEVELOPMENT = "andre.sulivam@sulivam.com.br"
 
 	def forgot_password(user, system_configuration)
+		user.reload if user.persisted?
 		@user = user
 		address = @user.email
 		if Rails.env.development?

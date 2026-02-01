@@ -1,0 +1,8 @@
+<% if policy(@current_user).destroy_attachment? && !attachment.id.nil? %>
+  <div class="mt-1">
+    <a href="<%= destroy_attachment_url(attachment_id: attachment.id) %>" class="btn btn-sm btn-danger" data-confirm="<%= t("model.confirm_action") %>" data-method="delete">
+      <i class="bi bi-trash-fill"></i>
+      <%= t("model.delete_remove") %>
+    </a>
+  </div>
+<% end %>

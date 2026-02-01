@@ -1,0 +1,28 @@
+<div class="row">
+
+    <!-- Título -->
+    <div class="col-12">
+        <h5 class="mt-4"><%= DataBank.model_name.human(count: 2) %></h5>
+    </div>
+
+    <!-- Campos multiplos dinamicos (dados bancarios) -->
+    <div class="col-12 multi-data-bank-block">
+
+        <!-- Contador -->
+        <input type="hidden" value="<%= f.object.data_banks.length.to_s %>" class="multi-data-bank-cont" disabled>
+
+        <%= f.fields_for :data_banks do |data_bank| %>
+        <div class="row multi-data-bank align-items-end">
+            <%= render 'common_pages/data_banks/data_bank_field', f: f, data_bank: data_bank  %>
+            <%= render 'common_pages/delete_multiple_relation', remove_path: delete_data_bank_path(model_id: data_bank.object.id), object: data_bank.object, object_text: 'data-bank'  %>
+        </div>
+        <% end %>
+    </div>
+
+    <!-- Botão de adicionar -->
+    <div class="col-12">
+        <%= render 'common_pages/add_multiple_relation', object_text: 'data-bank' %>
+    </div>
+
+</div>
+<!-- Fim dados bancários cadastro múltiplo -->

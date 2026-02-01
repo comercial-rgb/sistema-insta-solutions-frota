@@ -1,10 +1,12 @@
 class VehicleModelPolicy < ApplicationPolicy
   def index?
-    user.present?
+    # Fornecedores não têm acesso aos modelos de veículos
+    user.present? && !user.provider?
   end
 
   def show?
-    user.present?
+    # Fornecedores não têm acesso aos modelos de veículos
+    user.present? && !user.provider?
   end
 
   def create?

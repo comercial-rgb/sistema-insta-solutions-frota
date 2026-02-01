@@ -1,0 +1,48 @@
+<div class="col-12">
+    <h5><%= Card.human_attribute_name(:card_data) %></h5>
+</div>
+
+<div class="col-12 col-md-2">
+    <%= card.association :card_banner,
+    collection: CardBanner.all,
+    as: :select,
+    input_html: { class: "chosen" },
+    label: Card.human_attribute_name(:card_banner_id),
+    include_blank: Card.human_attribute_name(:card_banner_id) %>
+</div>
+
+<div class="col-12 col-md-5">
+    <%= card.input :number,
+    label: Card.human_attribute_name(:number),
+    input_html: {class: 'card-number', type: 'tel'},
+    :placeholder => " " %>
+</div>
+
+<div class="col-12 col-md-5">
+    <%= card.input :name,
+    label: Card.human_attribute_name(:name),
+    input_html: {class: 'insert_just_letter text-uppercase'},
+    :placeholder => " " %>
+</div>
+
+<div class="col-12 col-md-3">
+    <%= card.input :validate_date_month, as: :select,
+    collection: Card.get_months,
+    include_blank: t('model.select_option'),
+    label: Card.human_attribute_name(:validate_date_month) %>
+</div>
+
+<div class="col-12 col-md-3">
+    <%= card.input :validate_date_year,
+    as: :select,
+    collection: Card.get_years,
+    include_blank: t('model.select_option'),
+    label: Card.human_attribute_name(:validate_date_year) %>
+</div>
+
+<div class="col-12 col-md-3">
+    <%= card.input :ccv_code,
+    label: Card.human_attribute_name(:ccv_code),
+    input_html: {class: 'floating-input card-ccv-code', type: 'tel'},
+    :placeholder => " " %>
+</div>

@@ -30,18 +30,31 @@ breadcrumbs = [
           </h5>
         </div>
         <div class="card-body">
+          <div class="alert alert-success mb-3">
+            <i class="bi bi-check-circle"></i>
+            <strong>Atenção:</strong> Você pode baixar o Excel da lista de peças/serviços, adicionar novos itens e fazer o upload de volta!
+          </div>
+          
           <ol class="mb-0">
             <li class="mb-2">
-              <strong>Baixe o template CSV:</strong>
+              <strong>Opção 1 - Baixar template vazio:</strong>
               <%= link_to template_services_import_path, class: 'btn btn-sm btn-outline-primary' do %>
-                <i class="bi bi-download"></i> Download Template
+                <i class="bi bi-download"></i> Download Template Vazio
               <% end %>
             </li>
             <li class="mb-2">
-              <strong>Preencha o arquivo:</strong> Abra com Excel ou LibreOffice e adicione seus dados
+              <strong>Opção 2 - Baixar lista atual:</strong>
+              <%= link_to services_path(format: :csv), class: 'btn btn-sm btn-success' do %>
+                <i class="bi bi-download"></i> Baixar Excel com Dados Atuais
+              <% end %>
+              <br>
+              <small class="text-muted">Use esta opção para adicionar novas peças/serviços aos existentes</small>
             </li>
             <li class="mb-2">
-              <strong>Salve como CSV:</strong> Arquivo → Salvar Como → CSV (separado por vírgula)
+              <strong>Preencha o arquivo:</strong> Abra com Excel, LibreOffice ou Google Sheets e adicione/edite seus dados
+            </li>
+            <li class="mb-2">
+              <strong>Salve como CSV:</strong> Arquivo → Salvar Como → CSV (separado por ponto e vírgula)
             </li>
             <li>
               <strong>Faça o upload:</strong> Use o formulário abaixo
@@ -81,36 +94,17 @@ breadcrumbs = [
               </tr>
               <tr>
                 <td><code>preco</code></td>
-                <td>Preço unitário (use . ou , para decimal)</td>
+                <td>Preço unitário (use vírgula para decimal)</td>
                 <td><span class="badge bg-secondary">Não</span></td>
-                <td>45.50</td>
-              </tr>
-              <tr>
-                <td><code>descricao</code></td>
-                <td>Descrição detalhada</td>
-                <td><span class="badge bg-secondary">Não</span></td>
-                <td>Filtro de óleo lubrificante</td>
-              </tr>
-              <tr>
-                <td><code>marca</code></td>
-                <td>Marca/Fabricante</td>
-                <td><span class="badge bg-secondary">Não</span></td>
-                <td>Mann</td>
-              </tr>
-              <tr>
-                <td><code>periodo_garantia</code></td>
-                <td>Período de garantia em dias</td>
-                <td><span class="badge bg-secondary">Não</span></td>
-                <td>90</td>
-              </tr>
-              <tr>
-                <td><code>fornecedor_id</code></td>
-                <td>ID do fornecedor (deixe vazio para usar seu usuário)</td>
-                <td><span class="badge bg-secondary">Não</span></td>
-                <td>123</td>
+                <td>45,50</td>
               </tr>
             </tbody>
           </table>
+          
+          <div class="alert alert-info mt-3">
+            <i class="bi bi-lightbulb"></i>
+            <strong>Dica:</strong> O arquivo baixado já está no formato correto! Você só precisa adicionar novas linhas e fazer o upload.
+          </div>
         </div>
       </div>
     </div>
@@ -144,7 +138,7 @@ breadcrumbs = [
               <i class="bi bi-exclamation-triangle"></i>
               <strong>Atenção:</strong>
               <ul class="mb-0 mt-2">
-                <li>Itens com o <strong>mesmo nome</strong> serão <strong>atualizados</strong></li>
+                <li>Itens com o <strong>mesmo nome e categoria</strong> serão <strong>atualizados</strong></li>
                 <li>Itens novos serão <strong>criados</strong></li>
                 <li>Revise o arquivo antes de enviar</li>
               </ul>
@@ -171,12 +165,12 @@ breadcrumbs = [
           </h5>
         </div>
         <div class="card-body">
-          <pre class="mb-0 bg-light p-3 rounded"><code>nome;categoria;codigo;preco;descricao;marca;periodo_garantia;fornecedor_id
-Filtro de Óleo;peca;FO-001;45.50;Filtro de óleo lubrificante;Mann;30;
-Filtro de Ar;peca;FA-001;38.90;Filtro de ar motor;Tecfil;30;
-Pastilha de Freio Dianteira;peca;PF-001;89.00;Pastilha de freio jogo dianteiro;Bosch;90;
-Mão de Obra Troca de Óleo;servico;MO-001;50.00;Serviço de troca de óleo;;;30;
-Alinhamento e Balanceamento;servico;AB-001;80.00;Serviço de alinhamento e balanceamento;;;30;</code></pre>
+          <pre class="mb-0 bg-light p-3 rounded"><code>nome;categoria;codigo;preco
+Filtro de Óleo;peca;FO-001;45,50
+Filtro de Ar;peca;FA-001;38,90
+Pastilha de Freio Dianteira;peca;PF-001;89,00
+Mão de Obra Troca de Óleo;servico;MO-001;50,00
+Alinhamento e Balanceamento;servico;AB-001;80,00</code></pre>
         </div>
       </div>
     </div>

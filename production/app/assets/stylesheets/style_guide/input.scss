@@ -1,0 +1,49 @@
+$input-font-size: 14px;
+$input-font-weight: 400;
+$input-line-height: 2;
+$input-padding-y: 10px;
+$input-padding-x: 20px;
+$input-border-radius: 8px;
+$input-border-radius-sm: 8px;
+$input-border-radius-lg: 8px;
+$input-bg: rgba(128, 128, 128, 0.08);
+$input-color: #555555;
+$input-border-color: rgba(128, 128, 128, 0.08);
+$input-border-width: 1px;
+$input-placeholder-color: rgba(19, 18, 18, 0.6);
+$input-plaintext-color: rgba(19, 18, 18, 0.6);
+
+$input-disabled-bg: rgba(128, 128, 128, 0.08);
+$input-disabled-color: rgba(19, 18, 18, 0.3);
+$input-disabled-border-color: rgba(128, 128, 128, 0.08);
+
+$input-focus-bg: rgba(128, 128, 128, 0.08);
+$input-focus-border-color: #747474;
+$input-focus-color: rgba(19, 18, 18, 0.6);
+$input-focus-width: 1px;
+$input-focus-box-shadow: none; 
+
+.form-control {  
+  padding: 4px 10px !important;
+}
+
+input:hover {
+  border-color: #E7E7E7;
+  color: rgba(19, 18, 18, 0.6);
+}
+
+input[type="text" i] {
+  border-radius: 8px;
+  border: 1px solid rgba(128, 128, 128, 0.08);
+  background-color: rgba(128, 128, 128, 0.08);
+  height: 38px;
+  font-size: 14px;
+  font-weight: 400;
+  padding: 10px 20px 10px 20px;
+}
+
+input[type=file]::file-selector-button {
+  background-color: $primary;
+  color: white;
+  transition: 30s;
+}

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_01_20_163937) do
+ActiveRecord::Schema[7.1].define(version: 2026_01_29_183000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -185,6 +185,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_20_163937) do
     t.index ["type"], name: "index_ckeditor_assets_on_type"
   end
 
+  create_table "commitment_cost_centers", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "commitment_id", null: false
+    t.bigint "cost_center_id", null: false
+    t.datetime "created_at", precision: nil, null: false
+    t.datetime "updated_at", precision: nil, null: false
+    t.index ["commitment_id", "cost_center_id"], name: "index_commitment_cost_centers_unique", unique: true
+    t.index ["commitment_id"], name: "index_commitment_cost_centers_on_commitment_id"
+    t.index ["cost_center_id"], name: "index_commitment_cost_centers_on_cost_center_id"
+  end
+
   create_table "commitments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "client_id"
     t.bigint "cost_center_id"
@@ -213,6 +223,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_20_163937) do
     t.boolean "active", default: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.date "final_date"
     t.index ["client_id"], name: "index_contracts_on_client_id"
   end
 
@@ -337,6 +348,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_20_163937) do
     t.integer "warranty_period"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "observation"
+    t.string "guarantee"
+    t.date "warranty_start_date"
+    t.boolean "is_complement", default: false
     t.index ["order_service_proposal_id"], name: "idx_on_order_service_proposal_id_fc807812fe"
     t.index ["service_id"], name: "index_order_service_proposal_items_on_service_id"
   end
@@ -367,6 +382,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_20_163937) do
     t.datetime "authorized_by_additional_at"
     t.boolean "pending_manager_approval", default: false
     t.boolean "pending_manager_authorization", default: false
+    t.boolean "is_complement", default: false
+    t.text "justification"
+    t.text "reason_refused_approval"
+    t.integer "parent_proposal_id"
     t.index ["approved_by_additional_id"], name: "index_order_service_proposals_on_approved_by_additional_id"
     t.index ["authorized_by_additional_id"], name: "index_order_service_proposals_on_authorized_by_additional_id"
     t.index ["order_service_id"], name: "index_order_service_proposals_on_order_service_id"
@@ -420,7 +439,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_20_163937) do
     t.bigint "commitment_parts_id"
     t.bigint "commitment_services_id"
     t.bigint "service_group_id"
-    t.string "origin_type"
+    t.string "origin"
     t.index ["client_id"], name: "index_order_services_on_client_id"
     t.index ["commitment_id"], name: "index_order_services_on_commitment_id"
     t.index ["commitment_parts_id"], name: "fk_rails_8411f8cafd"
@@ -429,10 +448,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_20_163937) do
     t.index ["manager_id"], name: "index_order_services_on_manager_id"
     t.index ["order_service_status_id"], name: "index_order_services_on_order_service_status_id"
     t.index ["order_service_type_id"], name: "index_order_services_on_order_service_type_id"
-    t.index ["origin_type"], name: "index_order_services_on_origin_type"
     t.index ["provider_id"], name: "index_order_services_on_provider_id"
     t.index ["provider_service_type_id"], name: "index_order_services_on_provider_service_type_id"
-    t.index ["service_group_id"], name: "index_order_services_on_service_group_id"
     t.index ["vehicle_id"], name: "index_order_services_on_vehicle_id"
   end
 
@@ -454,7 +471,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_20_163937) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.text "observation"
-    t.decimal "quantity", precision: 10, scale: 2, default: "1.0"
+    t.integer "quantity", default: 1
     t.index ["order_service_id"], name: "index_part_service_order_services_on_order_service_id"
     t.index ["service_id"], name: "index_part_service_order_services_on_service_id"
   end
@@ -526,11 +543,37 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_20_163937) do
     t.index ["reader_type", "reader_id"], name: "index_read_marks_on_reader_type_and_reader_id"
   end
 
+  create_table "reference_prices", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "vehicle_model_id", null: false
+    t.bigint "service_id", null: false
+    t.decimal "reference_price", precision: 15, scale: 2, null: false
+    t.decimal "max_percentage", precision: 5, scale: 2, default: "110.0"
+    t.text "observation"
+    t.string "source"
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_reference_prices_on_active"
+    t.index ["service_id"], name: "index_reference_prices_on_service_id"
+    t.index ["vehicle_model_id", "service_id"], name: "index_reference_prices_on_model_and_service", unique: true
+    t.index ["vehicle_model_id"], name: "index_reference_prices_on_vehicle_model_id"
+  end
+
   create_table "rejected_order_services_providers", id: false, charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "order_service_id"
     t.bigint "provider_id"
     t.index ["order_service_id"], name: "index_rejected_order_services_providers_on_order_service_id"
     t.index ["provider_id"], name: "index_rejected_order_services_providers_on_provider_id"
+  end
+
+  create_table "service_group_clients", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "service_group_id", null: false
+    t.bigint "client_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["client_id"], name: "index_service_group_clients_on_client_id"
+    t.index ["service_group_id", "client_id"], name: "index_sg_clients_unique", unique: true
+    t.index ["service_group_id"], name: "index_service_group_clients_on_service_group_id"
   end
 
   create_table "service_group_items", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -726,6 +769,24 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_20_163937) do
     t.index ["user_status_id"], name: "index_users_on_user_status_id"
   end
 
+  create_table "vehicle_models", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "vehicle_type_id"
+    t.string "brand", null: false
+    t.string "model", null: false
+    t.string "version"
+    t.string "full_name"
+    t.text "aliases"
+    t.string "code_cilia"
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_vehicle_models_on_active"
+    t.index ["brand"], name: "index_vehicle_models_on_brand"
+    t.index ["code_cilia"], name: "index_vehicle_models_on_code_cilia"
+    t.index ["model"], name: "index_vehicle_models_on_model"
+    t.index ["vehicle_type_id"], name: "index_vehicle_models_on_vehicle_type_id"
+  end
+
   create_table "vehicle_types", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name"
     t.datetime "created_at", null: false
@@ -783,6 +844,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_20_163937) do
   add_foreign_key "categories", "category_types"
   add_foreign_key "cities", "countries"
   add_foreign_key "cities", "states"
+  add_foreign_key "commitment_cost_centers", "commitments", name: "commitment_cost_centers_ibfk_1"
+  add_foreign_key "commitment_cost_centers", "cost_centers", name: "commitment_cost_centers_ibfk_2"
   add_foreign_key "commitments", "categories"
   add_foreign_key "commitments", "contracts"
   add_foreign_key "commitments", "cost_centers"
@@ -811,7 +874,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_20_163937) do
   add_foreign_key "order_services", "order_service_statuses"
   add_foreign_key "order_services", "order_service_types"
   add_foreign_key "order_services", "provider_service_types"
-  add_foreign_key "order_services", "service_groups"
   add_foreign_key "order_services", "users", column: "client_id"
   add_foreign_key "order_services", "users", column: "manager_id"
   add_foreign_key "order_services", "users", column: "provider_id"
@@ -821,6 +883,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_20_163937) do
   add_foreign_key "provider_service_temps", "categories"
   add_foreign_key "provider_service_temps", "order_service_proposals"
   add_foreign_key "provider_service_temps", "services"
+  add_foreign_key "reference_prices", "services", name: "fk_rails_reference_prices_services"
+  add_foreign_key "reference_prices", "vehicle_models", name: "fk_rails_reference_prices_vehicle_models"
   add_foreign_key "rejected_order_services_providers", "order_services"
   add_foreign_key "rejected_order_services_providers", "users", column: "provider_id"
   add_foreign_key "service_group_items", "service_groups"
@@ -840,6 +904,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_20_163937) do
   add_foreign_key "users", "states"
   add_foreign_key "users", "user_statuses"
   add_foreign_key "users", "users", column: "client_id"
+  add_foreign_key "vehicle_models", "vehicle_types", name: "fk_rails_vehicle_models_vehicle_types"
   add_foreign_key "vehicles", "categories"
   add_foreign_key "vehicles", "cities"
   add_foreign_key "vehicles", "cost_centers"

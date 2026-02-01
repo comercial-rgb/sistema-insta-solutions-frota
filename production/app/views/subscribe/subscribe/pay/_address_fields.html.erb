@@ -1,0 +1,48 @@
+<div class="row">
+
+    <!-- CEP -->
+    <div class="col-12 col-lg-4">
+        <%= address.input :zipcode, input_html: {class: 'cep'} %>
+    </div>
+
+    <!-- Logradouro -->
+    <div class="col-12 col-lg-8">
+        <%= address.input :address %>
+    </div>
+
+</div>
+
+<div class="row">
+    <!-- Número -->
+    <div class="col-12 col-lg-2">
+        <%= address.input :number %>
+    </div>
+
+    <!-- Complemento -->
+    <div class="col-12 col-lg-4">
+        <%= address.input :complement %>
+    </div>
+
+    <!-- Bairro -->
+    <div class="col-12 col-lg-6">
+        <%= address.input :district %>
+    </div>
+
+</div>
+
+<div class="row">
+    <!-- Estado -->
+    <div class="col-12 col-lg-4">
+        <%= address.association :state,
+        collection: State.all,
+        as: :select,
+        label_method: :acronym,
+        include_blank: t('model.select_option'),
+        input_html: {class: 'select2'} %>
+    </div>
+
+    <!-- Cidade -->
+    <div class="col-12 col-lg-4">
+        <%= address.association :city, collection: City.all, as: :select, include_blank: t('model.select_option') %>
+    </div>
+</div>

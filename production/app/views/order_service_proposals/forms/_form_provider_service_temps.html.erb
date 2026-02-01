@@ -1,0 +1,112 @@
+<%
+  if f.object.persisted?
+    provider_service_temps = f.object.provider_service_temps
+  else
+    # Filtra part_services verificando se service existe e tem a categoria correta
+    part_services = f.object.order_service.part_service_order_services.select do |item| 
+      item.service.present? && item.service.category_id == category_id
+    end
+    existing_service_ids = f.object.provider_service_temps.map(&:service_id).compact
+    part_services.each do |part_service|
+      next if part_service.service.nil?
+      unless existing_service_ids.include?(part_service.service.id)
+        f.object.provider_service_temps.build(
+          service_id: part_service.service.id,
+          name: part_service.service.name,
+          category_id: part_service.service.category_id,
+          description: part_service.observation,
+          quantity: part_service.quantity || 1
+        )
+      end
+    end
+  end
+  part_service_name = category_id == Category::SERVICOS_PECAS_ID ? Service.human_attribute_name(:part) : Service.human_attribute_name(:service)
+  # Filtra apenas os provider_service_temps da categoria atual
+  provider_service_temps_filtered = f.object.provider_service_temps.select{|item| item.category_id == category_id}
+  
+  # Criar mapa de quantidades originais da OS para bloquear edição
+  os_quantities = {}
+  f.object.order_service.part_service_order_services.each do |ps|
+    os_quantities[ps.service_id] = ps.quantity if ps.service_id.present?
+  end
+  
+  # Informações para controle de edição da quantidade
+  is_cotacoes = f.object.order_service.order_service_type_id == OrderServiceType::COTACOES_ID
+  is_requisicao = f.object.order_service.order_service_type_id == OrderServiceType::REQUISICAO_ID
+  is_diagnostico = f.object.order_service.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID
+  proposal_persisted = f.object.persisted?
+  
+  # Verifica se a OS veio de um Diagnóstico que foi enviado para cotação
+  # Nesse caso, os itens já estão definidos e não podem ser adicionados/removidos por outros fornecedores
+  is_from_diagnostico_cotacoes = f.object.order_service.origin_type == OrderService::ORIGIN_DIAGNOSTICO_COTACOES
+  
+  # Determina se pode adicionar itens
+  # - Diagnóstico: pode adicionar (é o fornecedor original)
+  # - Cotações/Requisição: NÃO pode adicionar (itens vêm do gestor)
+  # - OS vinda de Diagnóstico para cotação: NÃO pode adicionar (itens já definidos pelo fornecedor original)
+  can_add_items = is_diagnostico && !is_from_diagnostico_cotacoes
+  
+  # Buscar limites de valor máximo do grupo de serviços (apenas para Requisição)
+  service_max_values = {}
+  if is_requisicao && f.object.order_service.service_group.present?
+    f.object.order_service.service_group.service_group_items.each do |item|
+      service_max_values[item.service_id] = item.max_value
+    end
+  end
+  
+  # Obter array completo para calcular posição global e evitar conflitos de índice
+  all_provider_service_temps = f.object.provider_service_temps.to_a
+%>
+<div class="card shadow-sm border-0 mb-3">
+  <div class="card-header bg-light py-2">
+    <h6 class="mb-0"><%= page_title %></h6>
+  </div>
+
+  <div class="card-body py-2 px-3 multi-providerservicetemp-block">
+    <input type="hidden" value="<%= f.object.provider_service_temps.length %>" class="multi-providerservicetemp-cont" disabled>
+    
+    <!-- Botão para adicionar novo item (apenas para Diagnóstico que NÃO veio de cotação) -->
+    <% if can_add_items %>
+      <div class="mb-3">
+        <button type="button" class="btn btn-sm btn-success add-provider-service-temp" 
+          data-category-id="<%= category_id %>" 
+          data-part-service-name="<%= part_service_name %>">
+          <i class="bi bi-plus-circle"></i> Adicionar <%= page_title.singularize %>
+        </button>
+      </div>
+    <% end %>
+    
+    <% provider_service_temps_filtered.each_with_index do |pst, local_position| %>
+      <% 
+        # CORREÇÃO BUG PEÇAS SUMINDO: Usar índice global único
+        # - Se o registro já existe (persisted?), usa o ID do banco
+        # - Se é novo, encontra a posição no array completo de todos os provider_service_temps
+        # Isso garante que Peças e Serviços tenham índices únicos e não conflitem
+        if pst.persisted?
+          unique_index = pst.id
+        else
+          # Encontra a posição real no array completo (inclui peças E serviços)
+          unique_index = all_provider_service_temps.index(pst) || local_position
+        end
+      %>
+      <%= f.fields_for :provider_service_temps, pst, child_index: unique_index do |provider_service_temp| %>
+        <div class="provider-service-temp-item position-relative">
+          <%= render "order_service_proposals/forms/provider_service_temp_fields",
+            f: f,
+            provider_service_temp: provider_service_temp,
+            position: unique_index,
+            part_service_name: part_service_name,
+            category_id: category_id,
+            os_quantities: os_quantities,
+            is_cotacoes: is_cotacoes,
+            is_requisicao: is_requisicao,
+            is_diagnostico: is_diagnostico,
+            proposal_persisted: proposal_persisted,
+            service_max_values: service_max_values,
+            is_from_diagnostico_cotacoes: is_from_diagnostico_cotacoes,
+            can_add_items: can_add_items %>
+        </div>
+      <% end %>
+    <% end %>
+  </div>
+</div>

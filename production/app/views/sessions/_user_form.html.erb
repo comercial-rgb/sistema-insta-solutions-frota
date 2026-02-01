@@ -1,0 +1,31 @@
+<%= simple_form_for @user, url: visitors_create_user_path, method: :post do |f| %>
+
+	<%= hidden_field_tag "user[new_user]", true %>
+	<%= hidden_field_tag "user[external_register]", true %>
+	<% #hidden_field_tag "user[profile_id]", Profile::USER_ID %>
+
+	<h3><%= t('session.register') %></h3>
+
+	<%= f.association :profile, collection: Profile.where(id: Profile::USER_ID), as: :select, include_blank: false %>
+	<%= f.input :name, input_html: {autocomplete: 'off'} %>
+
+	<%= f.input :email, input_html: {autocomplete: 'off'} %>
+	<%= f.input :password, input_html: {autocomplete: 'new-password', value: (Rails.env.development? ? "e0YbJ*{m8e" : "")} %>
+	<%= f.input :password_confirmation, input_html: {autocomplete: 'new-password', value: (Rails.env.development? ? "e0YbJ*{m8e" : "")} %>
+
+	<%= render "users/forms/accept_therm", f: f %>
+
+	<%= recaptcha_tags %>
+
+	<% if defined?(@show_error_recaptcha) && !@show_error_recaptcha.nil? && @show_error_recaptcha %>
+		<div class="error"><%= t("session.invalid_recaptcha") %></div>
+	<% end %>
+
+	<div class="mt-3">
+		<%= f.button :submit, value: t("session.register") %>
+	</div>
+
+<% end %>
+
+<% # End of file %>
+<% # Path: ./app/views/visitors/users/_form.html.erb %>

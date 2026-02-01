@@ -1,0 +1,56 @@
+pt-BR:
+  activerecord:
+    models:
+      order_service_proposal_item:
+        one: "Item da proposta"
+        other: "Itens da proposta"
+    attributes:
+      order_service_proposal_item:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        order_service_proposal: "Proposta"
+        order_service_proposal_id: "Proposta"
+        service_id: "Peça/serviço"
+        service: "Peça/serviço"
+        quantity: "Quantidade"
+        discount: "Desconto"
+        total_value: "Valor total"
+        discount_temp: "Desconto"
+        total_temp: "Valor total"
+        unity_value: "Valor unitário"
+        service_name: "Nome do serviço"
+        service_description: "Descrição do serviço"
+        total_value_without_discount: "Valor sem desconto"
+        brand: 'Marca'
+        warranty_period: 'Garantia (dias)'
+        name: 'Nome'
+en:
+  activerecord:
+    models:
+      order_service_proposal_item:
+        one: "Item da proposta"
+        other: "Itens da proposta"
+    attributes:
+      order_service_proposal_item:
+        id: "ID"
+        created_at: 'Created at'
+        updated_at: 'Updated at'
+        actions: "Actions"
+        order_service_proposal: "Proposta"
+        order_service_proposal_id: "Proposta"
+        service_id: "Peça/serviço"
+        service: "Peça/serviço"
+        quantity: "Quantidade"
+        discount: "Desconto"
+        total_value: "Valor total"
+        discount_temp: "Desconto"
+        total_temp: "Valor total"
+        unity_value: "Valor unitário"
+        service_name: "Nome do serviço"
+        service_description: "Descrição do serviço"
+        total_value_without_discount: "Valor sem desconto"
+        brand: 'Marca'
+        warranty_period: 'Garantia (dias)'
+        name: 'Nome'

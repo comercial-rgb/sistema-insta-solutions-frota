@@ -1,0 +1,52 @@
+pt-BR:
+  activerecord:
+    models:
+      category:
+        one: "Categoria"
+        other: "Categorias"
+    attributes:
+      category:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        name: 'Nome'
+        sub_category: 'Sub categoria'
+        sub_categories: 'Sub categorias'
+        text_model: "No botão a seguir você poderá baixar o modelo de planilha a ser preenchida para que os dados sejam importados corretamente no sistema."
+        text_bottom_model: "Baixar modelo de planilha"
+        text_instructions: 'Clique no botão a seguir e selecione a planilha preenchida a partir do modelo que você baixou e clique em "Importar dados da planilha" para que os dados sejam inseridos no sistema.'
+        text_bottom_import_file: "Importar dados da planilha"
+        category_type: "Tipo da categoria"
+        category_type_id: "Tipo da categoria"
+        plans: "Planos"
+        products: "Produtos"
+        services: "Serviços"
+        vehicles: "Categoria de veículos"
+        no_information: "Sem informação"
+en:
+  activerecord:
+    models:
+      category:
+        one: "Categoria"
+        other: "Categorias"
+    attributes:
+      category:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        name: 'Nome'
+        sub_category: 'Sub categoria'
+        sub_categories: 'Sub categorias'
+        text_model: "No botão a seguir você poderá baixar o modelo de planilha a ser preenchida para que os dados sejam importados corretamente no sistema."
+        text_bottom_model: "Baixar modelo de planilha"
+        text_instructions: 'Clique no botão a seguir e selecione a planilha preenchida a partir do modelo que você baixou e clique em "Importar dados da planilha" para que os dados sejam inseridos no sistema.'
+        text_bottom_import_file: "Importar dados da planilha"
+        category_type: "Tipo da categoria"
+        category_type_id: "Tipo da categoria"
+        plans: "Planos"
+        products: "Produtos"
+        services: "Serviços"
+        vehicles: "Categoria de veículos"
+        no_information: "Sem informação"

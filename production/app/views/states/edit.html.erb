@@ -1,0 +1,16 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: states_path, text: State.model_name.human(count: 2)},
+	{active: false, href: edit_state_path(@state), text: @state.get_text_name},
+	{active: true, href: '#', text: t('model.edit')},
+]
+%>
+
+<%= 
+render 'common_pages/edit', 
+objects_path: states_path, 
+page_title: State.model_name.human(count: 2), 
+form_to_render: 'states/form',
+breadcrumbs: breadcrumbs
+%>

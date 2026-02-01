@@ -1,0 +1,15 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: provider_service_types_path, text: ProviderServiceType.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.add_new')},
+]
+%>
+
+<%= 
+render 'common_pages/new', 
+objects_path: provider_service_types_path, 
+page_title: ProviderServiceType.model_name.human(count: 2), 
+form_to_render: 'provider_service_types/form',
+breadcrumbs: breadcrumbs
+%>

@@ -1,0 +1,25 @@
+<div class="row">
+   
+    <div class="col-12 mb-3">
+        <h5 class="mt-4"><%= SubCategory.model_name.human(count: 2) %></h5>
+    </div>
+
+    <div class="col-12 multi-subcategory-block">
+        <!-- Contador -->
+        <input type="hidden" value="<%= f.object.sub_categories.length.to_s %>" class="multi-subcategory-cont" disabled>
+        <%= f.fields_for :sub_categories do |sub_category| %>
+            <div class="row multi-subcategory align-items-end">
+                
+                <%= render "categories/forms/sub_category_fields", f: f, sub_category: sub_category %>
+
+                <%= render 'common_pages/delete_multiple_relation', remove_path: delete_sub_category_path(model_id: sub_category.object.id), object: sub_category.object, object_text: 'subcategory'  %>
+            </div>
+        <% end %>
+    </div>
+
+    <!-- Botão de adicionar -->
+    <div class="col-12">
+        <%= render 'common_pages/add_multiple_relation', object_text: 'subcategory' %>
+    </div>
+</div>
+

@@ -159,13 +159,19 @@ class Vehicle < ApplicationRecord
   
   # Auto-vinculação com VehicleModel baseado em model_text
   def try_auto_link_vehicle_model
+    # Verificar se a coluna vehicle_model_id existe antes de tentar acessar
+    return unless self.class.column_names.include?('vehicle_model_id')
     return if vehicle_model_id.present? # Já vinculado manualmente
     return if model_text.blank?
     return if vehicle_type_id.blank?
     
     # Normalizar o texto para busca
     normalized = VehicleModel.normalize_text(model_text)
-    self.model_text_normalized = normalized
+    
+    # Verificar se a coluna model_text_normalized existe
+    if self.class.column_names.include?('model_text_normalized')
+      self.model_text_normalized = normalized
+    end
     
     # Tentar encontrar modelo correspondente
     matched_model = VehicleModel.find_by_text_match(

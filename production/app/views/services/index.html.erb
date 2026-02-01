@@ -1,0 +1,42 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: services_path, text: Service.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<div class="container">
+	<div class="row mb-3">
+		<div class="d-none d-md-block col-md-12 text-center">
+			<%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+		</div>
+
+		<!-- Botões de Ação -->
+		<div class="col-12 text-end">
+			<% if policy(Service).create? %>
+				<%= link_to new_services_import_path, class: 'btn btn-success me-2' do %>
+					<i class="bi bi-upload"></i> Importação em Massa
+				<% end %>
+				
+				<%= link_to new_service_path, class: 'btn btn-primary text-white' do %>
+					<i class="bi bi-plus-circle"></i> <%= t('model.add_new') %>
+				<% end %>
+			<% end %>
+		</div>
+	</div>
+</div>
+
+<%= 
+	render 'common_pages/index/second_container',
+	attributes: {
+		page_title: Service.model_name.human(count: 2),
+		url_new_path: new_service_path,
+		policy_true: policy(Service).new?,
+		objects: @services,
+		objects_path: services_path,
+		object_name: Service.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: services_path(format: "csv", services_grid: (params[:services_grid].nil? ? "" : params[:services_grid].to_enum.to_h))
+	}
+%>

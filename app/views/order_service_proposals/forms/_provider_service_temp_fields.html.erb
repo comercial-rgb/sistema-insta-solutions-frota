@@ -65,13 +65,14 @@
             # Cotações ou Requisição: quantidade definida na OS, fornecedor não pode editar
             quantity_readonly = true
           elsif defined?(is_diagnostico) && is_diagnostico
-            # Verificar se é o fornecedor original (provider_id == OS provider_id)
-            # ou se é outro fornecedor recebendo cotação após reavaliação
-            if defined?(is_from_diagnostico_cotacoes) && is_from_diagnostico_cotacoes
-              # OS veio de Diagnóstico para cotação: outros fornecedores não podem editar quantidade
+            # Para Diagnóstico: verifica se é fornecedor secundário (can_add_items = false)
+            # Se can_add_items = false, significa que é fornecedor secundário e não pode editar
+            # Se can_add_items = true, pode editar apenas se a proposta ainda não foi salva
+            if defined?(can_add_items) && !can_add_items
+              # Fornecedor secundário: não pode editar quantidade
               quantity_readonly = true
             else
-              # Diagnóstico original: fornecedor define na criação, depois fica bloqueado
+              # Fornecedor original: define na criação, depois fica bloqueado
               quantity_readonly = defined?(proposal_persisted) && proposal_persisted
             end
           else

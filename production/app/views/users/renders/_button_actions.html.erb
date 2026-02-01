@@ -1,0 +1,15 @@
+<div class="row">
+    <div class="col-12 col-md-6">
+        <button type="button" class="btn btn-sm btn-success action-to-users-listing" id="approve-users">
+            <%= User.human_attribute_name(:approve_users) %>
+        </button>
+        <button type="button" class="ms-4 btn btn-sm btn-danger action-to-users-listing" id="disapprove-users">
+            <%= User.human_attribute_name(:disapprove_users) %>
+        </button>
+    </div>
+</div>
+
+<%
+# End of file _button_actions.html.erb
+# Path: ./app/views/users/renders/_button_actions.html.erb
+%>

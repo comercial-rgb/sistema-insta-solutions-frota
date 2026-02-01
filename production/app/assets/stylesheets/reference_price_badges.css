@@ -1,0 +1,81 @@
+/* ========================================
+   BADGES MINIMALISTAS - Preço de Referência
+   ======================================== */
+
+/* Badge de preço excedido - laranja/vermelho discreto */
+.badge-price-exceeded {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffc107;
+  font-size: 0.75rem;
+  padding: 0.15rem 0.4rem;
+  font-weight: 600;
+}
+
+.badge-price-exceeded i {
+  font-size: 0.85rem;
+  margin-right: 0.15rem;
+}
+
+/* Badge de preço OK - ícone verde + texto pequeno */
+.badge-price-ok {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.badge-price-ok i {
+  color: #28a745;
+  font-size: 0.75rem;
+  margin-right: 0.2rem;
+}
+
+.badge-price-ok small {
+  font-size: 0.7rem;
+}
+
+/* Badge sem referência - ícone info + texto pequeno */
+.badge-no-reference {
+  background-color: #f8f9fa;
+  color: #6c757d;
+  border: 1px solid #dee2e6;
+  padding: 0.15rem 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.badge-no-reference i {
+  color: #6c757d;
+  font-size: 0.75rem;
+  margin-right: 0.2rem;
+}
+
+.badge-no-reference small {
+  font-size: 0.7rem;
+}
+
+/* Hover effects */
+.badge-price-exceeded:hover {
+  background-color: #ffc107;
+  color: #000;
+  cursor: help;
+}
+
+.badge-price-ok:hover i {
+  color: #218838;
+  cursor: help;
+}
+
+.badge-no-reference:hover i {
+  color: #5a6268;
+  cursor: help;
+}
+
+/* Tooltip customizado para badges */
+.tooltip-inner {
+  text-align: left;
+  max-width: 280px;
+}

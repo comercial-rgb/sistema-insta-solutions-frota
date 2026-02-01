@@ -67,7 +67,10 @@ module OrderServiceProposalsHelper
   # Verifica se o item possui preço de referência Cilia configurado
   def has_reference_price?(item, order_service)
     return false unless item.service_id.present?
-    return false unless order_service&.vehicle&.vehicle_model_id.present?
+    return false unless order_service&.vehicle.present?
+    # Verifica se vehicle_model_id existe (campo pode não existir em versões antigas do DB)
+    return false unless order_service.vehicle.respond_to?(:vehicle_model_id)
+    return false unless order_service.vehicle.vehicle_model_id.present?
     
     ReferencePrice.find_for_vehicle_and_service(
       vehicle_id: order_service.vehicle_id,
@@ -76,8 +79,14 @@ module OrderServiceProposalsHelper
   end
   
   # Badge visual para item sem preço de referência (minimalista)
-  def reference_price_badge(item, order_service)
+  # Badges de preços de referência só aparecem para admin, manager e additional
+  def reference_price_badge(item, order_service, current_user = nil)
     return '' unless item.service_id.present?
+    
+    # 🚫 FORNECEDORES não veem badges de preços de referência
+    if current_user.present? && current_user.provider?
+      return ''
+    end
     
     # Verificar se é peça (apenas peças têm preço de referência)
     category_id = item.get_category_id

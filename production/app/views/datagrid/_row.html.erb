@@ -1,0 +1,25 @@
+<% if grid.class.name == 'NotificationsGrid' %>
+  <!-- Apenas para o grid de notifications -->
+  <%= render 'notifications/modals/show_message', notification: asset %>
+  <tr class="align-middle pointer">
+    <% grid.html_columns(*options[:columns]).each_with_index do |column, index| %>
+      <%
+        if column.to_s == "Ações" || column.to_s == "Usuários específicos" || column.to_s == "Marcar como lida"
+          bs_target = ""
+        else
+          bs_target = "#show_message_"+asset.id.to_s
+        end
+      %>
+      <td class="<%= datagrid_column_classes(grid, column) %>" data-bs-toggle="modal" data-bs-target="<%= bs_target %>">
+        <%= datagrid_value(grid, column, asset) %>
+      </td>
+    <% end %>
+  </tr>
+<% else %>
+  <tr class="align-middle">
+    <% grid.html_columns(*options[:columns]).each do |column| %>
+      <td class="<%= datagrid_column_classes(grid, column) %>"><%= datagrid_value(grid, column, asset) %></td>
+    <% end %>
+  </tr>
+<% end %>
+

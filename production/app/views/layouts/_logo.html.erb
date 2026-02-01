@@ -1,0 +1,14 @@
+<%
+    current_custom_class = defined?(custom_class) ? custom_class : ""
+%>
+<!-- Logo -->
+<a href="<%= root_path %>">
+    <figure class="m-0">
+        <%= image_tag 'logos/logo.png', width: width, height: height, class: current_custom_class, alt: @system_configuration.page_title || 'Sistema' %>
+    </figure>
+</a>
+
+<%
+# End of file _logo.html.erb
+# Path: ./app/views/layouts/_logo.html.erb
+%>

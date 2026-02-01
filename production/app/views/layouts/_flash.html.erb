@@ -1,0 +1,58 @@
+<%
+=begin
+Este template monta o "toast" de notificação para erro, informação, alerta e sucesso.
+É utilizado o template "toast" do bootstrap 5.
+
+Link da documentação: https://getbootstrap.com/docs/5.0/components/toasts/
+
+Para habilitar, basta utilizar o próprio método "flash" do rails.
+    Exemplos:
+        flash[:success] = 'Deu tudo certo! O formulário foi salvo'
+        flash[:error]   = 'Ooops... ocorreu um erro'
+        flash[:notice]  = 'É importante você saber disso...'
+        flash[:alert]   = 'Atenção! Algo pode dar errado.'
+=end
+%>
+
+<div class="flash-notifications">
+    <% flash.each do |key, value| %>
+        <!-- Modal -->
+        <div class="modal fade" id="toastModal<%= key %>" tabindex="-1" aria-labelledby="toastModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header <%= flash_class key %>">
+                        <% 
+                          icon_class = case key.to_s
+                            when 'success' then 'bi-check-circle-fill'
+                            when 'error' then 'bi-x-circle-fill'
+                            when 'notice' then 'bi-info-circle-fill'
+                            when 'alert' then 'bi-exclamation-triangle-fill'
+                            else 'bi-info-circle-fill'
+                          end
+                        %>
+                        <i class="bi <%= icon_class %> me-2" style="font-size: 1.25rem;"></i>
+                        <h5 class="modal-title" id="toastModalLabel"><%= flash_title key %></h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <%= value.html_safe unless value.nil? %>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script>
+            // Trigger the modal to show automatically when the page loads
+            document.addEventListener('DOMContentLoaded', (event) => {
+                var myModal = new bootstrap.Modal(document.getElementById('toastModal<%= key %>'), {
+                });
+                myModal.show();
+            });
+        </script>
+    <% end %>
+    <% flash.discard %>
+</div>
+
+<%
+# End of file _flash.html.erb
+# Path: ./app/views/layouts/_flash.html.erb
+%>

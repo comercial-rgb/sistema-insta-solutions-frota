@@ -1,0 +1,126 @@
+<%
+    # Gerentes e Adicionais podem visualizar mas não editar
+    disabled = @current_user.manager? || @current_user.additional?
+%>
+<%= simple_form_for(@vehicle) do |f| %>
+
+    <div class="row">
+        <div class="col-12">
+            <%= f.error_notification %>
+            <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+        </div>
+    </div>
+
+    <%= render 'users/renders/client_selection', f: f %>
+
+    <div class="row">
+        <div class="col-12 col-md-3">
+            <%= f.association :cost_center, collection: CostCenter.getting_data_by_user(@current_user), as: :select, include_blank: t('model.select_option') %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.association :sub_unit, collection: SubUnit.getting_data_by_user(@current_user, f.object.client_id), as: :select, include_blank: t('model.select_option') %>
+        </div>
+        <% if f.object.persisted? %>
+            <div class="col-12 col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <p class="card-text text-center">
+                            <b><%= Vehicle.human_attribute_name(:total_paid_value) %></b>
+                        </p>
+                        <p class="card-text text-center text-danger fs-3">
+                            <%= CustomHelper.to_currency(f.object.get_total_paid_value) %>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        <% end %>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-md-3 mb-2">
+            <label class="form-label" for="vehicle_board"><%= Vehicle.human_attribute_name(:board) %></label>
+            <div class="input-group">
+                <%= f.input :board, input_html: { class: 'form-control license_plate', id: 'vehicle_board' }, label: false, disabled: disabled %>
+                <% unless disabled %>
+                    <button type="button" class="btn btn-outline-primary rounded" id="btn-fetch-vehicle-data" data-confirm="Você tem certeza que deseja buscar os dados do veículo? Isso irá sobrescrever os dados atuais, caso existam.">
+                        <i class="bi bi-search"></i> Buscar dados
+                    </button>
+                <% end %>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-3">
+            <%= f.input :brand, disabled: disabled %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :color, disabled: disabled %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :model, disabled: disabled %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :year, disabled: disabled %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :model_year, disabled: disabled %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.association :vehicle_type, collection: VehicleType.all, as: :select, include_blank: t('model.select_option'), disabled: disabled %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.association :fuel_type, collection: FuelType.all, as: :select, include_blank: t('model.select_option'), disabled: disabled %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.association :state, collection: State.all, as: :select, include_blank: t('model.select_option'), disabled: disabled %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.association :city, collection: City.all, as: :select, include_blank: t('model.select_option'), disabled: disabled %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :engine_displacement, disabled: disabled %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :gearbox_type, disabled: disabled %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :fipe_code, disabled: disabled %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :model_text, disabled: disabled %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :value_text, disabled: disabled %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :chassi, disabled: disabled %>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-md-3">
+            <% if disabled %>
+                <%= f.input :active, as: :select, collection: CustomHelper.return_select_options_true_false, include_blank: false, label: Vehicle.human_attribute_name(:active), disabled: disabled %>
+            <% else %>
+                <%= f.input :active, as: :select, collection: CustomHelper.return_select_options_true_false, include_blank: false, label: Vehicle.human_attribute_name(:active) %>
+            <% end %>
+        </div>
+    </div>
+
+    <% unless disabled %>
+        <%= render 'common_pages/save', f: f, return_path: vehicles_path %>
+    <% else %>
+        <div class="row my-3">
+            <div class="col-12 mb-3 text-end">
+                <a href="<%= vehicles_path %>" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Voltar</a>
+            </div>
+        </div>
+    <% end %>
+
+    <% if f.object.persisted? %>
+        <% if @warranty_items_vehicle.present? %>
+            <%= render 'vehicles/warranty_panel', warranty_items: @warranty_items_vehicle %>
+        <% end %>
+        <%= render 'vehicles/order_services_list', order_services_for_vehicle: @order_services_for_vehicle %>
+    <% end %>
+
+<% end %>

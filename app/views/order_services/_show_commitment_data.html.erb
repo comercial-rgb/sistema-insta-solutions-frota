@@ -1,0 +1,29 @@
+<%= render 'order_services/modals/show_cost_centers', order_service: record %>
+<%
+  if record.commitment.present?
+    # Verifica se o empenho tem múltiplos centros de custo
+    cost_centers_count = 0
+    if record.commitment.cost_centers.any?
+      cost_centers_count = record.commitment.cost_centers.count
+    elsif record.commitment.cost_center.present?
+      cost_centers_count = 1
+    end
+    
+    if cost_centers_count > 1
+      # Exibe "Centros de custos" com lupa para abrir modal
+%>
+<span class="pointer" data-bs-toggle="modal" data-bs-target="#show_cost_centers_<%= record.id %>">
+    <i class="bi bi-search"></i>
+    <%= record.commitment.commitment_number %>
+    <small class="text-muted">(<%= cost_centers_count %> CCs)</small>
+</span>
+<%
+    else
+      # Exibe normalmente (nome do centro de custo + número do empenho)
+      cost_center_name = record.commitment.cost_center&.get_text_name || record.commitment.cost_centers.first&.get_text_name
+%>
+<%= cost_center_name %> / <%= record.commitment.commitment_number %>
+<%
+    end
+  end
+%>

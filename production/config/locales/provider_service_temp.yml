@@ -1,0 +1,62 @@
+pt-BR:
+  activerecord:
+    models:
+      provider_service_temp:
+        one: "Nova peça/serviço"
+        other: "Novas peças/serviços"
+    attributes:
+      provider_service_temp:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        order_service_proposal: "Proposta"
+        order_service_proposal_id: "Proposta"
+        name: "Nome peça/serviço"
+        code: "Código"
+        price: "Valor unitário"
+        category: "Categoria"
+        category_id: "Categoria"
+        description: "Descrição"
+        quantity: "Quantidade"
+        discount: "Desconto"
+        total_value: "Valor total"
+        discount_temp: "Desconto"
+        total_temp: "Valor total"
+        warranty_period: "Tempo de garantia (dias)"
+        brand: "Marca"
+        parts: "Peças"
+        services: "Serviços"
+        service: "Serviço"
+        service_id: "Serviço"
+en:
+  activerecord:
+    models:
+      provider_service_temp:
+        one: "Nova peça/serviço"
+        other: "Novas peças/serviços"
+    attributes:
+      provider_service_temp:
+        id: "ID"
+        created_at: 'Created at'
+        updated_at: 'Updated at'
+        actions: "Actions"
+        order_service_proposal: "Proposta"
+        order_service_proposal_id: "Proposta"
+        name: "Nome peça/serviço"
+        code: "Código"
+        price: "Valor unitário"
+        category: "Categoria"
+        category_id: "Categoria"
+        description: "Descrição"
+        quantity: "Quantidade"
+        discount: "Desconto"
+        total_value: "Valor total"
+        discount_temp: "Desconto"
+        total_temp: "Valor total"
+        warranty_period: "Tempo de garantia (dias)"
+        brand: "Marca"
+        parts: "Peças"
+        services: "Serviços"
+        service: "Serviço"
+        service_id: "Serviço"

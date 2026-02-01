@@ -1,0 +1,27 @@
+<!-- Informações e paginação -->
+<div class="row">
+    <div class="col-12 text-center">
+
+        <!-- Contabilizador total de registros -->
+        <small class="text-muted">
+            <% 
+                if attributes[:objects].assets.length > 1
+                    text_show = attributes[:page_title].downcase
+                elsif attributes[:objects].assets.length == 0
+                    text_show = t('model.register')
+                else
+                    text_show = attributes[:object_name].downcase
+                end 
+            %>
+            <%= page_entries_info attributes[:objects].assets, entry_name: text_show %>
+        </small>
+
+        <% if defined?(attributes[:paginate_url]) && !attributes[:paginate_url].nil? %>
+            <!-- Caso a paginação seja customizada -->
+            <%= attributes[:paginate_url] %>
+        <% else %>
+            <%= paginate(attributes[:objects].assets, params: request.query_parameters, anchor: attributes[:anchor]) %>
+        <% end %>
+
+    </div>
+</div>

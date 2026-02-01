@@ -1,0 +1,11 @@
+<%= render 'contracts/modals/show_commitments', contract: record %>
+<% count_commitments = record.commitments.size %>
+<button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#show_commitments_<%= record.id %>">
+  <i class="bi bi-folder2"></i>
+  <span><%= count_commitments %></span>
+</button>
+
+<%
+# End of file _show_commitments.html.erb
+# Path: ./app/views/contracts/_show_commitments.html.erb
+%>

@@ -1,0 +1,19 @@
+<%
+  current_show_name = defined?(show_name) ? show_name : false
+  current_show_geolocation_data = defined?(show_geolocation_data) ? show_geolocation_data : false
+  current_page_title = defined?(page_title) ? page_title : Address.model_name.human
+%>
+
+<!-- Endereço -->
+<%= f.fields_for relation do |address| %>
+
+  <%= address.input :id, as: :hidden, input_html: {value: address.object.id} %>
+
+  <div class="row">
+    <div class="col-12">
+      <h5><%= current_page_title.upcase %></h5>
+      <%= render 'common_pages/addresses/address_fields', f: f, address: address, show_name: current_show_name, show_geolocation_data: current_show_geolocation_data %>
+    </div>
+  </div>
+
+<% end %>

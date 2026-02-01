@@ -1,0 +1,7 @@
+<div class="row">
+	<% subscriptions.each do |subscription| %>
+		<div class="col-12 mb-3">
+			<%= render "subscribe/subscription/subscription_card", subscription: subscription %>
+		</div>
+	<% end %>
+</div>

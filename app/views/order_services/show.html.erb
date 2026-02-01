@@ -33,6 +33,14 @@ breadcrumbs = [
     <%= render 'order_services/renders/warranty_panel', warranty_items: (@warranty_items || []) %>
   <% end %>
 
+  <!-- Itens da OS (Cotações, Requisição, Diagnóstico) -->
+  <% if @current_user.admin? || @current_user.manager? || @current_user.additional? %>
+    <% # Exibir itens para OS tipo Cotações, Requisição, ou Diagnóstico com itens definidos %>
+    <% if [OrderServiceType::COTACOES_ID, OrderServiceType::REQUISICAO_ID, OrderServiceType::DIAGNOSTICO_ID].include?(@order_service.order_service_type_id) %>
+      <%= render 'order_services/renders/items_panel', os: @order_service %>
+    <% end %>
+  <% end %>
+
   <!-- Propostas -->
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -76,7 +84,7 @@ breadcrumbs = [
                       </span>
                     <% end %>
                   </td>
-                  <td><%= proposal.provider&.name || '-' %></td>
+                  <td><%= (proposal.provider&.fantasy_name.presence || proposal.provider&.name) || '-' %></td>
                   <td>
                     <%= render 'order_service_proposals/order_service_proposal_status', record: proposal %>
                   </td>

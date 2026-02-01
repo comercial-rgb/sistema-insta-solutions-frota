@@ -1,0 +1,194 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: false, href: services_path, text: Service.model_name.human(count: 2)},
+  {active: true, href: '#', text: 'Importação em Massa'},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+
+  <div class="row mb-4">
+    <div class="col-12">
+      <h3>
+        <i class="bi bi-upload"></i>
+        Importação em Massa de Peças e Serviços
+      </h3>
+      <p class="text-muted">Importe várias peças e serviços de uma única vez usando um arquivo CSV</p>
+    </div>
+  </div>
+
+  <!-- Card de Instruções -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-info">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0">
+            <i class="bi bi-info-circle"></i>
+            Como Funciona
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-success mb-3">
+            <i class="bi bi-check-circle"></i>
+            <strong>Atenção:</strong> Você pode baixar o Excel da lista de peças/serviços, adicionar novos itens e fazer o upload de volta!
+          </div>
+          
+          <ol class="mb-0">
+            <li class="mb-2">
+              <strong>Opção 1 - Baixar template vazio:</strong>
+              <%= link_to template_services_import_path, class: 'btn btn-sm btn-outline-primary' do %>
+                <i class="bi bi-download"></i> Download Template Vazio
+              <% end %>
+            </li>
+            <li class="mb-2">
+              <strong>Opção 2 - Baixar lista atual:</strong>
+              <%= link_to services_path(format: :csv), class: 'btn btn-sm btn-success' do %>
+                <i class="bi bi-download"></i> Baixar Excel com Dados Atuais
+              <% end %>
+              <br>
+              <small class="text-muted">Use esta opção para adicionar novas peças/serviços aos existentes</small>
+            </li>
+            <li class="mb-2">
+              <strong>Preencha o arquivo:</strong> Abra com Excel, LibreOffice ou Google Sheets e adicione/edite seus dados
+            </li>
+            <li class="mb-2">
+              <strong>Salve como CSV:</strong> Arquivo → Salvar Como → CSV (separado por ponto e vírgula)
+            </li>
+            <li>
+              <strong>Faça o upload:</strong> Use o formulário abaixo
+            </li>
+          </ol>
+          
+          <hr>
+          
+          <h6><i class="bi bi-table"></i> Estrutura do Arquivo CSV:</h6>
+          <table class="table table-sm table-bordered">
+            <thead class="table-light">
+              <tr>
+                <th>Coluna</th>
+                <th>Descrição</th>
+                <th>Obrigatório</th>
+                <th>Exemplo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><code>nome</code></td>
+                <td>Nome da peça/serviço</td>
+                <td><span class="badge bg-danger">Sim</span></td>
+                <td>Filtro de Óleo</td>
+              </tr>
+              <tr>
+                <td><code>categoria</code></td>
+                <td>Tipo: "peca" ou "servico"</td>
+                <td><span class="badge bg-danger">Sim</span></td>
+                <td>peca</td>
+              </tr>
+              <tr>
+                <td><code>codigo</code></td>
+                <td>Código/SKU do item</td>
+                <td><span class="badge bg-secondary">Não</span></td>
+                <td>FO-001</td>
+              </tr>
+              <tr>
+                <td><code>preco</code></td>
+                <td>Preço unitário (use vírgula para decimal)</td>
+                <td><span class="badge bg-secondary">Não</span></td>
+                <td>45,50</td>
+              </tr>
+            </tbody>
+          </table>
+          
+          <div class="alert alert-info mt-3">
+            <i class="bi bi-lightbulb"></i>
+            <strong>Dica:</strong> O arquivo baixado já está no formato correto! Você só precisa adicionar novas linhas e fazer o upload.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formulário de Upload -->
+  <div class="row">
+    <div class="col-lg-8 offset-lg-2">
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">
+            <i class="bi bi-file-earmark-arrow-up"></i>
+            Upload do Arquivo CSV
+          </h5>
+        </div>
+        <div class="card-body">
+          <%= form_with url: services_import_path, method: :post, multipart: true, local: true do |f| %>
+            <div class="mb-4">
+              <label class="form-label fw-bold">Selecione o arquivo CSV:</label>
+              <%= f.file_field :file, 
+                accept: '.csv,.xlsx,.xls', 
+                class: 'form-control form-control-lg',
+                required: true %>
+              <div class="form-text">
+                <i class="bi bi-info-circle"></i>
+                Formatos aceitos: CSV (.csv)
+              </div>
+            </div>
+
+            <div class="alert alert-warning">
+              <i class="bi bi-exclamation-triangle"></i>
+              <strong>Atenção:</strong>
+              <ul class="mb-0 mt-2">
+                <li>Itens com o <strong>mesmo nome e categoria</strong> serão <strong>atualizados</strong></li>
+                <li>Itens novos serão <strong>criados</strong></li>
+                <li>Revise o arquivo antes de enviar</li>
+              </ul>
+            </div>
+
+            <div class="d-grid gap-2">
+              <%= f.submit 'Importar Peças e Serviços', class: 'btn btn-primary btn-lg' %>
+              <%= link_to 'Cancelar', services_path, class: 'btn btn-secondary' %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Card de Exemplos -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header">
+          <h5 class="mb-0">
+            <i class="bi bi-code-square"></i>
+            Exemplo de Arquivo CSV
+          </h5>
+        </div>
+        <div class="card-body">
+          <pre class="mb-0 bg-light p-3 rounded"><code>nome;categoria;codigo;preco
+Filtro de Óleo;peca;FO-001;45,50
+Filtro de Ar;peca;FA-001;38,90
+Pastilha de Freio Dianteira;peca;PF-001;89,00
+Mão de Obra Troca de Óleo;servico;MO-001;50,00
+Alinhamento e Balanceamento;servico;AB-001;80,00</code></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.card-header.bg-info,
+.card-header.bg-primary {
+  font-weight: 500;
+}
+
+pre code {
+  font-size: 0.85rem;
+  color: #333;
+}
+
+.form-control-lg {
+  padding: 0.75rem 1rem;
+}
+</style>

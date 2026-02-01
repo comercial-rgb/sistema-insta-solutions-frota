@@ -1,0 +1,106 @@
+<%= render "order_service_proposals/modals/confirm_save_and_submit" %>
+<%= simple_form_for(@order_service_proposal, html: { id: 'order-service-proposal-form' }) do |f| %>
+    <%= f.input :order_service_id, as: :hidden, input_html: {value: f.object.order_service_id} %>
+    <%= f.input :provider_id, as: :hidden, input_html: {value: f.object.provider_id} %>
+
+    <%= hidden_field_tag 'order_service_proposal_client_id', f.object.order_service.client_id %>
+    <div class="row">
+        <div class="col-12">
+            <%= f.error_notification %>
+            <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+        </div>
+    </div>
+
+    <%= render 'order_service_proposals/renders/order_service_data', record: f.object.order_service %>
+    <hr>
+
+    <div class="row">
+        <div class="col-12 mb-3 text-center">
+            <h5 class="mt-4"><%= OrderServiceProposal.model_name.human %></h5>
+        </div>
+    </div>
+
+    <input type="hidden" value="<%= f.object.order_service_proposal_items.length.to_s %>" id="multi-order_service_proposal_items-cont" disabled>
+
+    <%# 
+      CORREÇÃO BUG: Peças e serviços sumindo em OS do tipo Diagnóstico
+      
+      A condição anterior verificava apenas part_service_order_services da OS.
+      Para OS do tipo Diagnóstico, o cliente pode criar a OS sem peças/serviços,
+      e o fornecedor adiciona diretamente na proposta (provider_service_temps).
+      
+      Agora verificamos também se a proposta já tem provider_service_temps salvos.
+    %>
+    <% has_part_services = f.object.order_service.part_service_order_services.length > 0 %>
+    <% has_provider_temps = f.object.provider_service_temps.any? %>
+    <% is_diagnostico = f.object.order_service.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID %>
+    
+    <% if has_part_services || has_provider_temps || is_diagnostico %>    
+        <%= 
+            render 'order_service_proposals/forms/form_provider_service_temps', 
+            f:f, 
+            order_service_proposal: @order_service_proposal,
+            page_title: ProviderServiceTemp.human_attribute_name(:parts),
+            category_id: Category::SERVICOS_PECAS_ID 
+        %>
+        <%= 
+            render 'order_service_proposals/forms/form_provider_service_temps', 
+            f:f, 
+            order_service_proposal: @order_service_proposal,
+            page_title: ProviderServiceTemp.human_attribute_name(:services),
+            category_id: Category::SERVICOS_SERVICOS_ID 
+        %>
+    <% end %>
+
+    <div class="row mb-4">
+        <div class="col-12">
+            <%= render 'order_service_proposals/renders/table_totals_services', client: f.object.order_service.client %>
+        </div>
+    </div>
+
+    <div class="row mt-3">
+        <div class="col-12">
+            <%= f.input :details %>
+        </div>
+    </div>
+
+    <%= 
+        render "common_pages/attachments/multi_attachs", 
+        attribute: :files, 
+        contents: f.object.attachments.select{|item| item.persisted?}, 
+        f: f, 
+        page_title: OrderServiceProposal.human_attribute_name(:files),
+        class_attachments: 'col-md-4',
+        can_delete: false,
+        disabled: false
+    %>
+
+    <div class="row my-3">
+        <div class="col-12 mb-3 text-end">
+            <% if [OrderServiceProposalStatus::EM_CADASTRO_ID, OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID].include?(@order_service_proposal.order_service_proposal_status_id) %>
+                <a href="<%= order_service_path(@order_service_proposal.order_service) %>" class="btn btn-link text-decoration-none"><%= t('model.cancel') %></a>
+                <%= f.button :submit, name: 'just_save', value: OrderServiceProposal.human_attribute_name(:only_save) %>
+
+                <%= button_tag(
+                    OrderServiceProposal.human_attribute_name(:save_and_submit),
+                    type:  'button',
+                    id:    'btn-save-and-submit',
+                    class: 'btn btn-secondary',
+                    data: {
+                        bs_toggle:      'modal',
+                        bs_target:      '#confirmSubmitModal',
+                        # texto da confirmação que vai no modal:
+                        confirm_text:   OrderServiceProposal.human_attribute_name(:confirm_save_and_submit),
+                        # dados que iremos “injetar” como hidden ao confirmar:
+                        param_name:     'save_and_submit',
+                        param_value:    OrderServiceProposal.human_attribute_name(:save_and_submit)
+                    }
+                    )
+                %>
+
+                <% #f.button :submit, name: 'save_and_submit', class: 'btn-secondary', value: OrderServiceProposal.human_attribute_name(:save_and_submit), data: {confirm: t('model.confirm_action')} %>
+            <% end %>
+        </div>
+    </div>
+
+<% end %>

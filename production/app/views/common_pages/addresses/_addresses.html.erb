@@ -1,0 +1,47 @@
+<%
+  current_show_name = defined?(show_name) ? show_name : false
+  current_show_geolocation_data = defined?(show_geolocation_data) ? show_geolocation_data : false
+  current_page_title = defined?(page_title) ? page_title : Address.model_name.human(count: 2)
+%>
+
+<!-- Endereços cadastro múltiplo -->
+<script>
+  multi_address('address', true);
+</script>
+
+<!-- Endereços -->
+<div class="row">
+
+  <!-- Título -->
+  <div class="col-12">
+    <h5 class="mt-4"><%= current_page_title %></h5>
+  </div>
+
+  <!-- Campos multiplos dinamicos -->
+  <div class="col-12 multi-address-block">
+
+    <!-- Contador -->
+    <input type="hidden" value="<%= f.object.addresses.length.to_s %>" class="multi-address-cont" disabled>
+
+    <%= f.fields_for :addresses do |address| %>
+
+      <%= address.input :id, as: :hidden, input_html: {value: address.object.id} %>
+
+      <div class="row multi-address">
+        <div class="col-12">
+          <%= render 'common_pages/addresses/address_fields', f: f, address: address, show_name: current_show_name, show_geolocation_data: current_show_geolocation_data %>
+          <%= render 'common_pages/delete_multiple_relation', remove_path: delete_address_path(model_id: address.object.id), object: address.object, object_text: 'address'  %>
+        </div>
+      </div>
+
+    <% end %>
+
+  </div>
+
+  <!-- Botão de adicionar -->
+  <div class="col-12">
+    <%= render 'common_pages/add_multiple_relation', object_text: 'address' %>
+  </div>
+
+</div>
+<!-- Fim endereços cadastro múltiplo -->

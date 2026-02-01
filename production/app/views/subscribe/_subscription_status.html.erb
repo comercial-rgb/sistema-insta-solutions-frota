@@ -1,0 +1,16 @@
+<div class="table-actions py-3">
+
+	<%
+		if record.subscription_status_id == SubscriptionStatus::ATIVA_ID
+			span_class = 'bg-success'
+		elsif record.subscription_status_id == SubscriptionStatus::CANCELADA_ID
+			span_class = 'bg-danger'
+		elsif record.subscription_status_id == SubscriptionStatus::AGUARDANDO_PAGAMENTO_ID
+			span_class = 'bg-warning text-black'
+		end
+	%>
+
+	<% span_text = record.subscription_status.name %>
+	<span class="badge <%= span_class %>"><%= span_text %></span>
+
+</div>

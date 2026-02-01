@@ -1,0 +1,28 @@
+<div class="table-actions">
+
+	<%
+        if record.order_service_status_id == OrderServiceStatus::EM_ABERTO_ID
+            span_class = 'bg-info text-white'
+        elsif record.order_service_status_id == OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID
+            span_class = 'bg-secondary text-white'
+        elsif record.order_service_status_id == OrderServiceStatus::APROVADA_ID
+            span_class = 'bg-success text-white'
+        elsif record.order_service_status_id == OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID
+            span_class = 'bg-primary text-white'
+        elsif record.order_service_status_id == OrderServiceStatus::AUTORIZADA_ID
+            span_class = 'bg-warning text-dark'
+        elsif record.order_service_status_id == OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID
+            span_class = 'bg-warning text-dark'
+        elsif record.order_service_status_id == OrderServiceStatus::PAGA_ID
+            span_class = 'bg-success text-white'
+        elsif record.order_service_status_id == OrderServiceStatus::CANCELADA_ID
+            span_class = 'bg-danger text-white'
+        elsif record.order_service_status_id == OrderServiceStatus::EM_REAVALIACAO_ID
+            span_class = 'bg-warning text-dark'
+        end
+    %>
+
+	<% span_text = record.order_service_status&.name || 'Status não definido' %>
+	<span class="badge <%= span_class %>"><%= span_text %></span>
+
+</div>

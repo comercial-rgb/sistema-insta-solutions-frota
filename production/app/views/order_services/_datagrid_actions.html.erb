@@ -1,0 +1,150 @@
+<%= render 'order_services/modals/cancel_order_service', order_service: record %>
+<%
+count_order_service_proposals = record.order_service_proposals.select{|item| ![OrderServiceProposalStatus::EM_CADASTRO_ID].include?(item.order_service_proposal_status_id)}.count
+action_order_service_proposal = record.getting_text_to_order_service_proposal_status(@current_user) ? OrderServiceProposal.human_attribute_name(:edit_order_service_proposal) : OrderServiceProposal.human_attribute_name(:new_order_service_proposal)
+action_insert_data = (@current_user.provider? ? OrderServiceProposal.human_attribute_name(:insert_data_items) : OrderServiceProposal.human_attribute_name(:view_data_items))
+
+action_revaluate = policy(record).update?
+
+# Proposta do fornecedor para reavaliação (se existir)
+provider_reevaluation_proposal = nil
+if @current_user.provider? && record.order_service_status_id == OrderServiceStatus::EM_REAVALIACAO_ID
+  provider_reevaluation_proposal = record.order_service_proposals
+    .where(provider_id: @current_user.id)
+    .order(updated_at: :desc)
+    .first
+end
+
+array_links = [
+  {
+    link_path: order_service_path(record),
+    link_method: :get,
+    link_title: 'Visualizar OS',
+    confirm: nil,
+    link_image: 'bi bi-eye-fill',
+    text_action: 'Visualizar OS',
+    link_policy: policy(record).show?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: edit_order_service_path(record),
+    link_method: :get,
+    link_title: action_insert_data,
+    confirm: nil,
+    link_image: 'bi bi-card-checklist',
+    text_action: action_insert_data,
+    link_policy: policy(record).edit?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: provider_reevaluation_proposal.present? ? edit_order_service_proposal_path(provider_reevaluation_proposal) : '#',
+    link_method: :get,
+    link_title: OrderServiceProposal.human_attribute_name(:edit_order_service_proposal),
+    confirm: nil,
+    link_image: 'bi bi-pencil-square',
+    text_action: OrderServiceProposal.human_attribute_name(:edit_order_service_proposal),
+    link_policy: @current_user.provider? && record.order_service_status_id == OrderServiceStatus::EM_REAVALIACAO_ID && provider_reevaluation_proposal.present?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: print_order_service_proposals_by_order_service_path(order_service_id: record.id),
+    link_method: :get,
+    link_title: OrderService.human_attribute_name(:print_order_service_proposals),
+    confirm: nil,
+    link_image: 'bi bi-printer',
+    text_action: OrderService.human_attribute_name(:print_order_service_proposals),
+    link_policy: policy(record).print_order_service_proposals_by_order_service?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: new_order_service_proposal_path(order_service_id: record.id),
+    link_method: :get,
+    link_title: action_order_service_proposal,
+    confirm: nil,
+    link_image: 'bi bi-list-ol',
+    text_action: action_order_service_proposal,
+    link_policy: policy(record).can_generate_proposal?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: print_no_values_order_service_path(record),
+    link_method: :get,
+    link_title: OrderService.human_attribute_name(:print_order_service_proposals),
+    confirm: nil,
+    link_image: 'bi bi-printer',
+    text_action: t('order_services.print_no_values', default: 'Imprimir OS (sem valores)'),
+    link_policy: policy(record).print_no_values?,
+    class: 'dropdown-item',
+    target: '_blank'
+  },
+  {
+    link_path: reject_order_service_path(id: record.id),
+    link_method: :post,
+    link_title: OrderService.human_attribute_name(:reject_order_service),
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-x-octagon-fill',
+    text_action: OrderService.human_attribute_name(:reject_order_service),
+    link_policy: policy(record).reject_order_service?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: unreject_order_service_path(id: record.id),
+    link_method: :post,
+    link_title: OrderService.human_attribute_name(:unreject_order_service),
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-x-octagon-fill',
+    text_action: OrderService.human_attribute_name(:unreject_order_service),
+    link_policy: policy(record).unreject_order_service?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: show_historic_path(id: record.id),
+    link_method: :get,
+    link_title: OrderService.human_attribute_name(:show_historic),
+    confirm: nil,
+    link_image: 'bi bi-journal-text',
+    text_action: OrderService.human_attribute_name(:show_historic),
+    link_policy: policy(record).show_historic?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: cancel_order_service_path(record),
+    link_method: :delete,
+    link_title: t('model.cancel'),
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-x-circle-fill',
+    text_action: t('model.cancel'),
+    link_policy: policy(record).cancel_order_service?,
+    class: 'dropdown-item',
+    action_button: true,
+    data_bs_toggle: 'modal',
+    data_bs_target: '#cancel_order_service_'+record.id.to_s
+  },
+  {
+    link_path: back_to_edit_order_service_path(id: record.id),
+    link_method: :post,
+    link_title: OrderService.human_attribute_name(:back_to_edit_order_service),
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-x-octagon-fill',
+    text_action: OrderService.human_attribute_name(:back_to_edit_order_service),
+    link_policy: policy(record).back_to_edit_order_service?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: order_service_path(record),
+    link_method: :delete,
+    link_title: t('model.delete'),
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-trash-fill',
+    text_action: t('model.delete'),
+    link_policy: policy(record).destroy?,
+    class: 'dropdown-item'
+  }
+]
+%>
+<span class="my-4">
+  <%= record.code %>
+</span>
+<div class="mt-2">
+  <%= render 'common_pages/datagrid_actions', array_links: array_links %>
+</div>

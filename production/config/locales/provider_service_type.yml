@@ -1,0 +1,28 @@
+pt-BR:
+  activerecord:
+    models:
+      provider_service_type:
+        one: "Serviço oferecido"
+        other: "Serviços oferecidos"
+    attributes:
+      provider_service_type:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        name: "Nome"
+        description: "Descrição"
+en:
+  activerecord:
+    models:
+      provider_service_type:
+        one: "Serviço oferecido"
+        other: "Serviços oferecidos"
+    attributes:
+      provider_service_type:
+        id: "ID"
+        created_at: 'Created at'
+        updated_at: 'Updated at'
+        actions: "Actions"
+        name: "Nome"
+        description: "Descrição"

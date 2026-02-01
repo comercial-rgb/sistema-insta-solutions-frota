@@ -1,0 +1,110 @@
+<%# 
+  Painel para exibir itens (peças/serviços) da OS
+  Usado em OS tipo: Cotações, Requisição, Diagnóstico
+  Collapse: oculto por padrão, clique para expandir
+%>
+<% if os.part_service_order_services.any? %>
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center" 
+         style="cursor: pointer;" 
+         data-bs-toggle="collapse" 
+         data-bs-target="#itemsPanel<%= os.id %>" 
+         aria-expanded="false" 
+         aria-controls="itemsPanel<%= os.id %>">
+      <span>
+        <i class="bi bi-list-check me-2"></i>Itens da Ordem de Serviço (<%= os.part_service_order_services.count %>)
+      </span>
+      <i class="bi bi-chevron-down"></i>
+    </div>
+    <div class="collapse" id="itemsPanel<%= os.id %>">
+      <div class="card-body">
+      <% # Separar itens por categoria %>
+      <% parts = os.part_service_order_services.joins(:service).where(services: { category_id: Category::SERVICOS_PECAS_ID }) %>
+      <% services = os.part_service_order_services.joins(:service).where(services: { category_id: Category::SERVICOS_SERVICOS_ID }) %>
+      
+      <% if parts.any? %>
+        <h5 class="border-bottom pb-2 mb-3">
+          <i class="bi bi-gear"></i> Peças
+        </h5>
+        <div class="table-responsive mb-4">
+          <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 60%;">Nome</th>
+                <th style="width: 20%;" class="text-center">Quantidade</th>
+                <th style="width: 20%;">Observação</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% parts.each do |item| %>
+                <tr>
+                  <td>
+                    <strong><%= item.service&.name || '-' %></strong>
+                    <% if item.service&.description.present? %>
+                      <br><small class="text-muted"><%= item.service.description %></small>
+                    <% end %>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge bg-primary rounded-pill" style="font-size: 0.9rem;">
+                      <%= item.quantity %>
+                    </span>
+                  </td>
+                  <td>
+                    <small class="text-muted">
+                      <%= item.observation.presence || '-' %>
+                    </small>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+      
+      <% if services.any? %>
+        <h5 class="border-bottom pb-2 mb-3">
+          <i class="bi bi-wrench"></i> Serviços
+        </h5>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th style="width: 60%;">Nome</th>
+                <th style="width: 20%;" class="text-center">Quantidade</th>
+                <th style="width: 20%;">Observação</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% services.each do |item| %>
+                <tr>
+                  <td>
+                    <strong><%= item.service&.name || '-' %></strong>
+                    <% if item.service&.description.present? %>
+                      <br><small class="text-muted"><%= item.service.description %></small>
+                    <% end %>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge bg-info rounded-pill" style="font-size: 0.9rem;">
+                      <%= item.quantity %>
+                    </span>
+                  </td>
+                  <td>
+                    <small class="text-muted">
+                      <%= item.observation.presence || '-' %>
+                    </small>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+      
+      <% if parts.empty? && services.empty? %>
+        <p class="text-muted mb-0">
+          <i class="bi bi-info-circle"></i> Nenhum item cadastrado nesta OS.
+        </p>
+      <% end %>
+    </div>
+  </div>
+<% end %>

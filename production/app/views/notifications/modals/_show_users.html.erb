@@ -1,0 +1,36 @@
+<!-- Modal -->
+<div class="modal fade" id="show_users_<%=notification.id%>" tabindex="-1">
+
+    <div class="modal-dialog modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+
+            <!-- Cabeçalho -->
+            <div class="modal-header">
+
+                <!-- Título -->
+                <h5 class="modal-title" id="show_users_label_<%=notification.id%>">
+                    <small class="text-muted"><%= notification.title.upcase %></small>
+                </h5>
+
+                <!-- Botão fechar -->
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Conteúdo -->
+            <div class="modal-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item disabled"><%= Notification.human_attribute_name(:users) %>:</li>
+                    <% notification.users.each do |user| %>
+                        <li class="list-group-item"><%= user.name %></li>
+                    <% end %>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<%
+# End of file _show_users.html.erb
+# Path: ./app/views/categories/modals/_show_users.html.erb
+%>

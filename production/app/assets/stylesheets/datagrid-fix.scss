@@ -1,0 +1,66 @@
+// Arquivo para realizar adequações no datagrid para arrumar imperfeições
+// que não foram possível por falta de tempo ou incapacidade do plugin
+.datagrid-form {
+  .from,
+  .to {
+    width: 45%;
+  }
+}
+
+.table-responsive th {
+  white-space: nowrap; /* Prevent line breaks */
+}
+
+// Melhor espaçamento nas tabelas de ordem de serviço
+.datagrid table {
+  td, th {
+    padding: 12px 15px !important; // Aumenta o padding das células
+    vertical-align: middle; // Centraliza verticalmente o conteúdo
+    min-width: 100px; // Define largura mínima para as colunas
+  }
+  
+  // Colunas específicas com larguras maiores
+  th:first-child,
+  td:first-child {
+    min-width: 50px; // Coluna de seleção/checkbox
+  }
+  
+  // Ajusta quebra de linha para textos longos
+  td {
+    white-space: normal; // Permite quebra de linha nas células
+    word-wrap: break-word; // Quebra palavras longas
+    max-width: 250px; // Define largura máxima para evitar colunas muito largas
+  }
+  
+  // Mantém cabeçalhos em uma linha
+  th {
+    white-space: nowrap;
+  }
+}
+
+// Aumenta o espaçamento das linhas da tabela
+.table-striped > tbody > tr:nth-of-type(odd) > *,
+.table-hover > tbody > tr:hover > * {
+  --bs-table-accent-bg: transparent;
+}
+
+.datagrid table tbody tr {
+  height: auto;
+  min-height: 50px; // Altura mínima das linhas
+}
+
+// Melhora a legibilidade dos links nas tabelas
+.datagrid table a {
+  text-decoration: none;
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+// Mantém o dropdown acima da tabela/scroll sem quebrar o scroll horizontal
+.table-responsive .dropdown-menu {
+  z-index: 1050;
+}
+
+// End of file datagrid-fix.scss
+// Path: ./app/assets/stylesheets/datagrid-fix.scss

@@ -1,0 +1,31 @@
+<div class="row py-3">
+    <div class="col-12">
+        <%= render 'order_services/modals/show_vehicle_data', order_service: record %>
+        <div class="card">
+            <div class="card-header text-center fs-12px">
+                <%= OrderService.model_name.human %>: <b><%= record.code %></b>
+            </div>
+            <div class="card-body">
+                <p class="card-text fs-12px">
+                    <%= OrderService.human_attribute_name(:client_id) %>: <b><%= record.client.fantasy_name %></b><br>
+                    <%= OrderService.human_attribute_name(:cost_center_id) %>: <b><%= record.cost_center.name %></b><br>
+                    <%= OrderService.human_attribute_name(:provider_service_type) %>: <b><%= record.provider_service_type.name %></b><br>
+                    
+                    <%= Vehicle.human_attribute_name(:board) %>: <b><%= record.vehicle.board %></b><br>
+                    <%= Vehicle.human_attribute_name(:year) %>: <b><%= record.vehicle.year %></b><br>
+                    <%= Vehicle.human_attribute_name(:color) %>: <b><%= record.vehicle.color %></b><br>
+                    <%= Vehicle.human_attribute_name(:model) %>: <b><%= record.vehicle.model %></b><br>
+                    <%= Vehicle.human_attribute_name(:category) %>: <b><%= record.vehicle.category %></b><br>
+                    <%= Vehicle.human_attribute_name(:fuel_type) %>: <b><%= record.vehicle.fuel_type&.name %></b><br>
+                    <%= Vehicle.human_attribute_name(:chassi) %>: <b><%= record.vehicle.chassi %></b>
+        
+                    <br>
+                    <%= OrderService.human_attribute_name(:created_at) %>: <b><%= CustomHelper.get_text_date(record.created_at, 'datetime', :full) %></b><br>
+                    <%= OrderService.human_attribute_name(:details) %>: <b><%= record.details %></b><br>
+                    <%= OrderServiceProposal.model_name.human %>: <b><%= order_service_proposal.code %></b><br>
+                </p>
+                
+            </div>
+        </div>
+    </div>
+</div>

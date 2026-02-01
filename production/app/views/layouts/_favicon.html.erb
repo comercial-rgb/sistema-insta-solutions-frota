@@ -1,0 +1,22 @@
+<!-- Favicon Links -->
+<% sizes = ["57x57", "60x60", "72x72", "76x76", "114x114", "120x120", "144x144", "152x152", "180x180", "192x192", "32x32", "96x96", "16x16"] %>
+
+<% sizes.each do |size| %>
+  <link rel="icon" type="image/png" sizes="<%= size %>" href="<%= ensure_custom_favicon(size) %>">
+<% end %>
+
+<!-- Meta Tags -->
+<meta name="msapplication-TileColor" content="#ffffff">
+<meta name="msapplication-TileImage" content="<%= ensure_custom_favicon('144x144') %>">
+<meta name="theme-color" content="#ffffff">
+
+<!-- OpenGraph Meta -->
+<meta property="og:url" content="<%= root_url %>">
+<meta property="og:title" content="<%= get_head_title %>">
+<meta property="og:site_name" content="<%= get_head_title %>">
+<meta property="og:description" content="<%= get_head_description %>">
+<meta property="og:image" content="<%= ensure_custom_favicon('192x192') %>">
+<meta property="og:image:type" content="image/png">
+<meta property="og:image:width" content="192">
+<meta property="og:image:height" content="192">
+<meta property="og:type" content="website">

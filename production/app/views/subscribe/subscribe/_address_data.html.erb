@@ -1,0 +1,47 @@
+<div class="col-12">
+    <div class="row">
+        <div class="col-12 mb-3">
+            <h5><%= Subscription.human_attribute_name(:address_data) %></h5>
+        </div>
+    </div>
+
+    <%= simple_form_for current_order, url: save_address_to_subscribe_plan_path(id: current_order.id), method: :post do |f| %>
+        
+        <% if defined?(use_my_address) %>
+            <div class="row">
+                <div class="col-12 col-md-6">
+                    <label><%= Order.human_attribute_name(:use_my_address) %></label>
+                    <%= f.input :address_id,
+                    as: :select,
+                    collection: Address.by_ownertable_type(ActiveModel::Name.new(User).to_s).by_ownertable_id(current_order.user.id),
+                    label_method: :get_address_value_until_district,
+                    label: false, input_html: { class: 'form-control' },
+                    include_blank: t('model.select_option') %>
+                </div>
+            </div>
+        <% end %>
+
+        <%= hidden_field_tag 'show_address_data', params[:show_address_data] %>
+        <%= hidden_field_tag "current_order_to_pay_id", current_order.id %>
+        <%= hidden_field_tag "discount_coupon_area_id", DiscountCouponArea::PLANOS_ID %>
+
+        <%= f.fields_for :address do |address| %>
+            <%= address.input :validate_to_order, as: :hidden, input_html: {value: true} %>
+            <%= render 'subscribe/subscribe/pay/address_fields', f: f, address: address %>
+        <% end %>
+
+        <div class="row">
+            <div class="col text-end">
+                <button type="submit" class="btn btn-sm btn-primary d-block mt-3">
+                    <%= Order.human_attribute_name(:go_to_payment) %>
+                </button>
+            </div>
+        </div>
+
+    <% end %>
+</div>
+
+<%
+# End of file _address_data.html.erb
+# Path: ./app/views/orders/pay/_address_data.html.erb
+%>

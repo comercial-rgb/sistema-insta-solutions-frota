@@ -1,0 +1,31 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: categories_path(category_type_id: params[:category_type_id]), text: @page_name},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: Category.model_name.human(count: 2),
+		url_new_path: new_category_path(category_type_id: params[:category_type_id]),
+		policy_true: policy(Category).new?,
+		objects: @categories,
+		objects_path: show_categories_by_category_type_path(category_type_id: params[:category_type_id]),
+		object_name: Category.model_name.human,
+		breadcrumbs: breadcrumbs,
+		show_file_model: false,
+		show_file_import: false,
+		url_import: import_categories_path(category_type_id: params[:category_type_id]),
+		url_download_file_model: import_model_categories_path,
+		attribute_file: :file,
+		text_model: Category.human_attribute_name(:text_model),
+		text_bottom_model: Category.human_attribute_name(:text_bottom_model),
+		text_instructions: Category.human_attribute_name(:text_instructions),
+		text_bottom_import_file: Category.human_attribute_name(:text_bottom_import_file),
+		paginate_url: paginate(@categories.assets, params: {category_type_id: params[:category_type_id]}),
+		objects_path_export: categories_path(format: "csv", categories_grid: (params[:categories_grid].nil? ? "" : params[:categories_grid].to_enum.to_h))
+	}
+%>

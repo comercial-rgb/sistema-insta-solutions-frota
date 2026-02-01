@@ -1,0 +1,15 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: notifications_path, text: Notification.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.add_new')},
+]
+%>
+
+<%= 
+render 'common_pages/new', 
+objects_path: notifications_path, 
+page_title: Notification.model_name.human(count: 2), 
+form_to_render: 'notifications/form',
+breadcrumbs: breadcrumbs
+%>

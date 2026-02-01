@@ -16,13 +16,61 @@ class OrderServicesController < ApplicationController
 
   def show_order_services
     authorize OrderService
-    defining_data(params[:order_service_status_id], nil, nil, false, nil, params[:order_services_grid], OrderServicesGrid, 'show_order_services')
+    
+    # Se status_id = -1, mostrar histórico de rejeições
+    if params[:order_service_status_id].to_i == -1
+      # Se for fornecedor, mostrar apenas as OSs que ELE rejeitou
+      if current_user.provider?
+        @order_services = current_user.rejected_order_services
+          .where(order_service_status_id: [
+            OrderServiceStatus::EM_ABERTO_ID,
+            OrderServiceStatus::EM_REAVALIACAO_ID,
+            OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID
+          ])
+          .includes(:client, :vehicle, :order_service_status, :provider_service_type, :manager, :rejected_providers)
+          .order(updated_at: :desc)
+          .page(params[:page])
+          .per(50)
+        
+        @is_provider_view = true
+      else
+        # Admin/Gestor: ver todas as OSs rejeitadas
+        @order_services = OrderService
+          .joins(:rejected_providers)
+          .includes(:client, :manager, :rejected_providers)
+          .distinct
+          .order(created_at: :desc)
+          .page(params[:page])
+          .per(50)
+        
+        @is_provider_view = false
+      end
+      
+      render 'order_services/rejected_history'
+    else
+      defining_data(params[:order_service_status_id], nil, nil, false, nil, params[:order_services_grid], OrderServicesGrid, 'show_order_services')
+    end
   end
 
   def show_invoices
     authorize OrderService
     # Para Faturas, não filtrar por status atual - usar histórico de aprovações
     defining_data(nil, true, nil, true, true, params[:order_services_invoice_grid], OrderServicesInvoiceGrid, 'show_invoices')
+  end
+
+  def rejected_history
+    authorize OrderService
+    
+    # Buscar apenas OSs que possuem fornecedores rejeitados
+    @order_services = OrderService
+      .joins(:rejected_providers)
+      .includes(:client, :manager, :rejected_providers)
+      .distinct
+      .order(created_at: :desc)
+      .page(params[:page])
+      .per(50)
+    
+    render 'order_services/rejected_history'
   end
 
   def dashboard

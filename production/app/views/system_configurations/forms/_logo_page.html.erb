@@ -1,0 +1,19 @@
+<% if @current_user.id == User::ADMIN_FIRST_ID %>
+  <div class="row">
+    <div class="col-12 col-md-2 mb-3">
+      <%= render "common_pages/image_input", image: f.object.client_logo, form: f, label: SystemConfiguration.human_attribute_name(:client_logo), attribute: :client_logo %>
+    </div>
+    <div class="col-12 col-md-2 mb-3">
+      <%= render "common_pages/image_input", image: f.object.favicon, form: f, label: SystemConfiguration.human_attribute_name(:favicon), attribute: :favicon %>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-12 col-md-4 mb-3">
+      <%= f.input :page_title %>
+    </div>
+    <div class="col-12 col-md-8 mb-3">
+      <%= f.input :page_description %>
+    </div>
+  </div>
+  <!-- / -->
+<% end %>

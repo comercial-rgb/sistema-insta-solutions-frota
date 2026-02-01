@@ -1,0 +1,40 @@
+pt-BR:
+  activerecord:
+    models:
+      notification:
+        one: "Notificação"
+        other: "Notificações"
+    attributes:
+      notification:
+        id: "ID"
+        created_at: 'Enviada em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        profile_id: "Tipo de usuário"
+        profile: "Tipo de usuário"
+        send_all: "Enviar para todos"
+        title: "Título"
+        message: "Mensagem"
+        manage_read: "Marcar como lida"
+        view_message: "Marcar como lida"
+        users: "Usuários específicos"
+en:
+  activerecord:
+    models:
+      notification:
+        one: "Notificação"
+        other: "Notificações"
+    attributes:
+      notification:
+        id: "ID"
+        created_at: 'Created at'
+        updated_at: 'Updated at'
+        actions: "Actions"
+        profile_id: "Tipo de usuário"
+        profile: "Tipo de usuário"
+        send_all: "Enviar para todos"
+        title: "Título"
+        message: "Mensagem"
+        manage_read: "Marcar como lida"
+        view_message: "Marcar como lida"
+        users: "Usuários específicos"

@@ -1,0 +1,23 @@
+<div class="row py-3">
+    <div class="col-12">
+        <div class="accordion" id="accordionExample">
+            <div class="accordion-item">
+                <h2 class="accordion-header" id="headingOne">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOrderServiceInvoices<%= order_service_proposal.id.to_s %>" aria-expanded="true" aria-controls="collapseOrderServiceInvoices<%= order_service_proposal.id.to_s %>">
+                        <%= OrderServiceProposal.human_attribute_name(:order_service_invoices) %>
+                    </button>
+                </h2>
+                <div id="collapseOrderServiceInvoices<%= order_service_proposal.id.to_s %>" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#collapseOrderServiceInvoices<%= order_service_proposal.id.to_s %>">
+                    <div class="accordion-body">
+                        <%= render 'order_service_proposals/renders/invoice_information', order_service_proposal: order_service_proposal %>
+                        <% if order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::APROVADA_ID || @current_user.admin? %>
+                            <%= render 'order_service_proposals/renders/form_insert_invoices', order_service_proposal: order_service_proposal %>
+                        <% else %>
+                            <%= render 'order_service_proposals/renders/table_invoices', order_service_proposal: order_service_proposal %>
+                        <% end %>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

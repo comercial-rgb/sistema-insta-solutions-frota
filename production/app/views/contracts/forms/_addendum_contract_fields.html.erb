@@ -1,0 +1,12 @@
+<div class="col-12 col-md-3">
+    <%= addendum_contract.input :name %>
+</div>
+<div class="col-12 col-md-3">
+    <%= addendum_contract.input :number %>
+</div>
+<div class="col-12 col-md-3">
+    <%= addendum_contract.input :total_value, input_html: {class: 'money', value: CustomHelper.to_currency(addendum_contract.object.total_value), type: "tel"}, as: :string %>
+</div>
+<div class="col-12 col-md-3 checkbox-input-center">
+    <%= addendum_contract.input :active %>
+</div>

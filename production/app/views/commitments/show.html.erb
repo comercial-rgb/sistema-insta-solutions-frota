@@ -1,0 +1,239 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: false, href: commitments_path, text: Commitment.model_name.human(count: 2)},
+  {active: true, href: '#', text: @commitment.commitment_number},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+  
+  <div class="row mb-3">
+    <div class="col-12">
+      <h4 class="mb-0">
+        <%= Commitment.model_name.human %> <%= @commitment.commitment_number %>
+        <% if @commitment.active %>
+          <span class="badge bg-success">Ativo</span>
+        <% else %>
+          <span class="badge bg-danger">Inativo</span>
+        <% end %>
+      </h4>
+    </div>
+  </div>
+
+  <!-- Dados do Empenho -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+      <i class="bi bi-file-earmark-text me-2"></i>Dados do Empenho
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold text-muted small">Cliente</label>
+          <% client = @commitment.client %>
+          <p class="mb-0"><%= (client&.social_name.presence || client&.fantasy_name.presence || client&.name.presence) || '-' %></p>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold text-muted small"><%= CostCenter.model_name.human(count: @commitment.cost_centers.count > 1 ? 2 : 1) %></label>
+          <p class="mb-0">
+            <% if @commitment.cost_centers.any? %>
+              <%= @commitment.cost_centers.map(&:name).join(', ') %>
+            <% elsif @commitment.cost_center.present? %>
+              <%= @commitment.cost_center.name %>
+            <% else %>
+              -
+            <% end %>
+          </p>
+        </div>
+      </div>
+
+      <% if @commitment.sub_unit.present? %>
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="fw-bold text-muted small">Subunidade</label>
+            <p class="mb-0"><%= @commitment.sub_unit.name %></p>
+          </div>
+        </div>
+      <% end %>
+
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold text-muted small">Contrato</label>
+          <p class="mb-0"><%= @commitment.contract&.name || '-' %></p>
+        </div>
+        <div class="col-md-6 mb-3">
+          <label class="fw-bold text-muted small">Categoria</label>
+          <p class="mb-0"><%= @commitment.category&.name || '-' %></p>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="col-md-3 mb-3">
+          <label class="fw-bold text-muted small">N° Empenho</label>
+          <p class="mb-0"><%= @commitment.commitment_number %></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Valores -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-info text-white">
+      <i class="bi bi-cash-stack me-2"></i>Valores
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold text-muted small">Valor do Empenho</label>
+          <p class="mb-0 fs-5 text-primary"><%= CustomHelper.to_currency(@commitment.commitment_value) %></p>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold text-muted small">Valor Consumido</label>
+          <p class="mb-0 fs-5 text-warning"><%= CustomHelper.to_currency(@total_consumed) %></p>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="fw-bold text-muted small">Valor Restante</label>
+          <p class="mb-0 fs-5 <%= @remaining_value > 0 ? 'text-success' : 'text-danger' %>">
+            <%= CustomHelper.to_currency(@remaining_value) %>
+          </p>
+        </div>
+      </div>
+
+      <% if @commitment_breakdown.present? && (@commitment_breakdown[:parts].present? || @commitment_breakdown[:services].present?) %>
+        <hr>
+        <div class="row">
+          <div class="col-12 mb-2">
+            <span class="badge bg-dark">Detalhado por tipo (Empenhos Individuais)</span>
+          </div>
+
+          <% if @commitment_breakdown[:parts].present? %>
+            <% parts_values = Commitment.getting_values_to_commitment(@commitment_breakdown[:parts]) %>
+            <div class="col-md-4 mb-3">
+              <label class="fw-bold text-muted small">Orçamento Peças</label>
+              <p class="mb-0 fs-6 text-primary"><%= CustomHelper.to_currency(parts_values[:sum_budget_value]) %></p>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="fw-bold text-muted small">Consumido Peças</label>
+              <p class="mb-0 fs-6 text-warning"><%= CustomHelper.to_currency(parts_values[:total_already_consumed_value]) %></p>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="fw-bold text-muted small">Restante Peças</label>
+              <p class="mb-0 fs-6 <%= parts_values[:pendent_value] > 0 ? 'text-success' : 'text-danger' %>">
+                <%= CustomHelper.to_currency(parts_values[:pendent_value]) %>
+              </p>
+            </div>
+          <% end %>
+
+          <% if @commitment_breakdown[:services].present? %>
+            <% services_values = Commitment.getting_values_to_commitment(@commitment_breakdown[:services]) %>
+            <div class="col-md-4 mb-3">
+              <label class="fw-bold text-muted small">Orçamento Serviços</label>
+              <p class="mb-0 fs-6 text-primary"><%= CustomHelper.to_currency(services_values[:sum_budget_value]) %></p>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="fw-bold text-muted small">Consumido Serviços</label>
+              <p class="mb-0 fs-6 text-warning"><%= CustomHelper.to_currency(services_values[:total_already_consumed_value]) %></p>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="fw-bold text-muted small">Restante Serviços</label>
+              <p class="mb-0 fs-6 <%= services_values[:pendent_value] > 0 ? 'text-success' : 'text-danger' %>">
+                <%= CustomHelper.to_currency(services_values[:pendent_value]) %>
+              </p>
+            </div>
+          <% end %>
+        </div>
+      <% end %>
+
+      <% if @commitment.canceled_value.to_f > 0 %>
+        <div class="row mt-2">
+          <div class="col-md-4 mb-3">
+            <label class="fw-bold text-muted small">Valor Anulado</label>
+            <p class="mb-0 fs-5 text-danger"><%= CustomHelper.to_currency(@commitment.canceled_value) %></p>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- OSs Aprovadas -->
+  <div class="card shadow-sm mb-4" id="ordens-servico-aprovadas">
+    <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-check-circle me-2"></i>Ordens de Serviço Aprovadas (<%= @approved_order_services.total_count %>)</span>
+    </div>
+    <div class="card-body">
+      <% if @approved_order_services.empty? %>
+        <p class="text-muted mb-0">Nenhuma OS aprovada vinculada a este empenho.</p>
+      <% else %>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Código</th>
+                <th>Veículo</th>
+                <th>Centro de Custo</th>
+                <th>Status</th>
+                <th>Valor Total</th>
+                <th>Data</th>
+                <th class="text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @approved_order_services.each do |os| %>
+                <% os_total_value = os.approved_proposal&.total_value || os.getting_order_service_proposal_approved&.total_value %>
+                <tr>
+                  <td><%= os.code %></td>
+                  <td><%= os.vehicle&.board || '-' %></td>
+                  <td><%= os.cost_center&.name || '-' %></td>
+                  <td>
+                    <span class="badge bg-success"><%= os.order_service_status&.name %></span>
+                  </td>
+                  <td><%= os_total_value.present? ? CustomHelper.to_currency(os_total_value) : '-' %></td>
+                  <td><%= l(os.created_at, format: :short) %></td>
+                  <td class="text-center">
+                    <%= link_to order_service_path(os), class: 'btn btn-sm btn-primary', title: 'Visualizar' do %>
+                      <i class="bi bi-eye"></i>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+
+        <% if @approved_order_services.total_pages > 1 %>
+          <div class="pt-3 d-flex justify-content-center">
+            <%= paginate @approved_order_services, param_name: :approved_order_services_page, params: request.query_parameters, anchor: 'ordens-servico-aprovadas' %>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Botões de ação -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <%= link_to commitments_path, class: 'btn btn-secondary' do %>
+        <i class="bi bi-arrow-left"></i> Voltar
+      <% end %>
+      
+      <% if policy(@commitment).edit? %>
+        <%= link_to edit_commitment_path(@commitment), class: 'btn btn-primary' do %>
+          <i class="bi bi-pencil"></i> Editar Empenho
+        <% end %>
+      <% end %>
+      
+      <% if policy(@commitment).inactivate? && @commitment.active %>
+        <%= link_to inactivate_commitment_path(@commitment), data: { turbo_method: :patch, turbo_confirm: 'Tem certeza que deseja inativar este empenho?' }, class: 'btn btn-warning' do %>
+          <i class="bi bi-x-circle"></i> Inativar
+        <% end %>
+      <% end %>
+      
+      <% if policy(@commitment).edit? %>
+        <%= link_to edit_commitment_path(@commitment, anchor: 'cancel-section'), class: 'btn btn-danger' do %>
+          <i class="bi bi-slash-circle"></i> Anular Valor
+        <% end %>
+      <% end %>
+    </div>
+  </div>
+</div>

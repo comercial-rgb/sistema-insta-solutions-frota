@@ -1,0 +1,317 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: true, href: '#', text: 'Dashboard do Fornecedor'},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+  
+  <div class="row mb-3">
+    <div class="col-12">
+      <h4 class="mb-0">
+        <i class="bi bi-speedometer2"></i> Dashboard - <%= @provider.name %>
+      </h4>
+      <p class="text-muted">Bem-vindo ao seu painel de controle</p>
+    </div>
+  </div>
+
+  <!-- Cards de Estatísticas -->
+  <div class="row mb-4">
+    <div class="col-md-2 mb-3">
+      <div class="card shadow-sm border-info">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Em Aberto</h6>
+              <h3 class="mb-0"><%= @os_em_aberto_count %></h3>
+              <small class="text-muted">Aguardando proposta</small>
+            </div>
+            <div class="text-info">
+              <i class="bi bi-hourglass-split fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-2 mb-3">
+      <div class="card shadow-sm border-warning">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Aguardando</h6>
+              <h3 class="mb-0 text-warning"><%= @propostas_aguardando_count %></h3>
+              <small class="text-muted">Avaliação</small>
+            </div>
+            <div class="text-warning">
+              <i class="bi bi-clock-history fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-2 mb-3">
+      <div class="card shadow-sm border-success">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Aprovadas</h6>
+              <h3 class="mb-0 text-success"><%= @propostas_aprovadas_count %></h3>
+            </div>
+            <div class="text-success">
+              <i class="bi bi-check-circle fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-2 mb-3">
+      <div class="card shadow-sm border-primary">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Ag. Pagamento</h6>
+              <h3 class="mb-0 text-primary"><%= @propostas_aguardando_pagamento_count %></h3>
+            </div>
+            <div class="text-primary">
+              <i class="bi bi-credit-card fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-2 mb-3">
+      <div class="card shadow-sm border-success">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Paga</h6>
+              <h3 class="mb-0 text-success"><%= @propostas_pagas_count %></h3>
+            </div>
+            <div class="text-success">
+              <i class="bi bi-cash-coin fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-2 mb-3">
+      <div class="card shadow-sm border-dark">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Valor Aprovado</h6>
+              <h3 class="mb-0 text-dark" style="font-size: 1.3rem;"><%= CustomHelper.to_currency(@total_valor_aprovado) %></h3>
+            </div>
+            <div class="text-dark">
+              <i class="bi bi-cash-stack fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OSs Disponíveis (Em Aberto - sem proposta do fornecedor) -->
+  <% if @os_em_aberto.any? %>
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-hourglass-split me-2"></i>OSs Disponíveis para Resposta (<%= @os_em_aberto.count %>)</span>
+        <%= link_to order_services_path(order_service_status_id: OrderServiceStatus::EM_ABERTO_ID), class: 'btn btn-sm btn-light' do %>
+          Ver Todas <i class="bi bi-arrow-right"></i>
+        <% end %>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Código</th>
+                <th>Cliente</th>
+                <th>Tipo</th>
+                <th>Data Abertura</th>
+                <th class="text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @os_em_aberto.each do |os| %>
+                <tr>
+                  <td><%= os.code %></td>
+                  <% client = os.cost_center&.client %>
+                  <td><%= (client&.social_name.presence || client&.fantasy_name.presence || client&.name.presence) || '-' %></td>
+                  <td>
+                    <%= render 'order_services/order_service_type_badge', record: os %>
+                  </td>
+                  <td><%= l(os.created_at, format: :short) %></td>
+                  <td class="text-center">
+                    <%= link_to new_order_service_proposal_path(order_service_id: os.id), class: 'btn btn-sm btn-primary', title: 'Criar proposta para esta OS' do %>
+                      <i class="bi bi-reply-fill"></i> Responder
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <% else %>
+    <div class="alert alert-info">
+      <i class="bi bi-info-circle me-2"></i>
+      Não há OSs disponíveis para resposta no momento.
+    </div>
+  <% end %>
+
+  <!-- Propostas em Cadastro -->
+  <% if @proposals_em_cadastro.any? %>
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-pencil-square me-2"></i>Propostas em Cadastro (<%= @proposals_em_cadastro.count %>)</span>
+        <%= link_to order_service_proposals_path, class: 'btn btn-sm btn-light' do %>
+          Ver Todas <i class="bi bi-arrow-right"></i>
+        <% end %>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Código</th>
+                <th>OS</th>
+                <th>Cliente</th>
+                <th>Valor</th>
+                <th>Data</th>
+                <th class="text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @proposals_em_cadastro.each do |proposal| %>
+                <tr>
+                  <td><%= proposal.code %></td>
+                  <td><%= proposal.order_service.code %></td>
+                  <% client = proposal.order_service.cost_center&.client %>
+                  <td><%= (client&.social_name.presence || client&.fantasy_name.presence || client&.name.presence) || '-' %></td>
+                  <td><%= CustomHelper.to_currency(proposal.total_value) %></td>
+                  <td><%= l(proposal.created_at, format: :short) %></td>
+                  <td class="text-center">
+                    <%= link_to edit_order_service_proposal_path(proposal), class: 'btn btn-sm btn-primary', title: 'Editar' do %>
+                      <i class="bi bi-pencil"></i> Continuar
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Propostas Aguardando Aprovação -->
+  <% if @proposals_aguardando.any? %>
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-warning text-dark d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-clock-history me-2"></i>Aguardando Aprovação (<%= @proposals_aguardando.count %>)</span>
+        <%= link_to order_service_proposals_path, class: 'btn btn-sm btn-dark' do %>
+          Ver Todas <i class="bi bi-arrow-right"></i>
+        <% end %>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Código</th>
+                <th>OS</th>
+                <th>Cliente</th>
+                <th>Valor</th>
+                <th>Data Envio</th>
+                <th class="text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @proposals_aguardando.each do |proposal| %>
+                <tr>
+                  <td><%= proposal.code %></td>
+                  <td><%= proposal.order_service.code %></td>
+                  <% client = proposal.order_service.cost_center&.client %>
+                  <td><%= (client&.social_name.presence || client&.fantasy_name.presence || client&.name.presence) || '-' %></td>
+                  <td><%= CustomHelper.to_currency(proposal.total_value) %></td>
+                  <td><%= l(proposal.updated_at, format: :short) %></td>
+                  <td class="text-center">
+                    <%= link_to order_service_path(proposal.order_service), class: 'btn btn-sm btn-info', title: 'Visualizar OS' do %>
+                      <i class="bi bi-eye"></i>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Propostas Aprovadas Recentes -->
+  <% if @proposals_aprovadas.any? %>
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-check-circle me-2"></i>Propostas Aprovadas Recentes (<%= @proposals_aprovadas.count %>)</span>
+        <%= link_to order_service_proposals_path, class: 'btn btn-sm btn-light' do %>
+          Ver Todas <i class="bi bi-arrow-right"></i>
+        <% end %>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Código</th>
+                <th>OS</th>
+                <th>Cliente</th>
+                <th>Valor</th>
+                <th>Data Aprovação</th>
+                <th class="text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @proposals_aprovadas.each do |proposal| %>
+                <tr>
+                  <td><%= proposal.code %></td>
+                  <td><%= proposal.order_service.code %></td>
+                  <% client = proposal.order_service.cost_center&.client %>
+                  <td><%= (client&.social_name.presence || client&.fantasy_name.presence || client&.name.presence) || '-' %></td>
+                  <td><%= CustomHelper.to_currency(proposal.total_value_with_complements) %></td>
+                  <td><%= l(proposal.updated_at, format: :short) %></td>
+                  <td class="text-center">
+                    <%= link_to order_service_path(proposal.order_service), class: 'btn btn-sm btn-primary', title: 'Visualizar OS' do %>
+                      <i class="bi bi-eye"></i>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Mensagem se não houver propostas -->
+  <% if @proposals_em_cadastro.empty? && @proposals_aguardando.empty? && @proposals_aprovadas.empty? %>
+    <div class="card shadow-sm">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-inbox fs-1 text-muted"></i>
+        <h5 class="mt-3 text-muted">Nenhuma proposta ainda</h5>
+        <p class="text-muted">Você ainda não possui propostas cadastradas no sistema.</p>
+      </div>
+    </div>
+  <% end %>
+
+</div>

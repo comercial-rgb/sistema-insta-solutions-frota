@@ -32,19 +32,32 @@
   
   # Informações para controle de edição da quantidade
   is_cotacoes = f.object.order_service.order_service_type_id == OrderServiceType::COTACOES_ID
-  is_requisicao = f.object.order_service.order_service_type_id == OrderServiceType::REQUISICAO_ID
-  is_diagnostico = f.object.order_service.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID
+  is_requisicao = f.object.order_service&.order_service_type_id == OrderServiceType::REQUISICAO_ID
+  is_diagnostico = f.object.order_service&.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID
   proposal_persisted = f.object.persisted?
   
-  # Verifica se a OS veio de um Diagnóstico que foi enviado para cotação
-  # Nesse caso, os itens já estão definidos e não podem ser adicionados/removidos por outros fornecedores
-  is_from_diagnostico_cotacoes = f.object.order_service.origin_type == OrderService::ORIGIN_DIAGNOSTICO_COTACOES
+  # Verifica se é fornecedor secundário em OS de Diagnóstico
+  # Se a OS já tem proposta aprovada/enviada de outro fornecedor, este é secundário e não pode alterar itens
+  is_secondary_provider = false
+  if is_diagnostico && f.object.order_service.present?
+    # Buscar primeira proposta não em cadastro (enviada/aprovada)
+    first_submitted_proposal = f.object.order_service.order_service_proposals
+      .where.not(order_service_proposal_status_id: OrderServiceProposalStatus::EM_CADASTRO_ID)
+      .order(:created_at)
+      .first
+    
+    # Se existe proposta anterior e NÃO é a proposta atual (comparar IDs com segurança)
+    # Para proposta nova (id nil), sempre considera secundário se existir outra proposta
+    if first_submitted_proposal.present?
+      is_secondary_provider = f.object.id.nil? || first_submitted_proposal.id != f.object.id
+    end
+  end
   
   # Determina se pode adicionar itens
-  # - Diagnóstico: pode adicionar (é o fornecedor original)
+  # - Diagnóstico: pode adicionar APENAS se for o fornecedor original (primeiro a enviar proposta)
   # - Cotações/Requisição: NÃO pode adicionar (itens vêm do gestor)
-  # - OS vinda de Diagnóstico para cotação: NÃO pode adicionar (itens já definidos pelo fornecedor original)
-  can_add_items = is_diagnostico && !is_from_diagnostico_cotacoes
+  # - Fornecedor secundário em Diagnóstico: NÃO pode adicionar (itens já definidos pelo primeiro fornecedor)
+  can_add_items = is_diagnostico && !is_secondary_provider
   
   # Buscar limites de valor máximo do grupo de serviços (apenas para Requisição)
   service_max_values = {}
@@ -103,7 +116,6 @@
             is_diagnostico: is_diagnostico,
             proposal_persisted: proposal_persisted,
             service_max_values: service_max_values,
-            is_from_diagnostico_cotacoes: is_from_diagnostico_cotacoes,
             can_add_items: can_add_items %>
         </div>
       <% end %>

@@ -1,0 +1,151 @@
+<%
+# View específica para histórico de rejeições
+# Admin: Mostra todas as OSs rejeitadas com fornecedores
+# Fornecedor: Mostra apenas OSs que ELE rejeitou com opção de reverter
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: false, href: '#', text: OrderService.model_name.human(count: 2)},
+  {active: true, href: '#', text: @is_provider_view ? 'Minhas Rejeições' : 'Histórico de Rejeições'},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+  
+  <div class="row mb-3">
+    <div class="col-12">
+      <h4 class="mb-0">
+        <i class="bi <%= @is_provider_view ? 'bi-x-circle-fill text-danger' : 'bi-x-circle' %>"></i> 
+        <%= @is_provider_view ? 'Minhas Rejeições' : 'Histórico de Rejeições' %>
+      </h4>
+      <p class="text-muted">
+        <%= @is_provider_view ? 'Gerencie as Ordens de Serviço que você rejeitou' : 'Ordens de serviço rejeitadas por fornecedores' %>
+      </p>
+    </div>
+  </div>
+
+  <% if @is_provider_view %>
+    <div class="card shadow-sm mb-3">
+      <div class="card-body">
+        <div class="alert alert-info mb-0">
+          <i class="bi bi-info-circle me-2"></i>
+          <strong>Como funciona:</strong> Estas são as OSs que você rejeitou e ainda estão disponíveis para receber propostas.
+          Você pode reverter a rejeição clicando no botão "Reverter Rejeição" para voltar a enviar propostas.
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <% if @order_services.any? %>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <% if @is_provider_view %>
+                  <th style="width: 80px;">Código</th>
+                  <th>Cliente</th>
+                  <th>Tipo de Serviço</th>
+                  <th>Veículo</th>
+                  <th>Status Atual</th>
+                  <th>Data Rejeição</th>
+                  <th class="text-center" style="width: 200px;">Ações</th>
+                <% else %>
+                  <th>Cliente</th>
+                  <th>Código OS</th>
+                  <th>Gestor</th>
+                  <th>Fornecedores Rejeitados</th>
+                  <th>Data Criação</th>
+                  <th class="text-center">Ações</th>
+                <% end %>
+              </tr>
+            </thead>
+            <tbody>
+              <% @order_services.each do |os| %>
+                <tr>
+                  <% if @is_provider_view %>
+                    <td><strong><%= os.code %></strong></td>
+                    <td>
+                      <strong><%= (os.client&.social_name || os.client&.fantasy_name || '-').to_s.force_encoding('UTF-8') %></strong>
+                      <% if os.vehicle&.cost_center.present? || os.vehicle&.sub_unit.present? %>
+                        <br>
+                        <small class="text-muted">
+                          <%= os.vehicle.cost_center&.name.to_s.force_encoding('UTF-8') %>
+                          <% if os.vehicle.sub_unit.present? %>
+                            - <%= os.vehicle.sub_unit.name.to_s.force_encoding('UTF-8') %>
+                          <% end %>
+                        </small>
+                      <% end %>
+                    </td>
+                    <td><%= os.provider_service_type&.name.to_s.force_encoding('UTF-8') || '-' %></td>
+                    <td>
+                      <%= os.vehicle&.board || '-' %>
+                      <% if os.vehicle&.model.present? %>
+                        <br><small class="text-muted"><%= os.vehicle.model.to_s.force_encoding('UTF-8') %></small>
+                      <% end %>
+                    </td>
+                    <td>
+                      <%= render 'order_services/show_order_service_status', record: os %>
+                    </td>
+                    <td>
+                      <small><%= l(os.updated_at, format: :short) %></small>
+                    </td>
+                    <td class="text-center">
+                      <%= link_to order_service_path(os), class: 'btn btn-sm btn-info me-1', title: 'Visualizar OS', target: '_blank' do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                      
+                      <%= button_to revert_rejection_provider_dashboard_path(order_service_id: os.id), 
+                          method: :post,
+                          class: 'btn btn-sm btn-success',
+                          title: 'Reverter Rejeição',
+                          data: { confirm: 'Deseja reverter esta rejeição? Você poderá enviar propostas novamente.' },
+                          form: { style: 'display: inline;' } do %>
+                        <i class="bi bi-arrow-counterclockwise me-1"></i> Reverter
+                      <% end %>
+                    </td>
+                  <% else %>
+                    <td>
+                      <strong><%= (os.client&.social_name || os.client&.fantasy_name || os.client&.name || '-').to_s.force_encoding('UTF-8') %></strong>
+                    </td>
+                    <td>
+                      <strong><%= os.code %></strong>
+                    </td>
+                    <td><%= (os.manager&.name || '-').to_s.force_encoding('UTF-8') %></td>
+                    <td>
+                      <% if os.rejected_providers.any? %>
+                        <% os.rejected_providers.each do |provider| %>
+                          <span class="badge bg-danger me-1 mb-1">
+                            <i class="bi bi-x-circle"></i> <%= (provider.fantasy_name.presence || provider.name).to_s.force_encoding('UTF-8') %>
+                          </span>
+                        <% end %>
+                      <% else %>
+                        <span class="text-muted">-</span>
+                      <% end %>
+                    </td>
+                    <td><%= l(os.created_at, format: :short) %></td>
+                    <td class="text-center">
+                      <%= link_to order_service_path(os), class: 'btn btn-sm btn-primary', title: 'Visualizar OS' do %>
+                        <i class="bi bi-eye"></i>
+                      <% end %>
+                    </td>
+                  <% end %>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="mt-3">
+          <%= paginate @order_services %>
+        </div>
+      <% else %>
+        <div class="alert alert-<%= @is_provider_view ? 'success' : 'info' %> mb-0">
+          <i class="bi bi-<%= @is_provider_view ? 'check-circle' : 'info-circle' %> me-2"></i>
+          <%= @is_provider_view ? 'Nenhuma rejeição ativa! Você não possui OSs rejeitadas no momento.' : 'Nenhuma OS rejeitada encontrada.' %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

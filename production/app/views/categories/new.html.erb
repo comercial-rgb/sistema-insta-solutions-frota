@@ -1,0 +1,15 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: categories_path(category_type_id: @category.category_type_id), text: CategoryType.get_name_by_id(@category.category_type_id)},
+	{active: true, href: '#', text: t('model.add_new')},
+]
+%>
+
+<%= 
+render 'common_pages/new', 
+objects_path: categories_path, 
+page_title: Category.model_name.human(count: 2), 
+form_to_render: 'categories/form',
+breadcrumbs: breadcrumbs
+%>

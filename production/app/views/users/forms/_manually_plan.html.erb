@@ -1,0 +1,16 @@
+<% if policy(f.object).can_select_plan? %>
+	<div class="row">
+		<div class="col-12 col-md-6 mb-3">
+			<%= f.input :set_manually_plan %>
+		</div>
+	</div>
+
+	<div class="row" <%= "hidden" if !f.object.set_manually_plan %> id="div-with-manually-plan">
+		<div class="col-12 mb-3">
+			<%= f.association :manually_plan, collection: Plan.to_set_manually, as: :radio_buttons, include_blank: false, legend_tag: false, label_html: {'data-bs-toggle': "tooltip", title: "teste"} %>
+		</div>
+		<div class="col-12 col-md-4 mb-3">
+			<%= f.input :limit_date_manually_plan, as: :string, input_html: {class: 'datepicker', :value => CustomHelper.get_text_date(f.object.limit_date_manually_plan, 'date', :default), autocomplete: :off, type: "tel"} %>
+		</div>
+	</div>
+<% end %>

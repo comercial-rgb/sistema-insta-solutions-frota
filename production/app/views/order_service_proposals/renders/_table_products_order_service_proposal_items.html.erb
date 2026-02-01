@@ -1,0 +1,214 @@
+<div class="row py-3">
+  <div class="col-12">
+    <div class="accordion" id="accordionExample">
+      <div class="accordion-item border rounded-3 overflow-hidden">
+        <h2 class="accordion-header" id="headingOne">
+          <button class="accordion-button fw-semibold" type="button"
+                  data-bs-toggle="collapse"
+                  data-bs-target="#collapseOrderServiceProposalTable<%= order_service_proposal.id %>"
+                  aria-expanded="true"
+                  aria-controls="collapseOrderServiceProposalTable<%= order_service_proposal.id %>">
+            <i class="bi bi-cart-check me-2"></i>
+            <%= OrderServiceProposal.human_attribute_name(:services_products) %>
+          </button>
+        </h2>
+
+        <div id="collapseOrderServiceProposalTable<%= order_service_proposal.id %>"
+             class="accordion-collapse collapse show"
+             aria-labelledby="headingOne"
+             data-bs-parent="#accordionExample">
+
+          <div class="accordion-body">
+
+            <% @total_value = 0 %>
+
+            <%#
+              Totais/itens precisam refletir complementos aprovados.
+              - Se estiver visualizando a proposta principal (não complemento), somamos itens dela + itens dos complementos aprovados.
+              - Se estiver visualizando um complemento, mostramos apenas os itens do próprio complemento.
+            %>
+            <%
+              all_items = order_service_proposal.order_service_proposal_items.includes(:service).to_a
+
+              # Se estiver na proposta principal, também soma itens de complementos aprovados.
+              # Para não duplicar quando o merge já copiou os itens para a proposta pai,
+              # fazemos dedupe por uma "assinatura" simples do item.
+              if !order_service_proposal.is_complement
+                merged_signatures = {}
+                all_items
+                  .select { |i| i.is_complement }
+                  .each do |i|
+                    sig = [i.service_id, i.quantity.to_i, i.unity_value.to_f, i.discount.to_f, i.total_value.to_f, i.total_value_without_discount.to_f, i.brand.to_s, i.warranty_period.to_i]
+                    merged_signatures[sig] = true
+                  end
+
+                approved_complement_ids = order_service_proposal.complement_proposals
+                  .where(order_service_proposal_status_id: OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES)
+                  .pluck(:id)
+
+                if approved_complement_ids.any?
+                  complement_items = OrderServiceProposalItem
+                    .includes(:service)
+                    .where(order_service_proposal_id: approved_complement_ids)
+                    .to_a
+
+                  complement_items.each do |ci|
+                    sig = [ci.service_id, ci.quantity.to_i, ci.unity_value.to_f, ci.discount.to_f, ci.total_value.to_f, ci.total_value_without_discount.to_f, ci.brand.to_s, ci.warranty_period.to_i]
+                    next if merged_signatures[sig]
+                    all_items << ci
+                  end
+                end
+              end
+            %>
+
+            <div class="row g-3">
+              <div class="col-12">
+                <div class="card border border-1">
+                  <div class="card-header text-center fw-bold text-primary">
+                    <%= Service.human_attribute_name(:parts) %>
+                  </div>
+                  <div class="card-body p-2">
+                    <% 
+                      # Ordenar: complementos primeiro, depois itens originais
+                      parts_items = all_items
+                        .select { |item| item.get_category_id == Category::SERVICOS_PECAS_ID }
+                        .sort_by { |item| item.is_complement ? 0 : 1 }
+                    %>
+                    <%= render 'order_service_proposals/renders/table_data',
+                      order_service_proposal_items: parts_items,
+                      label_column: Service.human_attribute_name(:part),
+                      order_service_proposal: order_service_proposal     
+                    %>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <div class="card border border-1">
+                  <div class="card-header text-center fw-bold text-success">
+                    <%= Service.human_attribute_name(:services) %>
+                  </div>
+                  <div class="card-body p-2">
+                    <% 
+                      # Ordenar: complementos primeiro, depois itens originais
+                      services_items = all_items
+                        .select { |item| item.get_category_id == Category::SERVICOS_SERVICOS_ID }
+                        .sort_by { |item| item.is_complement ? 0 : 1 }
+                    %>
+                    <%= render 'order_service_proposals/renders/table_data',
+                      order_service_proposal_items: services_items,
+                      label_column: Service.human_attribute_name(:service),
+                      order_service_proposal: order_service_proposal
+                    %>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <%= hidden_field_tag 'total_value_order_service_proposal_items', CustomHelper.to_currency(@total_value) %>
+
+            <div class="mt-4 border border-1 p-3 rounded">
+              <% if order_service_proposal&.order_service %>
+                <%
+                  # Separar por categoria
+                  parts_items = all_items.select { |item| item.get_category_id == Category::SERVICOS_PECAS_ID }
+                  services_items = all_items.select { |item| item.get_category_id == Category::SERVICOS_SERVICOS_ID }
+
+                  # Calcular totais de peças
+                  total_parts_without_discount = parts_items.sum { |item| (item.unity_value.to_f * item.quantity.to_i) }
+                  parts_discount = parts_items.sum { |item| item.discount.to_f }
+                  total_parts_with_discount = total_parts_without_discount - parts_discount
+                  percent_parts_discount = total_parts_without_discount > 0 ? (parts_discount / total_parts_without_discount * 100) : 0
+
+                  # Calcular totais de serviços
+                  total_services_without_discount = services_items.sum { |item| (item.unity_value.to_f * item.quantity.to_i) }
+                  services_discount = services_items.sum { |item| item.discount.to_f }
+                  total_services_with_discount = total_services_without_discount - services_discount
+                  percent_services_discount = total_services_without_discount > 0 ? (services_discount / total_services_without_discount * 100) : 0
+
+                  # Totais gerais
+                  total_order_without_discount = total_parts_without_discount + total_services_without_discount
+                  total_order_discount = parts_discount + services_discount
+                  total_order_with_discount = total_order_without_discount - total_order_discount
+                  percent_total_order_discount = total_order_without_discount > 0 ? (total_order_discount / total_order_without_discount * 100) : 0
+                %>
+                
+                <div class="container mt-4">
+                  <!-- Seção: Peças -->
+                  <fieldset class="border rounded-3 p-3 mb-4">
+                    <legend class="float-none w-auto px-3 fw-semibold text-primary">Totais de Peças</legend>
+                    <div class="row g-3">
+                      <div class="col-md-3">
+                        <label class="form-label"><%= OrderServiceProposal.human_attribute_name(:total_parts_without_discount) %></label>
+                        <input type="text" class="form-control" value="<%= CustomHelper.to_currency(total_parts_without_discount) %>" disabled>
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label"><%= OrderServiceProposal.human_attribute_name(:parts_discount) %></label>
+                        <input type="text" class="form-control" value="<%= CustomHelper.to_currency(parts_discount) %>" disabled>
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label"><%= OrderServiceProposal.human_attribute_name(:percent_parts_discount) %></label>
+                        <input type="text" class="form-control" value="<%= CustomHelper.to_percentage(percent_parts_discount, 2) %>" disabled>
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label"><%= OrderServiceProposal.human_attribute_name(:total_parts_with_discount) %></label>
+                        <input type="text" class="form-control bg-danger-subtle" value="<%= CustomHelper.to_currency(total_parts_with_discount) %>" disabled>
+                      </div>
+                    </div>
+                  </fieldset>
+
+                  <!-- Seção: Serviços -->
+                  <fieldset class="border rounded-3 p-3 mb-4">
+                    <legend class="float-none w-auto px-3 fw-semibold text-success">Totais de Serviços</legend>
+                    <div class="row g-3">
+                      <div class="col-md-3">
+                        <label class="form-label"><%= OrderServiceProposal.human_attribute_name(:total_labor_without_discount) %></label>
+                        <input type="text" class="form-control" value="<%= CustomHelper.to_currency(total_services_without_discount) %>" disabled>
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label"><%= OrderServiceProposal.human_attribute_name(:labor_discount) %></label>
+                        <input type="text" class="form-control" value="<%= CustomHelper.to_currency(services_discount) %>" disabled>
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label"><%= OrderServiceProposal.human_attribute_name(:percent_labor_discount) %></label>
+                        <input type="text" class="form-control" value="<%= CustomHelper.to_percentage(percent_services_discount, 2) %>" disabled>
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label"><%= OrderServiceProposal.human_attribute_name(:total_labor_with_discount) %></label>
+                        <input type="text" class="form-control bg-danger-subtle" value="<%= CustomHelper.to_currency(total_services_with_discount) %>" disabled>
+                      </div>
+                    </div>
+                  </fieldset>
+
+                  <!-- Seção: Pedido Total -->
+                  <fieldset class="border rounded-3 p-3">
+                    <legend class="float-none w-auto px-3 fw-semibold text-dark">Totais do Pedido</legend>
+                    <div class="row g-3">
+                      <div class="col-md-3">
+                        <label class="form-label"><%= OrderServiceProposal.human_attribute_name(:total_order_without_discount) %></label>
+                        <input type="text" class="form-control" value="<%= CustomHelper.to_currency(total_order_without_discount) %>" disabled>
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label"><%= OrderServiceProposal.human_attribute_name(:total_order_discount) %></label>
+                        <input type="text" class="form-control" value="<%= CustomHelper.to_currency(total_order_discount) %>" disabled>
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label"><%= OrderServiceProposal.human_attribute_name(:percent_total_order_discount) %></label>
+                        <input type="text" class="form-control" value="<%= CustomHelper.to_percentage(percent_total_order_discount, 2) %>" disabled>
+                      </div>
+                      <div class="col-md-3">
+                        <label class="form-label"><%= OrderServiceProposal.human_attribute_name(:total_order_with_discount) %></label>
+                        <input type="text" class="form-control bg-danger-subtle" value="<%= CustomHelper.to_currency(total_order_with_discount) %>" disabled>
+                      </div>
+                    </div>
+                  </fieldset>
+                </div>
+              <% end %>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -15,12 +15,11 @@ class ServicesGrid
   # grid.current_user para acessar o usuário
 
   def check_user
-    # return (!current_user.user?)
-    return true
+    return current_user.present?
   end
 
   def check_admin
-    return current_user.admin?
+    return current_user&.admin?
   end
 
   filter(:category_id, :enum, if: :check_user, select: proc { Category.by_category_type_id(CategoryType::SERVICOS_ID).order(:id).map {|c| [c.name, c.id] }}, header: Service.human_attribute_name(:category_id), include_blank: I18n.t('model.select_option') ) do |value, relation, grid|

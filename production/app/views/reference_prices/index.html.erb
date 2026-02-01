@@ -1,0 +1,22 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: reference_prices_path, text: ReferencePrice.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: ReferencePrice.model_name.human(count: 2),
+		url_new_path: new_reference_price_path,
+		policy_true: policy(ReferencePrice).new?,
+		objects: @grid,
+		objects_path: reference_prices_path,
+		object_name: ReferencePrice.model_name.human,
+		breadcrumbs: breadcrumbs,
+		show_file_model: false,
+		show_file_import: false
+	}
+%>

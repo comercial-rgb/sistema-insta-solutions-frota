@@ -1,0 +1,17 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: service_groups_path, text: ServiceGroup.model_name.human(count: 2)},
+	{active: false, href: edit_service_group_path(@service_group), text: @service_group.name},
+	{active: true, href: '#', text: t('model.edit')},
+]
+%>
+
+<%= 
+render 'common_pages/edit', 
+objects_path: service_groups_path, 
+page_title: ServiceGroup.model_name.human(count: 2), 
+form_to_render: 'service_groups/form',
+breadcrumbs: breadcrumbs
+%>
+

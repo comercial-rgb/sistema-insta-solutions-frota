@@ -1,0 +1,38 @@
+<div class="row">
+	<div class="col-8">&nbsp;</div>
+
+	<!-- Título -->
+	<div class="col-12">
+		<h5 class="mt-5"><%= SystemConfiguration.human_attribute_name(:social_media) %>:</h5>
+	</div>
+
+	<!-- Site -->
+	<div class="col-12 col-md-4 mb-3">
+		<%= f.input :site_link %>
+	</div>
+
+	<!-- Facebook -->
+	<div class="col-12 col-md-4 mb-3">
+		<%= f.input :facebook_link %>
+	</div>
+
+	<!-- Instagram -->
+	<div class="col-12 col-md-4 mb-3">
+		<%= f.input :instagram_link %>
+	</div>
+
+	<!-- Twitter -->
+	<div class="col-12 col-md-4 mb-3">
+		<%= f.input :twitter_link %>
+	</div>
+
+	<!-- YouTube -->
+	<div class="col-12 col-md-4 mb-3">
+		<%= f.input :youtube_link %>
+	</div>
+</div>
+
+<%
+# End of file _social_media.html.erb
+# Path: ./app/views/system_configurations/forms/_social_media.html.erb
+%>

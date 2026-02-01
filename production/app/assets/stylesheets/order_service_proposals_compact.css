@@ -1,0 +1,96 @@
+/* ================================================================
+ * LAYOUT COMPACTO - PROPOSTAS DE ORDEM DE SERVIÇO
+ * Redução de espaçamentos para otimizar visualização com muitos itens
+ * ================================================================ */
+
+/* Container de itens com scroll */
+.multi-providerservicetemp-block {
+  max-height: 70vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Scrollbar customizada */
+.multi-providerservicetemp-block::-webkit-scrollbar {
+  width: 8px;
+}
+
+.multi-providerservicetemp-block::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.multi-providerservicetemp-block::-webkit-scrollbar-thumb {
+  background: #28a745;
+  border-radius: 4px;
+}
+
+.multi-providerservicetemp-block::-webkit-scrollbar-thumb:hover {
+  background: #218838;
+}
+
+/* Reduzir espaçamento entre cards */
+.provider-service-temp-item .card {
+  margin-bottom: 0.5rem !important; /* mb-2 em vez de mb-3 */
+}
+
+/* Reduzir padding do card-body */
+.provider-service-temp-item .card-body {
+  padding: 0.5rem 0.75rem !important; /* py-2 px-3 */
+}
+
+/* Reduzir gap entre colunas */
+.provider-service-temp-item .row.g-3 {
+  --bs-gutter-x: 0.5rem;
+  --bs-gutter-y: 0.5rem;
+}
+
+/* Compactar labels e inputs somente nos itens da proposta */
+.provider-service-temp-item .form-label {
+  font-size: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.provider-service-temp-item .form-control,
+.provider-service-temp-item .form-select {
+  font-size: 0.85rem;
+  padding: 0.25rem 0.5rem;
+}
+
+.provider-service-temp-item .btn {
+  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+}
+
+/* Modais compactos apenas nas propostas */
+.order-service-proposal-modal .modal-dialog {
+  max-width: 520px;
+}
+
+.order-service-proposal-modal .modal-header,
+.order-service-proposal-modal .modal-body,
+.order-service-proposal-modal .modal-footer {
+  padding: 0.75rem 1rem;
+}
+
+.order-service-proposal-modal .modal-title {
+  font-size: 0.95rem;
+}
+
+.order-service-proposal-modal .form-control,
+.order-service-proposal-modal .form-select,
+.order-service-proposal-modal .btn {
+  font-size: 0.85rem;
+}
+
+/* Impressão - Layout otimizado */
+@media print {
+  .provider-service-temp-item {
+    page-break-inside: avoid;
+  }
+  
+  .multi-providerservicetemp-block {
+    max-height: none !important;
+  }
+}
+

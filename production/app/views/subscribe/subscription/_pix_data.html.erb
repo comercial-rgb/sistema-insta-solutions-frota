@@ -1,0 +1,38 @@
+<div class="new-payment" <%= "hidden" if payment_transaction.pix_limit_payment_date.nil? || payment_transaction.pix_limit_payment_date >= DateTime.now %>>
+	<!-- Se a data/hora limite do pagamento venceu -->
+	<div class="col-12 text-center">
+		<span class="badge bg-danger"><%= Order.human_attribute_name(:old_payment_not_paid) %></span>
+	</div>
+
+	<%= simple_form_for current_order, url: generate_new_payment_subscription_path(id: subscription.id, order_id: current_order.id), method: :post do |f| %>
+		<%= f.input_field :id, value: current_order.id, as: :hidden %>
+		<div class="col-12 text-center mb-3 mt-3">
+			<button type="submit" class="btn btn-primary">
+				<%= Order.human_attribute_name(:generate_new_pix_payment) %>
+			</button>
+		</div>
+	<% end %>
+</div>
+
+<div class="current-payment" <%= "hidden" if !payment_transaction.pix_limit_payment_date.nil? && payment_transaction.pix_limit_payment_date < DateTime.now %>>
+	<!-- Se a data/hora limite do pagamento ainda está válida -->
+	<div class="col-12 text-center">
+		<%= image_tag payment_transaction.pix_qrcode_link, width: 200, height: 200 %>
+	</div>
+
+	<div class="col-12 pt-3 text-center">
+		<pre class="text-wrap w-100">
+			<code><%= payment_transaction.pix_text %></code>
+		</pre>
+		<input class="input-hidden" id="link_text" value="<%= payment_transaction.pix_text %>" readonly="true">
+		<button class="btn btn-primary pointer text-white mt-2" id="copy_text">
+			<%= Order.human_attribute_name(:copy_qrcode_pix) %>
+		</button>
+		<div class="mt-2 mb-2">
+			<small>
+				<%= PaymentTransaction.human_attribute_name(:pix_limit_payment_date) %> <b><%= CustomHelper.get_text_date(payment_transaction.pix_limit_payment_date, "datetime", :full) unless payment_transaction.pix_limit_payment_date.nil? %></b>
+			</small>
+		</div>
+	</div>
+
+</div>

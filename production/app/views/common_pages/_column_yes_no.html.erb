@@ -1,0 +1,19 @@
+<div class="table-actions">
+	<%
+		if record && !defined?(invert)
+			span_class = 'bg-success'
+		elsif record && defined?(invert)
+			span_class = 'bg-danger'
+		elsif !record && !defined?(invert)
+			span_class = 'bg-danger'
+		elsif !record && defined?(invert)
+			span_class = 'bg-success'
+		end
+		if defined?(text) && !text.nil? && !text.blank?
+			span_text = text
+		else
+			span_text = CustomHelper.show_text_yes_no(record) 
+		end
+	%>
+	<span class="badge <%= span_class %>"><%= span_text %></span>
+</div>

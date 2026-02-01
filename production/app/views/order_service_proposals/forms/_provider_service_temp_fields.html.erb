@@ -1,0 +1,113 @@
+<%= provider_service_temp.input :id, as: :hidden %>
+<%= provider_service_temp.input :name, as: :hidden %>
+<%= provider_service_temp.input :description, as: :hidden %>
+
+<div class="card mb-2 shadow-sm border-success">
+  <div class="card-body py-2 px-3">
+    <div class="row g-2 align-items-end">
+      
+      <!-- Botão para remover este item (apenas se pode adicionar/remover itens) -->
+      <% if defined?(can_add_items) && can_add_items %>
+        <div class="col-12 text-end">
+          <button type="button" class="btn btn-sm btn-outline-danger remove-provider-service-temp" 
+            title="Remover item">
+            <i class="bi bi-trash"></i> Remover
+          </button>
+        </div>
+      <% end %>
+
+      <%= provider_service_temp.input :service_id, as: :hidden %>
+      <%= provider_service_temp.input :category_id, as: :hidden, input_html: {
+        value: provider_service_temp.object.category_id,
+        class: 'change-category-type-provider-service-temp',
+        id: "change-category-type-provider-service-temp-#{position}"
+      } %>
+
+      <div class="col-md-12">
+        <%= provider_service_temp.input :name, label: part_service_name, disabled: true, input_html: {value: provider_service_temp.object.getting_name_and_description, class: 'form-control form-control-sm text-success fw-bold' } %>
+      </div>
+
+      <% if provider_service_temp.object.category_id == Category::SERVICOS_PECAS_ID %>
+        <div class="col-md-3">
+          <%= provider_service_temp.input :brand, input_html: { class: 'form-control form-control-sm' } %>
+        </div>
+      <% end %>
+
+      <div class="col-md-2">
+        <%= provider_service_temp.input :warranty_period, input_html: { class: 'form-control form-control-sm' } %>
+      </div>
+
+      <div class="col-md-2">
+        <% 
+          # Buscar valor máximo permitido do grupo de serviços (para Requisição)
+          max_value = defined?(service_max_values) && service_max_values.present? ? service_max_values[provider_service_temp.object.service_id] : nil
+        %>
+        <%= provider_service_temp.input :price, as: :string, input_html: { 
+          class: 'form-control form-control-sm money provider_service_temp_price', 
+          value: CustomHelper.to_currency(provider_service_temp.object.price), 
+          type: "tel",
+          data: max_value.present? ? { max_value: max_value } : {}
+        } %>
+        <% if max_value.present? %>
+          <small class="text-muted">Máx: <%= number_to_currency(max_value, unit: "R$ ", separator: ",", delimiter: ".") %></small>
+        <% end %>
+      </div>
+
+      <div class="col-md-1">
+        <% 
+          # 🔒 CORREÇÃO BUG REAVALIAÇÃO: Lógica de bloqueio da quantidade
+          # - Cotações: sempre bloqueado (quantidade vem da OS)
+          # - Requisição: sempre bloqueado (quantidade vem da OS)
+          # - Diagnóstico original: editável na criação, bloqueado após salvar
+          # - Diagnóstico enviado para cotação (outros fornecedores): sempre bloqueado
+          
+          if (defined?(is_cotacoes) && is_cotacoes) || (defined?(is_requisicao) && is_requisicao)
+            # Cotações ou Requisição: quantidade definida na OS, fornecedor não pode editar
+            quantity_readonly = true
+          elsif defined?(is_diagnostico) && is_diagnostico
+            # Verificar se é o fornecedor original (provider_id == OS provider_id)
+            # ou se é outro fornecedor recebendo cotação após reavaliação
+            if defined?(is_from_diagnostico_cotacoes) && is_from_diagnostico_cotacoes
+              # OS veio de Diagnóstico para cotação: outros fornecedores não podem editar quantidade
+              quantity_readonly = true
+            else
+              # Diagnóstico original: fornecedor define na criação, depois fica bloqueado
+              quantity_readonly = defined?(proposal_persisted) && proposal_persisted
+            end
+          else
+            # Fallback: bloqueia se já tem quantidade definida na OS
+            quantity_readonly = defined?(os_quantities) && os_quantities.present? && os_quantities[provider_service_temp.object.service_id].present?
+          end
+        %>
+        <% if quantity_readonly %>
+          <%= provider_service_temp.input :quantity, disabled: true, input_html: {
+            min: 1,
+            step: 1,
+            inputmode: 'numeric',
+            class: 'form-control form-control-sm provider_service_temp_quantity only-read bg-light'
+          } %>
+          <%= provider_service_temp.hidden_field :quantity, value: provider_service_temp.object.quantity, id: nil %>
+        <% else %>
+          <%= provider_service_temp.input :quantity, input_html: {
+            min: 1,
+            step: 1,
+            inputmode: 'numeric',
+            class: 'form-control form-control-sm provider_service_temp_quantity'
+          } %>
+        <% end %>
+      </div>
+
+      <%  data = Service.getting_values_with_discount_new_product(f.object.order_service.client_id, CustomHelper.to_currency(provider_service_temp.object.price), provider_service_temp.object.quantity.to_i) %>
+      <div class="col-md-2">
+        <%= provider_service_temp.input :discount_temp, input_html: {value: data[:discount_formatted], class: 'form-control form-control-sm only-read bg-light' } %>
+        <%= provider_service_temp.input :discount, as: :hidden, input_html: {value: data[:discount], class: "order_service_proposal_item_discount_#{category_id == Category::SERVICOS_PECAS_ID ? 'part' : 'service'}" } %>
+      </div>
+
+      <div class="col-md-2">
+        <%= provider_service_temp.input :total_temp, input_html: {value: data[:value_formatted], class: 'form-control form-control-sm only-read fw-bold text-success' } %>
+        <%= provider_service_temp.input :total_value, as: :hidden, input_html: {value: data[:value], class: "order_service_proposal_item_total_value_#{category_id == Category::SERVICOS_PECAS_ID ? 'part' : 'service'}" } %>
+      </div>
+
+    </div>
+  </div>
+</div>

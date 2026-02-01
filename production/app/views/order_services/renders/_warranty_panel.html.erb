@@ -1,0 +1,58 @@
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-shield-check me-2"></i>Itens em garantia deste veículo</span>
+    <span class="text-muted small">Mostrando até 15 registros mais recentes</span>
+  </div>
+  <div class="card-body">
+    <% if warranty_items.blank? %>
+      <p class="text-muted mb-0">Nenhum item em garantia para esta placa.</p>
+    <% else %>
+      <div class="table-responsive">
+        <table class="table table-sm table-striped align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Tipo</th>
+              <th>Peça/Serviço</th>
+              <th>Marca</th>
+              <th>Código</th>
+              <th>Valor</th>
+              <th>Garantia restante</th>
+              <th>Fornecedor</th>
+              <th>N° OS</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% warranty_items.each do |item| %>
+              <tr>
+                <td>
+                  <% if item[:is_part] %>
+                    <span class="badge bg-primary">Peça</span>
+                  <% else %>
+                    <span class="badge bg-info">Serviço</span>
+                  <% end %>
+                </td>
+                <td><%= item[:name] || '-' %></td>
+                <td><%= item[:brand].presence || '-' %></td>
+                <td><%= item[:code].presence || '-' %></td>
+                <td><%= CustomHelper.to_currency(item[:value].to_f) %></td>
+                <td>
+                  <% expires_text = l(item[:expires_at], format: :short) rescue item[:expires_at].to_s %>
+                  <span class="fw-semibold"><%= item[:remaining_days] %> dias</span>
+                  <small class="text-muted">(expira em <%= expires_text %>)</small>
+                </td>
+                <td><%= item[:provider_name].presence || '-' %></td>
+                <td>
+                  <% if item[:order_service_id].present? %>
+                    <%= link_to(item[:order_service_code].presence || item[:order_service_id], edit_order_service_path(item[:order_service_id])) %>
+                  <% else %>
+                    -
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  </div>
+</div>

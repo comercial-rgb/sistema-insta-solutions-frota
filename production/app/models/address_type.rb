@@ -1,0 +1,2 @@
+class AddressType < ApplicationRecord
+end

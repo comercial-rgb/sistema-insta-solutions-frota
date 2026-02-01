@@ -1,0 +1,17 @@
+pt-BR:
+  audit:
+    system_user: 'Sistema'
+    create: 'criação'
+    update: 'atualização'
+    destroy: 'remoção'
+    user: 'Usuário responsável'
+    order_service_code: 'Código OS'
+    order_service_proposal_code: 'Código da proposta'
+    change: 'Ação'
+    old_value: 'Status anterior'
+    new_value: 'Novo status'
+    date: 'Data/hora'
+    actions:
+      create: "Cadastro"
+      update: "Atualização"
+      destroy: "Remoção"

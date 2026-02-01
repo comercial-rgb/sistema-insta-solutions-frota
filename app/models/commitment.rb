@@ -138,6 +138,9 @@ class Commitment < ApplicationRecord
     # Base query: active commitments with value, for the client
     base_query = Commitment.where(active: true).where.not(commitment_value: [nil])
     
+    # Inicializar commitments com valor padrão para evitar nil
+    commitments = base_query.none
+    
     if current_user.admin?
       # Admin vê todos os empenhos do cliente
       commitments = base_query.by_client_id(client_id)

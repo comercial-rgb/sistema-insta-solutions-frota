@@ -1,0 +1,95 @@
+<table class="table table-sm table-striped table-hover align-middle">
+  <thead class="table-light">
+    <tr>
+      <th><%= label_column %></th>
+      <th><%= OrderServiceProposalItem.human_attribute_name(:unity_value) %> (R$)</th>
+      <th><%= OrderServiceProposalItem.human_attribute_name(:quantity) %></th>
+      <th><%= OrderServiceProposalItem.human_attribute_name(:total_value_without_discount) %> (R$)</th>
+      <th><%= OrderServiceProposalItem.human_attribute_name(:discount) %> (R$)</th>
+      <th><%= OrderServiceProposalItem.human_attribute_name(:total_value) %> (R$)</th>
+      <th><%= OrderServiceProposalItem.human_attribute_name(:warranty_period) %></th>
+    </tr>
+  </thead>
+  <tbody>
+    <% 
+      unity_value_total = 0
+      total_value_without_discount_total = 0
+      discount_total = 0
+      total_value_total = 0
+    %>
+
+    <% order_service_proposal_items.each do |item| %>
+      <% 
+        unity_value = item.unity_value || 0
+        quantity = item.quantity || 0
+        total_without_discount = unity_value * quantity
+        discount = item.discount || 0
+        total_final = item.total_value || 0
+        category_id = item.get_category_id
+        is_part = category_id == Category::SERVICOS_PECAS_ID
+        discount_class = is_part ? 'order_service_proposal_item_discount_part' : 'order_service_proposal_item_discount_service'
+        total_class = is_part ? 'order_service_proposal_item_total_value_part' : 'order_service_proposal_item_total_value_service'
+
+        unity_value_total += unity_value
+        total_value_without_discount_total += total_without_discount
+        discount_total += discount
+        total_value_total += total_final
+        @total_value ||= 0
+        @total_value += total_final
+      %>
+
+      <tr>
+        <td>
+          <% if item.is_complement %>
+            <span
+              class="badge badge-complemento me-1"
+              data-bs-toggle="tooltip"
+              data-bs-placement="top"
+              title="Item incluído via complemento">
+              + Complemento
+            </span>
+          <% end %>
+          <%= item.service_name.presence || item.service&.name || '-' %>
+          <%= reference_price_badge(item, order_service_proposal.order_service) %>
+          <br>
+          <% if is_part %>
+            <small class="text-muted"><b><%= OrderServiceProposalItem.human_attribute_name(:brand) %>: </b><%= item.brand %></small>
+          <% end %>
+        </td>
+        <td>
+          <%= price_comparison_arrow(item, order_service_proposal.order_service) %>
+          <span value="<%= unity_value %>">
+            <%= CustomHelper.to_currency(unity_value).delete('R$ ') %>
+          </span>
+        </td>
+        <td><%= quantity %></td>
+        <td>
+          <span value="<%= total_without_discount %>">
+            <%= CustomHelper.to_currency(total_without_discount).delete('R$ ') %>
+          </span>
+        </td>
+        <td>
+          <span class="<%= discount_class %>" value="<%= discount %>">
+            <%= CustomHelper.to_currency(discount).delete('R$ ') %>
+          </span>
+        </td>
+        <td>
+          <span class="<%= total_class %>" value="<%= total_final %>">
+            <%= CustomHelper.to_currency(total_final).delete('R$ ') %>
+          </span>
+        </td>
+        <td><%= item.warranty_period.presence || item.guarantee.presence || '-' %></td>
+      </tr>
+    <% end %>
+
+    <tr class="fw-semibold bg-light">
+      <td>Total</td>
+      <td><%= CustomHelper.to_currency(unity_value_total).delete('R$ ') %></td>
+      <td></td>
+      <td><%= CustomHelper.to_currency(total_value_without_discount_total).delete('R$ ') %></td>
+      <td><%= CustomHelper.to_currency(discount_total).delete('R$ ') %></td>
+      <td><%= CustomHelper.to_currency(total_value_total).delete('R$ ') %></td>
+      <td></td>
+    </tr>
+  </tbody>
+</table>

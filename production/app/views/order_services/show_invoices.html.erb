@@ -1,0 +1,29 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: show_invoices_path, text: OrderService.human_attribute_name(:show_invoices)}
+]
+%>
+
+<div class="container">
+    <div class="row mb-3">
+        <div class="d-none d-md-block col-md-12 text-center">
+            <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 mb-3">
+            <div class="p-3 bg-white radius-8">
+                <%= datagrid_form_for @order_services, method: :get, url: show_invoices_path, validate: false %>
+            </div>
+        </div>
+    </div>
+
+	<div class="row">
+		<div class="col-12">
+			<%= render 'order_services/renders/table_show_invoices', order_services_grid: @order_services_to_export %>
+		</div>
+	</div>
+
+</div>

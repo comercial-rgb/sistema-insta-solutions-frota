@@ -1,0 +1,25 @@
+<div class="container mb-5">
+
+	<div class="row">
+
+		<%= render 'subscribe/subscribe/detail_plan', current_order: @current_order %>
+
+		<!-- Conteúdo primário -->
+		<section class="col-12 col-md-9 border rounded py-3">
+			<div class="row">
+				<% if !@current_order.user.is_valid_to_buy? || !params[:show_data_user].nil? %>
+					<!-- Formulário de dados do usuários -->
+					<%= render "subscribe/subscribe/user_data", current_order: @current_order %>
+				<% elsif !@current_order.is_address_valid? || !params[:show_address_data].nil? %>
+					<!-- Formulário do endereço de entrega -->
+					<%= render "subscribe/subscribe/address_data", current_order: @current_order, use_my_address: true %>
+				<% else %>
+					<!-- Formulário do cartão de crédito -->
+					<%= render "subscribe/subscribe/payment_data", current_order: @current_order %>
+				<% end %>
+			</div>
+		</section>
+
+	</div>
+
+</div>

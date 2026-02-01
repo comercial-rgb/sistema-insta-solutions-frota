@@ -14,7 +14,7 @@
         <tbody>
             <% audits.each do |audit| %>
                 <tr>
-                    <td><%= audit.user.try(:name) || t('audit.system_user') %></td>
+                    <td><%= (audit.user.try(:name) || t('audit.system_user')).to_s.force_encoding('UTF-8') %></td>
                     <td>
                         <% 
                             current_code = (audit.auditable_type == 'OrderService' && audit.auditable.present?) ? audit.auditable.code : '' 
@@ -47,8 +47,8 @@
                                     old_status_name = status_array.first
                                     
                                     if old_status_name.present? && old_status_name != '-'
-                                        # Corrigir encoding UTF-8
-                                        old_status_display = old_status_name.to_s.encode('UTF-8', invalid: :replace, undef: :replace, replace: '?')
+                                        # Forçar UTF-8 sem replace
+                                        old_status_display = old_status_name.to_s.force_encoding('UTF-8')
                                         
                                         # Buscar cor pelo NOME do status (mais confiável devido à renumeração de IDs)
                                         old_badge_class = OrderService.getting_badge_color_by_status_name(old_status_name) rescue 'badge-secondary'
@@ -76,8 +76,8 @@
                                     new_status_name = status_array.last
                                     
                                     if new_status_name.present? && new_status_name != '-'
-                                        # Corrigir encoding UTF-8
-                                        new_status_display = new_status_name.to_s.encode('UTF-8', invalid: :replace, undef: :replace, replace: '?')
+                                        # Forçar UTF-8 sem replace
+                                        new_status_display = new_status_name.to_s.force_encoding('UTF-8')
                                         
                                         # Buscar cor pelo NOME do status (mais confiável devido à renumeração de IDs)
                                         new_badge_class = OrderService.getting_badge_color_by_status_name(new_status_name) rescue 'badge-secondary'

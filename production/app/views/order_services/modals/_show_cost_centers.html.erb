@@ -1,0 +1,51 @@
+<!-- Modal para exibir centros de custo do empenho -->
+<div class="modal fade" id="show_cost_centers_<%= order_service.id %>" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+            
+            <!-- Cabeçalho -->
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-building"></i>
+                    Centros de Custo - Empenho <%= order_service.commitment&.commitment_number %>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <!-- Conteúdo -->
+            <div class="modal-body">
+                <% if order_service.commitment.present? %>
+                    <% cost_centers = order_service.commitment.cost_centers.any? ? order_service.commitment.cost_centers : [order_service.commitment.cost_center].compact %>
+                    
+                    <% if cost_centers.any? %>
+                        <ul class="list-group">
+                            <% cost_centers.each do |cost_center| %>
+                                <li class="list-group-item">
+                                    <strong><%= cost_center.name %></strong>
+                                    <% if cost_center.code.present? %>
+                                        <br><small class="text-muted">Código: <%= cost_center.code %></small>
+                                    <% end %>
+                                </li>
+                            <% end %>
+                        </ul>
+                    <% else %>
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle"></i>
+                            Nenhum centro de custo associado a este empenho.
+                        </div>
+                    <% end %>
+                <% else %>
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Empenho não informado.
+                    </div>
+                <% end %>
+            </div>
+            
+            <!-- Rodapé -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>

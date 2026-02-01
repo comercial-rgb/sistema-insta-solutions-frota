@@ -1,0 +1,34 @@
+<!-- Dados pessoa jurídica -->
+<div class="div_with_person_type_juridical"<%= 'hidden' if f.object.person_type_id != PersonType::JURIDICA_ID %>>
+    <div class="row">
+
+        <!-- CNPJ -->
+        <div class="col-12 col-md-3 mb-3">
+            <%= f.input :cnpj, input_html: {class: 'cnpj', type: "tel"} %>
+        </div>
+
+        <!-- Razão social -->
+        <div class="col-12 col-md-4 mb-3">
+            <%= f.input :social_name %>
+        </div>
+
+        <!-- Nome fantasia -->
+        <div class="col-12 col-md-4 mb-3">
+            <%= f.input :fantasy_name %>
+        </div>
+
+        <div class="col-12 col-md-3 mb-3">
+            <%= f.input :municipal_inscription %>
+        </div>
+
+        <div class="col-12 col-md-4 mb-3">
+            <%= f.input :state_inscription %>
+        </div>
+
+    </div>
+</div>
+
+<%
+# End of file _juridical_person.html.erb
+# Path: ./app/views/users/forms/_juridical_person.html.erb
+%>

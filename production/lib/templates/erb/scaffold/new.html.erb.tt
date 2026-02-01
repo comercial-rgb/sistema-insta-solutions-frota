@@ -1,0 +1,15 @@
+<%%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: <%= plural_table_name %>_path, text: <%= singular_table_name.split("_").join(" ").titleize.gsub(" ","") %>.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.add_new')},
+]
+%>
+
+<%%= 
+render 'common_pages/new', 
+objects_path: <%= plural_table_name %>_path, 
+page_title: <%= singular_table_name.split("_").join(" ").titleize.gsub(" ","") %>.model_name.human(count: 2), 
+form_to_render: '<%= plural_table_name %>/form',
+breadcrumbs: breadcrumbs
+%>

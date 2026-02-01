@@ -1,0 +1,38 @@
+<div class="row">
+    <div class="col-12 mb-4">
+        <b><%= OrderService.human_attribute_name(:invoice_information) %></b>
+        <br>
+        <%
+            cost_center = order_service_proposal.order_service.cost_center
+        %>
+        <b><%= CostCenter.human_attribute_name(:invoice_name) %>: </b><%= cost_center.invoice_name %><br>
+        <b><%= CostCenter.human_attribute_name(:invoice_cnpj) %>: </b><%= cost_center.invoice_cnpj %><br>
+        <b><%= CostCenter.human_attribute_name(:invoice_address) %>: </b><%= cost_center.invoice_address %><br>
+        <b><%= CostCenter.human_attribute_name(:invoice_state_id) %>: </b><%= cost_center.invoice_state.name unless cost_center.invoice_state.nil? %><br>
+        <b><%= CostCenter.human_attribute_name(:invoice_fantasy_name) %>: </b><%= cost_center.invoice_fantasy_name %>
+    </div>
+    <div class="col-12 col-md-6">
+        <%= 
+            render 'order_service_proposals/renders/invoice_tax_table',  
+            text: OrderService.human_attribute_name(:invoice_part_tax_information),
+            ir: order_service_proposal.order_service.invoice_part_ir,
+            pis: order_service_proposal.order_service.invoice_part_pis,
+            cofins: order_service_proposal.order_service.invoice_part_cofins,
+            csll: order_service_proposal.order_service.invoice_part_csll
+        %>
+    </div>
+    <div class="col-12 col-md-6">
+        <%= 
+            render 'order_service_proposals/renders/invoice_tax_table',  
+            text: OrderService.human_attribute_name(:invoice_service_tax_information),
+            ir: order_service_proposal.order_service.invoice_service_ir,
+            pis: order_service_proposal.order_service.invoice_service_pis,
+            cofins: order_service_proposal.order_service.invoice_service_cofins,
+            csll: order_service_proposal.order_service.invoice_service_csll
+        %>
+    </div>
+    <div class="col-12 mt-3">
+        <b><%= OrderService.human_attribute_name(:invoice_information_general) %></b>
+    </div>
+</div>
+

@@ -1,0 +1,82 @@
+<%
+	plan = current_order.getting_plan_object
+	data_plan_periodicity = current_order.getting_data_plan_periodicity_object
+
+	dados_comprador = Subscription.human_attribute_name(:user_data).upcase
+	dados_endereco = Subscription.human_attribute_name(:address_data).upcase
+	pagamento = Subscription.human_attribute_name(:payment_data).upcase
+	links = {
+		dados_comprador  => subscribe_plan_path(id: current_order.id, show_data_user: true),
+		dados_endereco => subscribe_plan_path(id: current_order.id, show_address_data: true),
+		pagamento => subscribe_plan_path(id: current_order.id)
+	}
+	show_arrow = false
+	already_show = false
+%>
+
+<!-- Barra lateral -->
+<aside class="col-12 col-md-3">
+
+	<!-- Título -->
+	<h5><%= Plan.human_attribute_name(:subscribe) %></h5>
+	<br>
+	<%= render "subscribe/subscribe/plan_card", plan: plan, data_plan_periodicity: data_plan_periodicity %>
+	
+	<%= Plan.human_attribute_name(:subscribe_type) %>:
+	<b class="text-primary"><%= data_plan_periodicity.plan_periodicity.name %></b>
+	<br>
+
+	<% if !current_order.discount_coupon.nil? %>
+		<!-- Estrutura com cupom de desconto -->
+		<div>
+			<p>
+				<%= Plan.human_attribute_name(:price) %>:
+				<s><b class="text-primary"><%= CustomHelper.to_currency(current_order.price-current_order.total_freight_value) %></b></s>
+			</p>
+		</div>
+		<div class="text-center">
+			<p>
+				<span class="text-muted"><%= current_order.discount_coupon.name.upcase %></span><br>
+        		<a data-confirm="<%= t("model.confirm_action") %>" class="text-decoration-none text-danger" href="<%= remove_discount_coupon_path(discount_coupon_id: current_order.discount_coupon_id, current_order_to_pay_id: current_order.id) %>"><%= Order.human_attribute_name(:remove_discount_coupon) %></a>
+			</p>
+		</div>
+		<div>
+			<p>
+				<%= Order.human_attribute_name(:total_value) %>:
+				<b class="text-primary"><%= CustomHelper.to_currency(current_order.get_total_price) %></b>
+			</p>
+		</div>
+	<% else %>
+		<div>
+			<p>
+				<%= Order.human_attribute_name(:total_value) %>:
+				<b class="text-primary"><%= CustomHelper.to_currency(current_order.price-current_order.total_freight_value) %></b>
+			</p>
+		</div>
+	<% end %>
+
+	<%= render "subscribe/subscribe/discount_coupon" %>
+
+	<ul class="list-group py-3">
+		<% links.each do |label, href| %>
+			<%
+				if (!current_order.user.is_valid_to_buy? || !params[:show_data_user].nil?) && label == dados_comprador
+					show_arrow = true
+					already_show = true
+				elsif (!@current_order.is_address_valid? || !params[:show_address_data].nil?) && label == dados_endereco && !already_show
+					show_arrow = true
+					already_show = true
+				elsif label == pagamento && !already_show
+					show_arrow = true
+				end 
+			%>
+			<a href="<%= href %>" class="list-group-item list-group-item text-decoration-none <%= show_arrow ? 'text-primary' : 'text-auxiliar' %>">
+				<small class="<%= 'fw-bold' if show_arrow %>"><%= label %></small>
+			</a>
+			<% show_arrow = false %>
+		<% end %>
+	</ul>
+
+	<br>
+
+</aside>

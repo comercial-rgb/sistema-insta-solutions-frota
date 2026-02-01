@@ -1,0 +1,25 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: cost_centers_path, text: CostCenter.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= hidden_field_tag 'bar_y_category_data', @bar_y_category_data.to_json %>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: CostCenter.model_name.human(count: 2),
+		url_new_path: new_cost_center_path,
+		policy_true: policy(CostCenter).new?,
+		objects: @cost_centers,
+		objects_path: cost_centers_path,
+		object_name: CostCenter.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: cost_centers_path(format: "csv", cost_centers_grid: (params[:cost_centers_grid].nil? ? "" : params[:cost_centers_grid].to_enum.to_h)),
+		show_bar_category: true,
+		render_show_bar_category: (render 'cost_centers/renders/bar_category')		
+	}
+%>

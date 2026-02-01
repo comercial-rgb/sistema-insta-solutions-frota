@@ -1,0 +1,21 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: states_path, text: State.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: State.model_name.human(count: 2),
+		url_new_path: new_state_path,
+		policy_true: policy(State).new?,
+		objects: @states,
+		objects_path: states_path,
+		object_name: State.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: states_path(format: "csv", states_grid: (params[:states_grid].nil? ? "" : params[:states_grid].to_enum.to_h))
+	}
+%>

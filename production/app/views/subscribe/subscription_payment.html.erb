@@ -1,0 +1,24 @@
+<%
+	breadcrumbs = [
+		{active: false, href: root_path, text: t('menu.initial_page')}
+	]
+%>
+
+<div class="container new-margin-head">
+	<%= hidden_field_tag "current_order_channel", @current_order.id %>
+
+	<div class="row mb-3">
+		<div class="d-none d-md-block col-md-10 text-center">
+			<%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+		</div>
+	</div>
+
+	<div class="row">
+		<div class="col-12">
+			<%= render 'subscribe/subscription/order_details', current_order: @current_order, subscription: @subscription %>
+		</div>
+		<div class="col-12">
+			<%= render 'subscribe/subscription/details', subscription: @subscription %>
+		</div>
+	</div>
+</div>

@@ -1,0 +1,50 @@
+<div class="bg-white">
+    <div class="container py-3 px-2">
+        <div class="text-end">
+            <i class="bi bi-chevron-double-left pointer icon-to-manage-menu-close" id="icon-to-close-menu"></i>
+        </div>
+        <div class="text-center">
+            <%= render 'layouts/logo', custom_class: 'custom-width-menu-logo-opened', width: nil, height: nil %>
+        </div>
+        <div class="open-left-menu mt-6">
+            <ul class="list-group">
+                <% for link in links %>
+                    <% if link.key?(:submenus) %>
+                        <% uniqueHash = 'menu_' + Digest::MD5.hexdigest(rand.to_s) %>
+                        <!-- Exemplo de item ativo: acrescentar class no li: bg-primary text-white -->
+                        <li class="list-group-item <%= link[:opened] ? 'bg-primary text-white' : '' %>">
+                            <a class="text-decoration-none text-reset d-block" data-bs-toggle="collapse" href="#menuCollapseItem<%= uniqueHash %>" role="button" aria-expanded="false" aria-controls="menuCollapseItem<%= uniqueHash %>">
+                                <i class="<%= link[:icon] %>"></i>
+                                <%= link[:label] %>
+                                <i class="bi bi-chevron-down fs-12"></i>
+                            </a>
+                            <div class="collapse <%= link[:opened] ? 'show' : '' %>" id="menuCollapseItem<%= uniqueHash %>">
+                                <% for child in link[:submenus] %>
+                                    <div class="custom-menu-sub-item">
+                                        <!-- Exemplo de sub-item ativo: acrescentar class no a: fw-bold text-dark e retirar a class: text-reset -->
+                                        <a href="<%= child[:href] %>" target="<%= !child[:target].nil? ? child[:target] : '' %>" class="text-decoration-none text-reset <%= child[:opened] ? 'fw-bold' : '' %>">
+                                            <i class="bi bi-dot"></i>
+                                            <%= child[:label] %>
+                                        </a>
+                                    </div>
+                                <% end %>
+                            </div>
+                        </li>
+                    <% elsif link.key?(:label) %>
+                        <li class="list-group-item <%= link[:opened] ? 'bg-primary text-white' : '' %>">
+                            <a href="<%= link[:href] %>" class="text-decoration-none text-reset d-block" target="<%= !link[:target].nil? ? link[:target] : ''%>">
+                                <i class="<%= link[:icon] %>"></i>
+                                <%= link[:label] %>
+                            </a>
+                        </li>
+                    <% end %>
+                <% end %>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<%
+# End of file _opened_menu_links.html.erb
+# Path: ./app/views/layouts/menu/_opened_menu_links.html.erb
+%>

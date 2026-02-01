@@ -1,0 +1,55 @@
+<%
+    # Na edição, bloquear todos exceto: número do contrato
+    is_editing = @contract.persisted?
+%>
+<%= simple_form_for(@contract) do |f| %>
+
+    <div class="row">
+        <div class="col-12">
+            <%= f.error_notification %>
+            <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+        </div>
+    </div>
+
+    <%= render 'users/renders/client_selection', f: f, disabled: is_editing %>
+
+    <div class="row">
+        <div class="col-12 col-md-3">
+            <%= f.input :name, disabled: is_editing %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :number %>
+        </div>
+        <div class="col-12 col-md-2">
+            <%= f.input :initial_date, disabled: is_editing, as: :string, input_html: {class: 'datepicker', :value => CustomHelper.get_text_date(f.object.initial_date, 'date', :default), autocomplete: :off, type: "tel"} %>
+        </div>
+        <div class="col-12 col-md-2">
+            <%= f.input :final_date, disabled: is_editing, as: :string, input_html: {class: 'datepicker', :value => CustomHelper.get_text_date(f.object.final_date, 'date', :default), autocomplete: :off, type: "tel"} %>
+        </div>
+        <div class="col-12 col-md-2">
+            <%= f.input :total_value, disabled: is_editing, input_html: {class: 'money', value: CustomHelper.to_currency(f.object.total_value), type: "tel"}, as: :string %>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-md-2 checkbox-input-center">
+            <%= f.input :active, disabled: is_editing %>
+        </div>
+    </div>
+
+    <% if is_editing %>
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="alert alert-info" role="alert">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Atenção:</strong> Na edição de contratos, apenas o <strong>N° de Contrato</strong> pode ser alterado.
+                </div>
+            </div>
+        </div>
+    <% end %>
+
+    <%= render 'contracts/forms/form_addendum_contracts', f: f %>
+
+    <%= render 'common_pages/save', f: f, return_path: contracts_path %>
+
+<% end %>

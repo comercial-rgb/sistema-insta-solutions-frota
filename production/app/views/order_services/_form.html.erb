@@ -1,0 +1,130 @@
+<%= simple_form_for @order_service, validate: false do |f| %>
+    <%
+        # Permitir edição de itens para admin/manager/additional se a OS estiver em status editável
+        # Cotações/Requisições podem ter itens editados
+        can_edit_items = policy(f.object).manage_parts_services? || !f.object.persisted?
+        
+        # Fornecedor pode editar itens em OS do tipo Diagnóstico se ainda não inseriu os dados
+        if @current_user.provider? && f.object.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID && !f.object.data_inserted_by_provider
+            can_edit_items = true
+        end
+        
+        # ===== REGRAS DE DESABILITAÇÃO DE CAMPOS =====
+        if @current_user.provider?
+            # Fornecedor: desabilita após inserir dados
+            disabled = f.object.data_inserted_by_provider
+            disabled_basic_fields = disabled
+            disabled_commitment_fields = disabled
+        else
+            # Admin/Manager/Additional: regras baseadas na policy
+            # Campos básicos (fornecedor, placa, km, etc): usa can_edit_basic_fields?
+            disabled_basic_fields = !policy(f.object).can_edit_basic_fields?
+            
+            # Campos de empenho/contrato/centro de custo: ADMIN tem permissão especial
+            # mesmo quando há propostas ativas (desde que status seja editável)
+            if @current_user.admin?
+                disabled_commitment_fields = !policy(f.object).can_edit_commitment_fields?
+            else
+                # Gestor/Adicional: mesma regra dos campos básicos
+                disabled_commitment_fields = disabled_basic_fields
+            end
+            
+            # Para compatibilidade com código existente
+            disabled = disabled_basic_fields
+        end
+        
+        # Para itens de peças/serviços, usar can_edit_items
+        items_disabled = !can_edit_items
+    %>
+    <%= hidden_field_tag 'order_service[order_service_status_id]', f.object.order_service_status_id %>
+
+    <div class="row">
+        <div class="col-12">
+            <%= f.error_notification %>
+            <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+        </div>
+    </div>
+    
+    <% 
+        # No modo de edição, renderizar o formulário completo para permitir alterações
+        # conforme as novas regras de permissão
+        render_editable_form = f.object.persisted? && (
+            policy(f.object).can_edit_basic_fields? || 
+            policy(f.object).can_edit_commitment_fields? ||
+            policy(f.object).manage_parts_services?
+        )
+    %>
+    
+    <% if f.object.persisted? && !render_editable_form %>
+        <%= render 'order_service_proposals/renders/order_service_data', record: @order_service, order_service_proposal: nil %>
+    <% else %>
+        <%= render 'order_services/forms/form_data', f: f, disabled: disabled, disabled_basic_fields: disabled_basic_fields, disabled_commitment_fields: disabled_commitment_fields %>
+    <% end %>
+
+    <% if @warranty_items.present? %>
+        <div class="row">
+            <div class="col-12">
+                <%= render 'order_services/renders/warranty_panel', warranty_items: @warranty_items %>
+            </div>
+        </div>
+    <% end %>
+
+    <% if !f.object.persisted? %>
+        <div class="row">
+            <div class="col-12" id="warranty-panel-container">
+                <!-- Warranty items will be loaded here dynamically via JavaScript -->
+            </div>
+        </div>
+    <% end %>
+
+    <div class="row">
+        <div class="col-12 col-md-6">
+            <%= 
+                render 'order_services/forms/form_part_service_order_services_compact', 
+                f:f, 
+                order_service: @order_service, 
+                category_id: Category::SERVICOS_PECAS_ID,
+                category_name: Category::SERVICOS_PECAS,
+                form_title: PartServiceOrderService.human_attribute_name(:name_parts), 
+                text_label: PartServiceOrderService.human_attribute_name(:name_part),
+                disabled: items_disabled
+            %>
+        </div>
+        <div class="col-12 col-md-6">
+            <%= 
+                render 'order_services/forms/form_part_service_order_services_compact', 
+                f:f, 
+                order_service: @order_service, 
+                category_id: Category::SERVICOS_SERVICOS_ID,
+                category_name: Category::SERVICOS_SERVICOS,
+                form_title: PartServiceOrderService.human_attribute_name(:name_services), 
+                text_label: PartServiceOrderService.human_attribute_name(:name_service),
+                disabled: items_disabled 
+            %>
+        </div>
+    </div>
+
+    <div class="row my-3">
+        <div class="col-12 mb-3 text-end">
+            <a href="<%= show_order_services_path(order_service_status_id: @order_service.order_service_status_id) %>" class="btn btn-link text-decoration-none"><%= t('model.cancel') %></a>
+            <% if @current_user.provider? %>
+                <% if !f.object.data_inserted_by_provider %>
+                    <%= f.button :submit, name: 'only_save', class: 'btn-secondary', value: OrderService.human_attribute_name(:only_save) %>
+                    <%= f.button :submit, name: 'save_and_insert_values', class: 'btn-primary', value: OrderService.human_attribute_name(:save_and_insert_values), data: {confirm: t('model.confirm_action')} %>
+                <% end %>
+            <% elsif @current_user.admin? || @current_user.manager? || @current_user.additional? %>
+                <% if f.object.persisted? %>
+                    <% if f.object.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID %>
+                        <% if f.object.data_inserted_by_provider && !f.object.release_quotation %>
+                            <%= f.button :submit, name: 'release_to_quotation', class: 'btn-secondary', value: OrderService.human_attribute_name(:release_to_quotation), data: {confirm: t('model.confirm_action')} %>
+                        <% end %>
+                    <% end %>
+                    <%= f.button :submit, name: 'save_and_submit', class: 'btn-primary', value: OrderService.human_attribute_name(:save_and_submit), data: {confirm: t('model.confirm_action')} %>
+                <% else %>
+                    <%= f.button :submit, name: 'save_and_submit', class: 'btn-secondary', value: OrderService.human_attribute_name(:save_and_submit), data: {confirm: t('model.confirm_action')} %>
+                <% end %>
+            <% end %>
+        </div>
+    </div>
+
+<% end %>

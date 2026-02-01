@@ -1,0 +1,36 @@
+<div class="bg-white">
+    <div class="container py-3 px-2">
+        <div class="text-end">
+            <i class="bi bi-chevron-double-right pointer icon-to-manage-menu-opened" id="icon-to-open-menu"></i>
+        </div>
+        <div class="text-center">
+            <a href="<%= root_path %>">
+                <%= render 'layouts/logo', custom_class: 'custom-width-menu-logo-closed', width: '', height: nil %>
+            </a>
+        </div>
+        <div class="open-left-menu mt-6">
+            <ul class="list-group text-center">
+                <% for link in links %>
+                    <!-- Exemplo de item ativo: acrescentar class no li: bg-primary text-white -->
+                    <li class="list-group-item <%= link[:opened] ? 'bg-primary text-white' : '' %>">
+                        <% 
+                            if link.key?(:submenus)
+                                current_href = link[:submenus][0][:href]
+                            else
+                                current_href = link[:href]
+                            end 
+                        %>
+                        <a href="<%= current_href %>" data-bs-toggle="tooltip" title="<%= link[:label] %>" class="text-decoration-none text-reset d-block">
+                            <i class="<%= link[:icon] %> fs-5"></i>
+                        </a>
+                    </li>
+                <% end %>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<%
+# End of file _closed_menu_links.html.erb
+# Path: ./app/views/layouts/menu/_closed_menu_links.html.erb
+%>

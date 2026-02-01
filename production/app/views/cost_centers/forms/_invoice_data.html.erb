@@ -1,0 +1,26 @@
+<div class="row">
+    <div class="col-12 mb-3">
+        <h5 class="mt-4"><%= CostCenter.human_attribute_name(:invoice_datum).upcase %></h5>
+    </div>
+
+    <div class="col-12 col-md-4">
+        <%= f.input :invoice_name %>
+    </div>
+
+    <div class="col-12 col-md-3">
+        <%= f.input :invoice_cnpj, input_html: {class: 'cnpj', type: "tel"} %>
+    </div>
+
+    <div class="col-12 col-md-3">
+        <%= f.input :invoice_fantasy_name %>
+    </div>
+
+    <div class="col-12 col-md-10">
+        <%= f.input :invoice_address, as: :string %>
+    </div>
+    
+    <div class="col-12 col-md-2">
+        <%= f.association :invoice_state, collection: State.all, label_method: :acronym, as: :select, include_blank: t('model.select_option') %>
+    </div>
+
+</div>

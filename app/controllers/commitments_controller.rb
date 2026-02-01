@@ -132,12 +132,23 @@ class CommitmentsController < ApplicationController
   end
 
   def update
+    # LOG MUITO NO TOPO - ANTES DE QUALQUER COISA
+    Rails.logger.info "=" * 80
+    Rails.logger.info "🔍 [COMMITMENT UPDATE INICIADO] ID: #{params[:id]}, Todos params: #{params.inspect}"
+    Rails.logger.info "=" * 80
+    
     authorize @commitment
+    
+    # Log para debug
+    Rails.logger.info "🔍 [COMMITMENT UPDATE] Params recebidos: #{commitment_params.inspect}"
+    Rails.logger.info "🔍 [COMMITMENT UPDATE] Valor antes: #{@commitment.commitment_value}"
     
     # Verificar se admin está editando valor e se ficará negativo
     if @current_user.admin? && commitment_params[:commitment_value].present?
       new_value = commitment_params[:commitment_value].to_s.gsub(/[^\d,]/, '').gsub(',', '.').to_f
       total_consumed = Commitment.get_total_already_consumed_value(@commitment)
+      
+      Rails.logger.info "🔍 [COMMITMENT UPDATE] Novo valor convertido: #{new_value}, Consumido: #{total_consumed}"
       
       if new_value < total_consumed
         remaining = new_value - total_consumed
@@ -145,7 +156,9 @@ class CommitmentsController < ApplicationController
       end
     end
     
-    @commitment.update(commitment_params)
+    result = @commitment.update(commitment_params)
+    Rails.logger.info "🔍 [COMMITMENT UPDATE] Valor depois: #{@commitment.commitment_value}, Update result: #{result}"
+    
     if @commitment.valid?
       flash[:success] = t('flash.update')
       redirect_to commitments_path

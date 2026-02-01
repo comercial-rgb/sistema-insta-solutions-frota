@@ -1,0 +1,36 @@
+<!-- Modal -->
+<div class="modal fade" id="show_sub_categories_<%=category.id%>" tabindex="-1">
+
+    <div class="modal-dialog modal-dialog-scrollable" role="document">
+        <div class="modal-content">
+
+            <!-- Cabeçalho -->
+            <div class="modal-header">
+
+                <!-- Título -->
+                <h5 class="modal-title" id="show_sub_categories_label_<%=category.id%>">
+                    <small class="text-muted"><%= category.name.upcase %></small>
+                </h5>
+
+                <!-- Botão fechar -->
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Conteúdo -->
+            <div class="modal-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item disabled"><%= Category.human_attribute_name(:sub_categories) %>:</li>
+                    <% category.sub_categories.each do |sub_category| %>
+                        <li class="list-group-item"><%= sub_category.name %></li>
+                    <% end %>
+                </ul>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<%
+# End of file _show_sub_categories.html.erb
+# Path: ./app/views/categories/modals/_show_sub_categories.html.erb
+%>

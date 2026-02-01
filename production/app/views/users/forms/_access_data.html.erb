@@ -1,0 +1,16 @@
+<!-- Dados de acesso -->
+<div class="row">
+
+	<!-- Título -->
+	<div class="col-12">
+		<h5 class="mt-4"><%= User.human_attribute_name(:access_data).upcase %></h5>
+	</div>
+
+	<%= render 'users/forms/access_data_fields', f: f %>
+
+</div>
+
+<%
+# End of file _access_data.html.erb
+# Path: ./app/views/users/forms/_access_data.html.erb
+%>

@@ -1,0 +1,18 @@
+<div class="row">
+	<div class="col-12 col-md-4 offset-md-4">
+		<%= link_to login_google_path, class: 'btn btn-light w-100 my-1', method: :post do %>
+			<%= image_tag 'logos/google-logo.svg', width: 20 %>
+			<%= t("session.continue_with_google") %>
+		<% end %>
+
+		<%= link_to login_facebook_path, class: 'btn btn-light w-100 my-1', method: :post do %>
+			<%= image_tag 'logos/facebook-logo.svg', width: 20 %>
+			<%= t("session.continue_with_facebook") %>
+		<% end %>
+	</div>
+</div>
+
+<%
+# End of file _social_media_login.html.erb
+# Path: ./app/views/sessions/_social_media_login.html.erb
+%>

@@ -103,6 +103,77 @@ class ProviderDashboardController < ApplicationController
       .sum(:total_value)
   end
 
+  # Lista as OSs rejeitadas pelo fornecedor que ainda podem receber propostas
+  def rejections
+    authorize :provider_dashboard, :rejections?
+    
+    @provider = @current_user
+    
+    # OSs rejeitadas que ainda estão em status aberto para propostas
+    @rejected_order_services = @provider.rejected_order_services
+      .where(order_service_status_id: [
+        OrderServiceStatus::EM_ABERTO_ID,
+        OrderServiceStatus::EM_REAVALIACAO_ID,
+        OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID
+      ])
+      .includes(:client, :vehicle, :order_service_status, :provider_service_type)
+      .order(updated_at: :desc)
+      .page(params[:page])
+      .per(50)
+  end
+
+  # Rejeitar múltiplas OSs de uma vez
+  def bulk_reject
+    authorize :provider_dashboard, :bulk_reject?
+    
+    order_service_ids = params[:order_service_ids]
+    
+    if order_service_ids.blank?
+      redirect_to provider_dashboard_index_path, alert: "Nenhuma OS foi selecionada."
+      return
+    end
+    
+    @provider = @current_user
+    rejected_count = 0
+    
+    order_service_ids.each do |os_id|
+      os = OrderService.find_by(id: os_id)
+      
+      if os && !@provider.rejected_order_services.include?(os)
+        @provider.rejected_order_services << os
+        rejected_count += 1
+      end
+    end
+    
+    if rejected_count > 0
+      redirect_to provider_dashboard_index_path, notice: "#{rejected_count} OS(s) rejeitada(s) com sucesso."
+    else
+      redirect_to provider_dashboard_index_path, alert: "Nenhuma OS foi rejeitada."
+    end
+  end
+
+  # Reverter rejeição de uma OS
+  def revert_rejection
+    authorize :provider_dashboard, :revert_rejection?
+    
+    os_id = params[:order_service_id]
+    os = OrderService.find_by(id: os_id)
+    
+    if os.nil?
+      redirect_to rejections_provider_dashboard_path, alert: "OS não encontrada."
+      return
+    end
+    
+    @provider = @current_user
+    
+    if @provider.rejected_order_services.include?(os)
+      @provider.rejected_order_services.delete(os)
+      redirect_to rejections_provider_dashboard_path, notice: "Rejeição revertida com sucesso! Você pode enviar propostas para esta OS novamente."
+    else
+      redirect_to rejections_provider_dashboard_path, alert: "Esta OS não estava rejeitada por você."
+    end
+  end
+
   private
 
   def verify_provider_access

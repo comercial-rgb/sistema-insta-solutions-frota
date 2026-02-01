@@ -1,0 +1,58 @@
+<div class="bg-white h-100">
+    <div class="container py-3 px-1">
+        <div class="text-end">
+            <i class="bi bi-chevron-double-left text-light pointer icon-to-manage-menu" id="icon-to-close-menu"></i>
+        </div>
+        <div class="text-center">
+            <%= render 'layouts/logo', width: '70%', height: nil %>
+        </div>
+        <div class="open-left-menu mt-6">
+            <ul class="list-group">
+
+                <li class="list-group-item">
+                    <a href="" class="text-decoration-none text-reset d-block">
+                        <i class="bi bi-person-badge"></i>
+                        Meus dados
+                    </a>
+                </li>
+
+                <!-- Exemplo de item ativo: acrescentar class no li: bg-primary text-white -->
+                <li class="list-group-item bg-primary text-white">
+
+                    <a class="text-decoration-none text-reset d-block" data-bs-toggle="collapse" href="#menuCollapseItem" role="button" aria-expanded="false" aria-controls="menuCollapseItem">
+                        <i class="bi bi-people"></i>
+                        Usuários
+                        <i class="bi bi-chevron-down fs-12"></i>
+                    </a>
+                    <div class="collapse" id="menuCollapseItem">
+                        <div class="custom-menu-sub-item">
+                            <!-- Exemplo de sub-item ativo: acrescentar class no a: fw-bold text-dark e retirar a class: text-reset -->
+                            <a href="" class="text-decoration-none fw-bold text-dark fs-12">
+                                Administrador
+                            </a>
+                        </div>
+                        <div class="custom-menu-sub-item">
+                            <a href="" class="text-decoration-none text-reset fs-12">
+                                Usuário
+                            </a>
+                        </div>
+                    </div>
+
+                </li>
+
+                <li class="list-group-item">
+                    <a href="" class="text-decoration-none text-reset d-block">
+                        <i class="bi bi-file-earmark-bar-graph"></i>
+                        Assinatura de planos
+                    </a>
+                </li>
+
+            </ul>
+        </div>
+    </div>
+</div>
+
+<%
+# End of file _open_left_menu.html.erb
+# Path: ./app/views/layouts/new_layout_menu/_open_left_menu.html.erb
+%>

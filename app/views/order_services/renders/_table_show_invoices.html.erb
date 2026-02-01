@@ -77,7 +77,7 @@
                 <% if order_service_invoices.length > 0 %>
                     <% first_order_service_invoice = order_service_invoices.first %>
                     <td><%= first_order_service_invoice.number %></td>
-                    <td><%= first_order_service_invoice.order_service_invoice_type.name %></td>
+                    <td><%= first_order_service_invoice.order_service_invoice_type&.name || 'Sem tipo' %></td>
                     <td>
                         <% 
                             current_value = 0

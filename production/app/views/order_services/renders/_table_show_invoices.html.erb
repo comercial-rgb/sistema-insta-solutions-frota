@@ -1,0 +1,152 @@
+<div class="row py-2">
+    <div class="col-12 d-flex justify-content-end">
+        <!-- Baixar em excel -->
+        <button id="button-export-table" class="btn btn-success text-white btn-sm">
+            <i class="bi bi-file-earmark-excel-fill"></i>
+            <%= t('model.export_excel') %>
+        </button>
+        <% if !params[:order_services_invoice_grid].nil? && !params[:order_services_invoice_grid][:client_id].nil? && !params[:order_services_invoice_grid][:client_id].blank? %>
+            <a href="<%= show_invoices_path(format: "text", order_services_invoice_grid: (params[:order_services_invoice_grid].nil? ? "" : params[:order_services_invoice_grid].to_enum.to_h)) %>" class="ms-2 btn btn-primary text-white btn-sm">
+                <i class="bi bi-filetype-docx"></i>
+                <%= t('model.download_invoice') %>
+            </a>
+        <% end %>
+    </div>
+</div>
+
+<table id="table-fatured-invoices" class="table table-bordered table-hover text-center align-middle">
+  <thead class="table-dark">
+    <tr>
+        <% if @order_services_without_filter.check_admin_or_provider %>
+            <th><%= OrderService.human_attribute_name(:client_id) %></th>
+        <% end %>
+        <% if @order_services_without_filter.check_user %>
+            <th><%= OrderService.human_attribute_name(:code) %></th>
+        <% end %>
+        <% if @order_services_without_filter.check_admin_or_provider %>
+            <th><%= Vehicle.human_attribute_name(:board) %></th>
+            <th><%= Vehicle.human_attribute_name(:brand) %></th>
+            <th><%= Vehicle.human_attribute_name(:model) %></th>
+        <% end %>
+        <% if @order_services_without_filter.check_admin %>
+            <th><%= OrderService.human_attribute_name(:provider_id) %></th>
+        <% end %>
+        <% if @order_services_without_filter.check_admin_or_provider %>
+            <th><%= OrderServiceInvoice.human_attribute_name(:number) %></th>
+            <th><%= OrderServiceInvoice.human_attribute_name(:order_service_invoice_type_id) %></th>
+            <th><%= OrderServiceInvoice.human_attribute_name(:value) %> <%= OrderServiceInvoice.human_attribute_name(:parts).capitalize %> (R$)</th>
+            <th><%= OrderServiceInvoice.human_attribute_name(:value) %> <%= OrderServiceInvoice.human_attribute_name(:services).capitalize %> (R$)</th>
+        <% end %>
+    </tr>
+  </thead>
+  <tbody>
+    <% 
+        total_parts = 0 
+        total_services = 0 
+    %>
+    <% order_services_grid.assets.each do |order_service| %>
+        <!-- OS 1 -->
+        <% 
+            result = OrderService.getting_invoice_data(order_service)
+            order_service_invoices = result[0]
+            order_service_invoices_grouped = result[1]
+            order_service_proposal_approved = result[2]
+        %>
+        <tr>
+            <% if @order_services_without_filter.check_admin_or_provider %>
+                <td rowspan="<%= order_service_invoices.count %>"><%= order_service.client.fantasy_name %></td>
+            <% end %>
+            <% if @order_services_without_filter.check_user %>
+                <td rowspan="<%= order_service_invoices.count %>"><%= order_service.code %></td>
+            <% end %>
+            <% if @order_services_without_filter.check_admin_or_provider %>
+                <td rowspan="<%= order_service_invoices.count %>"><%= order_service.vehicle.board unless order_service.vehicle.nil? %></td>
+                <td rowspan="<%= order_service_invoices.count %>"><%= order_service.vehicle.brand unless order_service.vehicle.nil? %></td>
+                <td rowspan="<%= order_service_invoices.count %>"><%= order_service.vehicle.model unless order_service.vehicle.nil? %></td>
+            <% end %>
+            <% if @order_services_without_filter.check_admin %>
+                <td rowspan="<%= order_service_invoices.count %>">
+                    <%
+                        if !order_service_proposal_approved.nil?
+                            concat order_service_proposal_approved.provider.get_name
+                        end
+                    %>
+                </td>
+            <% end %>
+            <% if @order_services_without_filter.check_admin_or_provider %>
+                <% if order_service_invoices.length > 0 %>
+                    <% first_order_service_invoice = order_service_invoices.first %>
+                    <td><%= first_order_service_invoice.number %></td>
+                    <td><%= first_order_service_invoice.order_service_invoice_type.name %></td>
+                    <td>
+                        <% 
+                            current_value = 0
+                            current_value = first_order_service_invoice.value if first_order_service_invoice.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID 
+                            total_parts += current_value
+                        %>
+                        <%= CustomHelper.to_currency(current_value) %>
+                    </td>
+                    <td>
+                        <% 
+                            current_value = 0
+                            current_value = first_order_service_invoice.value if first_order_service_invoice.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID 
+                            total_services += current_value
+                        %>
+                        <%= CustomHelper.to_currency(current_value) %>
+                    </td>
+                <% end %>
+            <% end %>
+        </tr>
+        <% if order_service_invoices.length > 1 %>
+            <% order_service_invoices.each_with_index do |order_service_invoice, index| %>
+                <% if index > 0 %>
+                    <tr>
+                        <% if @order_services_without_filter.check_admin_or_provider %>
+                            <td><%= order_service_invoice.number %></td>
+                            <td><%= order_service_invoice.order_service_invoice_type.name %></td>
+                            <td>
+                                <% 
+                                    current_value = 0
+                                    current_value = order_service_invoice.value if order_service_invoice.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID 
+                                    total_parts += current_value
+                                %>
+                                <%= CustomHelper.to_currency(current_value) %>
+                            </td>
+                            <td>
+                                <% 
+                                    current_value = 0
+                                    current_value = order_service_invoice.value if order_service_invoice.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID 
+                                    total_services += current_value
+                                %>
+                                <%= CustomHelper.to_currency(current_value) %>
+                            </td>
+                        <% end %>
+                    </tr>
+                <% end %>
+            <% end %>
+        <% end %>
+        <tr>
+            <td colspan="6"></td>
+            <% if @order_services_without_filter.check_admin_or_provider %>
+                <tr class="table-secondary fw-bold">
+                <td colspan="8" class="text-end">Total:</td>
+                <td>
+                    <% sum_parts = order_service_invoices_grouped&.[]( OrderServiceInvoiceType::PECAS_ID)&.sum(&:value) %>
+                    <%= CustomHelper.to_currency(sum_parts) %>
+                </td>
+                <td>
+                    <% sum_services = order_service_invoices_grouped&.[](OrderServiceInvoiceType::SERVICOS_ID)&.sum(&:value) %>
+                    <%= CustomHelper.to_currency(sum_services) %>
+                </td>
+            <% end %>
+        </tr>
+    <% end %>
+  </tbody>
+  <tfoot class="table-light fw-bold">
+    <tr>
+      <td colspan="8" class="text-end">Totais gerais:</td>
+      <td><%= CustomHelper.to_currency(total_parts) %></td>
+      <td><%= CustomHelper.to_currency(total_services) %></td>
+    </tr>
+  </tfoot>
+</table>

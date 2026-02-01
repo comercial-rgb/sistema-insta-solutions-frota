@@ -1,0 +1,20 @@
+<!-- Dados bancários -->
+<div class="row">
+
+  <!-- Título -->
+  <div class="col-12">
+    <h5 class="mt-4"><%= DataBank.model_name.human.upcase %></h5>
+  </div>
+
+  <!-- Campos multiplos dinamicos (dados bancarios) -->
+  <div class="col-12">
+
+    <%= f.fields_for :data_bank do |data_bank| %>
+      <div class="row align-items-end">
+        <%= render 'common_pages/data_banks/data_bank_field', f: f, data_bank: data_bank  %>
+      </div>
+    <% end %>
+    
+  </div>
+
+</div>

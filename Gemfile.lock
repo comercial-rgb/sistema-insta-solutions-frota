@@ -143,6 +143,10 @@ GEM
       activemodel (>= 5.2, < 8.1)
       activesupport (>= 5.2, < 8.1)
     csv (3.3.5)
+    database_cleaner-active_record (2.2.2)
+      activerecord (>= 5.a)
+      database_cleaner-core (~> 2.0)
+    database_cleaner-core (2.0.1)
     datagrid (1.7.0)
       railties (>= 6.0)
     date (3.4.1)
@@ -529,6 +533,8 @@ GEM
       sprockets-rails
       tilt
     shellany (0.0.1)
+    shoulda-matchers (6.5.0)
+      activesupport (>= 5.2.0)
     signet (0.20.0)
       addressable (~> 2.8)
       faraday (>= 0.17.5, < 3.a)
@@ -622,6 +628,7 @@ DEPENDENCIES
   cpf_faker
   credit_card_validations
   csv
+  database_cleaner-active_record
   datagrid (~> 1.7.0)
   docx_replace
   em-hiredis
@@ -664,6 +671,7 @@ DEPENDENCIES
   rspec-rails
   rufus-scheduler (= 3.8.2)
   sass-rails (~> 6.0)
+  shoulda-matchers (~> 6.0)
   simple_form
   slim-rails (= 3.1.1)
   spreadsheet

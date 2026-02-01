@@ -1,0 +1,21 @@
+class PersonType < ApplicationRecord
+	validates_presence_of :name
+
+	def as_json(options = {})
+		{
+			:id => self.id,
+			:name => self.name
+		}
+	end
+
+	FISICA = 'Física'
+	JURIDICA = 'Jurídica'
+
+	FISICA_ID = 1
+	JURIDICA_ID = 2
+
+	def display_name
+		name.to_s.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')
+	end
+
+end

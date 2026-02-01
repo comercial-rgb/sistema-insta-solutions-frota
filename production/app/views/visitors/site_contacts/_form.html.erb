@@ -1,0 +1,33 @@
+<%= simple_form_for @site_contact, url: visitors_create_site_contact_path, method: :post do |f| %>
+
+<%= f.input :user_id, as: :hidden, input_html: {value: (@current_user.id unless @current_user.nil?)} %>
+
+<div class="row">
+    <div class="col-12 col-md-4">
+        <%= f.input :name, disabled: true, label: SiteContact.human_attribute_name(:name), input_html: {value: (@current_user.name unless @current_user.nil?)} %>
+    </div>
+    <div class="col-12 col-md-4">
+        <%= f.input :email, label: SiteContact.human_attribute_name(:email), input_html: {value: (@current_user.email unless @current_user.nil?), type: "email"} %>
+    </div>
+    <div class="col-12 col-md-4">
+        <%= f.input :phone, label: SiteContact.human_attribute_name(:phone), input_html: {value: (@current_user.phone unless @current_user.nil?), class: 'complete-phone-ddd', type: "tel"} %>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12 col-md-4">
+        <%= f.association :site_contact_subject, collection: SiteContactSubject.all, as: :select, include_blank: false %>
+    </div>
+
+    <div class="col-12">
+        <%= f.input :message, label: SiteContact.human_attribute_name(:message) %>
+    </div>
+
+    <!-- Botão de ação -->
+    <div class="col-12 mt-4 text-end">
+        <%= f.button :submit, class: "btn btn-primary", value: I18n.t("model.send") %>
+    </div>
+
+</div>
+
+<% end %>

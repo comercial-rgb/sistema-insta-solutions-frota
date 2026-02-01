@@ -1,0 +1,19 @@
+<!-- No caso de grid com muitas colunas, é utilizada a class 'container-fluid' enviadar por parâmetro na hora do render -->
+<div class="container<%='-fluid' if defined?(attributes[:fluid]) && attributes[:fluid] %>">
+
+    <!-- Tabela de dados -->
+    <div class="row">
+        <% attributes[:objects].assets.each do |address| %>
+            <div class="col-12 col-md-4 mb-3">
+                <%= render "common_pages/addresses/address_card", address: address %>
+            </div>
+        <% end %>
+    </div>
+
+    <%= render "common_pages/index/pagination", attributes: attributes %>
+</div>
+
+<%
+# End of file _second_container.html.erb
+# Path: ./app/views/common_pages/index/_second_container.html.erb
+%>

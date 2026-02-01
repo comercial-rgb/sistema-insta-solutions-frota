@@ -1,0 +1,42 @@
+<% random_string = Digest::MD5.hexdigest rand.to_s %>
+<div id="carouselExampleControls<%= random_string %>" class="carousel slide" data-bs-ride="carousel">
+	<div class="carousel-inner" >
+		<% list.each_with_index do |current_data, index| %>
+			<div class="carousel-item <%= 'active' if index == 0 %>">
+				<div>
+					<% if swiper_type == 'image' %>
+						<figure>
+							<img src="<%= current_data[:image_url] %>" class="img-fluid d-block w-100" style="height: 300px;" alt="..."> 
+						</figure>
+					<% else %>
+						<% if current_data.link.include?("vimeo") %>
+							<% vimeo_id = find_vimeo_id(current_data.link) %>
+							<%= get_vimeo_iframe(vimeo_id, 640, 400, 0, false, false) %>
+						<% else %>
+							<iframe 
+								src="<%= youtube_embed(current_data.link) %>" 
+								title="YouTube video player" 
+								frameborder="0" 
+								height="400"
+								allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen>
+							</iframe>
+						<% end %>
+					<% end %>
+				</div>
+			</div>
+		<% end %>
+	</div>
+	<button class="carousel-control-prev" type="button" data-bs-target="#carouselExampleControls<%= random_string %>" data-bs-slide="prev">
+	    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+	    <span class="visually-hidden">Previous</span>
+	</button>
+	<button class="carousel-control-next" type="button" data-bs-target="#carouselExampleControls<%= random_string %>" data-bs-slide="next">
+	    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+	    <span class="visually-hidden">Next</span>
+	</button>
+</div>
+
+<%
+# End of file _swiper_data.html.erb
+# Path: ./app/views/common_pages/swiper/_swiper_data.html.erb
+%>

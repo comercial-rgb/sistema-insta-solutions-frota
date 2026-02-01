@@ -1,0 +1,57 @@
+<!-- No caso de grid com muitas colunas, é utilizada a class 'container-fluid' enviadar por parâmetro na hora do render -->
+<div class="container<%='-fluid' if defined?(attributes[:fluid]) && attributes[:fluid] %>">
+
+    <% if defined?(attributes[:show_bar_category]) && attributes[:show_bar_category] %>
+        <%= attributes[:render_show_bar_category] %>
+    <% end %>
+
+    <% if defined?(attributes[:show_actions_registers]) && attributes[:show_actions_registers] %>
+        <%= attributes[:render_show_actions_registers] %>
+    <% end %>
+
+    <% if defined?(attributes[:custom_table_data]) && !attributes[:custom_table_data].nil? %>
+        <%= attributes[:custom_table_data] %>
+    <% elsif !defined?(attributes[:custom_table_data]) || attributes[:custom_table_data].nil? %>
+
+        <!-- Botões complementares -->
+        <% if defined?(attributes[:objects_path_export]) && attributes[:objects_path_export] != false %>
+            <div class="row">
+                <div class="col-12 d-flex justify-content-end gap-2">
+                    <% if defined?(attributes[:objects_path_export_pdf]) && attributes[:objects_path_export_pdf] %>
+                        <a href="<%= attributes[:objects_path_export_pdf] %>" class="btn btn-danger text-white btn-sm">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                            <%= t('model.export_pdf', default: 'Exportar PDF') %>
+                        </a>
+                    <% end %>
+                    <!-- Baixar em excel -->
+                    <a href="<%= attributes[:objects_path_export] %>" class="btn btn-success text-white btn-sm">
+                        <i class="bi bi-file-earmark-excel-fill"></i>
+                        <%= t('model.export_excel') %>
+                    </a>
+                </div>
+            </div>
+        <% end %>
+
+        <% if defined?(attributes[:select_all_registers]) && attributes[:select_all_registers] %>
+            <%= attributes[:render_select_all_registers] %>
+        <% end %>
+
+        <!-- Tabela de dados -->
+        <div class="row">
+            <div class="col-12">
+                <div class="table-responsive" style="padding-bottom: 10em;">
+                    <%= datagrid_table attributes[:objects], html: { class: 'table table-sm table-hover' } %>
+                </div>
+            </div>
+        </div>
+    <% end %>
+
+    <% if !defined?(attributes[:remove_pagination]) || !attributes[:remove_pagination] %>
+        <%= render "common_pages/index/pagination", attributes: attributes %>
+    <% end %>
+</div>
+
+<%
+# End of file _second_container.html.erb
+# Path: ./app/views/common_pages/index/_second_container.html.erb
+%>

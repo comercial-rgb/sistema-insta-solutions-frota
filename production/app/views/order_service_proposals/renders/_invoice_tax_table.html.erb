@@ -1,0 +1,21 @@
+<b><span><%= text %></span></b>
+<table class="table table-striped">
+    <tbody>
+        <tr>
+            <td>IR</td>
+            <td><%= CustomHelper.to_percentage(ir, 2) %></td>
+        </tr>
+        <tr>
+            <td>PIS</td>
+            <td><%= CustomHelper.to_percentage(pis, 2) %></td>
+        </tr>
+        <tr>
+            <td>COFINS</td>
+            <td><%= CustomHelper.to_percentage(cofins, 2) %></td>
+        </tr>
+        <tr>
+            <td>CSLL</td>
+            <td><%= CustomHelper.to_percentage(csll, 2) %></td>
+        </tr>
+    </tbody>
+</table>

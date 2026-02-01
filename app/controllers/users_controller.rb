@@ -366,8 +366,10 @@ class UsersController < ApplicationController
       @user.password = new_password
       @user.password_confirmation = new_password
       @user.save(validate: false)
-      # Email não será enviado - admin visualiza a senha diretamente
-      # NotificationMailer.reset_password(@user, @system_configuration, new_password).deliver_later
+      
+      # Enviar email com a nova senha
+      NotificationMailer.reset_password(@user, @system_configuration, new_password).deliver_now
+      
       data = {
         result: true,
         password: new_password
@@ -436,7 +438,8 @@ class UsersController < ApplicationController
     user = User.active.find_by_email(recover_params)
     if user
       user.update_column(:recovery_token, SecureRandom.urlsafe_base64)
-      NotificationMailer.forgot_password(user, @system_configuration).deliver_later
+      user.reload
+      NotificationMailer.forgot_password(user, @system_configuration).deliver_now
       flash[:success] = t('flash.change_password')
       redirect_to login_path
     else

@@ -1,0 +1,46 @@
+<%= simple_form_for(@notification) do |f| %>
+
+    <div class="row">
+        <div class="col-12">
+            <%= f.error_notification %>
+            <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-md-3">
+            <%= f.association :profile, collection: Profile.to_notification, as: :select, include_blank: t('model.select_all') %>
+        </div>
+        <div <%= 'hidden' if f.object.profile.nil? %> class="col-12 col-md-3" id="div-with-send-all">
+            <%= f.input :send_all, as: :select, collection: CustomHelper.return_select_options_true_false, include_blank: false, label: Notification.human_attribute_name(:send_all) %>
+        </div>
+        <% Profile.to_notification.each do |profile| %>
+            <div <%= 'hidden' if (f.object.profile.nil? || f.object.send_all ) %> id="users-notification-<%= profile.id.to_s %>" class="users-notification col-12 col-md-6">
+                <%= 
+                    render "common_pages/filter_registers_by_text_checkboxes",
+                    label_text: Notification.human_attribute_name(:users),
+                    register_name: "user-"+profile.id.to_s,
+                    form_model: :notification,
+                    form_attribute: :user_ids,
+                    collection: User.active.by_profile_id(profile.id).order(:name),
+                    value_register: :id,
+                    label_register: :name,
+                    placeholder: t("model.find_filter")
+                %>
+            </div>
+        <% end %>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <%= f.input :title %>
+        </div>
+        <div class="col-12">
+            <label><%= Notification.human_attribute_name(:message) %></label>
+		    <%= f.input :message, label: false, input_html: { class: 'ck-editor' } %>
+        </div>
+    </div>
+
+    <%= render 'common_pages/save', f: f, return_path: notifications_path %>
+
+<% end %>

@@ -1,0 +1,21 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: cities_path, text: City.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: City.model_name.human(count: 2),
+		url_new_path: new_city_path,
+		policy_true: policy(City).new?,
+		objects: @cities,
+		objects_path: cities_path,
+		object_name: City.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: cities_path(format: "csv", cities_grid: (params[:cities_grid].nil? ? "" : params[:cities_grid].to_enum.to_h))
+	}
+%>

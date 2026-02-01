@@ -1,0 +1,23 @@
+<div class="row">
+   
+    <div class="col-12 mb-3">
+        <h5 class="mt-4"><%= SubUnit.model_name.human(count: 2).upcase %></h5>
+    </div>
+
+    <div class="col-12 multi-subunit-block">
+        <!-- Contador -->
+        <input type="hidden" value="<%= f.object.sub_units.length.to_s %>" class="multi-subunit-cont" disabled>
+        <%= f.fields_for :sub_units do |sub_unit| %>
+            <div class="row multi-subunit align-items-end">
+                <%= render "cost_centers/forms/sub_unit_fields", f: f, sub_unit: sub_unit %>
+                <%= render 'common_pages/delete_multiple_relation', remove_path: delete_sub_unit_path(model_id: sub_unit.object.id), object: sub_unit.object, object_text: 'subunit'  %>
+            </div>
+        <% end %>
+    </div>
+
+    <!-- Botão de adicionar -->
+    <div class="col-12">
+        <%= render 'common_pages/add_multiple_relation', object_text: 'subunit' %>
+    </div>
+</div>
+

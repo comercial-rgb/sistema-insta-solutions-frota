@@ -1,0 +1,46 @@
+pt-BR:
+  activerecord:
+    models:
+      order_service_invoice:
+        one: "Nota fiscal"
+        other: "Notas fiscais"
+    attributes:
+      order_service_invoice:
+        id: "ID"
+        created_at: 'Realizada em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        order_service_proposal: "Proposta"
+        order_service_proposal_id: "Proposta"
+        order_service_invoice_type_id: 'Tipo da nota fiscal'
+        order_service_invoice_type: 'Tipo da nota fiscal'
+        number: 'Nº da nota fiscal'
+        value: 'Valor total'
+        emission_date: 'Data de emissão'
+        file: 'Anexo'
+        save_button_message: 'O botão de salvar somente será habilitado após todos os dados preenchidos e o valor final estar de acordo com o valor total da proposta. Também não poderá haver campos em brancos. Caso não haja a necessidade de preenchimento, exclua os campos vazios através do botão "Excluir".'
+        parts: 'Peças'
+        services: 'Serviços'
+en:
+  activerecord:
+    models:
+      order_service_invoice:
+        one: "Nota fiscal"
+        other: "Notas fiscais"
+    attributes:
+      order_service_invoice:
+        id: "ID"
+        created_at: 'Created at'
+        updated_at: 'Updated at'
+        actions: "Actions"
+        order_service_proposal: "Proposta"
+        order_service_proposal_id: "Proposta"
+        order_service_invoice_type_id: 'Tipo da nota fiscal'
+        order_service_invoice_type: 'Tipo da nota fiscal'
+        number: 'Nº da nota fiscal'
+        value: 'Valor total'
+        emission_date: 'Data de emissão'
+        file: 'Anexo'
+        save_button_message: 'O botão de salvar somente será habilitado após todos os dados preenchidos e o valor final estar de acordo com o valor total da proposta. Também não poderá haver campos em brancos. Caso não haja a necessidade de preenchimento, exclua os campos vazios através do botão "Excluir".'
+        parts: 'Peças'
+        services: 'Serviços'

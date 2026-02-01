@@ -1,0 +1,26 @@
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th scope="col"><%= OrderServiceInvoice.human_attribute_name(:order_service_invoice_type_id) %></th>
+            <th scope="col"><%= OrderServiceInvoice.human_attribute_name(:number) %></th>
+            <th scope="col"><%= OrderServiceInvoice.human_attribute_name(:value) %></th>
+            <th scope="col"><%= OrderServiceInvoice.human_attribute_name(:emission_date) %></th>
+            <th scope="col"><%= OrderServiceInvoice.human_attribute_name(:file) %></th>
+        </tr>
+    </thead>
+    <tbody>
+        <% order_service_proposal.order_service_invoices.each do |order_service_invoice| %>
+            <tr>
+                <td><%= order_service_invoice.order_service_invoice_type.name %></td>
+                <td><%= order_service_invoice.number %></td>
+                <td><%= CustomHelper.to_currency(order_service_invoice.value) %></td>
+                <td><%= CustomHelper.get_text_date(order_service_invoice.emission_date, 'date', :default) %></td>
+                <td>
+                    <% if order_service_invoice.file.attached? %>
+                        <%= link_to order_service_invoice.file.filename, rails_blob_path(order_service_invoice.file, disposition: 'attachment'), target: '_blank' %>
+                    <% end %>
+                </td>
+            </tr>
+        <% end %>
+    </tbody>
+</table>

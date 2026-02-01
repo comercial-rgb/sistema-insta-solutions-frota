@@ -3,6 +3,7 @@ class OrderServiceProposal < ApplicationRecord
   after_initialize :default_values
   after_create :generate_code
   before_update :set_warranty_start_date_on_authorization
+  after_update :sync_order_service_status, if: :saved_change_to_order_service_proposal_status_id?
 
   attr_accessor :files, :skip_validation
 
@@ -332,6 +333,41 @@ class OrderServiceProposal < ApplicationRecord
           item.update_column(:warranty_start_date, warranty_start)
         end
       end
+    end
+  end
+
+  # Sincroniza automaticamente o status da OS quando o status da proposta mudar
+  def sync_order_service_status
+    return if order_service.nil?
+    return if is_complement? # Complementos não alteram status da OS principal
+    
+    # Mapeamento automático: Status da Proposta → Status da OS
+    status_mapping = {
+      OrderServiceProposalStatus::APROVADA_ID => OrderServiceStatus::APROVADA_ID,
+      OrderServiceProposalStatus::NOTAS_INSERIDAS_ID => OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID,
+      OrderServiceProposalStatus::AUTORIZADA_ID => OrderServiceStatus::AUTORIZADA_ID,
+      OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID => OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID,
+      OrderServiceProposalStatus::PAGA_ID => OrderServiceStatus::PAGA_ID
+    }
+    
+    new_os_status = status_mapping[order_service_proposal_status_id]
+    
+    # Se há mapeamento e o status da OS está diferente, atualizar
+    if new_os_status.present? && order_service.order_service_status_id != new_os_status
+      old_status = order_service.order_service_status_id
+      
+      # Atualizar status da OS
+      OrderService.where(id: order_service.id).update_all(order_service_status_id: new_os_status)
+      
+      # Gerar histórico se possível
+      begin
+        admin_user = User.find_by(profile_id: 1) || User.first
+        OrderService.generate_historic(order_service, admin_user, old_status, new_os_status) if admin_user
+      rescue => e
+        Rails.logger.warn "Não foi possível gerar histórico para OS #{order_service.id}: #{e.message}"
+      end
+      
+      Rails.logger.info "✓ Status da OS ##{order_service.id} sincronizado automaticamente: #{old_status} → #{new_os_status}"
     end
   end
 

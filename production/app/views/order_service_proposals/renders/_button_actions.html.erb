@@ -1,0 +1,14 @@
+<div class="row">
+    <div class="col-12">
+        <% if order_service.order_service_status_id == OrderServiceStatus::EM_ABERTO_ID || order_service.order_service_status_id == OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID %>
+            <button type="button" class="px-2 btn btn-sm btn-danger action-to-order-service-proposals-listing" id="reprove-order-services-proposals">
+                <%= OrderServiceProposal.human_attribute_name(:reprove_order_services_proposals) %>
+            </button>
+        <% end %>
+    </div>
+</div>
+
+<%
+# End of file _button_actions.html.erb
+# Path: ./app/views/order_service_proposals/renders/_button_actions.html.erb
+%>

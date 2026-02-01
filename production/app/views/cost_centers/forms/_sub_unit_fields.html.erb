@@ -1,0 +1,8 @@
+<div class="row">
+    <div class="col-12 col-md-4">
+        <%= sub_unit.input :name %>
+    </div>
+    <div class="col-12 col-md-4">
+        <%= sub_unit.input :initial_consumed_balance, input_html: {class: 'money', value: CustomHelper.to_currency(sub_unit.object.initial_consumed_balance), type: "tel"}, as: :string %>
+    </div>
+</div>

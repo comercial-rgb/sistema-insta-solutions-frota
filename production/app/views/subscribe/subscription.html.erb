@@ -1,0 +1,46 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')}
+]
+%>
+
+<div class="container new-margin-head">
+	<div class="row mb-3">
+		<div class="d-none d-md-block col-md-10 text-center">
+			<%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+		</div>
+	</div>
+	<div class="row">
+		<% if !@subscription.start_date.nil? %>
+			<div class="col-12 text-start">
+				<b><%= Subscription.human_attribute_name(:start_date) %>:</b> <%= CustomHelper.get_text_date(@subscription.start_date, "date", :default) %>
+			</div>
+		<% end %>
+		<% if @subscription.cancel_date.nil? && @subscription.subscription_status_id == SubscriptionStatus::ATIVA_ID %>
+			<div class="col-12 text-start">
+				<b><%= Subscription.human_attribute_name(:renewal_date) %>:</b> <%= CustomHelper.get_text_date(@subscription.renewal_date, "date", :default) %>
+			</div>
+		<% end %>
+		<% if !@subscription.end_date.nil? %>
+			<div class="col-12 text-start">
+				<b><%= Subscription.human_attribute_name(:end_date) %>:</b> <%= CustomHelper.get_text_date(@subscription.end_date, "date", :default) %>
+			</div>
+		<% end %>
+		<% if !@subscription.cancel_date.nil? && @subscription.end_date.nil? %>
+			<div class="col-12 text-start">
+				<b><%= Subscription.human_attribute_name(:cancel_date) %>:</b> <%= CustomHelper.get_text_date(@subscription.cancel_date, "date", :default) %>
+			</div>
+		<% end %>
+		<div class="col-12 py-3">
+			<%= render 'subscribe/subscription/details', subscription: @subscription %>
+		</div>
+		<% if policy(@subscription).cancel_subscription? %>
+			<div class="col-12 text-end py-3">
+				<%= link_to cancel_subscription_path(id: @subscription.id), method: :put, class: "mb-1 text-decoration-none btn-sm btn btn-danger", data: {title: t('model.delete'), confirm: t('model.confirm_action')} do %>
+					<i class="bi bi-trash-fill"></i>
+					<%= Subscription.human_attribute_name(:cancel_subscription) %>
+				<% end %>
+			</div>
+		<% end %>
+	</div>
+</div>

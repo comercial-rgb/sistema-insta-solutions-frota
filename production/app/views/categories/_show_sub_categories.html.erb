@@ -1,0 +1,9 @@
+<%= render 'categories/modals/show_sub_categories', category: record %>
+<button type="button" class="btn btn-link btn-sm" data-bs-toggle="modal" data-bs-target="#show_sub_categories_<%=record.id%>">
+	<%= t('model.show_details') %>
+</button>
+
+<%
+# End of file _show_sub_categories.html.erb
+# Path: ./app/views/categories/_show_sub_categories.html.erb
+%>

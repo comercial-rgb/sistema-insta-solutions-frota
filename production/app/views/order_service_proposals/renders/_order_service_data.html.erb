@@ -1,0 +1,169 @@
+<div class="row py-3">
+  <div class="col-12">
+    <%= render 'order_services/modals/show_vehicle_data', order_service: record %>
+
+    <div class="card shadow-sm border-0">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <span class="fs-5 fw-semibold">
+          <%= OrderService.model_name.human %>
+        </span>
+        <span class="text-muted">
+          <strong class="text-dark">OS:</strong> <%= record.code %>
+        </span>
+      </div>
+
+      <div class="card-body">
+        <div class="row gy-2">
+
+          <div class="col-12 col-md-6">
+            <strong><%= OrderService.human_attribute_name(:client_id) %>:</strong>
+            <span class="text-dark"><%= record.client.fantasy_name %></span>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <strong><%= OrderService.human_attribute_name(:registered_by) %>:</strong>
+            <span class="text-dark"><%= record.manager.name %></span>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <strong><%= OrderService.human_attribute_name(:cost_center_id) %>:</strong>
+            <span class="text-dark"><%= record.cost_center.name %></span>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <strong><%= OrderService.human_attribute_name(:provider_service_type) %>:</strong>
+            <span class="text-dark"><%= record.provider_service_type.name %></span>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <strong><%= OrderService.human_attribute_name(:order_service_type_id) %>:</strong>
+            <span class="text-dark"><%= record.order_service_type.name %></span>
+            
+            <%# Card Emergencial/Cotações para OS tipo Diagnóstico %>
+            <% if record.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID %>
+              <% 
+                # Contar propostas aprovadas (não canceladas/reprovadas)
+                approved_proposals_count = record.order_service_proposals
+                  .where.not(order_service_proposal_status_id: [
+                    OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
+                    OrderServiceProposalStatus::CANCELADA_ID,
+                    OrderServiceProposalStatus::EM_CADASTRO_ID
+                  ])
+                  .count
+              %>
+              <% if approved_proposals_count == 1 %>
+                <span class="badge badge-emergencial ms-2">
+                  <i class="bi bi-lightning-fill"></i> Emergencial
+                </span>
+              <% elsif approved_proposals_count > 1 %>
+                <span class="badge badge-cotacoes-diag ms-2">
+                  <i class="bi bi-cart-check-fill"></i> Cotações
+                </span>
+              <% end %>
+            <% end %>
+          </div>
+
+          <%# Mostrar fornecedor selecionado para Diagnóstico - ocultar para outros fornecedores %>
+          <% if record.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID && record.provider.present? %>
+            <% show_provider = @current_user.admin? || @current_user.manager? || @current_user.additional? || (@current_user.provider? && @current_user.id == record.provider_id) %>
+            <% if show_provider %>
+              <div class="col-12 col-md-6">
+                <strong><%= OrderService.human_attribute_name(:provider_id) %>:</strong>
+                <span class="text-dark"><%= record.provider.get_name %></span>
+              </div>
+            <% end %>
+          <% end %>
+
+          <div class="col-12 col-md-6">
+            <strong><%= OrderService.human_attribute_name(:vehicle) %>:</strong>
+            <span class="text-dark">
+              <span class="pointer d-print-none" data-bs-toggle="modal" data-bs-target="#show_vehicle_data_<%=record.id%>">
+                <%= "#{record.vehicle.brand}, #{record.vehicle.model}, #{record.vehicle.board}" %>
+                <i class="bi bi-search"></i>
+              </span>
+            </span>
+          </div>
+
+          <div class="col-12 col-md-6">
+            <strong><%= OrderService.human_attribute_name(:created_at) %>:</strong>
+            <span class="text-dark"><%= CustomHelper.get_text_date(record.created_at, 'datetime', :full) %></span>
+          </div>
+          
+          <% if record.client&.needs_km && record.km.present? %>
+            <div class="col-12 col-md-6">
+              <strong><%= OrderService.human_attribute_name(:km) %>:</strong>
+              <span class="text-dark"><%= number_with_delimiter(record.km) %> km</span>
+            </div>
+          <% end %>
+          
+          <% if record.driver.present? %>
+            <div class="col-12 col-md-6">
+              <strong><%= OrderService.human_attribute_name(:driver) %>:</strong>
+              <span class="text-dark"><%= record.driver %></span>
+            </div>
+          <% end %>
+
+          <div class="col-12">
+            <strong><%= OrderService.human_attribute_name(:details) %>:</strong><br>
+            <p class="text-dark fst-italic mt-1"><%= record.details %></p>
+          </div>
+          
+          <% if record.client&.require_vehicle_photos && record.vehicle_photos.attached? %>
+            <div class="col-12 d-print-none">
+              <strong><i class="bi bi-camera-fill me-2"></i>Fotos do Veículo:</strong>
+              <div class="row g-2 mt-1">
+                <% record.vehicle_photos.each_with_index do |photo, index| %>
+                  <div class="col-6 col-md-3 col-lg-2">
+                    <div class="text-center">
+                      <small class="text-muted d-block mb-1">Foto <%= index + 1 %></small>
+                      <%= link_to rails_blob_path(photo, disposition: "inline"), target: '_blank', class: 'd-block' do %>
+                        <%= image_tag rails_blob_path(photo, disposition: "inline"), 
+                            class: 'img-thumbnail', 
+                            style: 'width: 100%; height: 120px; object-fit: cover;',
+                            alt: "Foto #{index + 1}" %>
+                      <% end %>
+                    </div>
+                  </div>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
+          <% if record.attachments.any? %>
+            <div class="col-12 d-print-none">
+              <strong>Anexos:</strong>
+              <div class="row g-2 mt-1">
+                <% record.attachments.each do |attachment| %>
+                  <% if attachment.attachment.attached? && attachment.attachment.content_type&.start_with?('image/') %>
+                    <div class="col-6 col-md-3 col-lg-2">
+                      <div class="text-center">
+                        <small class="text-muted d-block mb-1">
+                          <%= case attachment.category
+                              when 'frontal' then 'Frontal'
+                              when 'lateral_direita' then 'Lateral Direita'
+                              when 'lateral_esquerda' then 'Lateral Esquerda'
+                              when 'traseira' then 'Traseira'
+                              when 'hodometro' then 'Hodômetro'
+                              when 'pecas_servicos' then 'Peças/Serviços'
+                              else attachment.category&.titleize
+                              end %>
+                        </small>
+                        <%= link_to rails_blob_path(attachment.attachment, disposition: "inline"), target: '_blank', class: 'd-block' do %>
+                          <%= image_tag rails_blob_path(attachment.attachment, disposition: "inline"), 
+                              class: 'img-thumbnail', 
+                              style: 'width: 100%; height: 120px; object-fit: cover;',
+                              alt: attachment.category %>
+                        <% end %>
+                      </div>
+                    </div>
+                  <% end %>
+                <% end %>
+              </div>
+            </div>
+          <% end %>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

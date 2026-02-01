@@ -1,0 +1,49 @@
+# Exemplo de arquivo de configuração do Figaro
+# Copie este arquivo para application.yml e preencha com suas credenciais
+
+# ========================================
+# DESENVOLVIMENTO (Local)
+# ========================================
+DATABASE_USERNAME_DEVELOPMENT: "root"
+DATABASE_PASSWORD_DEVELOPMENT: "sua_senha"
+
+# ========================================
+# TESTES
+# ========================================
+DATABASE_USERNAME_TEST: "root"
+DATABASE_PASSWORD_TEST: "sua_senha"
+
+# ========================================
+# STAGING/HOMOLOGAÇÃO (Ambiente de Teste)
+# ========================================
+DATABASE_DATABASE_STAGING: "sistema_insta_solutions_staging"
+DATABASE_USERNAME_STAGING: "root"
+DATABASE_PASSWORD_STAGING: "senha_staging"
+DATABASE_HOST_STAGING: "localhost"
+DATABASE_PORT_STAGING: "3306"
+STAGING_HOST: "staging.frotainstasolutions.com.br"
+
+# ========================================
+# PRODUÇÃO (Ambiente Público)
+# ========================================
+DATABASE_DATABASE_PRODUCTION: "sistema_insta_solutions_production"
+DATABASE_USERNAME_PRODUCTION: "instasolutions"
+DATABASE_PASSWORD_PRODUCTION: "SUA_SENHA_FORTE_AQUI"
+DATABASE_HOST_PRODUCTION: "localhost"
+DATABASE_PORT_PRODUCTION: "3306"
+HOST: "app.frotainstasolutions.com.br"
+
+# AWS S3 (para armazenar arquivos - logos, anexos, etc)
+AWS_ACCESS_KEY_ID: "sua_aws_access_key"
+AWS_SECRET_ACCESS_KEY: "sua_aws_secret_key"
+AWS_REGION: "sa-east-1"
+AWS_BUCKET: "frotainstasolutions-producao"
+
+# SMTP (para envio de emails)
+SMTP_ADDRESS: "smtp.gmail.com"
+SMTP_PORT: "587"
+SMTP_USERNAME: "seuemail@gmail.com"
+SMTP_PASSWORD: "sua_senha_app_gmail"
+
+# Secret Key Base (gerar com: RAILS_ENV=production bundle exec rails secret)
+SECRET_KEY_BASE: "GERAR_CHAVE_SECRETA_AQUI"

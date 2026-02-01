@@ -1,0 +1,10 @@
+<div class="order d-inline-block">
+  <%= link_to(
+      I18n.t("datagrid.table.order.asc").html_safe,
+      datagrid_order_path(grid, column, false),
+      :class => "asc text-decoration-none") %>
+  <%= link_to(
+      I18n.t("datagrid.table.order.desc").html_safe,
+      datagrid_order_path(grid, column, true),
+      :class => "desc text-decoration-none") %>
+</div>

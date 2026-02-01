@@ -1,0 +1,39 @@
+<h3>Olá, <%= @user.name %></h3>
+<p>
+	Você acaba de receber acesso a plataforma <%= I18n.t('session.project') %>.
+</p>
+
+<% if !@user.validated_mail %>
+	<p>
+		Caso seu e-mail ainda não esteja validado. Clique no link a seguir para validá-lo:<br>
+		<%= link_to "Validar e-mail", validate_mail_url(validate_mail_token: @user.validate_mail_token) %>
+	</p>
+	<p>
+		<small>Caso esteja com problema no "Validar e-mail", pode selecionar o link abaixo e colar no seu navegador:</small>
+		<br>
+		<%= validate_mail_url(validate_mail_token: @user.validate_mail_token) %>
+	</p>
+	<p>
+		Após a validação, siga os próximos passos descritos abaixo:
+	</p>
+<% end %>
+
+<% if !@user.external_register && !@password.nil? %>
+	<p>
+		Acesse o sistema clicando <%= link_to "aqui", login_url %> com seus dados de acesso abaixo:<br>
+		<b><%= User.human_attribute_name(:email) %>: </b><%= @user.email %><br>
+		<b><%= User.human_attribute_name(:password) %>: </b><%= @password %>
+	</p>
+<% else %>
+	<p>
+		Acesse o sistema clicando <%= link_to "aqui", login_url %> e faça o login com seu e-mail e senha inseridos no momento do seu cadastro.<br>
+	</p>
+<% end %>
+
+<p>
+	<small>Caso esteja com problema no "aqui", pode selecionar o link abaixo e colar no seu navegador:</small>
+	<br>
+	<%= login_url %>
+</p>
+
+<%= render "notification_mailer/default_footer" %>

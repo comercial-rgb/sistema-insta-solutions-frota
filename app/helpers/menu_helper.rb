@@ -305,7 +305,7 @@ module MenuHelper
 		end
 
 		# 2. Status de OS ordenados, inserindo "Aguardando aprovação de complemento" após Aprovada
-		# IMPORTANTE: Excluir EM_CADASTRO_ID (9) para não duplicar "Em aberto"
+		# NOTA: EM_CADASTRO_ID (9) não está no MENU_ORDER pois aparece no topo como "Propostas em cadastro"
 		OrderServiceStatus.unscoped.where(id: OrderServiceStatus::MENU_ORDER).order(
 			Arel.sql("FIELD(id, #{OrderServiceStatus::MENU_ORDER.join(',')})")
 		).each do |order_service_status|

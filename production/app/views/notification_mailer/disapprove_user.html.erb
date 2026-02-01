@@ -1,0 +1,13 @@
+<h3>Olá, <%= @user.name %></h3>
+<p>
+	Seu cadastro na plataforma <%= I18n.t('session.project') %> foi reprovado.
+</p>
+<p>
+	<b><%= User.human_attribute_name(:reason_disapprove) %>:</b>
+	<br>
+	<%= simple_format(@disapprove_reason) %>
+</p>
+<p>
+	Caso tenha alguma dúvida, entre em contato com o nosso suporte.
+</p>
+<%= render "notification_mailer/default_footer" %>

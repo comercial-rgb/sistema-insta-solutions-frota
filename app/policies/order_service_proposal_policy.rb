@@ -35,7 +35,10 @@ class OrderServiceProposalPolicy < ApplicationPolicy
   end
 
   def can_insert_invoices?
-    (general_can_access? && ([OrderServiceStatus::APROVADA_ID].include?(record.order_service.order_service_status_id))) || user.admin?
+    # Permite fornecedor, admin, gestor e adicional inserir/editar notas fiscais
+    (general_can_access? && ([OrderServiceStatus::APROVADA_ID].include?(record.order_service.order_service_status_id))) || 
+    user.admin? || 
+    ((user.manager? || user.additional?) && user.client_id == record.order_service.client_id)
   end
 
   def edit?

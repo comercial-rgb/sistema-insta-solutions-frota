@@ -1,0 +1,8 @@
+<% if record.canceled_value > 0 %>
+    <%= render 'commitments/modals/show_canceled_value', commitment: record %>
+    <button type="button" class="btn btn-link btn-sm" data-bs-toggle="modal" data-bs-target="#show_canceled_value_<%=record.id%>">
+        <%= CustomHelper.to_currency(record.canceled_value) %>
+    </button>
+<% else %>
+    -
+<% end %>

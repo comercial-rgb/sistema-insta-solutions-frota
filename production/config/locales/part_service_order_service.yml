@@ -1,0 +1,40 @@
+pt-BR:
+  activerecord:
+    models:
+      part_service_order_service:
+        one: "Peça/Serviço"
+        other: "Peças/Serviços"
+    attributes:
+      part_service_order_service:
+        id: "ID"
+        created_at: 'Realizada em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        service: "Serviço/Peça"
+        service_id: "Serviço/Peça"
+        name_service: 'Serviço'
+        name_services: 'Serviços'
+        name_part: 'Peça'
+        name_parts: 'Peças'
+        observation: "Observação"
+        observation_tooltip: "Insira aqui Marca, Códigos ou outro informação para auxiliar na cotação"
+en:
+  activerecord:
+    models:
+      part_service_order_service:
+        one: "Peça/Serviço"
+        other: "Peças/Serviços"
+    attributes:
+      part_service_order_service:
+        id: "ID"
+        created_at: 'Created at'
+        updated_at: 'Updated at'
+        actions: "Actions"
+        service: "Serviço/Peça"
+        service_id: "Serviço/Peça"
+        name_service: 'Serviço'
+        name_services: 'Serviços'
+        name_part: 'Peça'
+        name_parts: 'Peças'
+        observation: "Observação"
+        observation_tooltip: "Insira aqui Marca, Códigos ou outro informação para auxiliar na cotação"

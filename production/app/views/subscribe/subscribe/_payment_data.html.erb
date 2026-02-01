@@ -1,0 +1,22 @@
+<div class="col-12">
+    <%= simple_form_for current_order, url: make_subscribe_plan_path(id: current_order.id), method: :post do |f| %>
+        
+        <%= hidden_field_tag "current_order_to_pay_id", current_order.id %>
+        <%= hidden_field_tag "discount_coupon_area_id", DiscountCouponArea::PLANOS_ID %>
+        
+        <div class="row payment-datas">
+            <div class="col-12">
+                <h5>Pagamento</h5>
+            </div>
+            <div class="col-12 col-md-6">
+                <%= f.association :payment_type, collection: PaymentType.all, as: :select, include_blank: false %>
+            </div>
+        </div>
+        <div class="row">
+            <%= render 'subscribe/subscribe/pay/card_data', f: f, use_my_card: true, current_order: current_order %>
+        </div>
+        <div class="row">
+            <%= render 'subscribe/subscribe/pay/confirm_payment', f: f %>
+        </div>
+    <% end %>
+</div>

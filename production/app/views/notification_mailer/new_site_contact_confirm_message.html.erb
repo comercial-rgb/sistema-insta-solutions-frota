@@ -1,0 +1,6 @@
+<h3>Olá, <%= @site_contact.name %>!</h3>
+<p>Novo contato realizado com sucesso!</p>
+
+<%= render "notification_mailer/site_contacts/site_contact_data", site_contact: @site_contact %>
+
+<%= render "notification_mailer/default_footer" %>

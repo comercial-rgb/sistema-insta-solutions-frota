@@ -1,0 +1,26 @@
+pt-BR:
+  activerecord:
+    models:
+      site_contact_subject:
+        one: "Assunto de contato"
+        other: "Assuntos de contato"
+    attributes:
+      site_contact_subject:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        name: "Nome"
+en:
+  activerecord:
+    models:
+      site_contact_subject:
+        one: "Assunto de contato"
+        other: "Assuntos de contato"
+    attributes:
+      site_contact_subject:
+        id: "ID"
+        created_at: 'Created at'
+        updated_at: 'Updated at'
+        actions: "Actions"
+        name: "Nome"

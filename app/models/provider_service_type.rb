@@ -18,7 +18,7 @@ class ProviderServiceType < ApplicationRecord
   end
 
   def display_name
-    name.to_s.encode('UTF-8', invalid: :replace, undef: :replace, replace: '')
+    name.to_s.force_encoding('UTF-8')
   end
 
   private

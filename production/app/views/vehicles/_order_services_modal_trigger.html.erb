@@ -1,0 +1,15 @@
+<%
+  vehicle_label = [record.brand, record.model, record.board].reject(&:blank?).join(' / ')
+  vehicle_label = Vehicle.model_name.human + " ##{record.id}" if vehicle_label.blank?
+%>
+<button
+  type="button"
+  class="btn btn-outline-primary btn-sm"
+  data-bs-toggle="modal"
+  data-bs-target="#vehicleOrderServicesModal"
+  data-vehicle-id="<%= record.id %>"
+  data-vehicle-label="<%= vehicle_label %>"
+  data-url="<%= order_services_vehicle_path(record) %>">
+  <i class="bi bi-list-ul"></i>
+  <span class="ms-1">OS</span>
+</button>

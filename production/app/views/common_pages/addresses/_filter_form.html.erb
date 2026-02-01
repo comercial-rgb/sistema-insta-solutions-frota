@@ -1,0 +1,29 @@
+<form class="datagrid-form addresses_grid" id="new_addresses_grid" action="<%= user_addresses_path(ownertable_type: @ownertable_type, id: @ownertable_id, address_area_id: @address_area_id, page_title: @page_title) %>" accept-charset="UTF-8" method="get"><input name="utf8" type="hidden" value="✓" autocomplete="off">
+
+    <div class="row mb-3">
+        <div class="col-12 col-sm-6 col-md-3" hidden="">
+            <label class="form-label d-block mb-0" for="addresses_grid_ownertable_type">Ownertable type</label>
+            <input value="User" class="form-control form-control-sm d-inline-block ownertable_type string_filter" type="text" name="addresses_grid[ownertable_type]" id="addresses_grid_ownertable_type">
+        </div>
+        <div class="col-12 col-sm-6 col-md-3" hidden="">
+            <label class="form-label d-block mb-0" for="addresses_grid_ownertable_id">Ownertable</label>
+            <input value="3" class="form-control form-control-sm d-inline-block ownertable_id string_filter" type="text" name="addresses_grid[ownertable_id]" id="addresses_grid_ownertable_id">
+        </div>
+        <div class="col-12 col-sm-6 col-md-3" hidden="">
+            <label class="form-label d-block mb-0" for="addresses_grid_address_area_id">Área do endereço</label>
+            <input value="1" class="form-control form-control-sm d-inline-block address_area_id string_filter" type="text" name="addresses_grid[address_area_id]" id="addresses_grid_address_area_id">
+        </div>
+        <div class="col-12 col-sm-6 col-md-3" hidden="">
+            <label class="form-label d-block mb-0" for="addresses_grid_page_title">Page title</label>
+            <input value="Endereços" class="form-control form-control-sm d-inline-block page_title string_filter" type="text" name="addresses_grid[page_title]" id="addresses_grid_page_title">
+        </div>
+        <div class="col-12 col-sm-6 col-md-3">
+            <label class="form-label d-block mb-0" for="addresses_grid_name"><%= Address.human_attribute_name(:name) %></label>
+            <input class="form-control form-control-sm d-inline-block name string_filter" type="text" name="addresses_grid[name]" id="addresses_grid_name" value="<%= params[:addresses_grid].nil? || params[:addresses_grid][:name].nil? ? "" : params[:addresses_grid][:name] %>">
+        </div>
+    </div>
+    <div class="datagrid-actions">
+        <input type="submit" name="commit" value="Filtrar" class="btn btn-sm btn-dark" data-disable-with="Filtrar">
+        <a class="btn btn-sm btn-light" href="<%= user_addresses_path(ownertable_type: @ownertable_type, id: @ownertable_id, address_area_id: @address_area_id, page_title: @page_title) %>"><%= t('datagrid.form.reset') %></a>
+    </div>
+</form>

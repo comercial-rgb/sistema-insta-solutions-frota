@@ -1,0 +1,200 @@
+<%
+breadcrumbs = [
+    {active: false, href: root_path, text: t('menu.initial_page')},
+    {active: false, href: '#', text: OrderService.model_name.human(count: 2)},
+    {active: false, href: show_order_services_path(order_service_status_id: @order_service_proposal.order_service.order_service_status_id || OrderServiceStatus::EM_CADASTRO_ID), text: @order_service_proposal.order_service.order_service_status&.name || 'Status não definido'},
+    {active: false, href: edit_order_service_path(@order_service_proposal.order_service.id), text: @order_service_proposal.order_service.code},
+    {active: false, href: show_order_service_proposals_by_order_service_path(order_service_id: @order_service_proposal.order_service.id), text: @order_service_proposal.order_service.code, text: OrderServiceProposal.model_name.human(count: 2)},
+    {active: true, href: show_order_service_proposal_path(id: @order_service_proposal.id), text: @order_service_proposal.code}
+]
+%>
+
+<div class="container">
+    <div class="row mb-3">
+        <div class="d-none d-md-block col-md-10 text-center">
+            <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-4 mt-md-0">
+        <div class="d-flex gap-2">
+            <!-- Botão Voltar - apenas para não fornecedores -->
+            <% unless @current_user.provider? %>
+                <%= link_to order_service_path(@order_service_proposal.order_service), class: "btn btn-outline-secondary radius-6 d-flex align-items-center d-print-none px-3 py-1" do %>
+                    <i class="bi bi-arrow-left fs-5"></i>
+                    <span class="fs-8 ps-2">Voltar para OS</span>
+                <% end %>
+            <% end %>
+            
+            <!-- Botão Realizar Complemento - apenas para proposta aprovada do fornecedor -->
+            <% if @current_user.provider? && 
+                   @order_service_proposal.provider_id == @current_user.id &&
+                   @order_service_proposal.order_service.can_add_complement? &&
+                   @order_service_proposal.order_service.approved_proposal&.id == @order_service_proposal.id %>
+                <%= link_to new_complement_path(@order_service_proposal.order_service), class: 'btn btn-success radius-6 d-flex align-items-center d-print-none px-3 py-1' do %>
+                    <i class="bi bi-plus-circle fs-5"></i>
+                    <span class="fs-8 ps-2">Realizar Complemento</span>
+                <% end %>
+            <% end %>
+        </div>
+        
+        <!-- Botão Imprimir -->
+        <button onclick="window.print();" type="button" class="btn btn-outline-primary radius-6 d-flex align-items-center d-print-none custom-button-print px-3 py-1">
+            <i class="bi bi-printer fs-5"></i>
+            <span class="fs-8 ps-2">
+                <%= OrderServiceProposal.human_attribute_name(:print_save) %>
+            </span>
+        </button>
+    </div>
+
+    <%= render 'order_service_proposals/renders/order_service_data', record: @order_service_proposal.order_service, order_service_proposal: @order_service_proposal %>
+    
+    <%= render 'order_service_proposals/renders/order_service_proposal_data', order_service_proposal: @order_service_proposal %>
+    
+    <!-- Complementos -->
+    <% if @complement_proposals.present? %>
+      <div class="card shadow-sm mb-4 mt-4">
+        <div class="card-header bg-warning text-dark">
+          <i class="bi bi-plus-square me-2"></i>
+          <strong>Complementos (<%= @complement_proposals.count %>)</strong>
+        </div>
+        <div class="card-body">
+          <% @complement_proposals.each_with_index do |complement, index| %>
+            <% 
+              # Calcular valor total do complemento a partir dos items
+              complement_total = complement.order_service_proposal_items.sum do |item|
+                (item.unity_value.to_f * item.quantity.to_i) - item.discount.to_f
+              end
+              complement_discount = complement.order_service_proposal_items.sum { |item| item.discount.to_f }
+            %>
+            <div class="border rounded p-3 mb-3 <%= 'bg-light' if index.odd? %>">
+              <div class="row mb-3">
+                <div class="col-md-2">
+                  <span class="badge bg-primary fs-6"><%= "#{index + 1}º Complemento" %></span>
+                </div>
+                <div class="col-md-2">
+                  <strong>Código:</strong> <%= complement.code %>
+                </div>
+                <div class="col-md-2">
+                  <strong>Status:</strong>
+                  <%= render 'order_service_proposals/order_service_proposal_status', record: complement %>
+                </div>
+                <div class="col-md-2">
+                  <strong>Desconto:</strong> <%= CustomHelper.to_currency(complement_discount) %>
+                </div>
+                <div class="col-md-2">
+                  <strong>Valor:</strong> <%= CustomHelper.to_currency(complement_total) %>
+                </div>
+                <div class="col-md-2">
+                  <strong>Data:</strong> <%= l(complement.created_at, format: :short) %>
+                </div>
+              </div>
+              
+              <% if complement.justification.present? %>
+                <div class="alert alert-info mb-3">
+                  <strong>Justificativa:</strong> <%= complement.justification %>
+                </div>
+              <% end %>
+              
+              <div class="table-responsive">
+                <table class="table table-sm table-bordered">
+                  <thead class="table-secondary">
+                    <tr>
+                      <th>Item</th>
+                      <th>Qtd</th>
+                      <th>
+                        Preço Unit.
+                        <i class="bi bi-info-circle text-primary" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Preço unitário sem desconto"></i>
+                      </th>
+                      <th>Garantia</th>
+                      <th>Marca</th>
+                      <th>Desconto</th>
+                      <th>
+                        Total
+                        <i class="bi bi-info-circle text-primary" 
+                           data-bs-toggle="tooltip" 
+                           data-bs-placement="top" 
+                           title="Preço com desconto aplicado"></i>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% complement.order_service_proposal_items.each do |item| %>
+                      <% 
+                        unit_price = item.unity_value.to_f
+                        quantity = item.quantity.to_i
+                        discount = item.discount.to_f
+                        total_without_discount = unit_price * quantity
+                        total_with_discount = total_without_discount - discount
+                        item_type = item.get_category_id == Category::SERVICOS_PECAS_ID ? 'PEÇA' : 'SERVIÇO'
+                        badge_color = item.get_category_id == Category::SERVICOS_PECAS_ID ? 'bg-info' : 'bg-success'
+                      %>
+                      <tr>
+                        <td>
+                          <span class="badge <%= badge_color %> text-white me-2"><%= item_type %></span>
+                          <%= item.service&.name || item.service_name %>
+                          <% if item.observation.present? %>
+                            <br><small class="text-muted">Obs: <%= item.observation %></small>
+                          <% end %>
+                        </td>
+                        <td><%= quantity %></td>
+                        <td><%= CustomHelper.to_currency(unit_price) %></td>
+                        <td><%= item.guarantee || '-' %></td>
+                        <td><%= item.brand || '-' %></td>
+                        <td><%= CustomHelper.to_currency(discount) %></td>
+                        <td><%= CustomHelper.to_currency(total_with_discount) %></td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                  <tfoot class="table-light">
+                    <tr>
+                      <th colspan="6" class="text-end">Total do Complemento:</th>
+                      <th><%= CustomHelper.to_currency(complement_total) %></th>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+              
+              <!-- Ações para o complemento -->
+              <% if complement.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID %>
+                <% if policy(@order_service).approve_complement? %>
+                  <div class="mt-3">
+                    <%= button_to approve_complement_path(complement), 
+                        method: :post, 
+                        class: 'btn btn-success btn-sm',
+                        data: { confirm: 'Tem certeza que deseja aprovar este complemento?' } do %>
+                      <i class="bi bi-check-circle"></i> Aprovar Complemento
+                    <% end %>
+                  </div>
+                <% end %>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+    
+    <%= render 'order_service_proposals/renders/table_products_order_service_proposal_items', order_service_proposal: @order_service_proposal %>
+
+    <% if [OrderServiceProposalStatus::APROVADA_ID, OrderServiceProposalStatus::NOTAS_INSERIDAS_ID, OrderServiceProposalStatus::AUTORIZADA_ID, OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID, OrderServiceProposalStatus::PAGA_ID].include?(@order_service_proposal.order_service_proposal_status_id) %>
+        <%= render 'order_service_proposals/renders/insert_invoices', order_service_proposal: @order_service_proposal %>
+    <% end %>
+</div>
+
+<script>
+  // Ativar tooltips do Bootstrap
+  document.addEventListener('DOMContentLoaded', function() {
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+      return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  });
+</script>
+
+<%
+# End of file _first_container.html.erb
+# Path: ./app/views/common_pages/index/_first_container.html.erb
+%>

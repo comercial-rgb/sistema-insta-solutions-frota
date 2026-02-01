@@ -1,0 +1,21 @@
+textarea {
+  color: #555555;
+}
+
+textarea:hover {
+  border-color: #E7E7E7;
+  color: rgba(19, 18, 18, 0.6);
+}
+
+textarea:focus {
+  border-color: #747474;
+  background-color: rgba(128, 128, 128, 0.08);
+  color: rgba(19, 18, 18, 0.6);
+  box-shadow: none;
+}
+
+textarea:disabled {
+  border-color: #FAFAFA;
+  background-color: #FAFAFA;
+  color: rgba(19, 18, 18, 0.3);
+}

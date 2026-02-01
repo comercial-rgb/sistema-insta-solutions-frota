@@ -1,0 +1,15 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: site_contacts_path, text: SiteContact.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.add_new')},
+]
+%>
+
+<%= 
+render 'common_pages/new', 
+objects_path: site_contacts_path, 
+page_title: SiteContact.model_name.human(count: 2), 
+form_to_render: 'site_contacts/form',
+breadcrumbs: breadcrumbs
+%>

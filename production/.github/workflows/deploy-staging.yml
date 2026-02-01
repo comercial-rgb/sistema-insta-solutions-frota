@@ -1,0 +1,122 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [ staging ]
+  pull_request:
+    branches: [ staging ]
+
+env:
+  RUBY_VERSION: 3.3.0
+  NODE_VERSION: 18
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: password
+          MYSQL_DATABASE: test_db
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ env.RUBY_VERSION }}
+        bundler-cache: true
+    
+    - name: Set up Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+    
+    - name: Install dependencies
+      run: |
+        bundle install --jobs 4 --retry 3
+        yarn install
+    
+    - name: Setup Database
+      env:
+        RAILS_ENV: test
+        DATABASE_HOST: 127.0.0.1
+        DATABASE_USERNAME: root
+        DATABASE_PASSWORD: password
+      run: |
+        bundle exec rails db:create
+        bundle exec rails db:schema:load
+    
+    - name: Run Tests
+      env:
+        RAILS_ENV: test
+        DATABASE_HOST: 127.0.0.1
+        DATABASE_USERNAME: root
+        DATABASE_PASSWORD: password
+      run: |
+        bundle exec rspec
+        # ou: bundle exec rails test
+
+  deploy:
+    name: Deploy to Staging
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/staging'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: us-east-1
+    
+    - name: Deploy to EC2 Staging
+      env:
+        PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY_STAGING }}
+        HOST: ${{ secrets.STAGING_HOST }}
+        USER: ubuntu
+      run: |
+        echo "$PRIVATE_KEY" > private_key && chmod 600 private_key
+        
+        ssh -o StrictHostKeyChecking=no -i private_key ${USER}@${HOST} '
+          cd /var/www/sistema-insta-solutions
+          
+          # Pull latest code
+          git fetch origin staging
+          git reset --hard origin/staging
+          
+          # Install dependencies
+          bundle install --deployment --without development test
+          yarn install --production
+          
+          # Run migrations
+          RAILS_ENV=staging bundle exec rails db:migrate
+          
+          # Precompile assets
+          RAILS_ENV=staging bundle exec rails assets:precompile
+          
+          # Restart application
+          mkdir -p tmp
+          touch tmp/restart.txt
+          
+          # Restart Passenger/Puma
+          sudo systemctl restart nginx || true
+        '
+        
+        rm -f private_key
+    
+    - name: Notify Slack/Email
+      if: always()
+      run: |
+        echo "Deploy to Staging completed!"
+        # Adicione integração com Slack, Discord, etc.

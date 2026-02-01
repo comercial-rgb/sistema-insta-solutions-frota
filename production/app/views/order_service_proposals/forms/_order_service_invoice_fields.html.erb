@@ -1,0 +1,21 @@
+<div class="col-12 col-md-2">
+    <%= order_service_invoice.input :number, input_html: {class: 'order_service_invoice_number'} %>
+</div>
+
+<div class="col-12 col-md-2">
+    <%= order_service_invoice.input :value, input_html: {class: 'money order_service_invoice_value', value: CustomHelper.to_currency(order_service_invoice.object.value), type: "tel"}, as: :string %>
+</div>
+
+<div class="col-12 col-md-2">
+    <%= order_service_invoice.association :order_service_invoice_type, input_html: {class: 'order_service_invoice_order_service_invoice_type_id'}, collection: OrderServiceInvoiceType.all, as: :select, include_blank: false %>
+</div>
+
+<div class="col-12 col-md-2">
+    <%= order_service_invoice.input :emission_date, as: :string, input_html: {class: 'datepicker order_service_invoice_emission_date', :value => CustomHelper.get_text_date(order_service_invoice.object.emission_date, 'date', :default), autocomplete: :off, type: "tel"} %>
+</div>
+
+<div class="col-12 col-md-4">
+    <div class="invoice-file-wrapper" data-attachment-present="<%= order_service_invoice.object.file.attached? %>">
+        <%= render "common_pages/image_input", image: order_service_invoice.object.file, form: order_service_invoice, label: OrderServiceInvoice.human_attribute_name(:file), attribute: :file %>
+    </div>
+</div>

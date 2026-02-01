@@ -1,0 +1,25 @@
+<%
+    multi_item = 'orderserviceproposalitem'+multi_item_id
+%>
+<div class="row">
+   
+    <div class="col-12 mb-3 text-center">
+        <h5 class="mt-4"><%= page_title %></h5>
+    </div>
+
+    <div class="col-12 multi-<%= multi_item %>-block">
+        <!-- Contador -->
+        <%= f.fields_for :order_service_proposal_items do |order_service_proposal_item| %>
+            <div class="row multi-<%= multi_item %> align-items-end">
+                <%= render "order_service_proposals/forms/order_service_proposal_item_fields", f: f, order_service_proposal_item: order_service_proposal_item, collection: collection, multi_item_id: multi_item_id %>
+                <%= render 'common_pages/delete_multiple_relation', remove_path: delete_order_service_proposal_item_path(model_id: order_service_proposal_item.object.id), object: order_service_proposal_item.object, object_text: multi_item  %>
+            </div>
+        <% end %>
+    </div>
+
+    <!-- Botão de adicionar -->
+    <div class="col-12">
+        <%= render 'common_pages/add_multiple_relation', object_text: multi_item %>
+    </div>
+</div>
+

@@ -1,0 +1,35 @@
+<div class="col-12 d-print-block border border-1 border-opacity-25 border-dark rounded-4 p-3">
+    <div>
+        <%= OrderServiceProposal.human_attribute_name(:general_data) %>
+    </div>
+    <div class="card">
+        <div class="card-header text-center">
+            <%= OrderServiceProposal.model_name.human %>: <b><%= order_service_proposal.code %></b>
+        </div>
+        <div class="card-body">
+            <p class="card-text">
+                <% if !@current_user.provider? %>
+                    <%= OrderServiceProposal.human_attribute_name(:provider_id) %>: <b><%= order_service_proposal.provider.get_name %></b><br>
+                <% end %>
+                <%= OrderServiceProposal.human_attribute_name(:created_at) %>: <b><%= CustomHelper.get_text_date(order_service_proposal.created_at, 'datetime', :full) %></b><br>
+                <%= OrderServiceProposal.human_attribute_name(:total_value_without_discount) %>: <b><%= CustomHelper.to_currency(order_service_proposal.total_value_without_discount) %></b><br>
+                <%= OrderServiceProposal.human_attribute_name(:total_discount) %>: <b><%= CustomHelper.to_currency(order_service_proposal.total_discount) %></b><br>
+                <%= OrderServiceProposal.human_attribute_name(:total_value) %>: <b><%= CustomHelper.to_currency(order_service_proposal.total_value) %></b><br>
+
+                <%= OrderServiceProposal.human_attribute_name(:order_service_proposal_status_id) %>: <b><%= order_service_proposal.order_service_proposal_status.name %></b><br>
+            </p>
+            <p class="card-text">
+                <% order_service_proposal.attachments.each do |attachment| %>
+                    <%= link_to attachment.attachment.url, class: 'text-decoration-none', target: '_blank' do %>
+                        <i class="bi bi-cloud-arrow-down-fill"></i>
+                        <%= attachment.attachment.filename %>
+                        <br>
+                    <% end %>
+                <% end %>
+            </p>
+            <p class="card-text">
+                <%= OrderServiceProposal.human_attribute_name(:details) %>: <b><%= order_service_proposal.details %></b><br>
+            </p>
+        </div>
+    </div>
+</div>

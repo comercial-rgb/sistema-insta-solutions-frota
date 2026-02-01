@@ -1,0 +1,36 @@
+<!-- Modal -->
+<div class="modal fade order-service-proposal-modal" id="reason_reproved_modal" tabindex="-1">
+
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+
+            <!-- Cabeçalho -->
+            <div class="modal-header">
+
+                <!-- Título -->
+                <h5 class="modal-title" id="reason_reproved_modal_title">
+                    <small class="text-muted">
+                        <%= OrderServiceProposal.human_attribute_name(:reason_reproved) %>
+                    </small>
+                </h5>
+                <!-- Botão fechar -->
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Conteúdo -->
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-12 text-center py-2">
+                        <%= text_area_tag 'reason-reprove', nil, rows: 6, cols: 40, class: 'form-control', autofocus: true, autocomplete: 'off', placeholder: OrderServiceProposal.human_attribute_name(:reason_reproved) %>
+                    </div>
+                    <div class="col-12 text-center py-1">
+                        <button class="btn btn-sm btn-primary pointer text-white mt-2" type="button" id="send-reprove-reason">
+                            <%= t("model.send") %>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

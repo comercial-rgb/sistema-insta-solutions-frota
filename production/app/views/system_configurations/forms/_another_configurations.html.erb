@@ -1,0 +1,17 @@
+<div class="row">
+	<!-- ID Google Analytics -->
+	<div class="col-12 col-md-4">
+		<%= f.input :id_google_analytics %>
+	</div>
+
+	<!-- Dados de atendimento -->
+	<div class="col-12">
+		<label><%= SystemConfiguration.human_attribute_name(:attendance_data) %></label>
+		<%= f.input :attendance_data, label: false, input_html: { class: 'ck-editor' } %>
+	</div>
+
+	<!-- Limite de tempo para pagamento do PIX -->
+	<div class="col-12 col-md-3">
+		<%= f.input :pix_limit_payment_minutes %>
+	</div>
+</div>

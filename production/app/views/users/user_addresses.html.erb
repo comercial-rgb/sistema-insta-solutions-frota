@@ -1,0 +1,36 @@
+<%
+
+current_objects_path = user_addresses_path(ownertable_type: params[:ownertable_type], id: params[:id], address_area_id: params[:address_area_id], page_title: @page_title)
+
+if @current_user.admin?
+	breadcrumbs = [
+		{active: false, href: root_path, text: t('menu.initial_page')},
+		{active: false, href: users_user_path, text: User.human_attribute_name(:common_users)},
+		{active: false, href: change_data_path(id: @user.id), text: @user.get_name},
+		{active: false, href: current_objects_path, text: @page_title},
+		{active: true, href: '#', text: t('model.list')},
+	]
+else
+	breadcrumbs = [
+		{active: false, href: root_path, text: t('menu.initial_page')},
+		{active: false, href: change_data_path(id: @user.id), text: @user.get_name},
+		{active: false, href: current_objects_path, text: @page_title},
+		{active: true, href: '#', text: t('model.list')}
+	]
+end
+%>
+
+<%= 
+	render 'common_pages/addresses/index',
+	attributes: {
+		page_title: Address.model_name.human(count: 2),
+		url_new_path: new_user_address_path(ownertable_type: params[:ownertable_type], id: params[:id], address_area_id: params[:address_area_id], page_title: @page_title),
+		policy_true: policy(User).new_user_address?,
+		objects: @addresses,
+		objects_path: current_objects_path,
+		object_name: Address.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: false,
+		custom_filter_form: "common_pages/addresses/filter_form"
+	}
+%>

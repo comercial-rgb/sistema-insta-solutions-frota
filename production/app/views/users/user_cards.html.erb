@@ -1,0 +1,27 @@
+<%
+
+current_objects_path = user_cards_path(ownertable_type: params[:ownertable_type], id: params[:id], page_title: @page_title)
+
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: users_user_path, text: User.human_attribute_name(:common_users)},
+	{active: false, href: change_data_path(id: @user.id), text: @user.get_name},
+	{active: false, href: current_objects_path, text: @page_title},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/cards/index',
+	attributes: {
+		page_title: Card.model_name.human(count: 2),
+		url_new_path: nil,
+		policy_true: nil,
+		objects: @cards,
+		objects_path: current_objects_path,
+		object_name: Card.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: false,
+		custom_filter_form: nil
+	}
+%>

@@ -1,0 +1,76 @@
+pt-BR:
+  gflash:
+    #
+    # These are the translations for the different titles.
+    #
+    titles:
+      notice: "Aviso"
+      success: "Sucesso"
+      warning: "Alerta"
+      error: "Erro"
+      progress: "Carregando"
+    #
+    # Add default gflash messages:
+    defaults:
+      success: "Salvo com sucesso"
+      error: "Erro"
+      create:
+        success: "Salvo com sucesso"
+        error: "Erro ao salvar"
+        not_found: "Usuário não encontrado"
+      new:
+        success: "Salvo com sucesso"
+        error: "Erro ao salvar"
+      update:
+        success: "Editado com sucesso"
+        error: "Erro ao atualizar"
+      destroy:
+        success: "Removido com sucesso"
+        error: "Erro ao remover"
+      create_recovery_pass:
+        success: "Um link para recuperação de senha foi enviado para o email cadastrado"
+        error: "Email inexistente"
+      edit_pass:
+        error: "Informe corretamente a nova senha"
+      update_pass:
+        success: "Sua senha foi redefinida"
+      block:
+        success: "Alterado com sucesso"
+en:
+  gflash:
+    #
+    # These are the translations for the different titles.
+    #
+    titles:
+      notice: "Aviso"
+      success: "Sucesso"
+      warning: "Alerta"
+      error: "Erro"
+      progress: "Carregando"
+    #
+    # Add default gflash messages:
+    defaults:
+      success: "Salvo com sucesso"
+      error: "Erro"
+      create:
+        success: "Salvo com sucesso"
+        error: "Erro ao salvar"
+        not_found: "Usuário não encontrado"
+      new:
+        success: "Salvo com sucesso"
+        error: "Erro ao salvar"
+      update:
+        success: "Editado com sucesso"
+        error: "Erro ao atualizar"
+      destroy:
+        success: "Removido com sucesso"
+        error: "Erro ao remover"
+      create_recovery_pass:
+        success: "Um link para recuperação de senha foi enviado para o email cadastrado"
+        error: "Email inexistente"
+      edit_pass:
+        error: "Informe corretamente a nova senha"
+      update_pass:
+        success: "Sua senha foi redefinida"
+      block:
+        success: "Alterado com sucesso"

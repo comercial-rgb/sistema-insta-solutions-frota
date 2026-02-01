@@ -1,0 +1,64 @@
+<%= simple_form_for(@cost_center) do |f| %>
+
+    <div class="row">
+        <div class="col-12">
+            <%= f.error_notification %>
+            <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+        </div>
+    </div>
+
+    <div class="row" >
+        <div class="col-12 mb-3">
+            <h5 class="mt-4"><%= CostCenter.human_attribute_name(:general_data).upcase %></h5>
+        </div>
+        <div class="col-12 col-md-4">
+            <% if @current_user.admin? %>
+                <%= f.association :client, disabled: true, collection: [f.object.client], label_method: :fantasy_name, as: :select, include_blank: false %>
+            <% else %>
+                <%= render 'users/renders/client_selection', f: f %>
+            <% end %>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-md-4">
+            <%= f.input :name %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :initial_consumed_balance, input_html: {class: 'money', value: CustomHelper.to_currency(f.object.initial_consumed_balance), type: "tel"}, as: :string %>
+        </div>
+        <% if f.object.persisted? %>
+            <div class="col-12 col-md-3">
+                <%= f.input :already_consumed_value, disabled: true, input_html: {class: 'money', value: CustomHelper.to_currency(CostCenter.get_total_already_consumed_value(f.object)), type: "tel"}, as: :string %>
+            </div>
+        <% end %>
+        <div class="col-12 col-md-3">
+            <%= f.association :budget_type, collection: BudgetType.all, as: :select, include_blank: t('model.select_option') %>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <%= f.input :description %>
+        </div>
+    </div>
+
+    <%= render 'cost_centers/forms/invoice_data', f: f %>
+
+    <div class="row">
+        <div class="col-12 col-md-3">
+            <%= f.input :has_sub_units, as: :select, collection: CustomHelper.return_select_options_true_false, include_blank: false, label: CostCenter.human_attribute_name(:has_sub_units) %>
+        </div>
+    </div>
+
+    <div id="div-with-sub-units" <%= 'hidden' if !f.object.has_sub_units %>>
+        <div class="row">
+            <div class="col-12">
+                <%= render 'cost_centers/forms/form_sub_units', f: f %>
+            </div>
+        </div>
+    </div>
+
+    <%= render 'common_pages/save', f: f, return_path: cost_centers_path %>
+
+<% end %>

@@ -1,0 +1,46 @@
+<!-- PIX -->
+<div class="col-12 col-md-3 mb-3">
+    <%= data_bank.input :pix %>
+</div>
+
+<!-- Banco -->
+<div class="col-12 col-md-3 mb-3">
+    <%= data_bank.association :bank,
+    collection: Bank.all,
+    label_method: lambda { |bank| ApplicationController.helpers.safe_utf8(bank.get_formatted_name) },
+    include_blank: t('model.select_option'),
+    label: DataBank.human_attribute_name(:bank) %>
+</div>
+
+<div class="col-12 col-md-2 mb-3">
+    <%= data_bank.association :data_bank_type,
+    collection: DataBankType.all,
+    label_method: :name,
+    include_blank: t('model.select_option'),
+    label: DataBank.human_attribute_name(:data_bank_type_id) %>
+</div>
+
+<!-- Agência -->
+<div class="col-12 col-md-2 mb-3">
+    <%= data_bank.input :agency %>
+</div>
+
+<!-- Conta -->
+<div class="col-12 col-md-2 mb-3">
+    <%= data_bank.input :account %>
+</div>
+
+<!-- Operação -->
+<div class="col-12 col-md-1 mb-3" data-bs-toggle="tooltip" data-placement="top" title="Para contas da CAIXA (CEF)">
+    <%= data_bank.input :operation %>
+</div>
+
+<!-- CPF/CNPJ -->
+<div class="col-12 col-md-2 mb-3">
+    <%= data_bank.input :cpf_cnpj, input_html: {class: 'cpf-cnpj', type: "tel"} %>
+</div>
+
+<%
+# End of file _data_bank_field.html.erb
+# Path: ./app/views/common_pages/data_banks/_data_bank_field.html.erb
+%>

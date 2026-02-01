@@ -1,0 +1,27 @@
+<div class="table-actions">
+	
+	<% 
+		if !record.is_blocked && record.user_status_id != UserStatus::APROVADO_ID
+			span_text = record.user_status.name
+			span_class = 'bg-danger'
+		else
+			span_text = record.get_is_blocked?
+			if record.is_blocked
+				span_class = 'bg-danger'
+			else
+				span_class = 'bg-success'
+			end
+		end
+	%>
+
+	<span class="badge <%= span_class %>"><%= span_text %></span>
+	<% if policy(record).reset_user_password? %>
+		<br>
+		<button type="button" class="mt-2 btn btn-primary btn-sm reset-password text-white px-4 py-1" id="reset-password-<%= record.id.to_s %>"><%= User.human_attribute_name(:reset_user_password) %></button>
+	<% end %>
+</div>
+
+<%
+# End of file _user_status.html.erb
+# Path: ./app/views/users/_user_status.html.erb
+%>

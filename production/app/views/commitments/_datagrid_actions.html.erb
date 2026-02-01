@@ -1,0 +1,56 @@
+<%
+array_links = [
+  {
+    link_path: commitment_path(record),
+    link_method: :get,
+    link_title: 'Visualizar Empenho',
+    confirm: nil,
+    link_image: 'bi bi-eye-fill',
+    text_action: 'Visualizar',
+    link_policy: policy(record).show?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: edit_commitment_path(record),
+    link_method: :get,
+    link_title: t('model.edit'),
+    confirm: nil,
+    link_image: 'bi bi-pencil-fill',
+    text_action: t('model.edit'),
+    link_policy: policy(record).edit_commitment?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: edit_commitment_path(record),
+    link_method: :get,
+    link_title: Commitment.human_attribute_name(:cancel_value),
+    confirm: nil,
+    link_image: 'bi bi-x-octagon-fill',
+    text_action: Commitment.human_attribute_name(:cancel_value),
+    link_policy: policy(record).edit?,
+    class: 'dropdown-item'
+  },
+  {
+    link_path: inactivate_commitment_path(record),
+    link_method: :patch,
+    link_title: t('model.inactivate', default: 'Inativar'),
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-slash-circle',
+    text_action: t('model.inactivate', default: 'Inativar'),
+    link_policy: (policy(record).inactivate? && record.active?),
+    class: 'dropdown-item'
+  },
+  {
+    link_path: commitment_path(record),
+    link_method: :delete,
+    link_title: t('model.delete'),
+    confirm: t('model.confirm_action'),
+    link_image: 'bi bi-trash-fill',
+    text_action: t('model.delete'),
+    link_policy: policy(record).destroy?,
+    class: 'dropdown-item'
+  }
+]
+%>
+
+<%= render 'common_pages/datagrid_actions', array_links: array_links %>

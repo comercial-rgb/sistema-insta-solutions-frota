@@ -182,6 +182,13 @@ class OrderServiceProposalsController < ApplicationController
 
   def new
     authorize OrderServiceProposal
+    
+    # Validar order_service_id
+    if params[:order_service_id].blank?
+      flash[:error] = "ID da Ordem de Serviço não informado."
+      redirect_to order_services_path and return
+    end
+    
     @order_service_proposal = OrderServiceProposal
     .where(order_service_id: params[:order_service_id])
     .where(provider_id: @current_user.id, order_service_proposal_status_id: OrderServiceProposalStatus::EM_CADASTRO_ID)
@@ -189,12 +196,19 @@ class OrderServiceProposalsController < ApplicationController
     if @order_service_proposal
       redirect_to edit_order_service_proposal_path(id: @order_service_proposal.id)
     else
+      # Buscar OS com tratamento de erro
+      begin
+        os = OrderService.find(params[:order_service_id])
+      rescue ActiveRecord::RecordNotFound
+        flash[:error] = "Ordem de Serviço não encontrada."
+        redirect_to order_services_path and return
+      end
+      
       @order_service_proposal = OrderServiceProposal.new
       @order_service_proposal.order_service_id = params[:order_service_id]
       @order_service_proposal.provider_id = @current_user.id
       
       # 📊 Debug: verificar part_service_order_services da OS
-      os = OrderService.find(params[:order_service_id])
       Rails.logger.info "🔍 [PROPOSTA NEW DEBUG] OS ID: #{os.id}"
       Rails.logger.info "🔍 [PROPOSTA NEW DEBUG] Total part_service_order_services: #{os.part_service_order_services.count}"
       os.part_service_order_services.each_with_index do |ps, idx|
@@ -486,16 +500,16 @@ class OrderServiceProposalsController < ApplicationController
     # ✅ Verificar saldo nos empenhos antes de aprovar (validação movida do update)
     order_service = @order_service_proposal.order_service
     
-    # Calcula valores totais DA PROPOSTA (não da OS inteira)
+    # Calcula valores totais DA PROPOSTA COM DESCONTO APLICADO
     parts_value = @order_service_proposal.order_service_proposal_items
                     .joins(:service)
                     .where(services: { category_id: Category::SERVICOS_PECAS_ID })
-                    .sum("order_service_proposal_items.quantity * order_service_proposal_items.unity_value")
+                    .sum(:total_value)
     
     services_value = @order_service_proposal.order_service_proposal_items
                        .joins(:service)
                        .where(services: { category_id: Category::SERVICOS_SERVICOS_ID })
-                       .sum("order_service_proposal_items.quantity * order_service_proposal_items.unity_value")
+                       .sum(:total_value)
     
     balance_check = order_service.check_commitment_balance(parts_value, services_value)
     
@@ -813,12 +827,18 @@ class OrderServiceProposalsController < ApplicationController
       end
       
       # Marca a origem da OS como vinda de um Diagnóstico para cotação
-      # Isso permite que a view saiba que essa OS veio de um diagnóstico e possui uma proposta de referência
-      order_service.update_columns(
+      # Atualizar apenas campos que existem em produção
+      update_attrs = {
         provider_id: nil, 
-        order_service_status_id: OrderServiceStatus::EM_ABERTO_ID,
-        origin_type: OrderService::ORIGIN_DIAGNOSTICO_COTACOES
-      )
+        order_service_status_id: OrderServiceStatus::EM_ABERTO_ID
+      }
+      
+      # Adicionar origin_type apenas se a coluna existir
+      if order_service.class.column_names.include?('origin_type')
+        update_attrs[:origin_type] = OrderService::ORIGIN_DIAGNOSTICO_COTACOES
+      end
+      
+      order_service.update_columns(update_attrs)
     end
   end
 
@@ -832,10 +852,24 @@ class OrderServiceProposalsController < ApplicationController
 
   def get_new_proposals_order_service_proposal
     authorize @order_service_proposal
-    # ⚠️ CORREÇÃO: Passar a proposta atual (@order_service_proposal) para garantir que os itens corretos sejam copiados
-    sending_order_service_proposals_to_all_providers(@order_service_proposal.order_service, @order_service_proposal)
-    flash[:success] = OrderServiceProposal.human_attribute_name(:send_proposal_to_all_providers_success)
-    redirect_back(fallback_location: :back)
+    
+    begin
+      # Validar que a proposta tem itens antes de enviar
+      if @order_service_proposal.order_service_proposal_items.empty?
+        flash[:error] = "A proposta não possui itens. Não é possível enviar para cotação."
+        redirect_back(fallback_location: :back) and return
+      end
+      
+      # ⚠️ CORREÇÃO: Passar a proposta atual (@order_service_proposal) para garantir que os itens corretos sejam copiados
+      sending_order_service_proposals_to_all_providers(@order_service_proposal.order_service, @order_service_proposal)
+      flash[:success] = OrderServiceProposal.human_attribute_name(:send_proposal_to_all_providers_success)
+      redirect_back(fallback_location: :back)
+    rescue => e
+      Rails.logger.error "❌ [ENVIAR COTAÇÃO] Erro ao enviar para cotação: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      flash[:error] = "Erro ao enviar para cotação: #{e.message}"
+      redirect_back(fallback_location: :back)
+    end
   end
   
   # ============================================

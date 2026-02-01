@@ -1,0 +1,52 @@
+pt-BR:
+  activerecord:
+    models:
+      address:
+        one: "Endereço"
+        other: "Endereços"
+    attributes:
+      address:
+        name: "Apelido/nome do endereço"
+        zipcode: "CEP"
+        address: "Endereço"
+        district: "Bairro"
+        number: "Número"
+        complement: "Complemento"
+        address_type: "Tipo de endereço"
+        state_id: "Estado"
+        state: "Estado"
+        city_id: "Cidade"
+        city: "Cidade"
+        reference: "Referência para chegar"
+        address_type_id: "Tipo de logradouro"
+        address_type: "Tipo de logradouro"
+        address_area_id: "Área do endereço"
+        address_area: "Área do endereço"
+        latitude: "Latitude"
+        longitude: "Longitude"
+en:
+  activerecord:
+    models:
+      address:
+        one: "Endereço"
+        other: "Endereços"
+    attributes:
+      address:
+        name: "Apelido/nome do endereço"
+        zipcode: "CEP"
+        address: "Endereço"
+        district: "Bairro"
+        number: "Número"
+        complement: "Complemento"
+        address_type: "Tipo de endereço"
+        state_id: "Estado"
+        state: "Estado"
+        city_id: "Cidade"
+        city: "Cidade"
+        reference: "Referência para chegar"
+        address_type_id: "Tipo de logradouro"
+        address_type: "Tipo de logradouro"
+        address_area_id: "Área do endereço"
+        address_area: "Área do endereço"
+        latitude: "Latitude"
+        longitude: "Longitude"

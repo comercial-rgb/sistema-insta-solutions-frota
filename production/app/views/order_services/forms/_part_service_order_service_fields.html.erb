@@ -1,0 +1,57 @@
+<div class="col-12 col-md-5">
+    <% os = local_assigns[:order_service] || @order_service %>
+    <% is_requisicao = os&.order_service_type_id == OrderServiceType::REQUISICAO_ID %>
+    <% grupo_servico = os&.service_group %>
+    <% if is_requisicao && grupo_servico.present? %>
+        <% group_services = grupo_servico.services.where(category_id: category_id) %>
+        <%= part_service_order_service.association :service, 
+            collection: group_services, 
+            as: :select, 
+            include_blank: I18n.t('model.select_option'),
+            label: text_label,
+            disabled: disabled,
+            input_html: { class: "form-select me-2 service-select-#{category_id}" }
+        %>
+    <% else %>
+        <%= part_service_order_service.association :service, 
+            collection: Service.by_category_id(category_id), 
+            as: :select, 
+            include_blank: I18n.t('model.select_option'),
+            label: text_label,
+            disabled: disabled,
+            input_html: { class: "form-select me-2 service-select-#{category_id}" }
+        %>
+    <% end %>
+</div>
+
+<div class="col-12 col-md-2 quantity-field-container" style="<%= 'display:none;' if @order_service&.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID %>">
+    <% 
+        # Para Requisição: SEMPRE permitir edição de quantidade
+        # A validação é feita pelo JavaScript (client-side) e pelo model (server-side)
+        os = local_assigns[:order_service] || @order_service
+        is_requisicao = os&.order_service_type_id == OrderServiceType::REQUISICAO_ID
+        
+        # Se for Requisição, nunca desabilitar o campo de quantidade
+        # para que o JavaScript possa validar os limites do grupo de serviços
+        quantity_disabled = is_requisicao ? false : disabled
+    %>
+    <%= part_service_order_service.input :quantity, 
+        as: :integer,
+        label: 'Quantidade',
+        disabled: quantity_disabled,
+        input_html: { 
+            min: 1, 
+            max: 9999, 
+            value: part_service_order_service.object.quantity || 1, 
+            class: 'form-control part-service-quantity'
+        }
+    %>
+</div>
+
+<div class="col-12 observation-field-container" style="<%= @order_service&.order_service_type_id == OrderServiceType::REQUISICAO_ID ? '' : '' %>">
+    <label class="form-label string optional" data-bs-toggle="tooltip" data-bs-placement="top" title="<%= PartServiceOrderService.human_attribute_name(:observation_tooltip) %>">
+        <%= PartServiceOrderService.human_attribute_name(:observation) %>
+        <i class="bi bi-info-circle"></i>
+    </label>
+    <%= part_service_order_service.input :observation, as: :string, disabled: disabled, label: false %>
+</div>

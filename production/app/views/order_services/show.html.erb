@@ -1,0 +1,146 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: false, href: show_order_services_path(order_service_status_id: @order_service.order_service_status_id), text: OrderService.model_name.human(count: 2)},
+  {active: true, href: '#', text: @order_service.code},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+  
+  <div class="row mb-3">
+    <div class="col-12">
+      <h4 class="mb-0">
+        <%= @order_service.code %>
+        <small class="text-muted">- <%= @order_service.order_service_status&.name || 'Status não definido' %></small>
+      </h4>
+    </div>
+  </div>
+
+  <!-- Dados da OS -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+      <i class="bi bi-file-earmark-text me-2"></i>Dados da Ordem de Serviço
+    </div>
+    <div class="card-body">
+      <%= render 'order_service_proposals/renders/order_service_data', record: @order_service, order_service_proposal: nil %>
+    </div>
+  </div>
+
+  <!-- Peças em Garantia -->
+  <% if @current_user.admin? || @current_user.manager? || @current_user.additional? %>
+    <%= render 'order_services/renders/warranty_panel', warranty_items: (@warranty_items || []) %>
+  <% end %>
+
+  <!-- Propostas -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-list-ol me-2"></i>Propostas (<%= @order_service_proposals.count %>)</span>
+      <% if policy(@order_service).can_generate_proposal? %>
+        <%= link_to new_order_service_proposal_path(order_service_id: @order_service.id), class: 'btn btn-sm btn-light' do %>
+          <i class="bi bi-plus-circle"></i> Nova Proposta
+        <% end %>
+      <% end %>
+    </div>
+    <div class="card-body">
+      <% if @order_service_proposals.empty? %>
+        <p class="text-muted mb-0">Nenhuma proposta cadastrada para esta OS.</p>
+      <% else %>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Código</th>
+                <th>Fornecedor</th>
+                <th>Status</th>
+                <th>Valor Total</th>
+                <th>Data</th>
+                <th class="text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @order_service_proposals.each do |proposal| %>
+                <tr>
+                  <td>
+                    <%= proposal.code %>
+                    <% if proposal.complement_proposals.any? %>
+                      <span class="badge bg-warning text-dark ms-2">
+                        <i class="bi bi-plus-square"></i> <%= proposal.complement_proposals.count %> complemento(s)
+                      </span>
+                    <% end %>
+                    <% pending_complements = proposal.complement_proposals.where(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID) %>
+                    <% if pending_complements.any? %>
+                      <span class="badge bg-danger ms-2">
+                        <i class="bi bi-exclamation-circle"></i> <%= pending_complements.count %> pendente(s)
+                      </span>
+                    <% end %>
+                  </td>
+                  <td><%= proposal.provider&.name || '-' %></td>
+                  <td>
+                    <%= render 'order_service_proposals/order_service_proposal_status', record: proposal %>
+                  </td>
+                  <td><%= CustomHelper.to_currency(proposal.total_value) %></td>
+                  <td><%= l(proposal.created_at, format: :short) %></td>
+                  <td class="text-center">
+                    <%= render 'order_service_proposals/proposal_actions', record: proposal %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Botões de ação -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex flex-wrap gap-2">
+        <%= link_to show_order_services_path(order_service_status_id: @order_service.order_service_status_id), class: 'btn btn-secondary' do %>
+          <i class="bi bi-arrow-left"></i> Voltar
+        <% end %>
+        
+        <% if policy(@order_service).edit? %>
+          <%= link_to edit_order_service_path(@order_service), class: 'btn btn-primary' do %>
+            <i class="bi bi-pencil"></i> Editar OS
+          <% end %>
+        <% end %>
+        
+        <%# Botão de Reavaliação - apenas para Diagnóstico em Aguardando avaliação %>
+        <% if policy(@order_service).request_reevaluation? %>
+          <%= button_to request_reevaluation_path(@order_service), 
+              method: :post, 
+              class: 'btn btn-warning',
+              data: { confirm: 'Deseja solicitar reavaliação desta OS? O fornecedor poderá editar a proposta.' } do %>
+            <i class="bi bi-arrow-repeat"></i> Solicitar Reavaliação
+          <% end %>
+        <% end %>
+        
+        <%# Botão de Realizar Complemento - apenas para OS aprovada %>
+        <% if policy(@order_service).add_complement? %>
+          <%= link_to new_complement_path(@order_service), class: 'btn btn-success' do %>
+            <i class="bi bi-plus-circle"></i> Realizar Complemento
+          <% end %>
+        <% end %>
+        
+        <%# Botão para concluir reavaliação (fornecedor) %>
+        <% if policy(@order_service).edit_reevaluation? %>
+          <%= button_to finish_reevaluation_path(@order_service), 
+              method: :post, 
+              class: 'btn btn-success',
+              data: { confirm: 'Deseja concluir a reavaliação e enviar a OS para avaliação novamente?' } do %>
+            <i class="bi bi-check-circle"></i> Concluir Reavaliação
+          <% end %>
+        <% end %>
+        
+        <% if policy(@order_service).show_historic? %>
+          <%= link_to show_historic_path(id: @order_service.id), class: 'btn btn-info' do %>
+            <i class="bi bi-journal-text"></i> Ver Histórico
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  </div>
+</div>

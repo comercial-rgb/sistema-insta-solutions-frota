@@ -1,0 +1,44 @@
+<%= simple_form_for @reference_price do |f| %>
+  <%= f.error_notification %>
+
+  <div class="row">
+    <div class="col-md-12">
+      <%= f.association :vehicle_model, collection: VehicleModel.active.ordered, label_method: :display_name, include_blank: 'Selecione um modelo' %>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <%= f.association :service, collection: Service.by_category_id(Category::SERVICOS_PECAS_ID).order(:name), include_blank: 'Selecione uma peça' %>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-4">
+      <%= f.input :reference_price, label: 'Preço Ref. Cilia (R$)', as: :string %>
+    </div>
+    <div class="col-md-4">
+      <%= f.input :max_percentage, label: 'Percentual Máximo (%)', hint: 'Ex: 110 = permite até 10% acima' %>
+    </div>
+    <div class="col-md-4">
+      <%= f.input :active, as: :boolean, label: 'Ativo' %>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <%= f.input :source, label: 'Fonte', placeholder: 'Ex: Cilia Janeiro/2026' %>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <%= f.input :observation, as: :text, label: 'Observação' %>
+    </div>
+  </div>
+
+  <div class="form-actions">
+    <%= f.button :submit, class: 'btn btn-primary' %>
+    <%= link_to 'Cancelar', reference_prices_path, class: 'btn btn-secondary' %>
+  </div>
+<% end %>

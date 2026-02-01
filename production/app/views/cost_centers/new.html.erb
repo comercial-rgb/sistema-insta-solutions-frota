@@ -1,0 +1,21 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: cost_centers_path, text: CostCenter.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.add_new')},
+]
+
+if @current_user.admin?
+	form_to_render = 'cost_centers/form_new'
+else
+	form_to_render = 'cost_centers/form'
+end
+%>
+
+<%= 
+render 'common_pages/new', 
+objects_path: cost_centers_path, 
+page_title: CostCenter.model_name.human(count: 2), 
+form_to_render: form_to_render,
+breadcrumbs: breadcrumbs
+%>

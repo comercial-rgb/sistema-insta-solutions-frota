@@ -1,0 +1,24 @@
+<!-- PIX -->
+<div class="col-12 col-md-3 mb-3">
+    <%= person_contact.input :name %>
+</div>
+
+<!-- Agência -->
+<div class="col-12 col-md-3 mb-3">
+    <%= person_contact.input :phone, input_html: {class: 'complete-phone-ddd', type: "tel"} %>
+</div>
+
+<!-- Conta -->
+<div class="col-12 col-md-3 mb-3">
+    <%= person_contact.input :email %>
+</div>
+
+<!-- Operação -->
+<div class="col-12 col-md-3 mb-3">
+    <%= person_contact.input :office %>
+</div>
+
+<%
+# End of file _person_contact_fields.html.erb
+# Path: ./app/views/common_pages/person_contacts/_person_contact_fields.html.erb
+%>

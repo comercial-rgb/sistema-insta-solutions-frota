@@ -79,7 +79,8 @@ class OrderServiceProposalItem < ApplicationRecord
     return false unless get_category_id == Category::SERVICOS_PECAS_ID
     
     vehicle = order_service_proposal.order_service.vehicle
-    vehicle.vehicle_model_id.present?
+    # Verifica se o veículo tem vehicle_model_id (coluna pode não existir em versões antigas do DB)
+    vehicle.respond_to?(:vehicle_model_id) && vehicle.vehicle_model_id.present?
   end
 
   private

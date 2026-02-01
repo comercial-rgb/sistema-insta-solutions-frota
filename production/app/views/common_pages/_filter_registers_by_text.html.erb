@@ -1,0 +1,14 @@
+<label><%= label_text %></label>
+<div class="col-12 mb-2">
+    <input class="collection-filter-by-text" id="collection-filter-by-text#<%= register_name %>" type="text" style="width: 100%;" placeholder="<%= placeholder %>">
+</div>
+<%= collection_radio_buttons(form_model, form_attribute, collection, value_register, label_register) do |b| %>
+    <div class="col-12 mt-2 linked-filter linked-filter-<%= register_name %>">
+        <%= b.label do %>
+        <%= b.radio_button(class: "") %>
+            <span>
+                <%= b.text %>
+            </span>
+        <% end %>
+    </div>
+<% end %>

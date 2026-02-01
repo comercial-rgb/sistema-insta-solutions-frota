@@ -1,0 +1,25 @@
+<!-- No caso de grid com muitas colunas, é utilizada a class 'container-fluid' enviadar por parâmetro na hora do render -->
+<div class="container<%='-fluid' if defined?(attributes[:fluid]) && attributes[:fluid] %>">
+
+    <!-- Tabela de dados -->
+    <div class="row">
+        <!-- Título -->
+        <div class="col-12">
+            <h5 class="mt-4 mb-3"><%= Card.human_attribute_name(:already_saved) %>:</h5>
+        </div>
+        <% attributes[:objects].assets.each do |card| %>
+            <%= render "common_pages/cards/saved_card", card: card %>
+        <% end %>
+    </div>
+
+    <%= simple_form_for @card, method: :put, url: create_user_card_path(ownertable_type: @card.ownertable_type, id: @card.ownertable_id, page_title: @card.page_title) do |f| %>
+        <%= render 'common_pages/cards/card_fields', f: f, card: f %>
+        <%= render 'common_pages/save', f: f, return_path: nil %>
+    <% end %>
+    
+</div>
+
+<%
+# End of file _second_container.html.erb
+# Path: ./app/views/common_pages/index/_second_container.html.erb
+%>

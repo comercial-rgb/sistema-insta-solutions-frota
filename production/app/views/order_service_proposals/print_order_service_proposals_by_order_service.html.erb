@@ -1,0 +1,47 @@
+<%
+	breadcrumbs = [
+		{active: false, href: root_path, text: t('menu.initial_page')},
+		{active: false, href: '#', text: OrderService.model_name.human(count: 2)},
+		{active: false, href: show_order_services_path(order_service_status_id: @order_service.order_service_status_id || OrderServiceStatus::EM_CADASTRO_ID), text: @order_service.order_service_status&.name || 'Status não definido'},
+		{active: false, href: edit_order_service_path(@order_service.id), text: @order_service.code},
+		{active: false, href: print_order_service_proposals_by_order_service_path(order_service_id: @order_service.id), text: @order_service.code, text: OrderServiceProposal.model_name.human(count: 2)},
+		{active: true, href: '#', text: t('model.list')}
+	]
+%>
+
+<div class="container d-print-none">
+    <div class="row mb-3">
+        <div class="d-none d-md-block col-md-10 text-center">
+            <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+        </div>
+    </div>
+    <div class="d-flex justify-content-end mt-4 mt-md-0">
+        <button onclick="window.print();" type="button" class="btn btn-outline-primary radius-6 d-flex align-items-center d-print-none custom-button-print px-3 py-1">
+            <i class="bi bi-printer fs-5"></i>
+            <span class="fs-8 ps-2">
+                <%= OrderServiceProposal.human_attribute_name(:print_save) %>
+            </span>
+        </button>
+    </div>
+
+    <%= render 'order_service_proposals/renders/order_service_data', record: @order_service %>
+    <hr>
+
+    <% @order_service_proposals_to_export.assets.each do |order_service_proposal| %>
+        <div class="row py-3">
+            <div class="col-12">
+                <%= 
+                    render 'order_service_proposals/renders/order_service_proposal_data', 
+                    order_service_proposal: order_service_proposal,
+                    hide_actions: true
+                %>
+                <hr>
+                <div class="pagebreak"></div>
+                <%= render 'order_service_proposals/renders/table_products_order_service_proposal_items', order_service_proposal: order_service_proposal %>
+            </div>
+        </div>
+    <% end %>
+
+</div>
+
+<%= render 'order_service_proposals/print_adjustment_order_service_porposals_by_order'%>

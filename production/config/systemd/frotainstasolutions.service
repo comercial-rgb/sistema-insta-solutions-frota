@@ -1,0 +1,51 @@
+[Unit]
+Description=Frota Insta Solutions - Puma Application Server
+After=network.target mysql.service
+Requires=mysql.service
+
+[Service]
+Type=simple
+User=deploy
+Group=deploy
+WorkingDirectory=/var/www/frotainstasolutions/production
+
+# Variáveis de ambiente
+Environment=RAILS_ENV=production
+Environment=RBENV_ROOT=/home/deploy/.rbenv
+Environment=PATH=/home/deploy/.rbenv/shims:/home/deploy/.rbenv/bin:/usr/local/bin:/usr/bin:/bin
+Environment=RACK_ENV=production
+
+# Comando para iniciar o Puma
+ExecStart=/home/deploy/.rbenv/shims/bundle exec puma -C /var/www/frotainstasolutions/production/config/puma/production.rb
+
+# Recarregar (hot reload sem downtime)
+ExecReload=/bin/kill -USR1 $MAINPID
+
+# Parar graciosamente
+ExecStop=/bin/kill -SIGTERM $MAINPID
+
+# Restart automático
+Restart=always
+RestartSec=10
+
+# Limites de recursos
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Timeout para start
+TimeoutStartSec=300
+
+# Timeout para stop
+TimeoutStopSec=30
+
+# Logs
+StandardOutput=append:/var/www/frotainstasolutions/production/log/puma_access.log
+StandardError=append:/var/www/frotainstasolutions/production/log/puma_error.log
+SyslogIdentifier=frotainstasolutions
+
+# Segurança
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

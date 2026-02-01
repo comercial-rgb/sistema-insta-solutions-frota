@@ -286,6 +286,7 @@ resources :reference_prices
 	post 'cancel_order_service', :to => 'order_services#cancel_order_service', :as => 'cancel_order_service'
 	get 'show_historic/:id', :to => 'order_services#show_historic', :as => 'show_historic'
 	get 'show_invoices', :to => 'order_services#show_invoices', :as => 'show_invoices'
+	get 'rejected_history', :to => 'order_services#rejected_history', :as => 'rejected_history_order_services'
 
 	# Reavaliação e Complemento de OS
 	post 'request_reevaluation/:id', :to => 'order_services#request_reevaluation', :as => 'request_reevaluation'
@@ -325,7 +326,13 @@ resources :reference_prices
   resources :contracts
 
 	get 'dashboard', :to => 'order_services#dashboard', :as => 'dashboard'
+	
+	# Provider Dashboard
 	get 'provider_dashboard', :to => 'provider_dashboard#index', :as => 'provider_dashboard'
+	get 'provider_dashboard/index', :to => 'provider_dashboard#index', :as => 'provider_dashboard_index'
+	get 'provider_dashboard/rejections', :to => 'provider_dashboard#rejections', :as => 'rejections_provider_dashboard'
+	post 'provider_dashboard/bulk_reject', :to => 'provider_dashboard#bulk_reject', :as => 'bulk_reject_provider_dashboard'
+	post 'provider_dashboard/revert_rejection', :to => 'provider_dashboard#revert_rejection', :as => 'revert_rejection_provider_dashboard'
 
   resources :orientation_manuals
 

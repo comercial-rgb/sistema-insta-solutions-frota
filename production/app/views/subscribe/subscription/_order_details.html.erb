@@ -1,0 +1,22 @@
+<% payment_transaction = current_order.payment_transactions.last %>
+<% if !payment_transaction.nil? %>
+
+	<div class="row">
+		<div class="col-12 text-center">
+			<b><%= Order.human_attribute_name(:price) %>:</b><br>
+			<b><%= CustomHelper.to_currency(current_order.price) %></b> 
+		</div>
+	</div>
+
+	<div class="row" >
+		<% if current_order.payment_type_id == PaymentType::BOLETO_ID %>
+			<!-- Pagamento via boleto -->
+			<%= render "subscribe/subscription/invoice_data", payment_transaction: payment_transaction, current_order: current_order, subscription: subscription %>
+		<% elsif current_order.payment_type_id == PaymentType::PIX_ID %>
+			<!-- Pagamento via PIX -->
+			<%= render "subscribe/subscription/pix_data", payment_transaction: payment_transaction, current_order: current_order, subscription: subscription %>
+		<% end %>
+		<hr>
+	</div>
+	
+<% end %>

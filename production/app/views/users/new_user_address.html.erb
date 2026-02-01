@@ -1,0 +1,29 @@
+<%
+
+current_addresses_path = user_addresses_path(ownertable_type: @address.ownertable_type, id: @address.ownertable_id, address_area_id: @address.address_area_id, page_title: @page_title)
+
+if @current_user.admin?
+	breadcrumbs = [
+		{active: false, href: root_path, text: t('menu.initial_page')},
+		{active: false, href: users_user_path, text: User.human_attribute_name(:common_users)},
+		{active: false, href: change_data_path(id: @address.ownertable_id), text: @address.ownertable.get_name},
+		{active: false, href: current_addresses_path, text: @page_title},
+		{active: true, href: '#', text: t('model.add_new')},
+	]
+else
+	breadcrumbs = [
+		{active: false, href: root_path, text: t('menu.initial_page')},
+		{active: false, href: change_data_path(id: @address.ownertable_id), text: @address.ownertable.get_name},
+		{active: false, href: current_addresses_path, text: @page_title},
+		{active: true, href: '#', text: t('model.add_new')},
+	]
+end
+%>
+
+<%= 
+	render 'common_pages/new', 
+	objects_path: current_addresses_path, 
+	page_title: Address.model_name.human(count: 2), 
+	form_to_render: 'users/addresses/form',
+	breadcrumbs: breadcrumbs
+%>

@@ -1,0 +1,51 @@
+﻿# Exemplo de arquivo de configura├º├úo do Figaro
+# Copie este arquivo para application.yml e preencha com suas credenciais
+
+# ========================================
+# DESENVOLVIMENTO (Local)
+# ========================================
+DATABASE_USERNAME_DEVELOPMENT: "root"
+DATABASE_PASSWORD_DEVELOPMENT: "sua_senha"
+
+# ========================================
+# TESTES
+# ========================================
+DATABASE_USERNAME_TEST: "root"
+DATABASE_PASSWORD_TEST: "sua_senha"
+
+# ========================================
+# STAGING/HOMOLOGA├ç├âO (Ambiente de Teste)
+# ========================================
+DATABASE_DATABASE_STAGING: "sistema_insta_solutions_staging"
+DATABASE_USERNAME_STAGING: "root"
+DATABASE_PASSWORD_STAGING: "senha_staging"
+DATABASE_HOST_STAGING: "localhost"
+DATABASE_PORT_STAGING: "3306"
+STAGING_HOST: "staging.frotainstasolutions.com.br"
+
+# ========================================
+# PRODU├ç├âO (Ambiente P├║blico)
+# ========================================
+DATABASE_DATABASE_PRODUCTION: "sistema_insta_solutions_production"
+DATABASE_USERNAME_PRODUCTION: "admin"
+DATABASE_PASSWORD_PRODUCTION: "7YAy3N9kywtFbyH"
+DATABASE_HOST_PRODUCTION: "frotainstasolutions-db.cmv2cscu0s8n.us-east-1.rds.amazonaws.com"
+DATABASE_PORT_PRODUCTION: "3306"
+HOST: "app.frotainstasolutions.com.br"
+
+# AWS S3 (para armazenar arquivos - logos, anexos, etc)
+AWS_ACCESS_KEY_ID: "FAKE_LOCAL_KEY"
+AWS_SECRET_ACCESS_KEY: "FAKE_LOCAL_SECRET"
+AWS_REGION: "sa-east-1"
+AWS_BUCKET: "local-storage"
+
+# SMTP (para envio de emails)
+SMTP_ADDRESS: "smtp.gmail.com"
+SMTP_PORT: "587"
+SMTP_USERNAME: "comercial@instasolutions.com.br"
+SMTP_PASSWORD: "diwhnorjbuihchfp"
+
+# Secret Key Base (gerar com: RAILS_ENV=production bundle exec rails secret)
+SECRET_KEY_BASE: "f4815a7348b285acd2a9d88a03ae48f318ad4cc3532dc91a1a3a930f56eed5c3d137302e1496b9eca03cd623a83fb16e4eef1fdb12c51051c860ca8509ca7948"
+
+

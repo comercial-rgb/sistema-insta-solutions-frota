@@ -1,0 +1,21 @@
+<%%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: <%= plural_table_name %>_path, text: <%= singular_table_name.split("_").join(" ").titleize.gsub(" ","") %>.model_name.human(count: 2)},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: <%= singular_table_name.split("_").join(" ").titleize.gsub(" ","") %>.model_name.human(count: 2),
+		url_new_path: new_<%= singular_table_name %>_path,
+		policy_true: policy(<%= singular_table_name.split("_").join(" ").titleize.gsub(" ","") %>).new?,
+		objects: @<%= plural_table_name %>,
+		objects_path: <%= plural_table_name %>_path,
+		object_name: <%= singular_table_name.split("_").join(" ").titleize.gsub(" ","") %>.model_name.human,
+		breadcrumbs: breadcrumbs,
+		objects_path_export: <%= plural_table_name %>_path(format: "csv", <%= plural_table_name %>_grid: (params[:<%= plural_table_name %>_grid].nil? ? "" : params[:<%= plural_table_name %>_grid].to_enum.to_h))
+	}
+%>

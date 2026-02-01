@@ -1,0 +1,17 @@
+<%= simple_form_for @user, validate: false do |f| %>
+
+	<!-- ID do perfil de usuário -->
+	<%= f.input :profile_id, as: :hidden, input_html: {value: @user.profile_id} %>
+
+	<%= render 'users/renders/client_selection', f: f %>
+
+	<%= render 'users/forms/personal_data', f: f %>
+
+	<%= render 'common_pages/save', f: f, return_path: (@current_user.id != @user.id) ? users_manager_path : nil %>
+
+<% end %>
+
+<%
+# End of file _form.html.erb
+# Path: ./app/views/users/_form.html.erb
+%>

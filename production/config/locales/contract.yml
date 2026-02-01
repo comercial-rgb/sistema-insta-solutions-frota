@@ -1,0 +1,44 @@
+pt-BR:
+  activerecord:
+    models:
+      contract:
+        one: "Contrato"
+        other: "Contratos"
+    attributes:
+      contract:
+        id: "ID"
+        created_at: 'Criado em'
+        updated_at: 'Atualizado em'
+        actions: "Ações"
+        client_id: "Cliente"
+        client: "Cliente"
+        name: "Nome"
+        number: "Número"
+        total_value: "Valor total"
+        active: "Ativo"
+        addendum_contracts: "Aditivos"
+        initial_date: "Data inicial"
+        final_date: "Data final"
+        expiration_notified_at: "Notificação de expiração enviada em"
+en:
+  activerecord:
+    models:
+      contract:
+        one: "Contrato"
+        other: "Contratos"
+    attributes:
+      contract:
+        id: "ID"
+        created_at: 'Created at'
+        updated_at: 'Updated at'
+        actions: "Actions"
+        client_id: "Cliente"
+        client: "Cliente"
+        name: "Nome"
+        number: "Número"
+        total_value: "Valor total"
+        active: "Ativo"
+        addendum_contracts: "Aditivos"
+        initial_date: "Data inicial"
+        final_date: "Data final"
+        expiration_notified_at: "Notificação de expiração enviada em"

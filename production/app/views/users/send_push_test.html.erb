@@ -1,0 +1,43 @@
+<%
+breadcrumbs = [
+    {active: false, href: root_path, text: t('menu.initial_page')},
+    {active: true, href: '#', text: t('model.send_push_test')},
+]
+%>
+
+<div class="container">
+    <div class="row mb-3">
+        <div class="d-none d-md-block col-md-10 text-center">
+            <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+        </div>
+    </div>
+
+    <%= form_tag send_push_to_mobile_path, method: :post do %>
+        <div class="row">
+            <div class="col-12 col-md-4 mb-3">
+                <%= select_tag :service, options_for_select([ "Firebase", "OneSignal" ], "Firebase"), class: "form-control" %>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12 col-md-3 mb-3">
+                <%= text_field_tag :mobile_code, params[:mobile_code], placeholder: "Código do dispositivo", class: "form-control" %>
+            </div>
+            <div class="col-12 col-md-3 mb-3">
+                <%= text_field_tag :title, params[:title], placeholder: "Título", class: "form-control" %>
+            </div>
+            <div class="col-12 col-md-6 mb-3">
+                <%= text_field_tag :message, params[:message], placeholder: "Mensagem", class: "form-control" %>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12 text-end mb-3">
+                <button class="btn btn-primary text-white" type="submit"><%= t('model.send') %></button>
+            </div>
+        </div>
+    <% end %>
+</div>
+
+<%
+# End of file _first_container.html.erb
+# Path: ./app/views/common_pages/index/_first_container.html.erb
+%>

@@ -1,0 +1,19 @@
+pt-BR:
+  activerecord:
+    models:
+      vehicle_model:
+        one: Modelo de Veículo
+        other: Modelos de Veículos
+    attributes:
+      vehicle_model:
+        vehicle_type: Tipo de Veículo
+        vehicle_type_id: Tipo de Veículo
+        brand: Marca
+        model: Modelo
+        version: Versão
+        full_name: Nome Completo
+        aliases: Nomes Alternativos
+        code_cilia: Código Cilia
+        active: Ativo
+        created_at: Criado em
+        updated_at: Atualizado em
