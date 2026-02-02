@@ -99,6 +99,14 @@ class Contract < ApplicationRecord
   def get_disponible_value(exclude_commitment_id = nil)
     total_value = self.get_total_value
     used_value = self.get_used_value(exclude_commitment_id)
+    
+    Rails.logger.debug "=== get_disponible_value DEBUG ==="
+    Rails.logger.debug "Contract ID: #{self.id}"
+    Rails.logger.debug "Exclude Commitment ID: #{exclude_commitment_id}"
+    Rails.logger.debug "Total Value: #{total_value}"
+    Rails.logger.debug "Used Value: #{used_value}"
+    Rails.logger.debug "Available: #{total_value - used_value}"
+    
     return (total_value - used_value)
   end
 
