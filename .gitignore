@@ -105,5 +105,11 @@ pickle-email-*.html
 /release-*.zip
 /_release-*.zip
 
+# Pastas de organização (arquivos antigos)
+/_scripts_antigos/
+/_documentacao_antiga/
+/_deploys_antigos/
+/_arquivos_antigos/
+
 # ActiveStorage local files (uploads)
 /storage/
