@@ -1,6 +1,6 @@
 # Serviço para enviar webhooks de OS autorizadas para o sistema financeiro
 class WebhookFinanceService
-  WEBHOOK_URL = 'https://portal-finance-api.onrender.com/api/webhook/frota/receber-os'.freeze
+  WEBHOOK_URL = 'https://portal-finance.onrender.com/api/webhook/frota/receber-os'.freeze
   WEBHOOK_TOKEN = '30bfff7ce392036b19d87dd6336c6e326d5312b943e01e3e8926c7aa22136b14'.freeze
   TIMEOUT = 10 # segundos
 
