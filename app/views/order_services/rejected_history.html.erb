@@ -38,6 +38,37 @@ breadcrumbs = [
 
   <div class="card shadow-sm">
     <div class="card-body">
+      <!-- Filtros -->
+      <div class="row mb-3">
+        <div class="col-12">
+          <%= form_with url: rejected_history_order_services_path, method: :get, local: true, class: 'row g-2' do |f| %>
+            <div class="col-md-4">
+              <%= f.label :client_id, 'Cliente', class: 'form-label small' %>
+              <%= f.select :client_id,
+                  options_from_collection_for_select(
+                    User.where(user_type_id: UserType::CLIENT_ID).order(:social_name),
+                    :id,
+                    :social_name,
+                    params[:client_id]
+                  ),
+                  { include_blank: 'Todos os clientes' },
+                  { class: 'form-select form-select-sm select2' } %>
+            </div>
+            <div class="col-md-4">
+              <%= f.label :code, 'Código OS', class: 'form-label small' %>
+              <%= f.text_field :code, 
+                  value: params[:code],
+                  placeholder: 'Digite o código da OS',
+                  class: 'form-control form-control-sm' %>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+              <%= f.submit 'Filtrar', class: 'btn btn-primary btn-sm me-2' %>
+              <%= link_to 'Limpar', rejected_history_order_services_path, class: 'btn btn-outline-secondary btn-sm' %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+      
       <% if @order_services.any? %>
         <div class="table-responsive">
           <table class="table table-hover align-middle">

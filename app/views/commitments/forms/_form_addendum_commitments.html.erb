@@ -27,7 +27,7 @@
           label_method: lambda { |c| "#{c.number} - #{c.client.social_name}" },
           include_blank: "Sem vínculo",
           input_html: { class: 'select2', data: { commitment_id: @commitment.id } },
-          hint: @commitment.contract.present? ? "Disponível: #{CustomHelper.to_currency(@commitment.contract.get_disponible_value(@commitment.id))}" : "Empenho sem contrato vinculado" %>
+          hint: @commitment.contract.present? ? "Disponível no contrato: #{CustomHelper.to_currency(@commitment.contract.get_disponible_value(@commitment.id))}" : "Empenho sem contrato vinculado" %>
     </div>
     <div class="col-12 col-md-3">
       <%= f.input :active, 

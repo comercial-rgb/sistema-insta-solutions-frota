@@ -39,6 +39,17 @@ class OrderServicesController < ApplicationController
           .joins(:rejected_providers)
           .includes(:client, :manager, :rejected_providers)
           .distinct
+        
+        # Aplicar filtros
+        if params[:client_id].present?
+          @order_services = @order_services.where(client_id: params[:client_id])
+        end
+        
+        if params[:code].present?
+          @order_services = @order_services.where("order_services.code LIKE ?", "%#{params[:code]}%")
+        end
+        
+        @order_services = @order_services
           .order(created_at: :desc)
           .page(params[:page])
           .per(50)
@@ -66,6 +77,17 @@ class OrderServicesController < ApplicationController
       .joins(:rejected_providers)
       .includes(:client, :manager, :rejected_providers)
       .distinct
+    
+    # Aplicar filtros
+    if params[:client_id].present?
+      @order_services = @order_services.where(client_id: params[:client_id])
+    end
+    
+    if params[:code].present?
+      @order_services = @order_services.where("order_services.code LIKE ?", "%#{params[:code]}%")
+    end
+    
+    @order_services = @order_services
       .order(created_at: :desc)
       .page(params[:page])
       .per(50)
