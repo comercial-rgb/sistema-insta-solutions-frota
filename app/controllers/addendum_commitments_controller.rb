@@ -35,7 +35,7 @@ class AddendumCommitmentsController < ApplicationController
   private
 
   def set_commitment
-    @commitment = Commitment.find(params[:commitment_id])
+    @commitment = Commitment.includes(:contract => :addendum_contracts, :addendum_commitments).find(params[:commitment_id])
   end
 
   def set_addendum_commitment
