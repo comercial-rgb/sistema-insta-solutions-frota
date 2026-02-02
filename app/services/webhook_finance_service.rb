@@ -67,23 +67,52 @@ class WebhookFinanceService
 
   def payload
     approved_proposal = @order_service.approved_proposal
+    parts_value = calculate_parts_value(approved_proposal)
+    services_value = calculate_services_value(approved_proposal)
+    discount_percent = calculate_discount_percent(approved_proposal)
     
     {
+      # Campos obrigatórios
       codigo: @order_service.code,
+      numeroOrdemServico: @order_service.code, # Usa o mesmo código
+      dataReferencia: @order_service.created_at&.iso8601,
       clienteNomeFantasia: @order_service.client&.fantasy_name || @order_service.client&.social_name,
       fornecedorNomeFantasia: approved_proposal.provider&.fantasy_name || approved_proposal.provider&.social_name,
       tipoServicoSolicitado: @order_service.order_service_type&.name,
       tipo: get_tipo,
       centroCusto: @order_service.cost_center&.name,
-      dataReferencia: @order_service.created_at&.iso8601,
-      subunidade: @order_service.sub_unit&.name,
-      placa: @order_service.vehicle&.board,
-      veiculo: get_vehicle_description,
-      valorPecasSemDesconto: calculate_parts_value(approved_proposal),
-      valorServicoSemDesconto: calculate_services_value(approved_proposal),
-      descontoPercentual: calculate_discount_percent(approved_proposal),
-      notaFiscalPeca: get_invoice_number(approved_proposal, 'peca'),
-      notaFiscalServico: get_invoice_number(approved_proposal, 'servico'),
+      
+      # Campos opcionais - Identificação
+      subunidade: @order_service.sub_unit&.name || '',
+      placa: @order_service.vehicle&.board || '',
+      veiculo: get_vehicle_description || '',
+      contrato: get_contract_number,
+      
+      # Campos opcionais - Valores sem desconto
+      valorPecasSemDesconto: parts_value,
+      valorServicoSemDesconto: services_value,
+      
+      # Campos opcionais - Desconto
+      descontoPercentual: discount_percent,
+      descontoPecasPerc: discount_percent, # Mesmo desconto para peças
+      descontoServicoPerc: discount_percent, # Mesmo desconto para serviços
+      
+      # Campos opcionais - Valores com desconto (calculados)
+      valorPecasComDesconto: calculate_value_with_discount(parts_value, discount_percent),
+      valorServicoComDesconto: calculate_value_with_discount(services_value, discount_percent),
+      valorFinal: calculate_total_value(parts_value, services_value, discount_percent),
+      
+      # Campos opcionais - Notas fiscais
+      notaFiscalPeca: get_invoice_number(approved_proposal, 'peca') || '',
+      notaFiscalServico: get_invoice_number(approved_proposal, 'servico') || '',
+      
+      # Campos opcionais - Empenhos (podem ser individuais ou global)
+      contratoEmpenhoPecas: get_commitment_contract('parts'),
+      empenhoPecas: get_commitment_number('parts'),
+      contratoEmpenhoServicos: get_commitment_contract('services'),
+      empenhoServicos: get_commitment_number('services'),
+      
+      # Campos opcionais - Observações
       observacoes: @order_service.details.to_s
     }
   end
@@ -152,6 +181,55 @@ class WebhookFinanceService
     # Como não vimos distinção, retorna o número da primeira nota ou nil
     invoice = proposal.order_service_invoices.first
     invoice&.number
+  end
+
+  def get_contract_number
+    # Busca número do contrato vinculado aos empenhos
+    # Prioriza contrato de peças, depois serviços
+    if @order_service.commitment_parts_id.present?
+      commitment = Commitment.find_by(id: @order_service.commitment_parts_id)
+      return commitment&.contract&.code
+    end
+    
+    if @order_service.commitment_services_id.present?
+      commitment = Commitment.find_by(id: @order_service.commitment_services_id)
+      return commitment&.contract&.code
+    end
+    
+    ''
+  end
+
+  def get_commitment_contract(type)
+    # Retorna número do contrato do empenho específico
+    commitment_id = type == 'parts' ? @order_service.commitment_parts_id : @order_service.commitment_services_id
+    return '' unless commitment_id
+    
+    commitment = Commitment.find_by(id: commitment_id)
+    commitment&.contract&.code || ''
+  end
+
+  def get_commitment_number(type)
+    # Retorna número do empenho específico
+    commitment_id = type == 'parts' ? @order_service.commitment_parts_id : @order_service.commitment_services_id
+    return '' unless commitment_id
+    
+    commitment = Commitment.find_by(id: commitment_id)
+    commitment&.code || ''
+  end
+
+  def calculate_value_with_discount(value, discount_percent)
+    return 0.0 if value.to_f == 0
+    
+    value_with_discount = value.to_f * (1 - (discount_percent.to_f / 100))
+    value_with_discount.round(2)
+  end
+
+  def calculate_total_value(parts_value, services_value, discount_percent)
+    total_without_discount = parts_value.to_f + services_value.to_f
+    return 0.0 if total_without_discount == 0
+    
+    total_with_discount = total_without_discount * (1 - (discount_percent.to_f / 100))
+    total_with_discount.round(2)
   end
 
   def handle_response(response)
