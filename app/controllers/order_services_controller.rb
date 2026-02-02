@@ -1295,8 +1295,12 @@ class OrderServicesController < ApplicationController
         OrderService.generate_historic(order_service, @current_user, order_service.order_service_status_id, OrderServiceStatus::AUTORIZADA_ID)
         order_service.update_columns(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID)
         
-        # Envia webhook para sistema financeiro (assíncrono)
-        SendAuthorizedOsWebhookJob.perform_later(order_service.id)
+        # Envia webhook para sistema financeiro (síncrono)
+        begin
+          WebhookFinanceService.send_authorized_os(order_service.id)
+        rescue => e
+          Rails.logger.error "[OrderServices] Falha ao enviar webhook: #{e.message}"
+        end
       end
       message = OrderService.human_attribute_name(:all_authorized_with_success)
     rescue Exception => e
