@@ -77,7 +77,7 @@ class WebhookFinanceService
       veiculo: get_vehicle_description,
       valorPecasSemDesconto: calculate_parts_value(approved_proposal),
       valorServicoSemDesconto: calculate_services_value(approved_proposal),
-      descontoPercentual: approved_proposal&.discount_percent || 0,
+      descontoPercentual: calculate_discount_percent(approved_proposal),
       notaFiscalPeca: approved_proposal&.invoice_parts_number,
       notaFiscalServico: approved_proposal&.invoice_services_number
     }
@@ -125,6 +125,18 @@ class WebhookFinanceService
     # No sistema atual, não há separação entre peças e serviços
     # Todos estão em order_service_proposal_items
     # Retorna 0 e deixa tudo em valorPecasSemDesconto
+    0.0
+  end
+
+  def calculate_discount_percent(proposal)
+    return 0.0 unless proposal
+    
+    # Se houver total_value_without_discount e total_discount, calcula percentual
+    if proposal.total_value_without_discount.to_f > 0 && proposal.total_discount.to_f > 0
+      percent = (proposal.total_discount.to_f / proposal.total_value_without_discount.to_f) * 100
+      return percent.round(2)
+    end
+    
     0.0
   end
 
