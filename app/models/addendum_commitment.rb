@@ -6,6 +6,7 @@ class AddendumCommitment < ApplicationRecord
 
   validates :number, :total_value, presence: true
   validates :total_value, numericality: { greater_than: 0 }
+  validate :validate_contract_available_value, if: -> { contract_id.present? && total_value.present? }
 
   default_scope { order(created_at: :asc) }
 
@@ -50,5 +51,16 @@ class AddendumCommitment < ApplicationRecord
 
   def default_values
     self.active = true if self.active.nil?
+  end
+
+  def validate_contract_available_value
+    return unless contract.present?
+    
+    # Valor disponível no contrato (excluindo o empenho atual)
+    available = contract.get_disponible_value(commitment_id)
+    
+    if total_value > available
+      errors.add(:total_value, "não pode ser maior que o valor disponível no contrato (#{CustomHelper.to_currency(available)})")
+    end
   end
 end
