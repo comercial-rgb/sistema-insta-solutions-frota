@@ -20,7 +20,15 @@
           }, 
           as: :string %>
     </div>
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-md-3">
+      <%= f.association :contract,
+          label: "Contrato Vinculado",
+          collection: Contract.getting_by_client_id(@current_user, @commitment.client_id),
+          label_method: :get_formatted_name_with_disponible_value,
+          as: :select,
+          include_blank: t('model.select_option') %>
+    </div>
+    <div class="col-12 col-md-3">
       <%= f.input :active, 
           label: "Status", 
           as: :select, 
