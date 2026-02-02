@@ -16,7 +16,7 @@ class WebhookFinanceService
       :cost_center,
       :sub_unit,
       :vehicle,
-      order_service_proposals: [:order_service_proposal_items]
+      order_service_proposals: [:order_service_proposal_items, :order_service_invoices]
     ).find_by(id: order_service_id)
   end
 
@@ -78,8 +78,8 @@ class WebhookFinanceService
       valorPecasSemDesconto: calculate_parts_value(approved_proposal),
       valorServicoSemDesconto: calculate_services_value(approved_proposal),
       descontoPercentual: calculate_discount_percent(approved_proposal),
-      notaFiscalPeca: approved_proposal&.invoice_parts_number,
-      notaFiscalServico: approved_proposal&.invoice_services_number
+      notaFiscalPeca: get_invoice_number(approved_proposal, 'peca'),
+      notaFiscalServico: get_invoice_number(approved_proposal, 'servico')
     }
   end
 
@@ -138,6 +138,15 @@ class WebhookFinanceService
     end
     
     0.0
+  end
+
+  def get_invoice_number(proposal, tipo)
+    return nil unless proposal
+    
+    # Busca a primeira nota fiscal do tipo (se houver algum campo para distinguir)
+    # Como não vimos distinção, retorna o número da primeira nota ou nil
+    invoice = proposal.order_service_invoices.first
+    invoice&.number
   end
 
   def handle_response(response)
