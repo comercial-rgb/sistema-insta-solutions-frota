@@ -7,10 +7,10 @@
   </div>
 
   <div class="row">
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-md-3">
       <%= f.input :number, label: "Número do Aditivo", placeholder: "Ex: 001/2026" %>
     </div>
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-md-3">
       <%= f.input :total_value, 
           label: "Valor do Aditivo", 
           input_html: { 
@@ -20,11 +20,19 @@
           }, 
           as: :string %>
     </div>
-    <div class="col-12 col-md-4">
+    <div class="col-12 col-md-3">
+      <%= f.association :contract,
+          label: "Contrato Vinculado",
+          collection: Contract.where(commitment_id: @commitment.id).order(:internal_number),
+          label_method: lambda { |c| "#{c.internal_number} - #{c.contractor_name}" },
+          include_blank: "Sem vínculo",
+          input_html: { class: 'select2' } %>
+    </div>
+    <div class="col-12 col-md-3">
       <%= f.input :active, 
           label: "Status", 
           as: :select, 
-          collection: [[true, 'Ativo'], [false, 'Inativo']], 
+          collection: [['Ativo', true], ['Inativo', false]], 
           include_blank: false %>
     </div>
   </div>

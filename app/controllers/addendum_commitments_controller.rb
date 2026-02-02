@@ -43,6 +43,6 @@ class AddendumCommitmentsController < ApplicationController
   end
 
   def addendum_commitment_params
-    params.require(:addendum_commitment).permit(:number, :description, :total_value, :active)
+    params.require(:addendum_commitment).permit(:number, :description, :total_value, :active, :contract_id)
   end
 end

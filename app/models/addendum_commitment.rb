@@ -2,6 +2,7 @@ class AddendumCommitment < ApplicationRecord
   after_initialize :default_values
 
   belongs_to :commitment
+  belongs_to :contract, optional: true
 
   validates :number, :total_value, presence: true
   validates :total_value, numericality: { greater_than: 0 }

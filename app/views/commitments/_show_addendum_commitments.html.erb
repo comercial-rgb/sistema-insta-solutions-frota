@@ -9,9 +9,10 @@
         <table class="table table-sm table-hover mb-0">
           <thead class="table-light">
             <tr>
-              <th style="width: 20%">Número</th>
-              <th style="width: 40%">Descrição</th>
-              <th style="width: 20%" class="text-end">Valor</th>
+              <th style="width: 15%">Número</th>
+              <th style="width: 25%">Contrato Vinculado</th>
+              <th style="width: 25%">Descrição</th>
+              <th style="width: 15%" class="text-end">Valor</th>
               <th style="width: 10%" class="text-center">Status</th>
               <th style="width: 10%" class="text-center">Ações</th>
             </tr>
@@ -20,6 +21,14 @@
             <% @commitment.addendum_commitments.each do |addendum| %>
               <tr>
                 <td><strong><%= addendum.number %></strong></td>
+                <td>
+                  <% if addendum.contract.present? %>
+                    <%= link_to addendum.contract.internal_number, contract_path(addendum.contract), class: "text-primary" %>
+                    <br><small class="text-muted"><%= addendum.contract.contractor_name %></small>
+                  <% else %>
+                    <span class="text-muted"><em>Sem vínculo</em></span>
+                  <% end %>
+                </td>
                 <td><small class="text-muted"><%= addendum.description %></small></td>
                 <td class="text-end">
                   <span class="badge bg-success">+ <%= CustomHelper.to_currency(addendum.total_value) %></span>
