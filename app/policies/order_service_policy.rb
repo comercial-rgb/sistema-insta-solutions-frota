@@ -145,6 +145,10 @@ class OrderServicePolicy < ApplicationPolicy
     user.admin? || ((user.manager? || user.additional?))
   end
 
+  def rejected_history?
+    user.admin? || user.manager? || user.additional?
+  end
+
   def back_to_edit_order_service?
     false
     # record.order_service_status_id <= OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID && (![OrderServiceStatus::CANCELADA_ID].include?(record.order_service_status_id)) && (user.admin? || ((user.manager? || user.additional?) && record.client_id == user.client_id))
