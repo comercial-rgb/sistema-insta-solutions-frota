@@ -21,7 +21,8 @@ class CommitmentsController < ApplicationController
     
     # Calcula valores
     @total_consumed = Commitment.get_total_already_consumed_value(@commitment)
-    @remaining_value = @commitment.commitment_value.to_f - @total_consumed - @commitment.canceled_value.to_f
+    addendum_value = @commitment.addendum_commitments.where(active: true).sum(:total_value).to_f
+    @remaining_value = @commitment.commitment_value.to_f + addendum_value - @total_consumed - @commitment.canceled_value.to_f
 
     related = Commitment.where(
       client_id: @commitment.client_id,

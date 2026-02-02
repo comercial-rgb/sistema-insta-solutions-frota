@@ -84,15 +84,19 @@ breadcrumbs = [
     </div>
     <div class="card-body">
       <div class="row">
-        <div class="col-md-4 mb-3">
-          <label class="fw-bold text-muted small">Valor do Empenho</label>
+        <div class="col-md-3 mb-3">
+          <label class="fw-bold text-muted small">Valor do Empenho Inicial</label>
           <p class="mb-0 fs-5 text-primary"><%= CustomHelper.to_currency(@commitment.commitment_value) %></p>
         </div>
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
+          <label class="fw-bold text-muted small">Valor Aditivo</label>
+          <p class="mb-0 fs-5 text-success"><%= CustomHelper.to_currency(@commitment.addendum_commitments.where(active: true).sum(:total_value)) %></p>
+        </div>
+        <div class="col-md-3 mb-3">
           <label class="fw-bold text-muted small">Valor Consumido</label>
           <p class="mb-0 fs-5 text-warning"><%= CustomHelper.to_currency(@total_consumed) %></p>
         </div>
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
           <label class="fw-bold text-muted small">Valor Restante</label>
           <p class="mb-0 fs-5 <%= @remaining_value > 0 ? 'text-success' : 'text-danger' %>">
             <%= CustomHelper.to_currency(@remaining_value) %>
