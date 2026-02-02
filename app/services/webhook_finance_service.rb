@@ -84,7 +84,7 @@ class WebhookFinanceService
       descontoPercentual: calculate_discount_percent(approved_proposal),
       notaFiscalPeca: get_invoice_number(approved_proposal, 'peca'),
       notaFiscalServico: get_invoice_number(approved_proposal, 'servico'),
-      observacoes: @order_service.observation.to_s
+      observacoes: @order_service.details.to_s
     }
   end
 
