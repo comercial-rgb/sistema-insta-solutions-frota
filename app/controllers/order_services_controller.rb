@@ -1294,6 +1294,9 @@ class OrderServicesController < ApplicationController
         # Manually create an audit record
         OrderService.generate_historic(order_service, @current_user, order_service.order_service_status_id, OrderServiceStatus::AUTORIZADA_ID)
         order_service.update_columns(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID)
+        
+        # Envia webhook para sistema financeiro (assíncrono)
+        SendAuthorizedOsWebhookJob.perform_later(order_service.id)
       end
       message = OrderService.human_attribute_name(:all_authorized_with_success)
     rescue Exception => e
