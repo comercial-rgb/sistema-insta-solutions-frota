@@ -23,6 +23,10 @@ class WebhookFinanceService
   def send_webhook
     return { success: false, error: 'OS não encontrada' } unless @order_service
     return { success: false, error: 'OS não está no status Autorizada' } unless authorized?
+    
+    approved_proposal = @order_service.approved_proposal
+    return { success: false, error: 'OS sem proposta aprovada' } unless approved_proposal
+    return { success: false, error: 'Proposta aprovada sem fornecedor cadastrado' } unless approved_proposal.provider_id.present?
 
     begin
       response = send_request
@@ -67,7 +71,7 @@ class WebhookFinanceService
     {
       codigo: @order_service.code,
       clienteNomeFantasia: @order_service.client&.fantasy_name || @order_service.client&.social_name,
-      fornecedorNomeFantasia: @order_service.provider&.fantasy_name || @order_service.provider&.social_name,
+      fornecedorNomeFantasia: approved_proposal.provider&.fantasy_name || approved_proposal.provider&.social_name,
       tipoServicoSolicitado: @order_service.order_service_type&.name,
       tipo: get_tipo,
       centroCusto: @order_service.cost_center&.name,
