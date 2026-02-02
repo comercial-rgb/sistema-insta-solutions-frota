@@ -20,17 +20,7 @@
           }, 
           as: :string %>
     </div>
-    <div class="col-12 col-md-3">
-      <%= f.input :contract_id,
-          label: "Contrato Vinculado",
-          input_html: { 
-            value: @commitment.contract.present? ? "#{@commitment.contract.number} - Disponível: #{CustomHelper.to_currency(@contract_available_value || 0)}" : 'Empenho sem contrato vinculado', 
-            disabled: true, 
-            class: 'form-control' 
-          },
-          as: :string %>
-    </div>
-    <div class="col-12 col-md-3">
+    <div class="col-12 col-md-4">
       <%= f.input :active, 
           label: "Status", 
           as: :select, 
