@@ -102,8 +102,8 @@ class WebhookFinanceService
     return nil unless vehicle
     
     parts = []
-    parts << vehicle.vehicle_brand&.name if vehicle.vehicle_brand
-    parts << vehicle.vehicle_model&.name if vehicle.vehicle_model
+    parts << vehicle.brand if vehicle.brand.present?
+    parts << vehicle.model if vehicle.model.present?
     parts << vehicle.year if vehicle.year.present?
     
     parts.any? ? parts.join(' ') : vehicle.board
