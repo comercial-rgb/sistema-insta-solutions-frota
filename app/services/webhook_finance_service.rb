@@ -16,7 +16,7 @@ class WebhookFinanceService
       :cost_center,
       :sub_unit,
       :vehicle,
-      order_service_proposals: [:order_service_proposal_parts, :order_service_proposal_services]
+      order_service_proposals: [:order_service_proposal_items]
     ).find_by(id: order_service_id)
   end
 
@@ -112,21 +112,20 @@ class WebhookFinanceService
   def calculate_parts_value(proposal)
     return 0.0 unless proposal
     
-    total = proposal.order_service_proposal_parts.sum do |part|
-      (part.value_with_discount || part.value || 0).to_f * (part.quantity || 1)
+    # Soma todos os itens (peças e serviços) sem desconto
+    # Não há distinção entre peças e serviços nos items
+    total = proposal.order_service_proposal_items.sum do |item|
+      (item.total_value_without_discount || item.total_value || 0).to_f
     end
     
     total.round(2)
   end
 
   def calculate_services_value(proposal)
-    return 0.0 unless proposal
-    
-    total = proposal.order_service_proposal_services.sum do |service|
-      (service.value_with_discount || service.value || 0).to_f * (service.quantity || 1)
-    end
-    
-    total.round(2)
+    # No sistema atual, não há separação entre peças e serviços
+    # Todos estão em order_service_proposal_items
+    # Retorna 0 e deixa tudo em valorPecasSemDesconto
+    0.0
   end
 
   def handle_response(response)
