@@ -73,7 +73,7 @@ class WebhookFinanceService
       centroCusto: @order_service.cost_center&.name,
       dataReferencia: @order_service.created_at&.iso8601,
       subunidade: @order_service.sub_unit&.name,
-      placa: @order_service.vehicle&.license_plate,
+      placa: @order_service.vehicle&.board,
       veiculo: get_vehicle_description,
       valorPecasSemDesconto: calculate_parts_value(approved_proposal),
       valorServicoSemDesconto: calculate_services_value(approved_proposal),
@@ -106,7 +106,7 @@ class WebhookFinanceService
     parts << vehicle.vehicle_model&.name if vehicle.vehicle_model
     parts << vehicle.year if vehicle.year.present?
     
-    parts.any? ? parts.join(' ') : vehicle.license_plate
+    parts.any? ? parts.join(' ') : vehicle.board
   end
 
   def calculate_parts_value(proposal)
