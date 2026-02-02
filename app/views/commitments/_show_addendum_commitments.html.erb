@@ -24,7 +24,7 @@
                 <td>
                   <% if addendum.contract.present? %>
                     <%= link_to addendum.contract.number, contract_path(addendum.contract), class: "text-primary" %>
-                    <br><small class="text-muted"><%= addendum.contract.contractor_name %></small>
+                    <br><small class="text-muted"><%= addendum.contract.name %></small>
                   <% else %>
                     <span class="text-muted"><em>Sem vínculo</em></span>
                   <% end %>
