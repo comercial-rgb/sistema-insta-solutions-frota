@@ -83,7 +83,11 @@ class Contract < ApplicationRecord
   def get_used_value(exclude_commitment_id = nil)
     commitments = self.commitments
     commitments = commitments.where.not(id: exclude_commitment_id) if exclude_commitment_id.present?
-    commitments.sum(:commitment_value)
+    
+    # Somar o valor do empenho + aditivos de cada empenho
+    commitments.sum do |commitment|
+      commitment.commitment_value.to_f + commitment.addendum_commitments.where(active: true).sum(:total_value).to_f
+    end
   end
 
   def get_disponible_value(exclude_commitment_id = nil)
