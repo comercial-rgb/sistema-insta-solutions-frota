@@ -7,7 +7,16 @@ class AddendumCommitmentsController < ApplicationController
     
     # Calcular valor disponível no controller
     if @commitment.contract.present?
-      @contract_available_value = @commitment.contract.get_disponible_value(@commitment.id)
+      total = @commitment.contract.get_total_value
+      used = @commitment.contract.get_used_value(@commitment.id)
+      @contract_available_value = total - used
+      
+      Rails.logger.error "=== ADITIVO DEBUG ==="
+      Rails.logger.error "Contract ID: #{@commitment.contract.id}"
+      Rails.logger.error "Commitment ID: #{@commitment.id}"
+      Rails.logger.error "Total: #{total}"
+      Rails.logger.error "Used: #{used}"
+      Rails.logger.error "Available: #{@contract_available_value}"
     end
     
     authorize @commitment, :edit?
