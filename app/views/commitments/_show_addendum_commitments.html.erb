@@ -1,0 +1,74 @@
+<div class="card shadow-sm mb-3">
+  <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-plus-circle me-2"></i>Aditivos</span>
+    <small class="badge bg-light text-dark"><%= @commitment.addendum_commitments.count %></small>
+  </div>
+  <div class="card-body p-0">
+    <% if @commitment.addendum_commitments.any? %>
+      <div class="table-responsive">
+        <table class="table table-sm table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th style="width: 20%">Número</th>
+              <th style="width: 40%">Descrição</th>
+              <th style="width: 20%" class="text-end">Valor</th>
+              <th style="width: 10%" class="text-center">Status</th>
+              <th style="width: 10%" class="text-center">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% @commitment.addendum_commitments.each do |addendum| %>
+              <tr>
+                <td><strong><%= addendum.number %></strong></td>
+                <td><small class="text-muted"><%= addendum.description %></small></td>
+                <td class="text-end">
+                  <span class="badge bg-success">+ <%= CustomHelper.to_currency(addendum.total_value) %></span>
+                </td>
+                <td class="text-center">
+                  <% if addendum.active %>
+                    <span class="badge bg-success">Ativo</span>
+                  <% else %>
+                    <span class="badge bg-secondary">Inativo</span>
+                  <% end %>
+                </td>
+                <td class="text-center">
+                  <% if addendum.can_delete? %>
+                    <%= link_to commitment_addendum_commitment_path(@commitment, addendum), 
+                        method: :delete, 
+                        data: { confirm: "Tem certeza que deseja excluir este aditivo?" },
+                        class: "btn btn-sm btn-outline-danger",
+                        title: "Excluir aditivo" do %>
+                      <i class="bi bi-trash"></i>
+                    <% end %>
+                  <% else %>
+                    <span class="text-muted" 
+                          data-bs-toggle="tooltip" 
+                          title="<%= addendum.reason_cannot_delete %>">
+                      <i class="bi bi-lock"></i>
+                    </span>
+                  <% end %>
+                </td>
+              </tr>
+            <% end %>
+          </tbody>
+          <tfoot class="table-light">
+            <tr>
+              <td colspan="2" class="text-end"><strong>Total de Aditivos:</strong></td>
+              <td class="text-end">
+                <strong class="text-success">
+                  + <%= CustomHelper.to_currency(@commitment.addendum_commitments.where(active: true).sum(:total_value)) %>
+                </strong>
+              </td>
+              <td colspan="2"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+    <% else %>
+      <div class="text-center text-muted py-3">
+        <i class="bi bi-inbox fs-3"></i>
+        <p class="mb-0">Nenhum aditivo cadastrado</p>
+      </div>
+    <% end %>
+  </div>
+</div>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_01_29_183000) do
+ActiveRecord::Schema[7.1].define(version: 2026_02_02_002940) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -38,6 +38,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_29_183000) do
     t.string "variation_digest", null: false
     t.bigint "active_storage_blobs"
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "addendum_commitments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "commitment_id", null: false
+    t.string "number"
+    t.text "description"
+    t.decimal "total_value", precision: 15, scale: 2
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["commitment_id"], name: "index_addendum_commitments_on_commitment_id"
   end
 
   create_table "addendum_contracts", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -834,6 +845,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_01_29_183000) do
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "addendum_commitments", "commitments"
   add_foreign_key "addendum_contracts", "contracts"
   add_foreign_key "addresses", "address_areas"
   add_foreign_key "addresses", "address_types"

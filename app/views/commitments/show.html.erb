@@ -156,6 +156,9 @@ breadcrumbs = [
     </div>
   </div>
 
+  <!-- Aditivos -->
+  <%= render 'commitments/show_addendum_commitments' %>
+
   <!-- OSs Aprovadas -->
   <div class="card shadow-sm mb-4" id="ordens-servico-aprovadas">
     <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
@@ -220,6 +223,12 @@ breadcrumbs = [
       <% if policy(@commitment).edit? %>
         <%= link_to edit_commitment_path(@commitment), class: 'btn btn-primary' do %>
           <i class="bi bi-pencil"></i> Editar Empenho
+        <% end %>
+      <% end %>
+
+      <% if policy(@commitment).edit? %>
+        <%= link_to new_commitment_addendum_commitment_path(@commitment), class: 'btn btn-success' do %>
+          <i class="bi bi-plus-circle"></i> Adicionar Aditivo
         <% end %>
       <% end %>
       

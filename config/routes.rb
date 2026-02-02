@@ -253,6 +253,7 @@ resources :reference_prices
 			patch :inactivate
 			post :save_cancel_commitment
 		end
+		resources :addendum_commitments, only: [:new, :create, :destroy]
 	end
 	get '/get_vehicles_by_cost_center_id', :to => 'vehicles#vehicles_by_cost_center_id'
 	get '/get_vehicles_by_client_id', :to => 'vehicles#vehicles_by_client_id'

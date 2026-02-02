@@ -1,0 +1,29 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: false, href: commitments_path, text: Commitment.model_name.human(count: 2)},
+  {active: false, href: commitment_path(@commitment), text: @commitment.commitment_number},
+  {active: true, href: '#', text: 'Novo Aditivo'},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+  
+  <div class="row mb-3">
+    <div class="col-12">
+      <h4 class="mb-0">
+        <i class="bi bi-plus-circle me-2"></i>Novo Aditivo para Empenho <%= @commitment.commitment_number %>
+      </h4>
+    </div>
+  </div>
+
+  <div class="card shadow-sm">
+    <div class="card-header bg-success text-white">
+      <i class="bi bi-file-earmark-plus me-2"></i>Dados do Aditivo
+    </div>
+    <div class="card-body">
+      <%= render 'commitments/forms/form_addendum_commitments' %>
+    </div>
+  </div>
+</div>

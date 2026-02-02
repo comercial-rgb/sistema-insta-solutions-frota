@@ -79,6 +79,9 @@ class Commitment < ApplicationRecord
   has_many :cancel_commitments, validate: false, dependent: :destroy
   accepts_nested_attributes_for :cancel_commitments, reject_if: ->(attributes){ attributes['number'].blank? }, allow_destroy: true
 
+  has_many :addendum_commitments, dependent: :destroy
+  accepts_nested_attributes_for :addendum_commitments, reject_if: ->(attributes){ attributes['number'].blank? }, allow_destroy: true
+
   validates_presence_of :client_id
   # category_id pode ser nil para empenhos "Global" (Peças e Serviços)
   validates :contract_id, :commitment_number, :commitment_value, presence: true, if: Proc.new { |a| a.skip_validations.nil? }
@@ -278,11 +281,12 @@ class Commitment < ApplicationRecord
   end
 
   def self.sum_budget_value(commitment)
-    # Commitment value - Cancel commitment value
+    # Commitment value + Addendum values - Cancel commitment value
     return 0 if commitment.nil?
     commitment_value = commitment.commitment_value.to_f
+    addendum_value = commitment.addendum_commitments.where(active: true).sum(:total_value).to_f
     cancel_commitment_value = commitment.cancel_commitments.sum('cancel_commitments.value').to_f
-    result = commitment_value - cancel_commitment_value
+    result = commitment_value + addendum_value - cancel_commitment_value
     return result
   end
 
