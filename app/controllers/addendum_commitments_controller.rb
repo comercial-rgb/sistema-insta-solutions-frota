@@ -4,6 +4,12 @@ class AddendumCommitmentsController < ApplicationController
   
   def new
     @addendum_commitment = @commitment.addendum_commitments.build
+    
+    # Calcular valor disponível no controller
+    if @commitment.contract.present?
+      @contract_available_value = @commitment.contract.get_disponible_value(@commitment.id)
+    end
+    
     authorize @commitment, :edit?
   end
 
