@@ -40,7 +40,6 @@ test:
   password: <%= ENV.fetch('DATABASE_PASSWORD', 'password') %>
   host: <%= ENV.fetch('DATABASE_HOST', '127.0.0.1') %>
   port: <%= ENV.fetch('DATABASE_PORT', '3306') %>
-  host: 127.0.0.1
 
 staging:
   variables:
