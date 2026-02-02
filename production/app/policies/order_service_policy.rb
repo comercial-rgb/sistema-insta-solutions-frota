@@ -52,11 +52,18 @@ class OrderServicePolicy < ApplicationPolicy
     # Fornecedor: pode editar Diagnóstico em aberto quando atribuído a ele
     return true if user.provider? && record.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID && record.order_service_status_id == OrderServiceStatus::EM_ABERTO_ID && record.provider_id == user.id
     
-    # Admin/Gestor/Adicional: podem editar OS quando:
-    # 1. OS está em status editável (Em Aberto ou Aguardando Avaliação)
-    # 2. Não existem propostas ativas (não canceladas/reprovadas)
-    if user.admin? || (user.manager? && record.client_id == user.client_id) || (user.additional? && record.client_id == user.client_id)
-      is_editable_status = [OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID].include?(record.order_service_status_id)
+    # REGRA: Edição permitida SOMENTE até status "Aguardando Avaliação de Proposta"
+    # Status editáveis: Em Aberto ou Aguardando Avaliação
+    is_editable_status = [OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID].include?(record.order_service_status_id)
+    
+    # Admin: pode editar quando status permite E não há propostas ativas
+    if user.admin?
+      has_no_active_proposals = !record.has_active_proposals?
+      return is_editable_status && has_no_active_proposals
+    end
+    
+    # Gestor/Adicional: podem editar quando status permite, não há propostas ativas E OS pertence ao seu cliente
+    if (user.manager? || user.additional?) && record.client_id == user.client_id
       has_no_active_proposals = !record.has_active_proposals?
       return is_editable_status && has_no_active_proposals
     end

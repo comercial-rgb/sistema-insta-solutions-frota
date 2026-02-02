@@ -103,6 +103,13 @@ class OrderService < ApplicationRecord
       ).distinct
   }
 
+  # Scope para relatórios: mostra apenas OSs onde o fornecedor tem propostas (exclui rejected)
+  scope :with_provider_proposals_only, lambda { |provider_id|
+    joins(:order_service_proposals)
+      .where('order_service_proposals.provider_id = ?', provider_id)
+      .distinct
+  }
+
   scope :by_provider_id_or_null, lambda { |value|
     if value.present?
       where(

@@ -62,6 +62,9 @@ class OrderServiceProposal < ApplicationRecord
 	accepts_nested_attributes_for :attachments, :reject_if => :all_blank
 
   validates_presence_of :order_service_id, :provider_id, :order_service_proposal_status_id, if: Proc.new { |obj| obj.skip_validation != true }
+  
+  # Validação: Apenas uma proposta ativa por OS (exceto complementos)
+  validate :only_one_active_proposal_per_order_service, unless: :is_complement, if: :should_validate_uniqueness?
 
   def get_text_name
     self.id.to_s
@@ -333,6 +336,37 @@ class OrderServiceProposal < ApplicationRecord
         end
       end
     end
+  end
+  
+  # Validação: Garantir que apenas uma proposta ativa existe por OS (exceto complementos)
+  def only_one_active_proposal_per_order_service
+    return if order_service_id.nil?
+    return if skip_validation == true
+    
+    # Verificar apenas quando o status for "ativo" (aprovada, autorizada, etc.)
+    return unless order_service_proposal_status_id.in?(OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES)
+    
+    # Buscar outras propostas ativas da mesma OS (não-complementos)
+    other_active_proposals = OrderService.find(order_service_id)
+      .order_service_proposals
+      .unscoped
+      .where.not(id: self.id || 0) # Excluir a própria proposta
+      .where(is_complement: [false, nil]) # Apenas propostas principais
+      .where(order_service_proposal_status_id: OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES)
+    
+    if other_active_proposals.exists?
+      existing_code = other_active_proposals.first.code
+      errors.add(:base, 
+        "Já existe uma proposta ativa (#{existing_code}) para esta Ordem de Serviço. " \
+        "Para aprovar ou autorizar esta proposta, é necessário cancelar a proposta anterior.")
+    end
+  end
+  
+  # Determinar quando executar a validação de unicidade
+  def should_validate_uniqueness?
+    # Executar quando estiver alterando o status para um status ativo
+    order_service_proposal_status_id_changed? && 
+      order_service_proposal_status_id.in?(OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES)
   end
 
 end

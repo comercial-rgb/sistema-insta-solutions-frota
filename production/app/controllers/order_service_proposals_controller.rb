@@ -528,6 +528,21 @@ class OrderServiceProposalsController < ApplicationController
     elsif @current_user.manager? || @current_user.admin?
       order_service = @order_service_proposal.order_service
       
+      # ⚠️ VALIDAÇÃO: Verificar se já existe proposta aprovada/autorizada para a mesma OS
+      existing_active = order_service.order_service_proposals
+        .unscoped
+        .where.not(id: @order_service_proposal.id)
+        .where(is_complement: [false, nil])
+        .where(order_service_proposal_status_id: OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES)
+      
+      if existing_active.exists?
+        flash[:error] = "Não é possível aprovar esta proposta. " \
+                        "Já existe uma proposta ativa (#{existing_active.first.code}) para esta OS. " \
+                        "Cancele ou reprove a proposta anterior antes de aprovar uma nova."
+        redirect_back(fallback_location: :back)
+        return
+      end
+      
       order_service_proposals = order_service.order_service_proposals
       .where(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID)
       .where.not(id: @order_service_proposal.id)
@@ -616,6 +631,25 @@ class OrderServiceProposalsController < ApplicationController
       flash[:success] = "Pré-autorização realizada com sucesso. Aguardando autorização do gestor."
     # Usuário GESTOR ou ADMIN faz autorização final
     elsif @current_user.manager? || @current_user.admin?
+      # ⚠️ VALIDAÇÃO: Verificar se já existe proposta autorizada para a mesma OS
+      existing_authorized = @order_service_proposal.order_service.order_service_proposals
+        .unscoped
+        .where.not(id: @order_service_proposal.id)
+        .where(is_complement: [false, nil])
+        .where(order_service_proposal_status_id: [
+          OrderServiceProposalStatus::AUTORIZADA_ID,
+          OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+          OrderServiceProposalStatus::PAGA_ID
+        ])
+      
+      if existing_authorized.exists?
+        flash[:error] = "Não é possível autorizar esta proposta. " \
+                        "Já existe uma proposta autorizada (#{existing_authorized.first.code}) para esta OS. " \
+                        "Entre em contato com o suporte se precisar substituir a proposta."
+        redirect_back(fallback_location: :back)
+        return
+      end
+      
       # Manually create an audit record
       OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, @order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::AUTORIZADA_ID)
       @order_service_proposal.update_columns(
@@ -824,6 +858,21 @@ class OrderServiceProposalsController < ApplicationController
 
   def cancel_order_service_proposal
     authorize @order_service_proposal
+    
+    # ⚠️ VALIDAÇÃO: Não permitir cancelar proposta em status crítico (autorizada/paga)
+    critical_statuses = [
+      OrderServiceProposalStatus::AUTORIZADA_ID,
+      OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+      OrderServiceProposalStatus::PAGA_ID
+    ]
+    
+    if @order_service_proposal.order_service_proposal_status_id.in?(critical_statuses)
+      flash[:error] = "Não é possível cancelar uma proposta que já foi autorizada ou está em processo de pagamento. " \
+                      "Entre em contato com o suporte para assistência."
+      redirect_back(fallback_location: :back)
+      return
+    end
+    
     @order_service_proposal.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::CANCELADA_ID)
     OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, @order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::CANCELADA_ID)
     flash[:success] = OrderServiceProposal.human_attribute_name(:cancel_proposal_success)
