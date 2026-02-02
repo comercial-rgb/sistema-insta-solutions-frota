@@ -46,7 +46,7 @@ breadcrumbs = [
               <%= f.label :client_id, 'Cliente', class: 'form-label small' %>
               <%= f.select :client_id,
                   options_from_collection_for_select(
-                    User.where(user_type_id: UserType::CLIENT_ID).order(:social_name),
+                    User.client.order(:social_name),
                     :id,
                     :social_name,
                     params[:client_id]

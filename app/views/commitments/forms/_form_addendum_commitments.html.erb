@@ -21,13 +21,20 @@
           as: :string %>
     </div>
     <div class="col-12 col-md-3">
-      <%= f.association :contract,
-          label: "Contrato Vinculado",
-          collection: @commitment.contract.present? ? [@commitment.contract] : [],
-          label_method: lambda { |c| "#{c.number} - #{c.client.social_name}" },
-          include_blank: "Sem vínculo",
-          input_html: { class: 'select2', data: { commitment_id: @commitment.id } },
-          hint: @commitment.contract.present? ? "Disponível no contrato: #{CustomHelper.to_currency(@commitment.contract.get_disponible_value(@commitment.id))}" : "Empenho sem contrato vinculado" %>
+      <% if @commitment.contract.present? %>
+        <%= f.association :contract,
+            label: "Contrato Vinculado",
+            collection: [@commitment.contract],
+            label_method: lambda { |c| "#{c.number} - #{c.client&.social_name || 'Cliente não informado'}" },
+            include_blank: false,
+            input_html: { class: 'select2', disabled: true },
+            hint: "Disponível no contrato: #{CustomHelper.to_currency(@commitment.contract.get_disponible_value(@commitment.id))}" %>
+      <% else %>
+        <%= f.input :contract_id,
+            label: "Contrato Vinculado",
+            input_html: { value: 'Empenho sem contrato vinculado', disabled: true, class: 'form-control' },
+            as: :string %>
+      <% end %>
     </div>
     <div class="col-12 col-md-3">
       <%= f.input :active, 
