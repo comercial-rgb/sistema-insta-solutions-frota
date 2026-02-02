@@ -22,13 +22,14 @@
     </div>
     <div class="col-12 col-md-3">
       <% if @commitment.contract.present? %>
-        <%= f.association :contract,
+        <%= f.input :contract_id,
             label: "Contrato Vinculado",
-            collection: [@commitment.contract],
-            label_method: lambda { |c| "#{c.number} - #{c.client&.social_name || 'Cliente não informado'}" },
-            include_blank: false,
-            input_html: { class: 'select2', disabled: true },
-            hint: "Disponível no contrato: #{CustomHelper.to_currency(@contract_available_value || 0)}" %>
+            input_html: { 
+              value: "#{@commitment.contract.number} - Disponível: #{CustomHelper.to_currency(@contract_available_value || 0)}", 
+              disabled: true, 
+              class: 'form-control' 
+            },
+            as: :string %>
       <% else %>
         <%= f.input :contract_id,
             label: "Contrato Vinculado",
