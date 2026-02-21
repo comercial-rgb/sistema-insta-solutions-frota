@@ -66,6 +66,42 @@ breadcrumbs = [
           %>
         </div>
         
+        <!-- Fornecedor -->
+        <div class="col-md-3">
+          <%= label_tag :provider_id, 'Fornecedor', class: 'form-label' %>
+          <%= select_tag :provider_id, 
+              options_from_collection_for_select(@providers, :id, :fantasy_name, params[:provider_id]), 
+              { include_blank: 'Todos os fornecedores', class: 'form-select' } 
+          %>
+        </div>
+        
+        <!-- Centro de Custo -->
+        <div class="col-md-3">
+          <%= label_tag :cost_center_id, 'Centro de Custo', class: 'form-label' %>
+          <%= select_tag :cost_center_id, 
+              options_from_collection_for_select(@cost_centers, :id, :name, params[:cost_center_id]), 
+              { include_blank: 'Todos os centros de custo', class: 'form-select' } 
+          %>
+        </div>
+        
+        <!-- Subunidade -->
+        <div class="col-md-3">
+          <%= label_tag :sub_unit_id, 'Subunidade', class: 'form-label' %>
+          <%= select_tag :sub_unit_id, 
+              options_from_collection_for_select(@sub_units, :id, :name, params[:sub_unit_id]), 
+              { include_blank: 'Todas as subunidades', class: 'form-select' } 
+          %>
+        </div>
+        
+        <!-- Veículo -->
+        <div class="col-md-3">
+          <%= label_tag :vehicle_id, 'Veículo', class: 'form-label' %>
+          <%= select_tag :vehicle_id, 
+              options_from_collection_for_select(@vehicles, :id, :board, params[:vehicle_id]), 
+              { include_blank: 'Todos os veículos', class: 'form-select' } 
+          %>
+        </div>
+        
         <!-- Botões de Ação -->
         <div class="col-12">
           <div class="d-flex gap-2">
@@ -110,6 +146,8 @@ breadcrumbs = [
                 <th>Tipo</th>
                 <th>Status</th>
                 <th>Data Criação</th>
+                <th class="text-end">Valor Peças</th>
+                <th class="text-end">Valor Serviços</th>
                 <th class="text-end">Valor Total</th>
                 <th class="text-center">Ações</th>
               </tr>
@@ -137,6 +175,12 @@ breadcrumbs = [
                   </td>
                   <td><%= os.created_at.strftime('%d/%m/%Y') %></td>
                   <td class="text-end">
+                    <%= CustomHelper.to_currency(os.total_parts_value || 0) %>
+                  </td>
+                  <td class="text-end">
+                    <%= CustomHelper.to_currency(os.total_services_value || 0) %>
+                  </td>
+                  <td class="text-end">
                     <strong><%= CustomHelper.to_currency(os.total_value || 0) %></strong>
                   </td>
                   <td class="text-center">
@@ -150,6 +194,12 @@ breadcrumbs = [
             <tfoot class="table-light">
               <tr>
                 <th colspan="7" class="text-end">TOTAL:</th>
+                <th class="text-end">
+                  <strong><%= CustomHelper.to_currency(@order_services.sum(&:total_parts_value)) %></strong>
+                </th>
+                <th class="text-end">
+                  <strong><%= CustomHelper.to_currency(@order_services.sum(&:total_services_value)) %></strong>
+                </th>
                 <th class="text-end">
                   <strong><%= CustomHelper.to_currency(@order_services.sum(&:total_value)) %></strong>
                 </th>
