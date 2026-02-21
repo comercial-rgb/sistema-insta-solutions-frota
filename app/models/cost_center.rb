@@ -120,18 +120,22 @@ class CostCenter < ApplicationRecord
   end
 
   def self.sum_budget_value(cost_center)
-    # Commitment value - Cancel commitment value (apenas empenhos ativos)
-    active_commitments = cost_center.commitments.where(active: true)
-    commitment_value = active_commitments.sum(:commitment_value).to_f
-    cancel_commitment_value = active_commitments.joins(:cancel_commitments).sum('cancel_commitments.value').to_f
+    # Commitment value - Cancel commitment value (todos os empenhos, ativos e inativos)
+    # Empenhos inativos são apenas ocultos na abertura de OS, mas seu valor
+    # orçamentário deve continuar contando pois o consumo já foi realizado
+    all_commitments = cost_center.commitments
+    commitment_value = all_commitments.sum(:commitment_value).to_f
+    cancel_commitment_value = all_commitments.joins(:cancel_commitments).sum('cancel_commitments.value').to_f
     result = commitment_value - cancel_commitment_value
     return result
   end
 
   def self.sum_budget_value_contract(cost_center)
-    # Commitment value - Cancel commitment value (apenas empenhos e contratos ativos)
-    active_commitments = cost_center.commitments.where(active: true).includes(:contract)
-    contracts = active_commitments.map(&:contract).compact.uniq.select(&:active)
+    # Commitment value - Cancel commitment value (todos os empenhos, contratos ativos)
+    # Empenhos inativos são apenas ocultos na abertura de OS, mas seu valor
+    # orçamentário deve continuar contando pois o consumo já foi realizado
+    all_commitments = cost_center.commitments.includes(:contract)
+    contracts = all_commitments.map(&:contract).compact.uniq.select(&:active)
     result = contracts.map { |contract| contract.get_total_value }.sum.to_f
     return result
   end
