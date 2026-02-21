@@ -1,1 +1,1 @@
-<%= truncate_html(record.message, length: 50) %>
+<%= truncate(strip_tags(record.message), length: 80) %>
