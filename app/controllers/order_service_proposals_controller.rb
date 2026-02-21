@@ -351,8 +351,10 @@ class OrderServiceProposalsController < ApplicationController
         OrderServiceProposal.update_total_values(@order_service_proposal)
         redirect_to edit_order_service_proposal_path(id: @order_service_proposal.id)
       else
-        unless @current_user.admin?
-          @order_service_proposal.audits.last.update!(
+        # Transição de status ao inserir NF: APROVADA → NOTA_FISCAL_INSERIDA
+        # Aplica para TODOS os usuários (admin, gestor, fornecedor)
+        if @order_service_proposal.order_service.order_service_status_id == OrderServiceStatus::APROVADA_ID
+          @order_service_proposal.audits.create!(
             user: @current_user,
             action: 'update',
             audited_changes: {
@@ -542,6 +544,28 @@ class OrderServiceProposalsController < ApplicationController
     elsif @current_user.manager? || @current_user.admin?
       order_service = @order_service_proposal.order_service
       
+      # 🔒 Verificar se já existe outra proposta ativa (APROVADA ou posterior) nesta OS
+      # Isso previne cenários onde duas propostas ficam ativas simultaneamente
+      active_proposal_statuses = [
+        OrderServiceProposalStatus::APROVADA_ID,
+        OrderServiceProposalStatus::NOTAS_INSERIDAS_ID,
+        OrderServiceProposalStatus::AUTORIZADA_ID,
+        OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+        OrderServiceProposalStatus::PAGA_ID
+      ]
+      
+      existing_active_proposals = order_service.order_service_proposals
+        .not_complement
+        .where(order_service_proposal_status_id: active_proposal_statuses)
+        .where.not(id: @order_service_proposal.id)
+      
+      if existing_active_proposals.any?
+        proposal_codes = existing_active_proposals.map(&:code).join(', ')
+        flash[:error] = "Não é possível aprovar: já existe(m) proposta(s) ativa(s) nesta OS (#{proposal_codes}). Cancele ou reprove a proposta existente antes de aprovar uma nova."
+        return redirect_back(fallback_location: :back)
+      end
+      
+      # Reprovar propostas que estão em AGUARDANDO_AVALIACAO
       order_service_proposals = order_service.order_service_proposals
       .where(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID)
       .where.not(id: @order_service_proposal.id)

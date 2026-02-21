@@ -11,7 +11,7 @@
         <span class="text-danger">Os valores das notas fiscais terão que ser iguais ao dos orçamentos aprovado, não podendo haver divergências.</span>
         <span class="fw-bold text-danger">Notas com divergências poderão ser rejeitadas.</span>
     </div>
-    <%= f.input :order_service_proposal_status_id, as: :hidden, input_html: {value: (@current_user.admin? ? f.object.order_service_proposal_status_id : OrderServiceProposalStatus::NOTAS_INSERIDAS_ID)} %>
+    <%= f.input :order_service_proposal_status_id, as: :hidden, input_html: {value: (f.object.order_service_proposal_status_id == OrderServiceProposalStatus::APROVADA_ID ? OrderServiceProposalStatus::NOTAS_INSERIDAS_ID : f.object.order_service_proposal_status_id)} %>
     <%= render 'order_service_proposals/forms/form_order_service_invoices', f:f, order_service_proposal: @order_service_proposal %>
     <div class="row my-3">
         <div class="col-12 mt-3">

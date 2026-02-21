@@ -1283,7 +1283,9 @@ class OrderServicesController < ApplicationController
       order_service_ids = params[:order_service_ids].split(",")
       all_order_services = OrderService.where(id: [order_service_ids])
       all_order_services.each do |order_service|
+        # 🔒 Autorizar apenas propostas com NOTAS_INSERIDAS (não complementos)
         order_service_proposals = order_service.order_service_proposals
+        .not_complement
         .where(order_service_proposal_status_id: OrderServiceProposalStatus::NOTAS_INSERIDAS_ID)
         order_service_proposals.each do |order_service_proposal|
           # Manually create an audit record

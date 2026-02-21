@@ -337,8 +337,10 @@ class OrderServiceProposalsController < ApplicationController
         OrderServiceProposal.update_total_values(@order_service_proposal)
         redirect_to edit_order_service_proposal_path(id: @order_service_proposal.id)
       else
-        unless @current_user.admin?
-          @order_service_proposal.audits.last.update!(
+        # Transição de status ao inserir NF: APROVADA → NOTA_FISCAL_INSERIDA
+        # Aplica para TODOS os usuários (admin, gestor, fornecedor)
+        if @order_service_proposal.order_service.order_service_status_id == OrderServiceStatus::APROVADA_ID
+          @order_service_proposal.audits.create!(
             user: @current_user,
             action: 'update',
             audited_changes: {
