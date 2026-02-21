@@ -132,6 +132,16 @@ module Utils
         end
       end
 
+      # Escapa caracteres especiais XML para evitar corrupção do DOCX
+      def escape_xml(value)
+        value.to_s
+             .gsub('&', '&amp;')
+             .gsub('<', '&lt;')
+             .gsub('>', '&gt;')
+             .gsub('"', '&quot;')
+             .gsub("'", '&apos;')
+      end
+
       def generate_docx_without_rename(template_path, output_path, replacements)
         # Lê todo o conteúdo do template em memória
         entries_data = {}
@@ -140,11 +150,11 @@ module Utils
           zip_file.each do |entry|
             content = entry.get_input_stream.read
             
-            # Substitui placeholders em arquivos XML
+            # Substitui placeholders em arquivos XML (com escape de caracteres especiais)
             if entry.name =~ /\.xml$/ || entry.name =~ /\.rels$/
               content = content.force_encoding('UTF-8')
               replacements.each do |key, value|
-                content = content.gsub(key.to_s, value.to_s)
+                content = content.gsub(key.to_s, escape_xml(value))
               end
             end
             
