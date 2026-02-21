@@ -27,6 +27,13 @@ class WebhookFinanceService
     approved_proposal = @order_service.approved_proposal
     return { success: false, error: 'OS sem proposta aprovada' } unless approved_proposal
     return { success: false, error: 'Proposta aprovada sem fornecedor cadastrado' } unless approved_proposal.provider_id.present?
+    
+    # Valida se o fornecedor tem nome cadastrado
+    provider = approved_proposal.provider
+    unless provider && (provider.fantasy_name.presence || provider.social_name.presence)
+      Rails.logger.warn "[WebhookFinance] OS #{@order_service.code} não pode ser enviada: fornecedor sem nome cadastrado (ID: #{provider&.id})"
+      return { success: false, error: 'Fornecedor sem nome cadastrado' }
+    end
 
     begin
       response = send_request
@@ -69,51 +76,45 @@ class WebhookFinanceService
     approved_proposal = @order_service.approved_proposal
     parts_value = calculate_parts_value(approved_proposal)
     services_value = calculate_services_value(approved_proposal)
-    discount_percent = calculate_discount_percent(approved_proposal)
+    discount_parts_percent = calculate_discount_parts_percent(approved_proposal)
+    discount_services_percent = calculate_discount_services_percent(approved_proposal)
     
     {
       # Campos obrigatórios
       codigo: @order_service.code,
-      numeroOrdemServico: @order_service.code, # Usa o mesmo código
-      dataReferencia: @order_service.created_at&.iso8601,
       clienteNomeFantasia: @order_service.client&.fantasy_name || @order_service.client&.social_name,
-      fornecedorNomeFantasia: approved_proposal.provider&.fantasy_name || approved_proposal.provider&.social_name,
+      fornecedorNomeFantasia: get_provider_name(approved_proposal),
       tipoServicoSolicitado: @order_service.order_service_type&.name,
       tipo: get_tipo,
       centroCusto: @order_service.cost_center&.name,
       
-      # Campos opcionais - Identificação
+      # Campos opcionais - Informações Básicas
+      numeroOrdemServico: @order_service.code,
+      dataReferencia: get_authorization_date&.strftime('%Y-%m-%d'),
       subunidade: @order_service.sub_unit&.name || '',
       placa: @order_service.vehicle&.board || '',
       veiculo: get_vehicle_description || '',
-      contrato: get_contract_number,
+      observacoes: @order_service.details.to_s.presence || '',
       
-      # Campos opcionais - Valores sem desconto
+      # Campos de Valores - OPÇÃO 2: Detalhada (separando peças e serviços)
       valorPecasSemDesconto: parts_value,
       valorServicoSemDesconto: services_value,
+      descontoPecasPerc: discount_parts_percent,
+      descontoServicoPerc: discount_services_percent,
+      valorPecasComDesconto: calculate_value_with_discount(parts_value, discount_parts_percent),
+      valorServicoComDesconto: calculate_value_with_discount(services_value, discount_services_percent),
+      valorFinal: calculate_total_value_final(approved_proposal),
       
-      # Campos opcionais - Desconto
-      descontoPercentual: discount_percent,
-      descontoPecasPerc: discount_percent, # Mesmo desconto para peças
-      descontoServicoPerc: discount_percent, # Mesmo desconto para serviços
+      # Notas Fiscais separadas por tipo
+      notaFiscalPeca: get_invoice_numbers_by_type(approved_proposal, OrderServiceInvoiceType::PECAS_ID),
+      notaFiscalServico: get_invoice_numbers_by_type(approved_proposal, OrderServiceInvoiceType::SERVICOS_ID),
       
-      # Campos opcionais - Valores com desconto (calculados)
-      valorPecasComDesconto: calculate_value_with_discount(parts_value, discount_percent),
-      valorServicoComDesconto: calculate_value_with_discount(services_value, discount_percent),
-      valorFinal: calculate_total_value(parts_value, services_value, discount_percent),
-      
-      # Campos opcionais - Notas fiscais
-      notaFiscalPeca: get_invoice_number(approved_proposal, 'peca') || '',
-      notaFiscalServico: get_invoice_number(approved_proposal, 'servico') || '',
-      
-      # Campos opcionais - Empenhos (podem ser individuais ou global)
+      # Contratos e Empenhos separados para Peças e Serviços
+      contrato: get_contract_number,
       contratoEmpenhoPecas: get_commitment_contract('parts'),
       empenhoPecas: get_commitment_number('parts'),
       contratoEmpenhoServicos: get_commitment_contract('services'),
-      empenhoServicos: get_commitment_number('services'),
-      
-      # Campos opcionais - Observações
-      observacoes: @order_service.details.to_s
+      empenhoServicos: get_commitment_number('services')
     }
   end
 
@@ -131,6 +132,31 @@ class WebhookFinanceService
     'Global'
   end
 
+  def get_provider_name(proposal)
+    return '' unless proposal&.provider
+    
+    provider = proposal.provider
+    name = provider.fantasy_name.presence || provider.social_name.presence || provider.email
+    name.to_s
+  end
+
+  def get_authorization_date
+    # Tenta buscar a data do audit quando mudou para status Autorizada (5)
+    authorization_audit = Audited::Audit
+      .where(auditable_type: 'OrderService', auditable_id: @order_service.id, action: 'update')
+      .order(created_at: :asc)
+      .find do |audit|
+        changes = YAML.load(audit.audited_changes) rescue {}
+        changes.dig('order_service_status_id', 1) == 5  # Mudou PARA status 5
+      end
+    
+    # Se encontrou o audit, usa a data dele
+    return authorization_audit.created_at if authorization_audit
+    
+    # Caso contrário, usa o updated_at da OS (fallback)
+    @order_service.updated_at
+  end
+
   def get_vehicle_description
     vehicle = @order_service.vehicle
     return nil unless vehicle
@@ -146,20 +172,75 @@ class WebhookFinanceService
   def calculate_parts_value(proposal)
     return 0.0 unless proposal
     
-    # Soma todos os itens (peças e serviços) sem desconto
-    # Não há distinção entre peças e serviços nos items
+    # Soma apenas itens da categoria PEÇAS (category_id = 1)
     total = proposal.order_service_proposal_items.sum do |item|
-      (item.total_value_without_discount || item.total_value || 0).to_f
+      category_id = item.get_category_id
+      if category_id == Category::SERVICOS_PECAS_ID
+        (item.total_value_without_discount || item.total_value || 0).to_f
+      else
+        0.0
+      end
     end
     
     total.round(2)
   end
 
   def calculate_services_value(proposal)
-    # No sistema atual, não há separação entre peças e serviços
-    # Todos estão em order_service_proposal_items
-    # Retorna 0 e deixa tudo em valorPecasSemDesconto
-    0.0
+    return 0.0 unless proposal
+    
+    # Soma apenas itens da categoria SERVIÇOS (category_id = 2)
+    total = proposal.order_service_proposal_items.sum do |item|
+      category_id = item.get_category_id
+      if category_id == Category::SERVICOS_SERVICOS_ID
+        (item.total_value_without_discount || item.total_value || 0).to_f
+      else
+        0.0
+      end
+    end
+    
+    total.round(2)
+  end
+
+  def calculate_discount_parts_percent(proposal)
+    return 0.0 unless proposal
+    
+    # Calcula desconto específico de peças
+    parts_without_discount = 0.0
+    parts_discount = 0.0
+    
+    proposal.order_service_proposal_items.each do |item|
+      category_id = item.get_category_id
+      if category_id == Category::SERVICOS_PECAS_ID
+        parts_without_discount += (item.total_value_without_discount || item.total_value || 0).to_f
+        parts_discount += (item.discount || 0).to_f
+      end
+    end
+    
+    return 0.0 if parts_without_discount == 0
+    
+    percent = (parts_discount / parts_without_discount) * 100
+    percent.round(2)
+  end
+
+  def calculate_discount_services_percent(proposal)
+    return 0.0 unless proposal
+    
+    # Calcula desconto específico de serviços
+    services_without_discount = 0.0
+    services_discount = 0.0
+    
+    proposal.order_service_proposal_items.each do |item|
+      category_id = item.get_category_id
+      if category_id == Category::SERVICOS_SERVICOS_ID
+        services_without_discount += (item.total_value_without_discount || item.total_value || 0).to_f
+        services_discount += (item.discount || 0).to_f
+      end
+    end
+    
+    return 0.0 if services_without_discount == 0
+    
+    percent = (services_discount / services_without_discount) * 100
+    percent.round(2)
   end
 
   def calculate_discount_percent(proposal)
@@ -174,13 +255,21 @@ class WebhookFinanceService
     0.0
   end
 
-  def get_invoice_number(proposal, tipo)
-    return nil unless proposal
+  def get_invoice_numbers_by_type(proposal, invoice_type_id)
+    return '' unless proposal
     
-    # Busca a primeira nota fiscal do tipo (se houver algum campo para distinguir)
-    # Como não vimos distinção, retorna o número da primeira nota ou nil
-    invoice = proposal.order_service_invoices.first
-    invoice&.number
+    # Busca todas as notas fiscais do tipo especificado e junta com vírgula
+    invoices = proposal.order_service_invoices.where(order_service_invoice_type_id: invoice_type_id)
+    return '' if invoices.empty?
+    
+    invoices.map(&:number).compact.join(', ')
+  end
+
+  def calculate_total_value_final(proposal)
+    return 0.0 unless proposal
+    
+    # Usa o total_value da proposta (já com desconto aplicado)
+    proposal.total_value.to_f.round(2)
   end
 
   def get_contract_number
@@ -188,12 +277,12 @@ class WebhookFinanceService
     # Prioriza contrato de peças, depois serviços
     if @order_service.commitment_parts_id.present?
       commitment = Commitment.find_by(id: @order_service.commitment_parts_id)
-      return commitment&.contract&.code
+      return commitment&.contract&.number&.to_s || ''
     end
     
     if @order_service.commitment_services_id.present?
       commitment = Commitment.find_by(id: @order_service.commitment_services_id)
-      return commitment&.contract&.code
+      return commitment&.contract&.number&.to_s || ''
     end
     
     ''
