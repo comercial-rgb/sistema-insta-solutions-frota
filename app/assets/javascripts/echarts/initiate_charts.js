@@ -14,10 +14,10 @@ $(document).ready(() => {
             generateBarYCategory(CURRENT_CHART_BAR_CATEGORY, chart_data_complete_json);
         }
 
-        let CHART_WATERMARK = document.getElementById(CURRENT_CHART_WATERMARK);
-        if (CHART_WATERMARK != null) {
-            let echart_values = JSON.parse($('#echart_values').val());
-            generateWatermarkChart(CURRENT_CHART_WATERMARK, echart_values);
+        let echartValuesField = document.getElementById('echart_values');
+        if (echartValuesField != null && echartValuesField.value) {
+            let echart_values = JSON.parse(echartValuesField.value);
+            generateWatermarkChart(null, echart_values);
         }
     }
 
