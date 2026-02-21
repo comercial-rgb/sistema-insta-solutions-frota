@@ -283,7 +283,9 @@ class VehiclesController < ApplicationController
       has_global: has_global,
       has_parts: has_parts,
       has_services: has_services,
-      commitments: commitments.map { |c| { id: c.id, name: c.get_formatted_name_with_pendent_value, category_id: c.category_id } }
+      commitments: commitments.map { |c| { id: c.id, name: c.get_formatted_name_with_pendent_value, category_id: c.category_id } },
+      sub_unit_name: vehicle.sub_unit&.name,
+      cost_center_name: vehicle.cost_center&.name
     }
     
     respond_to do |format|

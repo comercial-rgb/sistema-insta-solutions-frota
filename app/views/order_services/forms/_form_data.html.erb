@@ -65,6 +65,9 @@
         <% else %>
             <%= f.association :vehicle, disabled: disabled_basic_fields, collection: Vehicle.getting_data_by_user(@current_user), label_method: :board, as: :select, include_blank: t('model.select_option') %>
         <% end %>
+        <div id="vehicle-sub-unit-info" class="small text-muted mt-1" style="display:none;">
+            <i class="fa fa-info-circle"></i> Subunidade: <strong id="vehicle-sub-unit-name"></strong>
+        </div>
     </div>
     <% if !f.object.persisted? %>
         <div class="col-12 col-md-4">

@@ -716,6 +716,14 @@ $(document).ready(function () {
                 client_id: client_id
             },
             success: function (data) {
+                // Mostrar info da subunidade do veículo
+                if (data.sub_unit_name) {
+                    $('#vehicle-sub-unit-name').text(data.sub_unit_name);
+                    $('#vehicle-sub-unit-info').show();
+                } else {
+                    $('#vehicle-sub-unit-info').hide();
+                }
+                
                 // Separar empenhos por tipo
                 // SERVICOS_PECAS_ID = 1, SERVICOS_SERVICOS_ID = 2
                 let global_commitments = data.commitments.filter(c => c.category_id === null);

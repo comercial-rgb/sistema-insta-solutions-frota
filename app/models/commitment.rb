@@ -37,14 +37,19 @@ class Commitment < ApplicationRecord
 	scope :by_final_commitment_value, lambda { |value| where("commitments.commitment_value <= '#{value}'") if !value.nil? && !value.blank? }
 
   # Scope atualizado para buscar por múltiplos centros de custo e/ou subunidades
+  # Quando sub_unit_id está presente, prioriza empenhos vinculados a essa subunidade
+  # + empenhos do centro de custo que NÃO estão vinculados a nenhuma subunidade específica
   scope :by_cost_center_or_sub_unit_ids, lambda { |cost_center_ids, sub_unit_ids|
     cost_center_ids = Array(cost_center_ids).compact
     sub_unit_ids = Array(sub_unit_ids).compact
     
     if cost_center_ids.present? && sub_unit_ids.present?
+      # Quando temos ambos: mostra empenhos da subunidade específica
+      # + empenhos do centro de custo que NÃO estão vinculados a nenhuma subunidade
       joins("LEFT JOIN commitment_cost_centers ON commitment_cost_centers.commitment_id = commitments.id")
         .where(
-          "commitment_cost_centers.cost_center_id IN (:cost_center_ids) OR commitments.cost_center_id IN (:cost_center_ids) OR commitments.sub_unit_id IN (:sub_unit_ids)",
+          "(commitments.sub_unit_id IN (:sub_unit_ids)) OR " \
+          "((commitment_cost_centers.cost_center_id IN (:cost_center_ids) OR commitments.cost_center_id IN (:cost_center_ids)) AND (commitments.sub_unit_id IS NULL))",
           cost_center_ids: cost_center_ids, sub_unit_ids: sub_unit_ids
         )
         .distinct
