@@ -753,18 +753,20 @@ class OrderService < ApplicationRecord
 
     selected_cost_center_ids = cost_center_ids.presence || cost_centers.map(&:id)
 
-    # 1) Saldo inicial = soma dos valores totais dos contratos (diretos ou via empenhos)
+    # 1) Saldo inicial = soma dos valores totais dos contratos ATIVOS (diretos ou via empenhos ativos)
     total_contracts_value = 0
-    contracts_from_cost_centers = CostCenter.where(id: selected_cost_center_ids).map(&:contracts).flatten
-    contracts_from_commitments = Commitment.by_cost_center_or_sub_unit_ids(selected_cost_center_ids, sub_unit_ids).map(&:contract).compact
+    contracts_from_cost_centers = CostCenter.where(id: selected_cost_center_ids).map(&:contracts).flatten.select(&:active)
+    contracts_from_commitments = Commitment.by_cost_center_or_sub_unit_ids(selected_cost_center_ids, sub_unit_ids)
+                                           .where(active: true).map(&:contract).compact.select(&:active)
     contracts_for_selection = (contracts_from_cost_centers + contracts_from_commitments).uniq
     contracts_for_selection.each do |contract|
       total_contracts_value += contract.get_total_value.to_f
     end
 
-    # 2) Saldo dos empenhos criados (aplicando filtro por cost_center OU sub_unit)
+    # 2) Saldo dos empenhos ATIVOS criados (aplicando filtro por cost_center OU sub_unit)
     total_commitments_value = 0
     commitments_query = Commitment.by_cost_center_or_sub_unit_ids(selected_cost_center_ids, sub_unit_ids)
+                                  .where(active: true)
     commitments_query.each do |commitment|
       commitment_value = commitment.commitment_value.to_f
       cancel_value = commitment.cancel_commitments.sum(:value).to_f
