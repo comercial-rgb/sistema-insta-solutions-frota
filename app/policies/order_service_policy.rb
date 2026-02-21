@@ -34,7 +34,7 @@ class OrderServicePolicy < ApplicationPolicy
   end
 
   def show_order_services?
-    !user.nil?
+    user.admin? || user.manager? || user.additional? || user.provider?
   end
 
   def create?
@@ -83,16 +83,16 @@ class OrderServicePolicy < ApplicationPolicy
   def can_generate_proposal?
     (
       user.provider? &&
-      !user.rejected_order_services.map(&:id).include?(record.id) &&
+      !user.rejected_order_services.exists?(id: record.id) &&
       (record.order_service_status_id == OrderServiceStatus::EM_ABERTO_ID || record.order_service_status_id == OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID) &&
-      record.order_service_proposals.select{|item| item.provider_id == user.id && [
+      !record.order_service_proposals.where(provider_id: user.id, order_service_proposal_status_id: [
         OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID,
         OrderServiceProposalStatus::APROVADA_ID,
         OrderServiceProposalStatus::NOTAS_INSERIDAS_ID,
         OrderServiceProposalStatus::AUTORIZADA_ID,
         OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
         OrderServiceProposalStatus::PAGA_ID,
-      ].include?(item.order_service_proposal_status_id)}.length == 0 &&
+      ]).exists? &&
       record.provider_id != user.id
     )
   end
@@ -130,15 +130,15 @@ class OrderServicePolicy < ApplicationPolicy
   end
 
   def can_manage?
-    user.admin? || ((user.manager? || user.additional?))
+    user.admin? || ((user.manager? || user.additional?) && user.client_id == record.client_id)
   end
 
   def reject_order_service?
-    (user.provider? && !user.rejected_order_services.map(&:id).include?(record.id)) && (record.order_service_status_id == OrderServiceStatus::EM_ABERTO_ID || record.order_service_status_id == OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID) && record.provider_id != user.id
+    (user.provider? && !user.rejected_order_services.exists?(id: record.id)) && (record.order_service_status_id == OrderServiceStatus::EM_ABERTO_ID || record.order_service_status_id == OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID) && record.provider_id != user.id
   end
 
   def unreject_order_service?
-    (user.provider? && user.rejected_order_services.map(&:id).include?(record.id)) && ([OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID].include?(record.order_service_status_id))
+    (user.provider? && user.rejected_order_services.exists?(id: record.id)) && ([OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID].include?(record.order_service_status_id))
   end
 
   def dashboard?
@@ -155,7 +155,7 @@ class OrderServicePolicy < ApplicationPolicy
   end
 
   def print_no_values?
-    user.present?
+    user.admin? || user.manager? || user.additional? || user.provider?
   end
   
   # Permissão para solicitar reavaliação (apenas Diagnóstico em Aguardando avaliação)

@@ -31,7 +31,7 @@ class ProviderDashboardController < ApplicationController
     # OSs em aberto (disponíveis para o fornecedor responder - SEM proposta ativa ainda)
     provider_address_state_id = @provider.address&.state_id
     provider_service_types_ids = @provider.provider_service_types.pluck(:id).uniq
-    rejected_ids = @provider.rejected_order_services.map(&:id)
+    rejected_ids = @provider.rejected_order_services.pluck(:id)
     
     # 📋 LÓGICA CORRIGIDA:
     # Mostra OS apenas se o fornecedor NÃO tem proposta ativa (não cancelada/reprovada)
@@ -42,9 +42,10 @@ class ProviderDashboardController < ApplicationController
     # - Diagnóstico enviado para cotação (provider_id foi limpo, mas fornecedor original já tem proposta)
     
     if provider_address_state_id.present? && provider_service_types_ids.present?
-      @os_em_aberto = OrderService
+      scope = OrderService
         .where(order_service_status_id: [OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID])
-        .where.not(id: rejected_ids)
+      scope = scope.where.not(id: rejected_ids) if rejected_ids.any?
+      @os_em_aberto = scope
         .where(
           "(
             order_services.provider_id = ? OR order_services.provider_id IS NULL
@@ -78,24 +79,25 @@ class ProviderDashboardController < ApplicationController
       @os_em_aberto = OrderService.none
     end
     
-    @os_em_aberto_count = @os_em_aberto.size
+    @os_em_aberto_count = @os_em_aberto.except(:limit, :offset, :order, :includes).count
     
-    @propostas_aprovadas_count = OrderServiceProposal.by_provider_id(@provider.id)
-      .where(order_service_proposal_status_id: OrderServiceProposalStatus::APROVADA_ID).count
+    # Consolidar contagens de propostas em uma única query
+    proposal_counts = OrderServiceProposal.by_provider_id(@provider.id)
+      .where(order_service_proposal_status_id: [
+        OrderServiceProposalStatus::APROVADA_ID,
+        OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID,
+        OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
+        OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+        OrderServiceProposalStatus::PAGA_ID
+      ])
+      .group(:order_service_proposal_status_id)
+      .count
     
-    @propostas_aguardando_count = OrderServiceProposal.by_provider_id(@provider.id)
-      .where(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID).count
-    
-    @propostas_rejeitadas_count = OrderServiceProposal.by_provider_id(@provider.id)
-      .where(order_service_proposal_status_id: OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID).count
-    
-    # Propostas aguardando pagamento
-    @propostas_aguardando_pagamento_count = OrderServiceProposal.by_provider_id(@provider.id)
-      .where(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID).count
-    
-    # Propostas pagas
-    @propostas_pagas_count = OrderServiceProposal.by_provider_id(@provider.id)
-      .where(order_service_proposal_status_id: OrderServiceProposalStatus::PAGA_ID).count
+    @propostas_aprovadas_count = proposal_counts[OrderServiceProposalStatus::APROVADA_ID] || 0
+    @propostas_aguardando_count = proposal_counts[OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID] || 0
+    @propostas_rejeitadas_count = proposal_counts[OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID] || 0
+    @propostas_aguardando_pagamento_count = proposal_counts[OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID] || 0
+    @propostas_pagas_count = proposal_counts[OrderServiceProposalStatus::PAGA_ID] || 0
     
     # Valor total de propostas aprovadas
     @total_valor_aprovado = OrderServiceProposal.by_provider_id(@provider.id)
@@ -135,14 +137,17 @@ class ProviderDashboardController < ApplicationController
     
     @provider = @current_user
     rejected_count = 0
+    already_rejected_ids = @provider.rejected_order_services.where(id: order_service_ids).pluck(:id)
     
-    order_service_ids.each do |os_id|
-      os = OrderService.find_by(id: os_id)
-      
-      if os && !@provider.rejected_order_services.include?(os)
-        @provider.rejected_order_services << os
-        rejected_count += 1
-      end
+    # Validar que as OSs estão em status aberto (segurança: não aceitar IDs arbitrários)
+    valid_os = OrderService
+      .where(id: order_service_ids)
+      .where(order_service_status_id: [OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID])
+      .where.not(id: already_rejected_ids)
+    
+    valid_os.each do |os|
+      @provider.rejected_order_services << os
+      rejected_count += 1
     end
     
     if rejected_count > 0
@@ -166,7 +171,7 @@ class ProviderDashboardController < ApplicationController
     
     @provider = @current_user
     
-    if @provider.rejected_order_services.include?(os)
+    if @provider.rejected_order_services.exists?(os.id)
       @provider.rejected_order_services.delete(os)
       redirect_to rejections_provider_dashboard_path, notice: "Rejeição revertida com sucesso! Você pode enviar propostas para esta OS novamente."
     else

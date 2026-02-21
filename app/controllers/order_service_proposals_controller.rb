@@ -45,6 +45,7 @@ class OrderServiceProposalsController < ApplicationController
     authorize OrderServiceProposal
     if (params[:order_service_proposal_status_id].nil? || params[:order_service_proposal_status_id].blank? || params[:order_service_proposal_status_id].to_i == OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID)
       user_not_authorized
+      return
     end
 
     @order_service_proposal_status = OrderServiceProposalStatus.where(id: params[:order_service_proposal_status_id]).first
@@ -235,14 +236,6 @@ class OrderServiceProposalsController < ApplicationController
   def edit
     authorize @order_service_proposal
     
-    # 🔧 CORREÇÃO REAVALIAÇÃO: Garantir que proposta esteja em EM_CADASTRO para permitir edição
-    # Quando admin reprova, a proposta volta para EM_CADASTRO_ID
-    # Fornecedor pode editar apenas se estiver em EM_CADASTRO_ID
-    if @order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::EM_CADASTRO_ID
-      # Já está em cadastro, pode editar normalmente
-      @order_service_proposal.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::EM_CADASTRO_ID)
-    end
-    
     # Carregar limites do grupo de serviços (para Requisição)
     @service_max_values = {}
     os = @order_service_proposal.order_service
@@ -261,6 +254,7 @@ class OrderServiceProposalsController < ApplicationController
     # Limpar service_id="novo" antes de criar o objeto
     cleaned_params = clean_provider_service_temps_params(order_service_proposal_params)
     @order_service_proposal = OrderServiceProposal.new(cleaned_params)
+    @order_service_proposal.provider_id = @current_user.id
     
     if !params[:save_and_submit].present?
       @order_service_proposal.skip_validation = true
@@ -821,7 +815,7 @@ class OrderServiceProposalsController < ApplicationController
       
       sending_order_service_proposals_to_all_providers(order_service, last_proposal)
       message = OrderServiceProposal.human_attribute_name(:all_reproved_with_success)
-    rescue Exception => e
+    rescue StandardError => e
       result = false
       message = e.message
     end
@@ -897,8 +891,9 @@ class OrderServiceProposalsController < ApplicationController
 
   def cancel_order_service_proposal
     authorize @order_service_proposal
+    old_status_id = @order_service_proposal.order_service_proposal_status_id
     @order_service_proposal.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::CANCELADA_ID)
-    OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, @order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::CANCELADA_ID)
+    OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, old_status_id, OrderServiceProposalStatus::CANCELADA_ID)
     flash[:success] = OrderServiceProposal.human_attribute_name(:cancel_proposal_success)
     redirect_back(fallback_location: :back)
   end
@@ -1129,8 +1124,6 @@ class OrderServiceProposalsController < ApplicationController
   def order_service_proposal_params
     params.require(:order_service_proposal).permit(:id,
     :order_service_id,
-    :provider_id,
-    :order_service_proposal_status_id,
     :details,
     :total_value,
     :total_discount,
