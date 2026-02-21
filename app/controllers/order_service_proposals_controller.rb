@@ -544,54 +544,70 @@ class OrderServiceProposalsController < ApplicationController
     elsif @current_user.manager? || @current_user.admin?
       order_service = @order_service_proposal.order_service
       
-      # 🔒 Verificar se já existe outra proposta ativa (APROVADA ou posterior) nesta OS
-      # Isso previne cenários onde duas propostas ficam ativas simultaneamente
-      active_proposal_statuses = [
-        OrderServiceProposalStatus::APROVADA_ID,
-        OrderServiceProposalStatus::NOTAS_INSERIDAS_ID,
-        OrderServiceProposalStatus::AUTORIZADA_ID,
-        OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
-        OrderServiceProposalStatus::PAGA_ID
-      ]
+      # 🔒 Aprovação final dentro de transaction com lock pessimista nos empenhos
+      # Previne race conditions (duas aprovações simultâneas consumindo o mesmo saldo)
+      approval_error = nil
       
-      existing_active_proposals = order_service.order_service_proposals
-        .not_complement
-        .where(order_service_proposal_status_id: active_proposal_statuses)
+      ActiveRecord::Base.transaction do
+        # Re-verifica saldo com lock FOR UPDATE nos empenhos (garante atomicidade)
+        locked_balance_check = order_service.check_commitment_balance_with_lock!(parts_value, services_value)
+        unless locked_balance_check[:valid]
+          approval_error = "Não é possível aprovar: #{locked_balance_check[:message]}"
+          raise ActiveRecord::Rollback
+        end
+
+        # 🔒 Verificar se já existe outra proposta ativa (APROVADA ou posterior) nesta OS
+        active_proposal_statuses = [
+          OrderServiceProposalStatus::APROVADA_ID,
+          OrderServiceProposalStatus::NOTAS_INSERIDAS_ID,
+          OrderServiceProposalStatus::AUTORIZADA_ID,
+          OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+          OrderServiceProposalStatus::PAGA_ID
+        ]
+        
+        existing_active_proposals = order_service.order_service_proposals
+          .not_complement
+          .where(order_service_proposal_status_id: active_proposal_statuses)
+          .where.not(id: @order_service_proposal.id)
+        
+        if existing_active_proposals.any?
+          proposal_codes = existing_active_proposals.map(&:code).join(', ')
+          approval_error = "Não é possível aprovar: já existe(m) proposta(s) ativa(s) nesta OS (#{proposal_codes}). Cancele ou reprove a proposta existente antes de aprovar uma nova."
+          raise ActiveRecord::Rollback
+        end
+        
+        # Reprovar propostas que estão em AGUARDANDO_AVALIACAO
+        order_service_proposals = order_service.order_service_proposals
+        .where(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID)
         .where.not(id: @order_service_proposal.id)
-      
-      if existing_active_proposals.any?
-        proposal_codes = existing_active_proposals.map(&:code).join(', ')
-        flash[:error] = "Não é possível aprovar: já existe(m) proposta(s) ativa(s) nesta OS (#{proposal_codes}). Cancele ou reprove a proposta existente antes de aprovar uma nova."
-        return redirect_back(fallback_location: :back)
-      end
-      
-      # Reprovar propostas que estão em AGUARDANDO_AVALIACAO
-      order_service_proposals = order_service.order_service_proposals
-      .where(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID)
-      .where.not(id: @order_service_proposal.id)
 
-      order_service_proposals.each do |order_service_proposal|
-        # Manually create an audit record
-        OrderServiceProposal.generate_historic(order_service_proposal, @current_user, order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID)
-        order_service_proposal.update_columns(
-          reproved: true,
-          order_service_proposal_status_id: OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
-          reason_reproved: OrderServiceProposal.human_attribute_name(:another_proposal_approved)
-          )
-      end
+        order_service_proposals.each do |order_service_proposal|
+          OrderServiceProposal.generate_historic(order_service_proposal, @current_user, order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID)
+          order_service_proposal.update_columns(
+            reproved: true,
+            order_service_proposal_status_id: OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
+            reason_reproved: OrderServiceProposal.human_attribute_name(:another_proposal_approved)
+            )
+        end
 
-      # Manually create an audit record
-      OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, @order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::APROVADA_ID)
-      OrderService.generate_historic(order_service, @current_user, order_service.order_service_status_id, OrderServiceStatus::APROVADA_ID)
+        # Aprovar a proposta
+        OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, @order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::APROVADA_ID)
+        OrderService.generate_historic(order_service, @current_user, order_service.order_service_status_id, OrderServiceStatus::APROVADA_ID)
 
-      @order_service_proposal.update_columns(
-        order_service_proposal_status_id: OrderServiceProposalStatus::APROVADA_ID,
-        pending_manager_approval: false,
-        reason_approved: reason.presence
+        @order_service_proposal.update_columns(
+          order_service_proposal_status_id: OrderServiceProposalStatus::APROVADA_ID,
+          pending_manager_approval: false,
+          reason_approved: reason.presence
         )
       
-      # Recarrega a OS diretamente do banco para evitar problemas com cache
-      OrderService.where(id: order_service.id).update_all(order_service_status_id: OrderServiceStatus::APROVADA_ID)
+        # Recarrega a OS diretamente do banco para evitar problemas com cache
+        OrderService.where(id: order_service.id).update_all(order_service_status_id: OrderServiceStatus::APROVADA_ID)
+      end # fim da transaction
+
+      if approval_error
+        flash[:error] = approval_error
+        return redirect_back(fallback_location: :back)
+      end
 
       flash[:success] = OrderServiceProposal.human_attribute_name(:approved_with_success)
     else
@@ -1208,9 +1224,8 @@ class OrderServiceProposalsController < ApplicationController
 
     parts_total, services_total = get_complement_totals_by_category(complement_proposal)
 
-    # Neste sistema o consumo do empenho é calculado pelos itens aprovados.
-    # Então aqui apenas validamos o saldo para evitar aprovar complemento sem cobertura.
-    order_service.check_commitment_balance(parts_total, services_total)
+    # Valida saldo com lock pessimista para evitar race conditions na aprovação de complementos
+    order_service.check_commitment_balance_with_lock!(parts_total, services_total)
   end
 
   # Retorna [parts_total, services_total] do complemento.

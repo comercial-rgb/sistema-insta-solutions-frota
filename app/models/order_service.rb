@@ -995,6 +995,20 @@ class OrderService < ApplicationRecord
     result
   end
 
+  # Verifica saldo com lock pessimista nos empenhos para evitar race conditions
+  # Usado na aprovação final para garantir atomicidade
+  def check_commitment_balance_with_lock!(parts_value, services_value)
+    # Recarrega empenhos com lock FOR UPDATE no banco para evitar aprovações simultâneas
+    Commitment.lock.find(commitment_id) if commitment_id.present?
+    Commitment.lock.find(commitment_parts_id) if commitment_parts_id.present?
+    Commitment.lock.find(commitment_services_id) if commitment_services_id.present?
+
+    # Recarrega associações para refletir dados após o lock
+    self.reload
+
+    check_commitment_balance(parts_value, services_value)
+  end
+
   private
 
   def generate_code

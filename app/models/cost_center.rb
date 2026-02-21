@@ -128,11 +128,11 @@ class CostCenter < ApplicationRecord
 
     return 0.0 if all_ids.empty?
 
-    all_commitments = Commitment.where(id: all_ids)
-    commitment_value = all_commitments.sum(:commitment_value).to_f
-    cancel_commitment_value = all_commitments.joins(:cancel_commitments).sum('cancel_commitments.value').to_f
-    result = commitment_value - cancel_commitment_value
-    return result
+    # Reutiliza Commitment.sum_budget_value que já calcula corretamente:
+    # commitment_value + aditivos (addendum_commitments) - cancelamentos (cancel_commitments)
+    Commitment.where(id: all_ids).sum do |commitment|
+      Commitment.sum_budget_value(commitment)
+    end.to_f
   end
 
   def self.sum_budget_value_contract(cost_center)
