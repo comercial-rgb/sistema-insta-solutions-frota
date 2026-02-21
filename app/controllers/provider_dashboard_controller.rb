@@ -62,6 +62,15 @@ class ProviderDashboardController < ApplicationController
             WHERE osp.order_service_id = order_services.id 
             AND osp.provider_id = ? 
             AND osp.order_service_proposal_status_id NOT IN (?)
+          )
+          AND (
+            order_services.directed_to_specific_providers = FALSE
+            OR order_services.directed_to_specific_providers IS NULL
+            OR EXISTS (
+              SELECT 1 FROM order_service_directed_providers osdp
+              WHERE osdp.order_service_id = order_services.id
+              AND osdp.provider_id = ?
+            )
           )",
           @provider.id,
           provider_service_types_ids,
@@ -70,7 +79,8 @@ class ProviderDashboardController < ApplicationController
           [
             OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
             OrderServiceProposalStatus::CANCELADA_ID
-          ]
+          ],
+          @provider.id
         )
         .includes(:cost_center, :client)
         .order(created_at: :desc)

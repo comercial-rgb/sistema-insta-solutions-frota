@@ -247,6 +247,13 @@
             association_foreign_key: :provider_id,
             foreign_key: :order_service_id
 
+  # Fornecedores específicos direcionados para esta OS (quando directed_to_specific_providers = true)
+  has_and_belongs_to_many :directed_providers,
+            class_name: 'User',
+            join_table: :order_service_directed_providers,
+            association_foreign_key: :provider_id,
+            foreign_key: :order_service_id
+
   validates_presence_of :client_id, :manager_id, :vehicle_id,
   :provider_service_type_id, :maintenance_plan_id,
   :order_service_type_id, :details, :order_service_status_id

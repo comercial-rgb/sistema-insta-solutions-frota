@@ -93,7 +93,8 @@ class OrderServicePolicy < ApplicationPolicy
         OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
         OrderServiceProposalStatus::PAGA_ID,
       ]).exists? &&
-      record.provider_id != user.id
+      record.provider_id != user.id &&
+      (!record.directed_to_specific_providers? || record.directed_providers.exists?(id: user.id))
     )
   end
 

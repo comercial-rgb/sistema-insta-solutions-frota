@@ -809,6 +809,15 @@ class OrderServicesController < ApplicationController
                     AND osp.provider_id = ? 
                     AND osp.order_service_proposal_status_id NOT IN (?)
                   )
+                  AND (
+                    order_services.directed_to_specific_providers = FALSE
+                    OR order_services.directed_to_specific_providers IS NULL
+                    OR EXISTS (
+                      SELECT 1 FROM order_service_directed_providers osdp
+                      WHERE osdp.order_service_id = order_services.id
+                      AND osdp.provider_id = ?
+                    )
+                  )
                 )",
                 @current_user.id,
                 provider_state_id,
@@ -817,7 +826,8 @@ class OrderServicesController < ApplicationController
                 [
                   OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
                   OrderServiceProposalStatus::CANCELADA_ID
-                ]
+                ],
+                @current_user.id
               )
               .distinct
               .page(params[:page])
@@ -838,6 +848,15 @@ class OrderServicesController < ApplicationController
                     AND osp.provider_id = ? 
                     AND osp.order_service_proposal_status_id NOT IN (?)
                   )
+                  AND (
+                    order_services.directed_to_specific_providers = FALSE
+                    OR order_services.directed_to_specific_providers IS NULL
+                    OR EXISTS (
+                      SELECT 1 FROM order_service_directed_providers osdp
+                      WHERE osdp.order_service_id = order_services.id
+                      AND osdp.provider_id = ?
+                    )
+                  )
                 )",
                 @current_user.id,
                 provider_state_id,
@@ -846,7 +865,8 @@ class OrderServicesController < ApplicationController
                 [
                   OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
                   OrderServiceProposalStatus::CANCELADA_ID
-                ]
+                ],
+                @current_user.id
               )
               .distinct
           end
@@ -866,6 +886,15 @@ class OrderServicesController < ApplicationController
                     AND osp.provider_id = ? 
                     AND osp.order_service_proposal_status_id NOT IN (?)
                   )
+                  AND (
+                    order_services.directed_to_specific_providers = FALSE
+                    OR order_services.directed_to_specific_providers IS NULL
+                    OR EXISTS (
+                      SELECT 1 FROM order_service_directed_providers osdp
+                      WHERE osdp.order_service_id = order_services.id
+                      AND osdp.provider_id = ?
+                    )
+                  )
                 )",
                 @current_user.id,
                 provider_state_id,
@@ -874,7 +903,8 @@ class OrderServicesController < ApplicationController
                 [
                   OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
                   OrderServiceProposalStatus::CANCELADA_ID
-                ]
+                ],
+                @current_user.id
               )
               .distinct
           end
@@ -1114,6 +1144,8 @@ class OrderServicesController < ApplicationController
       if @order_service.order_service_type_id == OrderServiceType::COTACOES_ID
         @order_service.update_columns(provider_id: nil)
       end
+      # Processar fornecedores direcionados
+      handle_directed_providers
       @order_service.audit_creation(@current_user)
       save_files
       flash[:success] = t('flash.create')
@@ -1184,6 +1216,8 @@ class OrderServicesController < ApplicationController
         @order_service.release_quotation = true
       end
       @order_service.save!
+      # Processar fornecedores direcionados
+      handle_directed_providers
       save_files
       if !params[:save_and_submit].nil?
         OrderService.reprove_all_by_edition(@order_service, @current_user)
@@ -1470,6 +1504,46 @@ class OrderServicesController < ApplicationController
     end
   end
 
+  # GET /get_providers_for_directed_selection
+  # Retorna fornecedores filtrados por estado/cidade e tipo de serviço para seleção direcionada
+  def get_providers_for_directed_selection
+    client_id = params[:client_id]
+    provider_service_type_id = params[:provider_service_type_id]
+
+    # Determinar o cliente (suporte para manager/additional que usam client_id)
+    if @current_user.manager? || @current_user.additional?
+      client = User.find_by(id: @current_user.client_id, profile_id: Profile::CLIENT_ID)
+    elsif @current_user.client?
+      client = @current_user
+    else
+      client = User.find_by(id: client_id, profile_id: Profile::CLIENT_ID)
+    end
+
+    state_ids = client&.states&.pluck(:id) || []
+
+    providers = User.provider.active
+    providers = providers.by_provider_state_ids(state_ids) if state_ids.present?
+
+    # Filtrar por tipo de serviço se informado
+    if provider_service_type_id.present?
+      providers = providers.joins(:provider_service_types)
+        .where(provider_service_types: { id: provider_service_type_id })
+    end
+
+    providers = providers.includes(address: [:state, :city]).name_ordered.distinct
+
+    result = providers.map do |p|
+      {
+        id: p.id,
+        name: p.get_name,
+        state: p.address&.state&.name || 'Não informado',
+        city: p.address&.city&.name || 'Não informada'
+      }
+    end
+
+    render json: result
+  end
+
   private
 
   def load_warranty_panel_data
@@ -1478,6 +1552,30 @@ class OrderServicesController < ApplicationController
     return if vehicle_id.blank?
     
     @warranty_items = get_warranty_items_for_vehicle(vehicle_id)
+  end
+
+  # Processar fornecedores direcionados (envio para fornecedores específicos)
+  def handle_directed_providers
+    # Só processa para tipos Cotação e Requisição (Diagnóstico já tem provider_id único)
+    return if @order_service.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID
+    
+    directed_flag = params.dig(:order_service, :directed_to_specific_providers)
+    directed_ids = params.dig(:order_service, :directed_provider_ids)
+
+    if directed_flag == 'true' || directed_flag == '1'
+      @order_service.update_columns(directed_to_specific_providers: true)
+      if directed_ids.present?
+        provider_ids = directed_ids.map(&:to_i).uniq.select { |id| id > 0 }
+        # Validar que os IDs são de fornecedores ativos
+        valid_ids = User.provider.active.where(id: provider_ids).pluck(:id)
+        @order_service.directed_provider_ids = valid_ids
+      else
+        @order_service.directed_providers.clear
+      end
+    else
+      @order_service.update_columns(directed_to_specific_providers: false)
+      @order_service.directed_providers.clear
+    end
   end
 
   def get_warranty_items_for_vehicle(vehicle_id)
@@ -1569,10 +1667,12 @@ class OrderServicesController < ApplicationController
     :commitment_services_id,
     :service_group_id,
     :origin_type,
+    :directed_to_specific_providers,
     part_service_order_services_attributes: [:id, :order_service_id, :service_id, :observation, :quantity, :_destroy],
     files: [],
     vehicle_photos: [],
-    parts_photos: []
+    parts_photos: [],
+    directed_provider_ids: []
     )
   end
 end

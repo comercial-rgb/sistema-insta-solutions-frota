@@ -70,6 +70,13 @@
 							foreign_key: :provider_id,
 							dependent: :destroy
 
+	# OSs direcionadas especificamente a este fornecedor
+	has_and_belongs_to_many :directed_order_services,
+							class_name: 'OrderService',
+							join_table: :order_service_directed_providers,
+							association_foreign_key: :order_service_id,
+							foreign_key: :provider_id
+
 	# <%= collection_check_boxes(:user, :example_ids, Example.order(:name), :id, :name) do |b| %>
 	# <div class="col-12 mt-2">
 	#     <%= b.label do %>

@@ -235,6 +235,74 @@
     </div>
 </div>
 
+<%# ===== SEÇÃO: Enviar para Fornecedores Específicos (Cotações/Requisição) ===== %>
+<% if !@current_user.provider? %>
+<div class="row mt-2 d-none" id="div-with-directed-providers">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary bg-opacity-10 py-2">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="directed_providers_toggle"
+                           name="order_service[directed_to_specific_providers]"
+                           value="true"
+                           <%= 'checked' if f.object.directed_to_specific_providers? rescue false %>
+                           <%= 'disabled' if disabled_basic_fields %>>
+                    <label class="form-check-label fw-bold" for="directed_providers_toggle">
+                        <i class="bi bi-people-fill"></i> Enviar para fornecedores específicos
+                    </label>
+                    <small class="text-muted d-block">
+                        Quando ativado, apenas os fornecedores selecionados poderão visualizar esta OS. 
+                        Quando desativado, todos os fornecedores compatíveis (estado/tipo de serviço) poderão ver.
+                    </small>
+                </div>
+            </div>
+            <div class="card-body py-2 d-none" id="directed-providers-panel">
+                <div class="row mb-2">
+                    <div class="col-12 col-md-4">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" id="directed-providers-search" 
+                                   placeholder="Buscar fornecedor por nome, cidade ou estado...">
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <select class="form-select form-select-sm" id="directed-providers-state-filter">
+                            <option value="">Todos os estados</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4 text-end">
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="directed-providers-select-all">
+                            <i class="bi bi-check-all"></i> Selecionar todos
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="directed-providers-deselect-all">
+                            <i class="bi bi-x-lg"></i> Limpar seleção
+                        </button>
+                        <span class="badge bg-primary ms-2" id="directed-providers-count">0 selecionado(s)</span>
+                    </div>
+                </div>
+                <div id="directed-providers-loading" class="text-center py-3 d-none">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span class="ms-2">Carregando fornecedores...</span>
+                </div>
+                <div id="directed-providers-list" style="max-height: 300px; overflow-y: auto;">
+                    <p class="text-muted text-center py-3" id="directed-providers-empty">
+                        <i class="bi bi-info-circle"></i> Selecione o tipo de serviço para carregar os fornecedores disponíveis.
+                    </p>
+                </div>
+                <%# Campos hidden para enviar os IDs selecionados %>
+                <div id="directed-providers-hidden-fields">
+                    <% if f.object.persisted? && f.object.directed_to_specific_providers? rescue false %>
+                        <% f.object.directed_providers.each do |provider| %>
+                            <input type="hidden" name="order_service[directed_provider_ids][]" value="<%= provider.id %>" class="directed-provider-hidden">
+                        <% end %>
+                    <% end %>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<% end %>
+
 <% if f.object.order_service_type_id == OrderServiceType::REQUISICAO_ID && f.object.service_group.present? %>
     <div class="row mt-2">
         <div class="col-12">

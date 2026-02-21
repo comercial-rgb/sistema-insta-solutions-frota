@@ -262,6 +262,7 @@ resources :reference_prices
 	get '/get_commitment_types_by_vehicle_id', :to => 'vehicles#commitment_types_by_vehicle_id'
 	get '/get_warranty_items_by_vehicle_id', :to => 'order_services#warranty_items_by_vehicle_id'
 	get '/get_client_requirements', :to => 'order_services#get_client_requirements'
+	get '/get_providers_for_directed_selection', :to => 'order_services#get_providers_for_directed_selection'
 	get '/getting_vehicle_by_plate_integration', :to => 'vehicles#getting_vehicle_by_plate_integration', :as => 'getting_vehicle_by_plate_integration'
 
   resources :vehicle_types
