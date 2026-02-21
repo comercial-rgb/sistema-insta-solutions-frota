@@ -493,11 +493,13 @@ class OrderService < ApplicationRecord
     return false unless can_request_reevaluation?
     
     old_status = order_service_status_id
-    update!(
-      order_service_status_id: OrderServiceStatus::EM_REAVALIACAO_ID,
-      reevaluation_requested_at: Time.current,
-      reevaluation_requested_by_id: user.id
-    )
+    
+    # Atualizar status (campos reevaluation_requested_at/by_id removidos - não existem na tabela)
+    update_attrs = { order_service_status_id: OrderServiceStatus::EM_REAVALIACAO_ID }
+    update_attrs[:reevaluation_requested_at] = Time.current if self.class.column_names.include?('reevaluation_requested_at')
+    update_attrs[:reevaluation_requested_by_id] = user.id if self.class.column_names.include?('reevaluation_requested_by_id')
+    update!(update_attrs)
+    
     OrderService.generate_historic(self, user, old_status, OrderServiceStatus::EM_REAVALIACAO_ID)
 
     # 🔧 Garantir que a proposta do fornecedor volte para edição (EM_CADASTRO)
