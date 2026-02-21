@@ -1,4 +1,4 @@
-class Notification < ApplicationRecord
+﻿class Notification < ApplicationRecord
   acts_as_readable on: :created_at
   after_initialize :default_values
 
@@ -11,8 +11,8 @@ class Notification < ApplicationRecord
   scope :by_profile_id, lambda { |value| where("notifications.profile_id = ?", value) if !value.nil? && !value.blank? }
   # scope :by_name, lambda { |value| where("LOWER(notifications.name) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("notifications.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("notifications.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("notifications.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("notifications.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
   scope :is_to_my_profile, lambda {
     |value| where("notifications.profile_id = ? OR notifications.profile_id IS NULL", value) if !value.nil? && !value.blank?

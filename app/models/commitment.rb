@@ -1,4 +1,4 @@
-class Commitment < ApplicationRecord
+﻿class Commitment < ApplicationRecord
   after_initialize :default_values
 
   attr_accessor :skip_validations
@@ -30,11 +30,11 @@ class Commitment < ApplicationRecord
   scope :by_contract_id, lambda { |value| where("commitments.contract_id = ?", value) if !value.nil? && !value.blank? }
   scope :by_commitment_number, lambda { |value| where("LOWER(commitments.commitment_number) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("commitments.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("commitments.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("commitments.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("commitments.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
-  scope :by_initial_commitment_value, lambda { |value| where("commitments.commitment_value >= '#{value}'") if !value.nil? && !value.blank? }
-	scope :by_final_commitment_value, lambda { |value| where("commitments.commitment_value <= '#{value}'") if !value.nil? && !value.blank? }
+  scope :by_initial_commitment_value, lambda { |value| where("commitments.commitment_value >= ?", value) if !value.nil? && !value.blank? }
+	scope :by_final_commitment_value, lambda { |value| where("commitments.commitment_value <= ?", value) if !value.nil? && !value.blank? }
 
   # Scope atualizado para buscar por múltiplos centros de custo e/ou subunidades
   # Quando sub_unit_id está presente, prioriza empenhos vinculados a essa subunidade

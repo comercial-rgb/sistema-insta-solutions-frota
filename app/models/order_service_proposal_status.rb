@@ -1,4 +1,4 @@
-class OrderServiceProposalStatus < ApplicationRecord
+﻿class OrderServiceProposalStatus < ApplicationRecord
   after_initialize :default_values
 
   # IDs conforme banco de dados real
@@ -29,8 +29,8 @@ class OrderServiceProposalStatus < ApplicationRecord
   scope :by_id, lambda { |value| where("order_service_proposal_statuses.id = ?", value) if !value.nil? && !value.blank? }
   # scope :by_name, lambda { |value| where("LOWER(order_service_proposal_statuses.name) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("order_service_proposal_statuses.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("order_service_proposal_statuses.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("order_service_proposal_statuses.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("order_service_proposal_statuses.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
   def get_text_name
     self.id.to_s

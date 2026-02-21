@@ -1,4 +1,4 @@
-class SubUnit < ApplicationRecord
+﻿class SubUnit < ApplicationRecord
   after_initialize :default_values
 
   default_scope {
@@ -10,8 +10,8 @@ class SubUnit < ApplicationRecord
   scope :by_client_id, lambda { |value| joins(:cost_center).where("cost_centers.client_id = ?", value) if !value.nil? && !value.blank? }
   # scope :by_name, lambda { |value| where("LOWER(sub_units.name) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("sub_units.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("sub_units.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("sub_units.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("sub_units.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
   scope :by_cost_center_or_sub_unit_ids, lambda { |cost_center_ids, sub_unit_ids|
     if cost_center_ids.present? || sub_unit_ids.present?

@@ -1,4 +1,4 @@
-class Vehicle < ApplicationRecord
+﻿class Vehicle < ApplicationRecord
   after_initialize :default_values
   after_save :try_auto_link_vehicle_model
 
@@ -9,7 +9,7 @@ class Vehicle < ApplicationRecord
 
   scope :by_id, lambda { |value| where("vehicles.id = ?", value) if !value.nil? && !value.blank? }
   scope :by_client_id, lambda { |value| where("vehicles.client_id = ?", value) if !value.nil? && !value.blank? }
-  scope :by_cost_center_ids, lambda { |value| joins(:vehicle).where("vehicles.cost_center_id IN (?)", value) if !value.nil? && !value.blank? }
+  scope :by_cost_center_ids, lambda { |value| where("vehicles.cost_center_id IN (?)", value) if !value.nil? && !value.blank? }
   scope :by_client_ids, lambda { |value| where("vehicles.client_id IN (?)", value) if !value.nil? && !value.blank? }
   scope :by_cost_center_id, lambda { |value| where("vehicles.cost_center_id = ?", value) if !value.nil? && !value.blank? }
   scope :by_sub_unit_id, lambda { |value| where("vehicles.sub_unit_id = ?", value) if !value.nil? && !value.blank? }
@@ -26,14 +26,14 @@ class Vehicle < ApplicationRecord
 
   # scope :by_name, lambda { |value| where("LOWER(vehicles.name) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
-  scope :by_initial_acquisition_date, lambda { |value| where("vehicles.acquisition_date >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_acquisition_date, lambda { |value| where("vehicles.acquisition_date <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_acquisition_date, lambda { |value| where("vehicles.acquisition_date >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_acquisition_date, lambda { |value| where("vehicles.acquisition_date <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
   scope :by_initial_maintenance_value, lambda { |value| where("vehicles.id > 0") if !value.nil? && !value.blank? }
   scope :by_final_maintenance_value, lambda { |value| where("vehicles.id > 0") if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("vehicles.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("vehicles.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("vehicles.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("vehicles.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
   scope :by_cost_center_or_sub_unit_ids, lambda { |cost_center_ids, sub_unit_ids|
     if cost_center_ids.present? || sub_unit_ids.present?
@@ -180,7 +180,7 @@ class Vehicle < ApplicationRecord
     )
     
     if matched_model
-      self.vehicle_model_id = matched_model.id
+      update_column(:vehicle_model_id, matched_model.id)
       Rails.logger.info "Vehicle #{id} auto-linked to VehicleModel #{matched_model.id} (#{matched_model.display_name})"
     end
   end

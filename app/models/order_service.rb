@@ -1,4 +1,4 @@
-class OrderService < ApplicationRecord
+﻿class OrderService < ApplicationRecord
   # audited
   paginates_per 50
   after_initialize :default_values
@@ -55,11 +55,11 @@ class OrderService < ApplicationRecord
 
   scope :by_order_service_proposal_status_id, lambda { |value| joins(:order_service_proposals).where("order_service_proposals.order_service_proposal_status_id = ?", value) if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("order_services.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("order_services.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("order_services.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("order_services.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
-  scope :by_initial_updated_at, lambda { |value| where("order_services.updated_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_updated_at, lambda { |value| where("order_services.updated_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_updated_at, lambda { |value| where("order_services.updated_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_updated_at, lambda { |value| where("order_services.updated_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
   # Scope para buscar OSs que ENTRARAM no status AUTORIZADA no período (usando histórico do Audited)
   scope :approved_in_period, lambda { |start_date, end_date|
@@ -138,7 +138,7 @@ class OrderService < ApplicationRecord
       # 
       # A query busca AMBOS os conjuntos de IDs para pegar todas as OSs, antigas e novas
       
-      sql = <<-SQL
+      sql = sanitize_sql_array([<<-SQL, current_month.first, current_month.last])
         SELECT DISTINCT audits.auditable_id
         FROM audits
         WHERE audits.auditable_type = 'OrderService'
@@ -147,7 +147,7 @@ class OrderService < ApplicationRecord
           OR
           (audits.associated_id = 7 AND audits.audited_changes LIKE '%order_service_status_id%6%7%')
         )
-        AND audits.created_at BETWEEN '#{current_month.first}' AND '#{current_month.last}'
+        AND audits.created_at BETWEEN ? AND ?
         AND audits.id IN (
           SELECT MIN(a2.id)
           FROM audits a2
@@ -165,7 +165,11 @@ class OrderService < ApplicationRecord
       result = ActiveRecord::Base.connection.execute(sql)
       os_ids = result.map { |row| row[0] }.uniq
       
-      where(id: os_ids) if os_ids.any?
+      if os_ids.any?
+        where(id: os_ids)
+      else
+        none
+      end
     end
   }
 

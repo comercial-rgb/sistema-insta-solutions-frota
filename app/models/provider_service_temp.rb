@@ -1,4 +1,4 @@
-class ProviderServiceTemp < ApplicationRecord
+﻿class ProviderServiceTemp < ApplicationRecord
   after_initialize :default_values
   before_validation :recalculate_totals_from_client_discount
   before_validation :sync_quantity_from_order_service, if: Proc.new { |obj|
@@ -17,8 +17,8 @@ class ProviderServiceTemp < ApplicationRecord
   scope :by_id, lambda { |value| where("provider_service_temps.id = ?", value) if !value.nil? && !value.blank? }
   # scope :by_name, lambda { |value| where("LOWER(provider_service_temps.name) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("provider_service_temps.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("provider_service_temps.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("provider_service_temps.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("provider_service_temps.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
   belongs_to :order_service_proposal, optional: true, inverse_of: :provider_service_temps
   belongs_to :category, optional: true

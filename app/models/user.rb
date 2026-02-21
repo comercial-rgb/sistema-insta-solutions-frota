@@ -1,4 +1,4 @@
-class User < ActiveRecord::Base
+﻿class User < ActiveRecord::Base
 	acts_as_reader
 	paginates_per 24
 	after_initialize :default_values
@@ -268,11 +268,11 @@ class User < ActiveRecord::Base
 
 	scope :by_cpf_cnpj, lambda { |value| where("users.cpf LIKE ? or users.cnpj LIKE ?", "%#{value}%", "%#{value}%") if !value.nil? && !value.blank? }
 
-	scope :by_initial_date, lambda { |value| where("users.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-	scope :by_final_date, lambda { |value| where("users.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+	scope :by_initial_date, lambda { |value| where("users.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+	scope :by_final_date, lambda { |value| where("users.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
-	scope :by_initial_limit_date_manually_plan, lambda { |value| where("users.limit_date_manually_plan >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  	scope :by_final_limit_date_manually_plan, lambda { |value| where("users.limit_date_manually_plan <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+	scope :by_initial_limit_date_manually_plan, lambda { |value| where("users.limit_date_manually_plan >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  	scope :by_final_limit_date_manually_plan, lambda { |value| where("users.limit_date_manually_plan <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
 	# Usuário é administrador?
 	def admin?

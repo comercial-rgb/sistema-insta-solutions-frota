@@ -1,4 +1,4 @@
-class ServiceGroup < ApplicationRecord
+﻿class ServiceGroup < ApplicationRecord
   audited
   
   after_initialize :default_values
@@ -26,8 +26,8 @@ class ServiceGroup < ApplicationRecord
   scope :by_id, lambda { |value| where("service_groups.id = ?", value) if !value.nil? && !value.blank? }
   scope :by_name, lambda { |value| where("LOWER(service_groups.name) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
   scope :by_active, lambda { |value| where("service_groups.active = ?", value) if !value.nil? && !value.blank? }
-  scope :by_initial_date, lambda { |value| where("service_groups.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("service_groups.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("service_groups.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("service_groups.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
   
   # Filtro por cliente: retorna grupos que o cliente pode utilizar
   # Se o grupo não tem clientes associados, está disponível para todos

@@ -1,4 +1,4 @@
-class Service < ApplicationRecord
+﻿class Service < ApplicationRecord
   after_initialize :default_values
 
   default_scope {
@@ -12,8 +12,8 @@ class Service < ApplicationRecord
   scope :by_name, lambda { |value| where("LOWER(services.name) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
   scope :by_code, lambda { |value| where("LOWER(services.code) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
-  scope :by_initial_price, lambda { |value| where("price >= '#{value}'") if !value.nil? && !value.blank? }
-  scope :by_final_price, lambda { |value| where("price <= '#{value}'") if !value.nil? && !value.blank? }
+  scope :by_initial_price, lambda { |value| where("price >= ?", value) if !value.nil? && !value.blank? }
+  scope :by_final_price, lambda { |value| where("price <= ?", value) if !value.nil? && !value.blank? }
 
   scope :by_category_id, lambda { |value| where("services.category_id = ?", value) if !value.nil? && !value.blank? }
 

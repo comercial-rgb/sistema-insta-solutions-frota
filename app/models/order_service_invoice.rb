@@ -1,4 +1,4 @@
-class OrderServiceInvoice < ApplicationRecord
+﻿class OrderServiceInvoice < ApplicationRecord
   after_initialize :default_values
 
   default_scope {
@@ -8,8 +8,8 @@ class OrderServiceInvoice < ApplicationRecord
   scope :by_id, lambda { |value| where("order_service_invoices.id = ?", value) if !value.nil? && !value.blank? }
   # scope :by_name, lambda { |value| where("LOWER(order_service_invoices.name) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("order_service_invoices.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("order_service_invoices.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("order_service_invoices.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("order_service_invoices.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
   belongs_to :order_service_proposal, optional: true
   belongs_to :order_service_invoice_type, optional: true

@@ -1,4 +1,4 @@
-class CostCenter < ApplicationRecord
+﻿class CostCenter < ApplicationRecord
   after_initialize :default_values
 
   attr_accessor :already_consumed_value, :skip_validations
@@ -17,17 +17,17 @@ class CostCenter < ApplicationRecord
   scope :by_contract_number, lambda { |value| where("LOWER(cost_centers.contract_number) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
   scope :by_commitment_number, lambda { |value| where("LOWER(cost_centers.commitment_number) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
-  scope :by_initial_initial_consumed_balance, lambda { |value| where("cost_centers.initial_consumed_balance >= '#{value}'") if !value.nil? && !value.blank? }
-  scope :by_final_initial_consumed_balance, lambda { |value| where("cost_centers.initial_consumed_balance <= '#{value}'") if !value.nil? && !value.blank? }
+  scope :by_initial_initial_consumed_balance, lambda { |value| where("cost_centers.initial_consumed_balance >= ?", value) if !value.nil? && !value.blank? }
+  scope :by_final_initial_consumed_balance, lambda { |value| where("cost_centers.initial_consumed_balance <= ?", value) if !value.nil? && !value.blank? }
 
-  scope :by_initial_initial_budget_value, lambda { |value| where("cost_centers.initial_budget_value >= '#{value}'") if !value.nil? && !value.blank? }
-  scope :by_final_initial_budget_value, lambda { |value| where("cost_centers.initial_budget_value <= '#{value}'") if !value.nil? && !value.blank? }
+  scope :by_initial_initial_budget_value, lambda { |value| where("cost_centers.initial_budget_value >= ?", value) if !value.nil? && !value.blank? }
+  scope :by_final_initial_budget_value, lambda { |value| where("cost_centers.initial_budget_value <= ?", value) if !value.nil? && !value.blank? }
 
-  scope :by_initial_contract_initial_date, lambda { |value| where("cost_centers.contract_initial_date >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_contract_initial_date, lambda { |value| where("cost_centers.contract_initial_date <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_contract_initial_date, lambda { |value| where("cost_centers.contract_initial_date >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_contract_initial_date, lambda { |value| where("cost_centers.contract_initial_date <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("cost_centers.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("cost_centers.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("cost_centers.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("cost_centers.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
   belongs_to :client, :class_name => 'User', foreign_key: 'client_id', optional: true
   belongs_to :budget_type, optional: true

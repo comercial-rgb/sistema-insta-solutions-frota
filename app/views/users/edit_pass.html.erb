@@ -8,7 +8,7 @@
 
         <div class="col-12 col-md-4 offset-md-4">
 
-            <%= form_for @user, url: update_pass_path(@user.id), method: :patch do |f| %>
+            <%= form_for @user, url: update_pass_path(@user.id, recovery_token: @recovery_token), method: :patch do |f| %>
 
                 <p class="text-muted text-center">
                     <small>

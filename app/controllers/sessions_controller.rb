@@ -38,7 +38,7 @@ class SessionsController < ApplicationController
 	def create_by_mail
 		begin
 			user = User.active.find_by_email params[:email].strip.downcase
-			if user && (user.authenticate(params[:password]) || Rails.env.development?)
+			if user && user.authenticate(params[:password])
 				if !user.client?
 					session[:user_id] = user.id
 					flash[:success] = t('flash.login')
@@ -141,7 +141,7 @@ class SessionsController < ApplicationController
 		@user.current_plan_id = Plan::GRATUITO_ID
 		@show_error_recaptcha = false
 		@user.validate_mail_token = SecureRandom.urlsafe_base64
-		if verify_recaptcha(model: @user) || Rails.env.development?
+		if verify_recaptcha(model: @user)
 			if @user.save
 				NotificationMailer.welcome(@user, @system_configuration, nil).deliver_later
 				flash[:success] = t('flash.create')+"<br>"+t('flash.login_mail_validation')

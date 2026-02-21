@@ -1,4 +1,4 @@
-class Contract < ApplicationRecord
+﻿class Contract < ApplicationRecord
   after_initialize :default_values
 
   default_scope {
@@ -11,8 +11,8 @@ class Contract < ApplicationRecord
   scope :by_name, lambda { |value| where("LOWER(contracts.name) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
   scope :by_number, lambda { |value| where("contracts.number = ?", value) if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("contracts.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("contracts.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("contracts.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("contracts.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
   #  scope :by_total_value_range, lambda { |min_value, max_value|
   #   subquery = Contract.joins("LEFT JOIN addendum_contracts ON addendum_contracts.contract_id = contracts.id")
@@ -115,11 +115,11 @@ class Contract < ApplicationRecord
 	end
 
   def get_formatted_name
-    return self.name += ' / ' + self.number + ' - ' + CustomHelper.to_currency(self.get_total_value)
+    return self.name.to_s + ' / ' + self.number.to_s + ' - ' + CustomHelper.to_currency(self.get_total_value)
   end
 
   def get_formatted_name_with_disponible_value
-    return self.name += ' / ' + self.number + ' - Disponível: ' + CustomHelper.to_currency(self.get_disponible_value)
+    return self.name.to_s + ' / ' + self.number.to_s + ' - Disponível: ' + CustomHelper.to_currency(self.get_disponible_value)
   end
 
   def self.getting_by_client_id(current_user, client_id)

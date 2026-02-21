@@ -1,4 +1,4 @@
-class OrderServiceProposal < ApplicationRecord
+﻿class OrderServiceProposal < ApplicationRecord
   audited
   after_initialize :default_values
   after_create :generate_code
@@ -22,14 +22,14 @@ class OrderServiceProposal < ApplicationRecord
   # scope :by_name, lambda { |value| where("LOWER(order_service_proposals.name) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
   scope :by_code, lambda { |value| where("LOWER(order_service_proposals.code) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("order_service_proposals.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("order_service_proposals.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("order_service_proposals.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("order_service_proposals.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
-  scope :by_initial_total_value, lambda { |value| where("order_service_proposals.total_value >= '#{value}'") if !value.nil? && !value.blank? }
-  scope :by_final_total_value, lambda { |value| where("order_service_proposals.total_value <= '#{value}'") if !value.nil? && !value.blank? }
+  scope :by_initial_total_value, lambda { |value| where("order_service_proposals.total_value >= ?", value) if !value.nil? && !value.blank? }
+  scope :by_final_total_value, lambda { |value| where("order_service_proposals.total_value <= ?", value) if !value.nil? && !value.blank? }
 
-  scope :by_initial_total_discount, lambda { |value| where("order_service_proposals.total_discount >= '#{value}'") if !value.nil? && !value.blank? }
-  scope :by_final_total_discount, lambda { |value| where("order_service_proposals.total_discount <= '#{value}'") if !value.nil? && !value.blank? }
+  scope :by_initial_total_discount, lambda { |value| where("order_service_proposals.total_discount >= ?", value) if !value.nil? && !value.blank? }
+  scope :by_final_total_discount, lambda { |value| where("order_service_proposals.total_discount <= ?", value) if !value.nil? && !value.blank? }
 
   # Scopes para fluxo de aprovação em duas etapas
   scope :pending_manager_approval, -> { where(pending_manager_approval: true) }
