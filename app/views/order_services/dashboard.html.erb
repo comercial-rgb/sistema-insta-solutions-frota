@@ -5,7 +5,7 @@ breadcrumbs = [
 ]
 %>
 
-<div class="container">
+<div class="container-fluid">
     <div class="row mb-3">
         <div class="d-none d-md-block col-md-12 text-center">
             <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
@@ -18,15 +18,58 @@ breadcrumbs = [
                 <%= datagrid_form_for @order_services, method: :get, url: dashboard_path, validate: false %>
             </div>
         </div>
-        <div class="col-12 text-center">
-            <%= hidden_field_tag 'echart_values', @echart_values.to_json %>
-            <div id="chartWatermark" class="echart-chart"></div>
+    </div>
+
+    <!-- Gráficos do Dashboard - Layout Separado -->
+    <%= hidden_field_tag 'echart_values', @echart_values.to_json %>
+
+    <!-- Linha 1: Indicadores rápidos (pies) -->
+    <div class="row mb-3">
+        <div class="col-12 col-lg-4 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white py-2">
+                    <h6 class="mb-0"><i class="bi bi-truck text-primary me-1"></i> Frota ativa/inativa</h6>
+                </div>
+                <div class="card-body p-2 d-flex align-items-center justify-content-center">
+                    <div id="chartFrota" style="width: 100%; height: 260px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-4 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white py-2">
+                    <h6 class="mb-0"><i class="bi bi-pie-chart text-info me-1"></i> Consumo peças/serviços</h6>
+                </div>
+                <div class="card-body p-2 d-flex align-items-center justify-content-center">
+                    <div id="chartConsumo" style="width: 100%; height: 260px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-lg-4 mb-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-white py-2">
+                    <h6 class="mb-0"><i class="bi bi-wallet2 text-success me-1"></i> Saldo do contrato</h6>
+                </div>
+                <div class="card-body p-2 d-flex align-items-center justify-content-center">
+                    <div id="chartSaldo" style="width: 100%; height: 260px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Linha 2: Barras de valores consumidos -->
+    <div class="row">
+        <div class="col-12 mb-3">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0"><i class="bi bi-bar-chart-line text-warning me-1"></i> Valores consumidos por Centro de Custo (Aprovada até Paga)</h6>
+                    <small class="text-muted" id="barChartInfo"></small>
+                </div>
+                <div class="card-body p-2">
+                    <div id="chartBarras" style="width: 100%;"></div>
+                </div>
+            </div>
         </div>
     </div>
 
 </div>
-
-<%
-# End of file _first_container.html.erb
-# Path: ./app/views/common_pages/index/_first_container.html.erb
-%>
