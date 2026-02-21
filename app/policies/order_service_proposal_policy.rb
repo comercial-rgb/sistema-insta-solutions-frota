@@ -21,7 +21,7 @@ class OrderServiceProposalPolicy < ApplicationPolicy
   end
 
   def update?
-    (general_can_access? && ([OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID, OrderServiceStatus::EM_REAVALIACAO_ID].include?(record.order_service.order_service_status_id))) || user.admin?
+    (general_can_access? && record.provider_id == user.id && ([OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID, OrderServiceStatus::EM_REAVALIACAO_ID].include?(record.order_service.order_service_status_id))) || user.admin?
   end
 
   def edit_proposal_in_reevaluation?
@@ -36,7 +36,7 @@ class OrderServiceProposalPolicy < ApplicationPolicy
 
   def can_insert_invoices?
     # Permite fornecedor, admin, gestor e adicional inserir/editar notas fiscais
-    (general_can_access? && ([OrderServiceStatus::APROVADA_ID].include?(record.order_service.order_service_status_id))) || 
+    (general_can_access? && record.provider_id == user.id && ([OrderServiceStatus::APROVADA_ID].include?(record.order_service.order_service_status_id))) || 
     user.admin? || 
     ((user.manager? || user.additional?) && user.client_id == record.order_service.client_id)
   end
@@ -97,7 +97,7 @@ class OrderServiceProposalPolicy < ApplicationPolicy
   end
 
   def cancel_order_service_proposal?
-    user.provider? && record.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID && (record.order_service.order_service_status_id == OrderServiceStatus::EM_ABERTO_ID || record.order_service.order_service_status_id == OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID)
+    user.provider? && record.provider_id == user.id && record.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID && (record.order_service.order_service_status_id == OrderServiceStatus::EM_ABERTO_ID || record.order_service.order_service_status_id == OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID)
   end
 
   def get_new_proposals_order_service_proposal?

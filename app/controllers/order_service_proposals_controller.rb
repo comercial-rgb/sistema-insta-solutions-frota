@@ -23,7 +23,12 @@ class OrderServiceProposalsController < ApplicationController
       @order_service_proposals_to_export = OrderServiceProposalsGrid.new(params[:order_service_proposals_grid].merge(current_user: @current_user))
     end
 
-    @order_service_proposals.scope {|scope| scope.page(params[:page]) }
+    if @current_user.provider?
+      @order_service_proposals.scope {|scope| scope.where(provider_id: @current_user.id).page(params[:page]) }
+      @order_service_proposals_to_export.scope {|scope| scope.where(provider_id: @current_user.id) }
+    else
+      @order_service_proposals.scope {|scope| scope.page(params[:page]) }
+    end
 
     respond_to do |format|
       format.html
@@ -456,6 +461,7 @@ class OrderServiceProposalsController < ApplicationController
   end
 
   def get_order_service_proposal
+    authorize @order_service_proposal, :show_order_service_proposal?
     data = {
       result: @order_service_proposal
     }
