@@ -120,10 +120,15 @@ class CostCenter < ApplicationRecord
   end
 
   def self.sum_budget_value(cost_center)
-    # Commitment value - Cancel commitment value (todos os empenhos, ativos e inativos)
-    # Empenhos inativos são apenas ocultos na abertura de OS, mas seu valor
-    # orçamentário deve continuar contando pois o consumo já foi realizado
-    all_commitments = cost_center.commitments
+    # Combina empenhos diretos (via cost_center_id) e vinculados (via tabela N:N commitment_cost_centers)
+    # Remove duplicatas para não contar o mesmo empenho duas vezes
+    direct_ids = cost_center.commitments.pluck(:id)
+    linked_ids = cost_center.linked_commitments.pluck(:id)
+    all_ids = (direct_ids + linked_ids).uniq
+
+    return 0.0 if all_ids.empty?
+
+    all_commitments = Commitment.where(id: all_ids)
     commitment_value = all_commitments.sum(:commitment_value).to_f
     cancel_commitment_value = all_commitments.joins(:cancel_commitments).sum('cancel_commitments.value').to_f
     result = commitment_value - cancel_commitment_value
@@ -131,10 +136,14 @@ class CostCenter < ApplicationRecord
   end
 
   def self.sum_budget_value_contract(cost_center)
-    # Commitment value - Cancel commitment value (todos os empenhos, contratos ativos)
-    # Empenhos inativos são apenas ocultos na abertura de OS, mas seu valor
-    # orçamentário deve continuar contando pois o consumo já foi realizado
-    all_commitments = cost_center.commitments.includes(:contract)
+    # Combina empenhos diretos e vinculados (N:N), sem duplicatas
+    direct_ids = cost_center.commitments.pluck(:id)
+    linked_ids = cost_center.linked_commitments.pluck(:id)
+    all_ids = (direct_ids + linked_ids).uniq
+
+    return 0.0 if all_ids.empty?
+
+    all_commitments = Commitment.where(id: all_ids).includes(:contract)
     contracts = all_commitments.map(&:contract).compact.uniq.select(&:active)
     result = contracts.map { |contract| contract.get_total_value }.sum.to_f
     return result
