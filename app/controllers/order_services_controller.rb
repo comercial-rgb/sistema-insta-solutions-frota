@@ -1556,8 +1556,10 @@ class OrderServicesController < ApplicationController
 
   # Processar fornecedores direcionados (envio para fornecedores específicos)
   def handle_directed_providers
-    # Só processa para tipos Cotação e Requisição (Diagnóstico já tem provider_id único)
-    return if @order_service.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID
+    # Para Diagnóstico, só processa quando estiver liberando para cotação
+    if @order_service.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID
+      return unless params[:release_to_quotation].present?
+    end
     
     directed_flag = params.dig(:order_service, :directed_to_specific_providers)
     directed_ids = params.dig(:order_service, :directed_provider_ids)

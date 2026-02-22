@@ -235,8 +235,12 @@
     </div>
 </div>
 
-<%# ===== SEÇÃO: Enviar para Fornecedores Específicos (Cotações/Requisição) ===== %>
+<%# ===== SEÇÃO: Enviar para Fornecedores Específicos (Cotações/Requisição/Diagnóstico ao liberar) ===== %>
 <% if !@current_user.provider? %>
+<%# Flag para JS: indica que Diagnóstico está pronto para liberar cotação %>
+<% if f.object.persisted? && f.object.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID && f.object.data_inserted_by_provider && !f.object.release_quotation %>
+    <input type="hidden" id="diagnostico_ready_for_release" value="true">
+<% end %>
 <div class="row mt-2 d-none" id="div-with-directed-providers">
     <div class="col-12">
         <div class="card border-primary">

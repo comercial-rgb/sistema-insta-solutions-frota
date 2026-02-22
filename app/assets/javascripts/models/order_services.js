@@ -67,7 +67,13 @@ $(document).ready(function () {
         console.log('✓ Configurando para DIAGNÓSTICO');
         $('#div-with-provider-selection').removeClass('d-none').show();
         $('#div-with-service-group-selection').addClass('d-none').hide();
-        $('#div-with-directed-providers').addClass('d-none').hide(); // Diagnóstico já tem fornecedor único
+        // Se Diagnóstico pronto para liberar cotação, mostrar painel de fornecedores direcionados
+        if ($('#diagnostico_ready_for_release').val() === 'true') {
+            console.log('✓ Diagnóstico pronto para liberar cotação - mostrando painel de fornecedores direcionados');
+            $('#div-with-directed-providers').removeClass('d-none').show();
+        } else {
+            $('#div-with-directed-providers').addClass('d-none').hide(); // Diagnóstico já tem fornecedor único
+        }
         $('.quantity-field-container').hide();
         setTimeout(fixSelect2Width, 100);
     } else if (initialOrderServiceTypeId == '1') { 
@@ -1127,7 +1133,8 @@ $(document).ready(function () {
     // Também recarregar quando mudar o tipo de serviço
     $(document).on('change', '#order_service_provider_service_type_id', function() {
         var osType = $('#order_service_order_service_type_id').val();
-        if (osType == '1' || osType == '3') { // Cotações ou Requisição
+        // Cotações, Requisição, ou Diagnóstico pronto para liberar cotação
+        if (osType == '1' || osType == '3' || (osType == '2' && $('#diagnostico_ready_for_release').val() === 'true')) {
             loadDirectedProviders();
         }
     });
