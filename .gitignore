@@ -98,7 +98,6 @@ pickle-email-*.html
 .rufus-scheduler.lock
 
 /config/master.key
-/public/favicon/custom/*
 
 # Release/package artifacts
 *.zip

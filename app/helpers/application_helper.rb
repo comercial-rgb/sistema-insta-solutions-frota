@@ -207,20 +207,18 @@ module ApplicationHelper
   def ensure_custom_favicon(size)
     favicon_path = "/favicon/custom/favicon-#{size}.png"
 
-    # Check if file exists in the public folder
+    # Favicons pré-gerados em public/favicon/custom/
     if File.exist?(Rails.root.join("public#{favicon_path}"))
       return favicon_path
     end
 
-    # Trigger processing job if missing
-    system_config = SystemConfiguration.first
-    if system_config&.favicon&.attached?
-      ProcessFaviconJob.perform_later(system_config.id)
-      return favicon_path
+    # Fallback: usar favicons do asset pipeline
+    begin
+      return asset_path("favicon/favicon-#{size}.png")
+    rescue
+      # Fallback final: pixel transparente
+      "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
     end
-
-    # Return a simple data URI as fallback to avoid asset pipeline errors
-    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="
   end
 
 end
