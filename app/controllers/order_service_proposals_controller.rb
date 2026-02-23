@@ -295,6 +295,7 @@ class OrderServiceProposalsController < ApplicationController
       # Se estive tentando apenas inserir as notas fiscais
       if !policy(@order_service_proposal).can_insert_invoices?
         user_not_authorized
+        return
       end
     else
       # Se está atualizando a proposta em si
