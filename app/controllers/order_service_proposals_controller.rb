@@ -368,6 +368,8 @@ class OrderServiceProposalsController < ApplicationController
             OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID
           )
           @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID)
+          # Atualizar também o status da proposta para refletir no menu do fornecedor
+          @order_service_proposal.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::NOTAS_INSERIDAS_ID)
         end
         flash[:success] = t('flash.update')
         redirect_to show_order_service_proposal_path(id: @order_service_proposal.id)
