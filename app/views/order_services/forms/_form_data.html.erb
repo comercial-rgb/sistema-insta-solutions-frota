@@ -249,7 +249,7 @@
                     <input class="form-check-input" type="checkbox" id="directed_providers_toggle"
                            name="order_service[directed_to_specific_providers]"
                            value="true"
-                           <%= 'checked' if f.object.directed_to_specific_providers? rescue false %>
+                           <%= 'checked' if f.object.persisted? && f.object.directed_to_specific_providers? %>
                            <%= 'disabled' if disabled_basic_fields %>>
                     <label class="form-check-label fw-bold" for="directed_providers_toggle">
                         <i class="bi bi-people-fill"></i> Enviar para fornecedores específicos
@@ -295,7 +295,7 @@
                 </div>
                 <%# Campos hidden para enviar os IDs selecionados %>
                 <div id="directed-providers-hidden-fields">
-                    <% if f.object.persisted? && f.object.directed_to_specific_providers? rescue false %>
+                    <% if f.object.persisted? && f.object.directed_to_specific_providers? %>
                         <% f.object.directed_providers.each do |provider| %>
                             <input type="hidden" name="order_service[directed_provider_ids][]" value="<%= provider.id %>" class="directed-provider-hidden">
                         <% end %>
