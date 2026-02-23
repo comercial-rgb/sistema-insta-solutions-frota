@@ -1,8 +1,9 @@
 name: Deploy to Production
 
 on:
-  push:
-    branches: [ main, master ]
+  # Deploy automático desabilitado - deploy é feito manualmente via SSH
+  # push:
+  #   branches: [ main, master ]
   workflow_dispatch:  # Permite deploy manual via interface do GitHub
 
 env:
