@@ -229,6 +229,9 @@ class OrderServiceProposalsController < ApplicationController
         end
       end
       
+      # Carregar sugestões do catálogo de peças para o veículo da OS
+      load_catalogo_sugestoes(os.vehicle)
+      
       build_initial_relations
     end
   end
@@ -244,6 +247,9 @@ class OrderServiceProposalsController < ApplicationController
         @service_max_values[item.service_id] = item.max_value
       end
     end
+    
+    # Carregar sugestões do catálogo de peças para o veículo da OS
+    load_catalogo_sugestoes(os.vehicle)
     
     build_initial_relations
   end
@@ -439,7 +445,8 @@ class OrderServiceProposalsController < ApplicationController
         total_value: provider_service_temp.total_value,
         total_value_without_discount: (provider_service_temp.quantity * provider_service_temp.price),
         brand: provider_service_temp.brand,
-        warranty_period: provider_service_temp.warranty_period
+        warranty_period: provider_service_temp.warranty_period,
+        referencia_catalogo: provider_service_temp.referencia_catalogo
       )
     end
   end
@@ -1161,6 +1168,7 @@ class OrderServiceProposalsController < ApplicationController
       :warranty_period,
       :service_id,
       :is_complement,
+      :referencia_catalogo,
       :_destroy
     ],
     order_service_invoices_attributes: [
@@ -1176,6 +1184,7 @@ class OrderServiceProposalsController < ApplicationController
   end
   
   # Limpa service_id="novo" dos parâmetros de provider_service_temps
+  # Normaliza nomes usando o catálogo de peças quando disponível
   def clean_provider_service_temps_params(params)
     return params unless params[:provider_service_temps_attributes].present?
     
@@ -1186,8 +1195,25 @@ class OrderServiceProposalsController < ApplicationController
         # Isso garante que o item exista no banco e possa ser copiado para a OS na cotação
         service_name = temp_attrs[:name].to_s.strip
         category_id = temp_attrs[:category_id]
+
+        # Tenta normalizar nome usando o catálogo de peças
+        if category_id.to_i == Category::SERVICOS_PECAS_ID && service_name.present?
+          service_name = normalizar_nome_pelo_catalogo(service_name)
+        end
+
+        # Padroniza capitalização (Title Case inteligente)
+        service_name = Service.padronizar_nome_peca(service_name) if service_name.present?
+
         if service_name.present? && category_id.present?
+          # Busca existente: case-insensitive + ignora acentos (após padronização, nomes são consistentes)
           existing_service = Service.where("LOWER(name) = ? AND category_id = ?", service_name.downcase, category_id).first
+          # Se não encontrou exato, tenta sem acentos (dados legados podem não ter sido padronizados ainda)
+          if existing_service.nil?
+            nome_sem_acento = I18n.transliterate(service_name.downcase.strip)
+            existing_service = Service.where(category_id: category_id)
+              .where("LOWER(name) LIKE ?", nome_sem_acento)
+              .first
+          end
           service = existing_service || Service.create!(
             name: service_name,
             category_id: category_id,
@@ -1196,12 +1222,68 @@ class OrderServiceProposalsController < ApplicationController
           )
           temp_attrs[:service_id] = service.id
           temp_attrs[:name] = service.name
+
+          # Auto-popular referência do catálogo se disponível
+          if category_id.to_i == Category::SERVICOS_PECAS_ID && temp_attrs[:referencia_catalogo].blank?
+            begin
+              os = OrderServiceProposal.find_by(id: temp_attrs[:order_service_proposal_id])&.order_service ||
+                   OrderService.find_by(id: params[:order_service_id])
+              vehicle = os&.vehicle
+              refs = CatalogoPeca.formatar_referencias(service_name, vehicle: vehicle)
+              temp_attrs[:referencia_catalogo] = refs if refs.present?
+            rescue => e
+              Rails.logger.warn "[CATALOGO] Erro ao buscar referência: #{e.message}"
+            end
+          end
         else
           temp_attrs[:service_id] = nil
         end
       end
     end
     cleaned_params
+  end
+
+  # Normaliza nome da peça usando o catálogo PDF
+  # Usa algoritmo inteligente com scoring por sobreposição de palavras
+  def normalizar_nome_pelo_catalogo(nome)
+    return nome if nome.blank?
+    CatalogoPeca.normalizar_nome_inteligente(nome)
+  rescue => e
+    Rails.logger.warn "[CATALOGO] Erro ao normalizar nome '#{nome}': #{e.message}"
+    nome
+  end
+
+  # Carrega sugestões do catálogo de peças para o veículo da OS
+  def load_catalogo_sugestoes(vehicle)
+    @catalogo_sugestoes = []
+    @catalogo_fornecedores = []
+    @catalogo_grupos = []
+    @catalogo_referencias = {} # Hash: nome_peca => "FRASLE: PD/1234 | FREMAX: BD-5560"
+
+    return unless vehicle.present?
+    return unless CatalogoPeca.table_exists?
+
+    begin
+      @catalogo_sugestoes = CatalogoPeca.buscar_por_veiculo(vehicle).limit(200)
+      @catalogo_fornecedores = CatalogoPeca.fornecedores_disponiveis
+      @catalogo_grupos = CatalogoPeca.grupos_produto_disponiveis
+
+      # Agrupa referências por grupo_produto para exibir no formulário
+      @catalogo_sugestoes.each do |sug|
+        grupo = sug.grupo_produto.to_s.strip
+        next if grupo.blank?
+        @catalogo_referencias[grupo] ||= []
+        ref = { fornecedor: sug.fornecedor, produto: sug.produto }
+        @catalogo_referencias[grupo] << ref unless @catalogo_referencias[grupo].include?(ref)
+      end
+
+      # Formata como strings "FORNECEDOR: CODIGO | ..."
+      @catalogo_referencias.transform_values! do |refs|
+        refs.map { |r| "#{r[:fornecedor]}: #{r[:produto]}" }.uniq.join(' | ')
+      end
+    rescue => e
+      Rails.logger.warn "[CATALOGO] Erro ao carregar sugestões: #{e.message}"
+    end
   end
 
   # Verifica saldo e define fluxo de aprovação para complemento
@@ -1348,7 +1430,8 @@ class OrderServiceProposalsController < ApplicationController
         warranty_period: pst.warranty_period,
         guarantee: pst.warranty_period.to_s,
         observation: pst.description,
-        is_complement: pst.is_complement || false
+        is_complement: pst.is_complement || false,
+        referencia_catalogo: pst.referencia_catalogo
       )
     end
     

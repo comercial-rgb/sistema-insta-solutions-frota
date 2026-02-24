@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_02_02_002940) do
+ActiveRecord::Schema[7.1].define(version: 2026_02_24_150000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -48,7 +48,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_02_002940) do
     t.boolean "active", default: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "contract_id"
     t.index ["commitment_id"], name: "index_addendum_commitments_on_commitment_id"
+    t.index ["contract_id"], name: "index_addendum_commitments_on_contract_id"
   end
 
   create_table "addendum_contracts", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -155,6 +157,47 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_02_002940) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["commitment_id"], name: "index_cancel_commitments_on_commitment_id"
+  end
+
+  create_table "catalogo_pdf_imports", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.string "filename", null: false
+    t.string "fornecedor", limit: 50, null: false
+    t.string "checksum", limit: 64
+    t.integer "total_registros", default: 0
+    t.integer "total_paginas", default: 0
+    t.string "status", limit: 20, default: "pendente"
+    t.text "log"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["filename"], name: "index_catalogo_pdf_imports_on_filename", unique: true
+    t.index ["fornecedor"], name: "index_catalogo_pdf_imports_on_fornecedor"
+  end
+
+  create_table "catalogo_pecas", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.string "fornecedor", limit: 50, null: false
+    t.string "marca", limit: 100, default: ""
+    t.string "veiculo", limit: 150, default: ""
+    t.string "modelo", limit: 150, default: ""
+    t.string "motor", limit: 100, default: ""
+    t.integer "ano_inicio"
+    t.integer "ano_fim"
+    t.string "grupo_produto", limit: 200, default: ""
+    t.string "produto", limit: 150, default: ""
+    t.string "observacao", limit: 300, default: ""
+    t.integer "pagina_origem"
+    t.string "arquivo_origem"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["fornecedor", "marca", "veiculo", "modelo", "produto"], name: "idx_catalogo_unique_entry", length: { marca: 50, veiculo: 50, modelo: 50, produto: 80 }
+    t.index ["fornecedor"], name: "idx_catalogo_fornecedor"
+    t.index ["fornecedor"], name: "index_catalogo_pecas_on_fornecedor"
+    t.index ["grupo_produto"], name: "index_catalogo_pecas_on_grupo_produto", length: 100
+    t.index ["marca"], name: "idx_catalogo_marca"
+    t.index ["marca"], name: "index_catalogo_pecas_on_marca"
+    t.index ["produto"], name: "idx_catalogo_produto"
+    t.index ["produto"], name: "index_catalogo_pecas_on_produto"
+    t.index ["veiculo", "modelo"], name: "idx_catalogo_veiculo"
+    t.index ["veiculo", "modelo"], name: "idx_catalogo_veiculo_modelo"
   end
 
   create_table "categories", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -327,6 +370,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_02_002940) do
     t.bigint "user_id", null: false
   end
 
+  create_table "order_service_directed_providers", id: false, charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "order_service_id", null: false
+    t.bigint "provider_id", null: false
+    t.index ["order_service_id", "provider_id"], name: "idx_os_directed_providers_unique", unique: true
+    t.index ["provider_id"], name: "idx_os_directed_providers_provider"
+  end
+
   create_table "order_service_invoice_types", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name"
     t.datetime "created_at", null: false
@@ -363,6 +413,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_02_002940) do
     t.string "guarantee"
     t.date "warranty_start_date"
     t.boolean "is_complement", default: false
+    t.string "referencia_catalogo", limit: 500
     t.index ["order_service_proposal_id"], name: "idx_on_order_service_proposal_id_fc807812fe"
     t.index ["service_id"], name: "index_order_service_proposal_items_on_service_id"
   end
@@ -451,6 +502,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_02_002940) do
     t.bigint "commitment_services_id"
     t.bigint "service_group_id"
     t.string "origin"
+    t.boolean "directed_to_specific_providers", default: false
     t.index ["client_id"], name: "index_order_services_on_client_id"
     t.index ["commitment_id"], name: "index_order_services_on_commitment_id"
     t.index ["commitment_parts_id"], name: "fk_rails_8411f8cafd"
@@ -526,6 +578,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_02_002940) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "service_id"
+    t.string "referencia_catalogo", limit: 500
     t.index ["category_id"], name: "index_provider_service_temps_on_category_id"
     t.index ["order_service_proposal_id"], name: "index_provider_service_temps_on_order_service_proposal_id"
     t.index ["service_id"], name: "index_provider_service_temps_on_service_id"
@@ -846,6 +899,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_02_002940) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "addendum_commitments", "commitments"
+  add_foreign_key "addendum_commitments", "contracts"
   add_foreign_key "addendum_contracts", "contracts"
   add_foreign_key "addresses", "address_areas"
   add_foreign_key "addresses", "address_types"
@@ -870,6 +924,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_02_002940) do
   add_foreign_key "data_banks", "banks"
   add_foreign_key "data_banks", "data_bank_types"
   add_foreign_key "notifications", "profiles"
+  add_foreign_key "order_service_directed_providers", "order_services"
+  add_foreign_key "order_service_directed_providers", "users", column: "provider_id"
   add_foreign_key "order_service_invoices", "order_service_invoice_types"
   add_foreign_key "order_service_invoices", "order_service_proposals"
   add_foreign_key "order_service_proposal_items", "order_service_proposals"
