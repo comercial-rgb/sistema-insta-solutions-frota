@@ -112,7 +112,10 @@
                 <% if f.object.persisted? %>
                     <% if f.object.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID %>
                         <% if f.object.data_inserted_by_provider && !f.object.release_quotation %>
-                            <%= f.button :submit, name: 'release_to_quotation', class: 'btn-secondary', value: OrderService.human_attribute_name(:release_to_quotation), data: {confirm: t('model.confirm_action')} %>
+                            <button type="button" class="btn btn-secondary" id="btn-release-to-quotation-step1">
+                                <i class="bi bi-send"></i> Enviar para Cotação
+                            </button>
+                            <%= f.button :submit, name: 'release_to_quotation', class: 'btn-success d-none', id: 'btn-release-to-quotation-confirm', value: '✓ Confirmar e Enviar para Cotação', data: {confirm: 'Tem certeza que deseja enviar esta OS para cotação com os fornecedores selecionados?'} %>
                         <% end %>
                     <% end %>
                     <%= f.button :submit, name: 'save_and_submit', class: 'btn-primary', value: OrderService.human_attribute_name(:save_and_submit), data: {confirm: t('model.confirm_action')} %>

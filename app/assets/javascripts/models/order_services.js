@@ -1130,6 +1130,41 @@ $(document).ready(function () {
         setTimeout(function() { loadDirectedProviders(); }, 300);
     }
 
+    // ===== DIAGNÓSTICO: Fluxo de "Enviar para Cotação" em 2 passos =====
+    // Passo 1: Clica no botão → abre painel de fornecedores com toggle ativado
+    $(document).on('click', '#btn-release-to-quotation-step1', function() {
+        // Ativar toggle e expandir painel de fornecedores
+        var $toggle = $('#directed_providers_toggle');
+        if (!$toggle.is(':checked')) {
+            $toggle.prop('checked', true).trigger('change');
+        }
+
+        // Garantir que o container está visível
+        $('#div-with-directed-providers').removeClass('d-none').show();
+        $('#directed-providers-panel').removeClass('d-none');
+
+        // Carregar fornecedores
+        loadDirectedProviders();
+
+        // Scroll até o painel de fornecedores
+        $('html, body').animate({
+            scrollTop: $('#div-with-directed-providers').offset().top - 100
+        }, 500);
+
+        // Esconder botão passo 1, mostrar botão de confirmação
+        $(this).addClass('d-none');
+        $('#btn-release-to-quotation-confirm').removeClass('d-none');
+
+        // Mostrar instrução ao usuário
+        if ($('#directed-providers-instruction').length === 0) {
+            $('#div-with-directed-providers .card-header').append(
+                '<div id="directed-providers-instruction" class="alert alert-info mt-2 mb-0 py-1 small">' +
+                '<i class="bi bi-info-circle"></i> <strong>Selecione os fornecedores</strong> que poderão cotar esta OS. ' +
+                'Depois clique em <strong>"✓ Confirmar e Enviar para Cotação"</strong> no final da página.</div>'
+            );
+        }
+    });
+
     // Também recarregar quando mudar o tipo de serviço
     $(document).on('change', '#order_service_provider_service_type_id', function() {
         var osType = $('#order_service_order_service_type_id').val();
