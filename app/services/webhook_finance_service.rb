@@ -294,7 +294,7 @@ class WebhookFinanceService
     return '' unless commitment_id
     
     commitment = Commitment.find_by(id: commitment_id)
-    commitment&.contract&.code || ''
+    commitment&.contract&.number&.to_s || ''
   end
 
   def get_commitment_number(type)
@@ -303,7 +303,7 @@ class WebhookFinanceService
     return '' unless commitment_id
     
     commitment = Commitment.find_by(id: commitment_id)
-    commitment&.code || ''
+    commitment&.commitment_number&.to_s || ''
   end
 
   def calculate_value_with_discount(value, discount_percent)
