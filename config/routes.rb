@@ -192,6 +192,13 @@ Rails.application.routes.draw do
 		get :template, on: :collection
 	end
 
+	# Catálogo de peças (busca nos PDFs importados)
+	get '/catalogo_pecas/search', to: 'catalogo_pecas#search', as: 'catalogo_pecas_search'
+	get '/catalogo_pecas/sugestoes', to: 'catalogo_pecas#sugestoes', as: 'catalogo_pecas_sugestoes'
+	get '/catalogo_pecas/fornecedores', to: 'catalogo_pecas#fornecedores', as: 'catalogo_pecas_fornecedores'
+	get '/catalogo_pecas/grupos', to: 'catalogo_pecas#grupos', as: 'catalogo_pecas_grupos'
+	get '/catalogo_pecas/stats', to: 'catalogo_pecas#stats', as: 'catalogo_pecas_stats'
+
 	resources :teams
 
 	# Endereços (do usuário)
