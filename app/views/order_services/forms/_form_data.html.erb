@@ -241,6 +241,18 @@
 <% if f.object.persisted? && f.object.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID && f.object.data_inserted_by_provider && !f.object.release_quotation %>
     <input type="hidden" id="diagnostico_ready_for_release" value="true">
 <% end %>
+<%# Informativo para Diagnóstico %>
+<div class="row mt-2 d-none" id="div-diagnostico-info">
+    <div class="col-12">
+        <div class="alert alert-info d-flex align-items-start py-2 mb-0" role="alert">
+            <i class="bi bi-info-circle-fill me-2 mt-1" style="font-size: 1.1rem;"></i>
+            <div>
+                <strong>OS tipo Diagnóstico:</strong> O fornecedor selecionado acima irá criar o orçamento inicial.
+                Após o primeiro orçamento ser inserido, será possível direcionar esta OS para outros fornecedores através da opção <em>"Enviar para Cotação"</em>.
+            </div>
+        </div>
+    </div>
+</div>
 <div class="row mt-2 d-none" id="div-with-directed-providers">
     <div class="col-12">
         <div class="card border-primary">

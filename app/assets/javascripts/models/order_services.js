@@ -58,6 +58,7 @@ $(document).ready(function () {
         $('#div-with-service-group-selection').removeClass('d-none').show();
         $('#div-with-provider-selection').addClass('d-none').hide();
         $('#div-with-directed-providers').removeClass('d-none').show(); // Mostra seleção direcionada
+        $('#div-diagnostico-info').addClass('d-none').hide(); // Esconde informativo
         $('.quantity-field-container').show();
         hideNewServiceButtons(true);
         changeQuantityFieldType('number');
@@ -69,6 +70,7 @@ $(document).ready(function () {
         $('#div-with-provider-selection').removeClass('d-none').show();
         $('#div-with-service-group-selection').addClass('d-none').hide();
         $('#div-with-directed-providers').addClass('d-none').hide(); // Esconde - Diagnóstico usa Fornecedor específico
+        $('#div-diagnostico-info').removeClass('d-none').show(); // Mostra informativo
         $('.quantity-field-container').hide();
         setTimeout(fixSelect2Width, 100);
     } else if (initialOrderServiceTypeId == '1') { 
@@ -77,6 +79,7 @@ $(document).ready(function () {
         $('#div-with-provider-selection').addClass('d-none').hide();
         $('#div-with-service-group-selection').addClass('d-none').hide();
         $('#div-with-directed-providers').removeClass('d-none').show(); // Mostra seleção direcionada
+        $('#div-diagnostico-info').addClass('d-none').hide(); // Esconde informativo
         $('.quantity-field-container').show();
         changeQuantityFieldType('text');
     } else {
@@ -84,6 +87,7 @@ $(document).ready(function () {
         $('#div-with-provider-selection').addClass('d-none').hide();
         $('#div-with-service-group-selection').addClass('d-none').hide();
         $('#div-with-directed-providers').addClass('d-none').hide();
+        $('#div-diagnostico-info').addClass('d-none').hide();
         $('.quantity-field-container').show();
         changeQuantityFieldType('text');
     }
@@ -319,6 +323,7 @@ $(document).ready(function () {
             $('#div-with-service-group-selection').removeClass('d-none').show();
             $('#div-with-provider-selection').addClass('d-none').hide();
             $('#div-with-directed-providers').removeClass('d-none').show(); // Mostra seleção direcionada
+            $('#div-diagnostico-info').addClass('d-none').hide(); // Esconde informativo
             $('.quantity-field-container').show();
             adjustObservationWidth(true);
             // Limpar fornecedor selecionado
@@ -339,6 +344,7 @@ $(document).ready(function () {
             $('#div-with-provider-selection').removeClass('d-none').show();
             $('#div-with-service-group-selection').addClass('d-none').hide();
             $('#div-with-directed-providers').addClass('d-none').hide(); // Esconde - Diagnóstico usa Fornecedor específico
+            $('#div-diagnostico-info').removeClass('d-none').show(); // Mostra informativo
             $('.quantity-field-container').hide();
             adjustObservationWidth(false);
             // Limpar grupo de serviços selecionado
@@ -358,6 +364,7 @@ $(document).ready(function () {
             $('#div-with-provider-selection').addClass('d-none').hide();
             $('#div-with-service-group-selection').addClass('d-none').hide();
             $('#div-with-directed-providers').removeClass('d-none').show(); // Mostra seleção direcionada
+            $('#div-diagnostico-info').addClass('d-none').hide(); // Esconde informativo
             $('.quantity-field-container').show();
             adjustObservationWidth(true);
             // Limpar seleções
