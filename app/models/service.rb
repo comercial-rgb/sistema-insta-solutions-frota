@@ -1,5 +1,8 @@
 ﻿class Service < ApplicationRecord
+  include PadronizaNome
+
   after_initialize :default_values
+  before_validation :padronizar_nome_service
 
   default_scope {
     with_attached_image
@@ -115,6 +118,10 @@
   end
 
   private
+
+  def padronizar_nome_service
+    self.name = self.class.padronizar_nome_peca(name) if name.present? && name_changed?
+  end
 
   def default_values
     self.name ||= ""

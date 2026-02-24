@@ -1,5 +1,8 @@
 ﻿class OrderServiceProposalItem < ApplicationRecord
+  include PadronizaNome
+
   after_initialize :default_values
+  before_validation :padronizar_nome_item
   before_validation :recalculate_totals
   # validate :check_reference_price, if: :should_validate_price?
   # ⚠️ Validação desabilitada - agora apenas mostra aviso visual (não bloqueia)
@@ -84,6 +87,10 @@
   end
 
   private
+
+  def padronizar_nome_item
+    self.service_name = self.class.padronizar_nome_peca(service_name) if service_name.present? && service_name_changed?
+  end
 
   def recalculate_totals
     quantity = (self.quantity.presence || 0).to_d

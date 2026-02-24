@@ -1,5 +1,8 @@
 ﻿class ProviderServiceTemp < ApplicationRecord
+  include PadronizaNome
+
   after_initialize :default_values
+  before_validation :padronizar_nome_temp
   before_validation :recalculate_totals_from_client_discount
   before_validation :sync_quantity_from_order_service, if: Proc.new { |obj|
     obj.order_service_proposal.present? &&
@@ -60,6 +63,10 @@
   end
 
   private
+
+  def padronizar_nome_temp
+    self.name = self.class.padronizar_nome_peca(name) if name.present? && name_changed?
+  end
 
   def recalculate_totals_from_client_discount
     return unless order_service_proposal&.order_service&.client.present?
