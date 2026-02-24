@@ -4,6 +4,7 @@
     <%= f.input :provider_id, as: :hidden, input_html: {value: f.object.provider_id} %>
 
     <%= hidden_field_tag 'order_service_proposal_client_id', f.object.order_service.client_id %>
+    <%= hidden_field_tag 'order_service_proposal_vehicle_id', f.object.order_service.vehicle_id %>
     <div class="row">
         <div class="col-12">
             <%= f.error_notification %>

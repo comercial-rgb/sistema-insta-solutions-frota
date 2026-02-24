@@ -27,17 +27,15 @@
         <%= provider_service_temp.input :name, label: part_service_name, disabled: true, input_html: {value: provider_service_temp.object.getting_name_and_description, class: 'form-control form-control-sm text-success fw-bold' } %>
       </div>
 
-      <%# Referência do Catálogo PDF — só para peças (category_id == 1) %>
+      <%# Busca interativa no Catálogo de Peças — só para peças (category_id == 1) %>
       <% if provider_service_temp.object.category_id == Category::SERVICOS_PECAS_ID %>
         <%
-          # Busca referência: usa o valor salvo no banco, ou tenta buscar do @catalogo_referencias
+          # Busca referência pré-carregada
           ref_value = provider_service_temp.object.referencia_catalogo.presence
           if ref_value.blank? && defined?(@catalogo_referencias) && @catalogo_referencias.present?
-            # Tenta match pelo nome da peça
             peca_nome = provider_service_temp.object.service&.name || provider_service_temp.object.name
             if peca_nome.present?
               ref_value = @catalogo_referencias[peca_nome]
-              # Se não encontrou exato, busca parcial
               if ref_value.blank?
                 peca_norm = peca_nome.to_s.strip.downcase
                 @catalogo_referencias.each do |grupo, refs|
@@ -49,20 +47,48 @@
               end
             end
           end
+          peca_nome_busca = provider_service_temp.object.service&.name || provider_service_temp.object.name
         %>
-        <% if ref_value.present? %>
-          <div class="col-md-12">
-            <label class="form-label form-label-sm text-muted mb-0">
-              <i class="bi bi-bookmark-fill text-primary"></i> Ref. Catálogo
-            </label>
-            <div class="form-control form-control-sm bg-light text-primary fw-semibold" style="font-size: 0.8rem; min-height: auto; padding: 4px 8px;">
-              <%= ref_value %>
+
+        <div class="col-md-12 catalogo-search-section" data-peca-nome="<%= peca_nome_busca %>">
+          <% if ref_value.present? %>
+            <div class="catalogo-ref-display">
+              <label class="form-label form-label-sm text-muted mb-0">
+                <i class="bi bi-bookmark-fill text-primary"></i> Ref. Catálogo
+              </label>
+              <div class="form-control form-control-sm bg-light text-primary fw-semibold d-flex justify-content-between align-items-center" style="font-size: 0.8rem; min-height: auto; padding: 4px 8px;">
+                <span class="catalogo-ref-text"><%= ref_value %></span>
+                <button type="button" class="btn btn-sm btn-link p-0 ms-2 catalogo-search-btn" title="Buscar mais opções no catálogo">
+                  <i class="bi bi-search"></i>
+                </button>
+              </div>
             </div>
-            <%= provider_service_temp.input :referencia_catalogo, as: :hidden, input_html: { value: ref_value } %>
+          <% else %>
+            <button type="button" class="btn btn-sm btn-outline-primary catalogo-search-btn w-100 mb-1" title="Buscar referências no catálogo de peças">
+              <i class="bi bi-search me-1"></i> Buscar no Catálogo
+            </button>
+          <% end %>
+          <%= provider_service_temp.input :referencia_catalogo, as: :hidden, input_html: { value: ref_value, class: 'catalogo-ref-hidden' } %>
+
+          <%# Painel de resultados do catálogo (oculto por padrão) %>
+          <div class="catalogo-results-panel d-none mt-1">
+            <div class="card border-primary">
+              <div class="card-header bg-primary bg-opacity-10 py-1 px-2 d-flex justify-content-between align-items-center">
+                <small class="fw-bold text-primary"><i class="bi bi-book me-1"></i> Catálogo de Peças</small>
+                <button type="button" class="btn-close btn-close-sm catalogo-close-btn" aria-label="Fechar"></button>
+              </div>
+              <div class="card-body p-2">
+                <div class="input-group input-group-sm mb-2">
+                  <input type="text" class="form-control catalogo-search-input" placeholder="Buscar peça..." value="<%= peca_nome_busca %>">
+                  <button type="button" class="btn btn-primary catalogo-do-search-btn"><i class="bi bi-search"></i></button>
+                </div>
+                <div class="catalogo-results-list" style="max-height: 200px; overflow-y: auto; font-size: 0.8rem;">
+                  <p class="text-muted text-center py-2 mb-0">Clique em buscar para consultar o catálogo</p>
+                </div>
+              </div>
+            </div>
           </div>
-        <% else %>
-          <%= provider_service_temp.input :referencia_catalogo, as: :hidden %>
-        <% end %>
+        </div>
       <% end %>
 
       <% if provider_service_temp.object.category_id == Category::SERVICOS_PECAS_ID %>

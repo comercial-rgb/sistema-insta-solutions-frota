@@ -94,3 +94,25 @@
   }
 }
 
+/* ================================================================
+ * CATÁLOGO DE PEÇAS - Busca interativa
+ * ================================================================ */
+
+.catalogo-item:hover {
+  background-color: #f0f7ff !important;
+}
+
+.catalogo-search-section .catalogo-results-panel {
+  z-index: 10;
+  position: relative;
+}
+
+/* Animação sutil no botão "Buscar no Catálogo" para peças sem referência */
+@keyframes catalogoPulse {
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: 0 0 6px rgba(13, 110, 253, 0.4); }
+}
+
+.catalogo-search-btn.btn-pulse {
+  animation: catalogoPulse 2s ease-in-out 3;
+}

@@ -804,3 +804,246 @@ $(document).on('click', '.remove-provider-service-temp', function(e) {
     
     updateTotalValues();
 });
+// ========================================
+// BUSCA INTERATIVA NO CATÁLOGO DE PEÇAS
+// ========================================
+
+// Abrir painel de busca do catálogo
+$(document).on('click', '.catalogo-search-btn', function(e) {
+    e.preventDefault();
+    var $section = $(this).closest('.catalogo-search-section');
+    var $panel = $section.find('.catalogo-results-panel');
+    
+    $panel.removeClass('d-none');
+    
+    // Auto-buscar com o nome da peça
+    var pecaNome = $section.data('peca-nome') || '';
+    var $input = $panel.find('.catalogo-search-input');
+    if ($input.val() === '' && pecaNome) {
+        $input.val(pecaNome);
+    }
+    
+    // Executar busca automaticamente
+    catalogoDoSearch($section);
+    
+    // Focar no campo de busca
+    $input.focus().select();
+});
+
+// Fechar painel
+$(document).on('click', '.catalogo-close-btn', function(e) {
+    e.preventDefault();
+    $(this).closest('.catalogo-results-panel').addClass('d-none');
+});
+
+// Botão de busca
+$(document).on('click', '.catalogo-do-search-btn', function(e) {
+    e.preventDefault();
+    var $section = $(this).closest('.catalogo-search-section');
+    catalogoDoSearch($section);
+});
+
+// Enter no campo de busca
+$(document).on('keypress', '.catalogo-search-input', function(e) {
+    if (e.which === 13) {
+        e.preventDefault();
+        var $section = $(this).closest('.catalogo-search-section');
+        catalogoDoSearch($section);
+    }
+});
+
+// Executar busca no catálogo
+function catalogoDoSearch($section) {
+    var termo = $section.find('.catalogo-search-input').val().trim();
+    var vehicleId = $('#order_service_proposal_vehicle_id').val();
+    var $list = $section.find('.catalogo-results-list');
+    
+    if (!termo) {
+        $list.html('<p class="text-muted text-center py-2 mb-0">Digite o nome da peça para buscar</p>');
+        return;
+    }
+    
+    $list.html('<div class="text-center py-2"><div class="spinner-border spinner-border-sm text-primary" role="status"></div> Buscando...</div>');
+    
+    $.ajax({
+        url: '/catalogo_pecas/sugestoes',
+        method: 'GET',
+        dataType: 'json',
+        data: {
+            nome_peca: termo,
+            vehicle_id: vehicleId
+        },
+        success: function(data) {
+            if (!data || data.length === 0) {
+                $list.html(
+                    '<p class="text-muted text-center py-2 mb-0">' +
+                    '<i class="bi bi-info-circle"></i> Nenhuma referência encontrada para "<strong>' + $('<span>').text(termo).html() + '</strong>"' +
+                    '</p>'
+                );
+                return;
+            }
+            
+            // Agrupar por grupo_produto
+            var grupos = {};
+            data.forEach(function(item) {
+                var grupo = item.grupo_produto || 'Sem grupo';
+                if (!grupos[grupo]) grupos[grupo] = [];
+                grupos[grupo].push(item);
+            });
+            
+            var html = '';
+            Object.keys(grupos).sort().forEach(function(grupo) {
+                var itens = grupos[grupo];
+                html += '<div class="catalogo-grupo mb-2">';
+                html += '<div class="fw-bold text-dark border-bottom pb-1 mb-1" style="font-size: 0.85rem;">';
+                html += '<i class="bi bi-gear-fill text-secondary me-1"></i>' + $('<span>').text(grupo).html();
+                html += '</div>';
+                
+                itens.forEach(function(item) {
+                    var veiculo = item.veiculo || '';
+                    var modelo = item.modelo || '';
+                    var motor = item.motor || '';
+                    var anos = '';
+                    if (item.ano_inicio) {
+                        anos = item.ano_inicio;
+                        if (item.ano_fim && item.ano_fim != item.ano_inicio) {
+                            anos += '-' + item.ano_fim;
+                        }
+                    }
+                    var obs = item.observacao || '';
+                    
+                    html += '<div class="catalogo-item d-flex justify-content-between align-items-start py-1 px-1 rounded" ';
+                    html += 'style="cursor: pointer; border-bottom: 1px solid #f0f0f0;" ';
+                    html += 'data-fornecedor="' + $('<span>').text(item.fornecedor || '').html() + '" ';
+                    html += 'data-produto="' + $('<span>').text(item.produto || '').html() + '" ';
+                    html += 'data-grupo="' + $('<span>').text(grupo).html() + '" ';
+                    html += 'data-marca="' + $('<span>').text(item.marca || '').html() + '">';
+                    
+                    html += '<div class="flex-grow-1">';
+                    html += '<span class="text-primary fw-semibold">' + $('<span>').text(item.fornecedor || '').html() + '</span>';
+                    html += ': <span class="font-monospace">' + $('<span>').text(item.produto || '').html() + '</span>';
+                    
+                    if (veiculo || modelo || motor || anos) {
+                        html += '<br><small class="text-muted">';
+                        var detalhes = [];
+                        if (veiculo) detalhes.push(veiculo);
+                        if (modelo) detalhes.push(modelo);
+                        if (motor) detalhes.push(motor);
+                        if (anos) detalhes.push(anos);
+                        html += detalhes.join(' | ');
+                        if (obs) html += ' <em>(' + $('<span>').text(obs).html() + ')</em>';
+                        html += '</small>';
+                    }
+                    
+                    html += '</div>';
+                    html += '<button type="button" class="btn btn-sm btn-outline-success ms-2 catalogo-select-item py-0 px-1" title="Usar esta referência">';
+                    html += '<i class="bi bi-check-lg"></i>';
+                    html += '</button>';
+                    html += '</div>';
+                });
+                
+                html += '</div>';
+            });
+            
+            // Botão para selecionar todos
+            if (data.length > 1) {
+                var allRefs = [];
+                Object.keys(grupos).sort().forEach(function(grupo) {
+                    grupos[grupo].forEach(function(item) {
+                        var ref = (item.fornecedor || '') + ': ' + (item.produto || '');
+                        if (allRefs.indexOf(ref) === -1) allRefs.push(ref);
+                    });
+                });
+                html += '<div class="text-center mt-2 pt-1 border-top">';
+                html += '<button type="button" class="btn btn-sm btn-primary catalogo-select-all py-0 px-2" ';
+                html += 'data-all-refs="' + $('<span>').text(allRefs.join(' | ')).html() + '">';
+                html += '<i class="bi bi-check-all me-1"></i>Usar todas as referências (' + allRefs.length + ')';
+                html += '</button>';
+                html += '</div>';
+            }
+            
+            $list.html(html);
+        },
+        error: function() {
+            $list.html(
+                '<p class="text-danger text-center py-2 mb-0">' +
+                '<i class="bi bi-exclamation-triangle"></i> Erro ao buscar no catálogo. Tente novamente.' +
+                '</p>'
+            );
+        }
+    });
+}
+
+// Selecionar um item individual do catálogo
+$(document).on('click', '.catalogo-select-item', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    var $item = $(this).closest('.catalogo-item');
+    var $section = $(this).closest('.catalogo-search-section');
+    var $card = $section.closest('.card-body');
+    
+    var fornecedor = $item.data('fornecedor');
+    var produto = $item.data('produto');
+    var refText = fornecedor + ': ' + produto;
+    
+    // Atualizar hidden field de referência
+    $section.find('.catalogo-ref-hidden').val(refText);
+    
+    // Atualizar display
+    updateCatalogoRefDisplay($section, refText);
+    
+    // Preencher marca se campo estiver vazio
+    var marca = $item.data('marca') || fornecedor;
+    var $brandInput = $card.find('input[name*="[brand]"]');
+    if ($brandInput.length && !$brandInput.val()) {
+        $brandInput.val(marca);
+    }
+    
+    // Fechar painel
+    $section.find('.catalogo-results-panel').addClass('d-none');
+});
+
+// Selecionar item clicando na linha toda
+$(document).on('click', '.catalogo-item', function(e) {
+    if ($(e.target).closest('.catalogo-select-item').length) return;
+    $(this).find('.catalogo-select-item').trigger('click');
+});
+
+// Selecionar todas as referências
+$(document).on('click', '.catalogo-select-all', function(e) {
+    e.preventDefault();
+    
+    var $section = $(this).closest('.catalogo-search-section');
+    var allRefs = $(this).data('all-refs');
+    
+    // Atualizar hidden field
+    $section.find('.catalogo-ref-hidden').val(allRefs);
+    
+    // Atualizar display
+    updateCatalogoRefDisplay($section, allRefs);
+    
+    // Fechar painel
+    $section.find('.catalogo-results-panel').addClass('d-none');
+});
+
+// Atualizar o display da referência
+function updateCatalogoRefDisplay($section, refText) {
+    var $display = $section.find('.catalogo-ref-display');
+    if ($display.length) {
+        $display.find('.catalogo-ref-text').text(refText);
+    } else {
+        // Criar display de referência
+        $section.find('.catalogo-search-btn.w-100').replaceWith(
+            '<div class="catalogo-ref-display">' +
+            '<label class="form-label form-label-sm text-muted mb-0">' +
+            '<i class="bi bi-bookmark-fill text-primary"></i> Ref. Catálogo' +
+            '</label>' +
+            '<div class="form-control form-control-sm bg-light text-primary fw-semibold d-flex justify-content-between align-items-center" style="font-size: 0.8rem; min-height: auto; padding: 4px 8px;">' +
+            '<span class="catalogo-ref-text">' + $('<span>').text(refText).html() + '</span>' +
+            '<button type="button" class="btn btn-sm btn-link p-0 ms-2 catalogo-search-btn" title="Buscar mais opções no catálogo">' +
+            '<i class="bi bi-search"></i></button>' +
+            '</div></div>'
+        );
+    }
+}

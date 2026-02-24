@@ -1,5 +1,5 @@
 class CatalogoPecasController < ApplicationController
-  before_action :authenticate_user!
+  before_action :authenticate_user
 
   # GET /catalogo_pecas/search?vehicle_id=X&texto=Y&grupo_produto=Z&fornecedor=W
   def search
