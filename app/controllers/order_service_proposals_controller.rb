@@ -964,11 +964,6 @@ class OrderServiceProposalsController < ApplicationController
     @order_service_proposal.parent_proposal_id = @parent_proposal.id
     @order_service_proposal.is_complement = true
     @order_service_proposal.order_service_proposal_status_id = OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID
-    
-    # Marcar todos os itens como complemento
-    @order_service_proposal.provider_service_temps.each do |pst|
-      pst.is_complement = true
-    end
 
     # ✅ Garantir que o desconto do cliente seja aplicado e persistido no complemento
     apply_client_discount_to_complement_provider_temps(@order_service_proposal)
@@ -1167,7 +1162,6 @@ class OrderServiceProposalsController < ApplicationController
       :brand,
       :warranty_period,
       :service_id,
-      :is_complement,
       :referencia_catalogo,
       :_destroy
     ],
@@ -1430,7 +1424,7 @@ class OrderServiceProposalsController < ApplicationController
         warranty_period: pst.warranty_period,
         guarantee: pst.warranty_period.to_s,
         observation: pst.description,
-        is_complement: pst.is_complement || false,
+        is_complement: proposal.is_complement || false,
         referencia_catalogo: pst.referencia_catalogo
       )
     end

@@ -341,6 +341,21 @@ FORNECEDORES_CONHECIDOS = {
     "sabo": "SABO",
     "urba": "URBA",
     "hipper": "HIPPER FREIOS",
+    "amortex": "AMORTEX",
+    "eletriclife": "ELETRICLIFE",
+    "ferragens": "FERRAGENS LINHA PESADA",
+    "vetor": "VETOR",
+    "teslla": "TESLLA",
+    "dpaula": "DPAULA",
+    "drift": "DRIFT",
+    "frontec": "FRONTEC",
+    "gauer": "GAUER",
+    "marilia": "MARILIA",
+    "nytron": "NYTRON",
+    "sampel": "SAMPEL",
+    "sinalsul": "SINALSUL",
+    "tsa": "TSA",
+    "promocional": "PROMOCIONAL PA",
 }
 
 def detectar_fornecedor(filename):
@@ -454,8 +469,17 @@ def main():
             filename = os.path.basename(pdf_path)
             fornecedor = detectar_fornecedor(filename)
             print(f"\n  {filename} -> {fornecedor}")
-            total = processar_catalogo(pdf_path, fornecedor, conn, filename)
-            total_geral += total
+            try:
+                total = processar_catalogo(pdf_path, fornecedor, conn, filename)
+                total_geral += total
+            except Exception as e:
+                print(f"\n  ERRO ao processar {filename}: {e}")
+                # Reconectar caso a conexao tenha caido
+                try:
+                    conn.ping(reconnect=True)
+                except:
+                    conn = pymysql.connect(**db_config)
+                continue
 
     else:
         # Modo: importar lista fixa de PDFs

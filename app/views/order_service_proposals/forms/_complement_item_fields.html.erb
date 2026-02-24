@@ -4,7 +4,6 @@
   </button>
   
   <div class="row g-2">
-    <%= f.input :is_complement, as: :hidden, input_html: { value: true } %>
     <%= f.input_field :category_id, as: :hidden, class: 'complement-category-id', value: (f.object.service&.category_id || f.object.category_id || Category::SERVICOS_PECAS_ID) %>
     
     <div class="col-md-2">
