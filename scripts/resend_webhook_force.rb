@@ -98,10 +98,17 @@ os_codes.each_with_index do |code, idx|
 
   # Monta payload manualmente (bypass do service que verifica status)
   service = WebhookFinanceService.new(os.id)
-  payload = service.send(:payload) rescue nil
+  begin
+    payload = service.send(:payload)
+  rescue => payload_error
+    puts "[#{idx+1}/#{os_codes.length}] #{code} (#{status_name}): ERRO AO MONTAR PAYLOAD - #{payload_error.class}: #{payload_error.message}"
+    puts "  Backtrace: #{payload_error.backtrace&.first(3)&.join(' | ')}"
+    failures += 1
+    next
+  end
   
   unless payload
-    puts "[#{idx+1}/#{os_codes.length}] #{code} (#{status_name}): ERRO AO MONTAR PAYLOAD - pulando"
+    puts "[#{idx+1}/#{os_codes.length}] #{code} (#{status_name}): PAYLOAD RETORNOU NIL - pulando"
     failures += 1
     next
   end
