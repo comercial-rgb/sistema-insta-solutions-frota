@@ -1024,14 +1024,10 @@
 
   def generate_code
     result = ""
-    # Formata ID com 4 dígitos (0001, 0002, etc) - não altera os já existentes
+    # Formata ID com 4 dígitos (0001, 0002, etc)
     id = self.id.to_s.rjust(4, '0')
     client_id = self.client_id.to_s
-    today = self.created_at.to_date
-    year = today.year.to_s
-    month = today.month.to_s
-    day = today.day.to_s
-    result = 'OS'+client_id+id+year+month+day
+    result = 'OS'+client_id+'-'+id
     self.update_columns(code: result)
   end
 

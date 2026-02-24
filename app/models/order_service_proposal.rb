@@ -312,7 +312,7 @@
     # Formata ID com 4 dígitos (0001, 0002, etc)
     id = self.id.to_s.rjust(4, '0')
     order_service_code = self.order_service.code
-    result = 'P'+id+order_service_code
+    result = 'P'+id+'-'+order_service_code
     self.update_columns(code: result)
   end
 
