@@ -67,13 +67,7 @@ $(document).ready(function () {
         console.log('✓ Configurando para DIAGNÓSTICO');
         $('#div-with-provider-selection').removeClass('d-none').show();
         $('#div-with-service-group-selection').addClass('d-none').hide();
-        // Se Diagnóstico pronto para liberar cotação, mostrar painel de fornecedores direcionados
-        if ($('#diagnostico_ready_for_release').val() === 'true') {
-            console.log('✓ Diagnóstico pronto para liberar cotação - mostrando painel de fornecedores direcionados');
-            $('#div-with-directed-providers').removeClass('d-none').show();
-        } else {
-            $('#div-with-directed-providers').addClass('d-none').hide(); // Diagnóstico já tem fornecedor único
-        }
+        $('#div-with-directed-providers').removeClass('d-none').show(); // Mostra seleção direcionada
         $('.quantity-field-container').hide();
         setTimeout(fixSelect2Width, 100);
     } else if (initialOrderServiceTypeId == '1') { 
@@ -342,8 +336,7 @@ $(document).ready(function () {
             console.log('→ Mudando para DIAGNÓSTICO');
             $('#div-with-provider-selection').removeClass('d-none').show();
             $('#div-with-service-group-selection').addClass('d-none').hide();
-            $('#div-with-directed-providers').addClass('d-none').hide(); // Diagnóstico já tem fornecedor único
-            clearDirectedProviders();
+            $('#div-with-directed-providers').removeClass('d-none').show(); // Mostra seleção direcionada
             $('.quantity-field-container').hide();
             adjustObservationWidth(false);
             // Limpar grupo de serviços selecionado
@@ -354,6 +347,8 @@ $(document).ready(function () {
             hideNewServiceButtons(false);
             // Corrigir largura do Select2
             setTimeout(fixSelect2Width, 100);
+            // Recarregar fornecedores direcionados
+            loadDirectedProviders();
             
         } else {
             // COTAÇÕES ou qualquer outro
@@ -1107,11 +1102,18 @@ $(document).ready(function () {
     
     var directedProvidersData = []; // Cache dos fornecedores carregados
     var selectedProviderIds = []; // IDs dos fornecedores selecionados
+    var directedMode = 'state'; // 'state', 'city', 'provider'
     
     // Inicializar IDs pré-selecionados (modo edição)
     $('.directed-provider-hidden').each(function() {
         selectedProviderIds.push(parseInt($(this).val()));
     });
+    
+    // Se há fornecedores pré-selecionados, inicia no modo "fornecedor específico"
+    if (selectedProviderIds.length > 0) {
+        directedMode = 'provider';
+        $('#directed-mode-provider').prop('checked', true);
+    }
 
     // Toggle do painel de fornecedores direcionados
     $(document).on('change', '#directed_providers_toggle', function() {
@@ -1127,36 +1129,23 @@ $(document).ready(function () {
     // Se já estava marcado na inicialização (modo edição), mostrar painel
     if ($('#directed_providers_toggle').is(':checked')) {
         $('#directed-providers-panel').removeClass('d-none');
-        // Carregar fornecedores após um pequeno delay para garantir que a página carregou
         setTimeout(function() { loadDirectedProviders(); }, 300);
     }
 
     // ===== DIAGNÓSTICO: Fluxo de "Enviar para Cotação" em 2 passos =====
-    // Passo 1: Clica no botão → abre painel de fornecedores com toggle ativado
     $(document).on('click', '#btn-release-to-quotation-step1', function() {
-        // Ativar toggle e expandir painel de fornecedores
         var $toggle = $('#directed_providers_toggle');
         if (!$toggle.is(':checked')) {
             $toggle.prop('checked', true).trigger('change');
         }
-
-        // Garantir que o container está visível
         $('#div-with-directed-providers').removeClass('d-none').show();
         $('#directed-providers-panel').removeClass('d-none');
-
-        // Carregar fornecedores
         loadDirectedProviders();
-
-        // Scroll até o painel de fornecedores
         $('html, body').animate({
             scrollTop: $('#div-with-directed-providers').offset().top - 100
         }, 500);
-
-        // Esconder botão passo 1, mostrar botão de confirmação
         $(this).addClass('d-none');
         $('#btn-release-to-quotation-confirm').removeClass('d-none');
-
-        // Mostrar instrução ao usuário
         if ($('#directed-providers-instruction').length === 0) {
             $('#div-with-directed-providers .card-header').append(
                 '<div id="directed-providers-instruction" class="alert alert-info mt-2 mb-0 py-1 small">' +
@@ -1166,56 +1155,215 @@ $(document).ready(function () {
         }
     });
 
-    // Também recarregar quando mudar o tipo de serviço
+    // Recarregar quando mudar o tipo de serviço
     $(document).on('change', '#order_service_provider_service_type_id', function() {
         var osType = $('#order_service_order_service_type_id').val();
-        // Cotações, Requisição, ou Diagnóstico pronto para liberar cotação
-        if (osType == '1' || osType == '3' || (osType == '2' && $('#diagnostico_ready_for_release').val() === 'true')) {
+        if (osType == '1' || osType == '3' || osType == '2') {
             loadDirectedProviders();
         }
     });
 
-    // Busca/filtro de fornecedores
-    $(document).on('input', '#directed-providers-search', function() {
-        var searchText = $(this).val().toLowerCase();
-        filterDirectedProvidersList(searchText, $('#directed-providers-state-filter').val());
+    // ==================== MODO DE SELEÇÃO ====================
+    
+    // Mudança de modo
+    $(document).on('change', 'input[name="directed_mode"]', function() {
+        directedMode = $(this).val();
+        applyDirectedMode();
     });
 
+    // Aplicar configuração baseada no modo selecionado
+    function applyDirectedMode() {
+        var state = $('#directed-providers-state-filter').val();
+        var city = $('#directed-providers-city-filter').val();
+        
+        // Atualizar descrição do modo
+        var descriptions = {
+            'state': 'Envia para todos os fornecedores compatíveis no estado selecionado.',
+            'city': 'Envia para todos os fornecedores na cidade selecionada.',
+            'provider': 'Selecione manualmente os fornecedores que receberão esta OS.'
+        };
+        $('#directed-mode-description').text(descriptions[directedMode] || '');
+        
+        if (directedMode === 'state') {
+            $('#directed-city-filter-container').addClass('d-none');
+            $('#directed-search-container').addClass('d-none');
+            $('#directed-providers-list-container').addClass('d-none');
+            $('#directed-providers-summary').removeClass('d-none');
+            autoSelectProvidersByFilter(state, '');
+        } else if (directedMode === 'city') {
+            $('#directed-city-filter-container').removeClass('d-none');
+            $('#directed-search-container').addClass('d-none');
+            $('#directed-providers-list-container').addClass('d-none');
+            $('#directed-providers-summary').removeClass('d-none');
+            populateCityFilter(state);
+            autoSelectProvidersByFilter(state, city);
+        } else if (directedMode === 'provider') {
+            $('#directed-city-filter-container').removeClass('d-none');
+            $('#directed-search-container').removeClass('d-none');
+            $('#directed-providers-list-container').removeClass('d-none');
+            $('#directed-providers-summary').addClass('d-none');
+            populateCityFilter(state);
+            renderProvidersList();
+        }
+    }
+
+    // ==================== FILTROS ====================
+    
     // Filtro por estado
     $(document).on('change', '#directed-providers-state-filter', function() {
         var state = $(this).val();
-        filterDirectedProvidersList($('#directed-providers-search').val().toLowerCase(), state);
+        if (directedMode === 'city' || directedMode === 'provider') {
+            populateCityFilter(state);
+            // Reset city ao mudar estado
+            $('#directed-providers-city-filter').val('');
+        }
+        applyDirectedMode();
     });
 
-    // Selecionar todos (visíveis)
-    $(document).on('click', '#directed-providers-select-all', function() {
-        $('#directed-providers-list .directed-provider-checkbox:visible:not(:checked)').each(function() {
-            $(this).prop('checked', true).trigger('change');
-        });
+    // Filtro por cidade
+    $(document).on('change', '#directed-providers-city-filter', function() {
+        applyDirectedMode();
     });
 
-    // Desselecionar todos
-    $(document).on('click', '#directed-providers-deselect-all', function() {
-        $('#directed-providers-list .directed-provider-checkbox:checked').each(function() {
-            $(this).prop('checked', false).trigger('change');
-        });
+    // Busca por texto (modo fornecedor)
+    $(document).on('input', '#directed-providers-search', function() {
+        renderProvidersList();
     });
 
-    // Ao marcar/desmarcar um fornecedor
-    $(document).on('change', '.directed-provider-checkbox', function() {
-        var providerId = parseInt($(this).val());
-        if ($(this).is(':checked')) {
-            if (selectedProviderIds.indexOf(providerId) === -1) {
-                selectedProviderIds.push(providerId);
+    // Popular dropdown de cidades baseado no estado
+    function populateCityFilter(state) {
+        var cities = [];
+        directedProvidersData.forEach(function(p) {
+            if (!state || p.state === state) {
+                var cityName = p.city || 'Não informada';
+                if (cities.indexOf(cityName) === -1) cities.push(cityName);
             }
+        });
+        cities.sort();
+        var $cf = $('#directed-providers-city-filter');
+        $cf.html('<option value="">Todas as cidades</option>');
+        cities.forEach(function(c) {
+            $cf.append('<option value="' + c + '">' + c + '</option>');
+        });
+    }
+
+    // ==================== AUTO-SELEÇÃO (MODOS ESTADO/CIDADE) ====================
+    
+    function autoSelectProvidersByFilter(state, city) {
+        selectedProviderIds = [];
+        var count = 0;
+        directedProvidersData.forEach(function(p) {
+            var matchState = !state || p.state === state;
+            var matchCity = !city || (p.city || 'Não informada') === city;
+            if (matchState && matchCity) {
+                selectedProviderIds.push(p.id);
+                count++;
+            }
+        });
+        updateDirectedProvidersHiddenFields();
+        
+        // Atualizar resumo
+        var text = '';
+        if (!state && !city) {
+            text = 'Todos os ' + directedProvidersData.length + ' fornecedores compatíveis receberão esta OS.';
+        } else if (state && !city) {
+            text = count + ' fornecedor(es) em ' + state + ' receberão esta OS.';
+        } else if (state && city) {
+            text = count + ' fornecedor(es) em ' + city + ' / ' + state + ' receberão esta OS.';
+        }
+        $('#directed-providers-summary-text').text(text);
+        updateDirectedProvidersCount();
+    }
+
+    // ==================== LISTA DE FORNECEDORES (MODO ESPECÍFICO) ====================
+    
+    function renderProvidersList() {
+        var state = $('#directed-providers-state-filter').val();
+        var city = $('#directed-providers-city-filter').val();
+        var search = ($('#directed-providers-search').val() || '').toLowerCase();
+        
+        var filtered = directedProvidersData.filter(function(p) {
+            var matchState = !state || p.state === state;
+            var matchCity = !city || (p.city || 'Não informada') === city;
+            var matchSearch = !search || 
+                p.name.toLowerCase().indexOf(search) !== -1 || 
+                (p.city || '').toLowerCase().indexOf(search) !== -1;
+            return matchState && matchCity && matchSearch;
+        });
+        
+        // Agrupar por estado
+        var grouped = {};
+        filtered.forEach(function(p) {
+            var s = p.state || 'Não informado';
+            if (!grouped[s]) grouped[s] = [];
+            grouped[s].push(p);
+        });
+        
+        var html = '';
+        var sortedStates = Object.keys(grouped).sort();
+        
+        sortedStates.forEach(function(s) {
+            html += '<div class="directed-providers-state-group mb-2">';
+            html += '<div class="bg-light rounded px-2 py-1 mb-1">';
+            html += '<strong><i class="bi bi-geo-alt"></i> ' + s + '</strong>';
+            html += '<span class="badge bg-secondary ms-2">' + grouped[s].length + '</span>';
+            html += '</div>';
+            
+            grouped[s].forEach(function(p) {
+                var isChecked = selectedProviderIds.indexOf(p.id) !== -1;
+                html += '<div class="form-check ms-3">';
+                html += '<input class="form-check-input directed-provider-checkbox" type="checkbox" value="' + p.id + '" id="dp_' + p.id + '"' + (isChecked ? ' checked' : '') + '>';
+                html += '<label class="form-check-label" for="dp_' + p.id + '">' + p.name;
+                if (p.city) html += ' <small class="text-muted">(' + p.city + ')</small>';
+                html += '</label></div>';
+            });
+            html += '</div>';
+        });
+        
+        if (filtered.length === 0) {
+            html = '<p class="text-muted text-center py-3"><i class="bi bi-info-circle"></i> Nenhum fornecedor encontrado para os filtros selecionados.</p>';
+        }
+        
+        $('#directed-providers-list').html(html);
+    }
+
+    // ==================== SELEÇÃO DE FORNECEDORES (MODO ESPECÍFICO) ====================
+    
+    // Checkbox individual
+    $(document).on('change', '.directed-provider-checkbox', function() {
+        var id = parseInt($(this).val());
+        if ($(this).is(':checked')) {
+            if (selectedProviderIds.indexOf(id) === -1) selectedProviderIds.push(id);
         } else {
-            selectedProviderIds = selectedProviderIds.filter(function(id) { return id !== providerId; });
+            selectedProviderIds = selectedProviderIds.filter(function(x) { return x !== id; });
         }
         updateDirectedProvidersHiddenFields();
         updateDirectedProvidersCount();
     });
 
-    // Carregar fornecedores via AJAX
+    // Selecionar todos visíveis
+    $(document).on('click', '#directed-providers-select-all', function() {
+        $('#directed-providers-list .directed-provider-checkbox:not(:checked)').each(function() {
+            $(this).prop('checked', true);
+            var id = parseInt($(this).val());
+            if (selectedProviderIds.indexOf(id) === -1) selectedProviderIds.push(id);
+        });
+        updateDirectedProvidersHiddenFields();
+        updateDirectedProvidersCount();
+    });
+
+    // Limpar seleção
+    $(document).on('click', '#directed-providers-deselect-all', function() {
+        $('#directed-providers-list .directed-provider-checkbox:checked').each(function() {
+            $(this).prop('checked', false);
+        });
+        selectedProviderIds = [];
+        updateDirectedProvidersHiddenFields();
+        updateDirectedProvidersCount();
+    });
+
+    // ==================== AJAX & HELPERS ====================
+    
     function loadDirectedProviders() {
         if (!$('#directed_providers_toggle').is(':checked')) return;
         
@@ -1223,16 +1371,12 @@ $(document).ready(function () {
         var providerServiceTypeId = $('#order_service_provider_service_type_id').val();
         
         if (!providerServiceTypeId) {
-            $('#directed-providers-list').html(
-                '<p class="text-muted text-center py-3"><i class="bi bi-info-circle"></i> Selecione o tipo de serviço para carregar os fornecedores disponíveis.</p>'
-            );
+            $('#directed-providers-summary-text').text('Selecione o tipo de serviço para carregar os fornecedores.');
             return;
         }
         
         $('#directed-providers-loading').removeClass('d-none');
-        $('#directed-providers-list').html('');
-        $('#directed-providers-empty').addClass('d-none');
-
+        
         $.ajax({
             url: '/get_providers_for_directed_selection',
             dataType: 'json',
@@ -1245,103 +1389,37 @@ $(document).ready(function () {
                 $('#directed-providers-loading').addClass('d-none');
                 
                 if (data.length === 0) {
-                    $('#directed-providers-list').html(
-                        '<p class="text-muted text-center py-3"><i class="bi bi-exclamation-circle"></i> Nenhum fornecedor encontrado para o tipo de serviço e estados configurados.</p>'
-                    );
+                    $('#directed-providers-summary-text').text('Nenhum fornecedor encontrado para o tipo de serviço e estados configurados.');
                     return;
                 }
 
-                // Montar lista de estados para o filtro
+                // Popular dropdown de estados
                 var states = [];
                 data.forEach(function(p) {
-                    if (states.indexOf(p.state) === -1) states.push(p.state);
+                    if (p.state && states.indexOf(p.state) === -1) states.push(p.state);
                 });
                 states.sort();
-                var stateFilter = $('#directed-providers-state-filter');
-                stateFilter.html('<option value="">Todos os estados</option>');
+                var $sf = $('#directed-providers-state-filter');
+                var currentState = $sf.val(); // Preservar seleção atual
+                $sf.html('<option value="">Todos os estados</option>');
                 states.forEach(function(s) {
-                    stateFilter.append('<option value="' + s + '">' + s + '</option>');
+                    $sf.append('<option value="' + s + '">' + s + '</option>');
                 });
+                // Restaurar seleção se ainda existe
+                if (currentState && states.indexOf(currentState) !== -1) {
+                    $sf.val(currentState);
+                }
 
-                renderDirectedProvidersList(data);
-                updateDirectedProvidersCount();
+                applyDirectedMode();
             },
             error: function(xhr, status, error) {
                 console.error('[Directed] Erro ao carregar fornecedores:', status, error);
                 $('#directed-providers-loading').addClass('d-none');
-                $('#directed-providers-list').html(
-                    '<p class="text-danger text-center py-3"><i class="bi bi-exclamation-triangle"></i> Erro ao carregar fornecedores. Tente novamente.</p>'
-                );
+                $('#directed-providers-summary-text').text('Erro ao carregar fornecedores. Tente novamente.');
             }
         });
     }
 
-    // Renderizar a lista de fornecedores agrupados por estado
-    function renderDirectedProvidersList(providers) {
-        // Agrupar por estado
-        var grouped = {};
-        providers.forEach(function(p) {
-            var state = p.state || 'Não informado';
-            if (!grouped[state]) grouped[state] = [];
-            grouped[state].push(p);
-        });
-
-        var html = '';
-        var sortedStates = Object.keys(grouped).sort();
-        
-        sortedStates.forEach(function(state) {
-            html += '<div class="directed-providers-state-group mb-2" data-state="' + state + '">';
-            html += '<div class="bg-light rounded px-2 py-1 mb-1">';
-            html += '<strong><i class="bi bi-geo-alt"></i> ' + state + '</strong>';
-            html += '<span class="badge bg-secondary ms-2">' + grouped[state].length + '</span>';
-            html += '</div>';
-            
-            grouped[state].forEach(function(provider) {
-                var isChecked = selectedProviderIds.indexOf(provider.id) !== -1;
-                html += '<div class="form-check ms-3 directed-provider-item" data-name="' + provider.name.toLowerCase() + '" data-city="' + (provider.city || '').toLowerCase() + '" data-state="' + state + '">';
-                html += '<input class="form-check-input directed-provider-checkbox" type="checkbox" value="' + provider.id + '" id="directed_provider_' + provider.id + '"' + (isChecked ? ' checked' : '') + '>';
-                html += '<label class="form-check-label" for="directed_provider_' + provider.id + '">';
-                html += provider.name;
-                if (provider.city) {
-                    html += ' <small class="text-muted">(' + provider.city + ')</small>';
-                }
-                html += '</label>';
-                html += '</div>';
-            });
-            
-            html += '</div>';
-        });
-
-        $('#directed-providers-list').html(html);
-    }
-
-    // Filtrar lista de fornecedores por texto e estado
-    function filterDirectedProvidersList(searchText, stateFilter) {
-        searchText = searchText || '';
-        stateFilter = stateFilter || '';
-
-        $('#directed-providers-list .directed-provider-item').each(function() {
-            var name = $(this).data('name') || '';
-            var city = $(this).data('city') || '';
-            var state = $(this).data('state') || '';
-            
-            var matchesSearch = !searchText || 
-                name.indexOf(searchText) !== -1 || 
-                city.indexOf(searchText) !== -1 ||
-                state.toLowerCase().indexOf(searchText) !== -1;
-            var matchesState = !stateFilter || state === stateFilter;
-            
-            $(this).toggle(matchesSearch && matchesState);
-        });
-
-        // Mostrar/ocultar cabeçalhos de estado sem itens visíveis
-        $('#directed-providers-list .directed-providers-state-group').each(function() {
-            var hasVisible = $(this).find('.directed-provider-item:visible').length > 0;
-            $(this).toggle(hasVisible);
-        });
-    }
-
-    // Atualizar campos hidden com IDs selecionados
     function updateDirectedProvidersHiddenFields() {
         var container = $('#directed-providers-hidden-fields');
         container.html('');
@@ -1350,7 +1428,6 @@ $(document).ready(function () {
         });
     }
 
-    // Atualizar contador de selecionados
     function updateDirectedProvidersCount() {
         var count = selectedProviderIds.length;
         var text = count + ' selecionado(s)';
@@ -1362,13 +1439,14 @@ $(document).ready(function () {
         }
     }
 
-    // Limpar seleção de fornecedores direcionados
     function clearDirectedProviders() {
         selectedProviderIds = [];
+        directedProvidersData = [];
+        directedMode = 'state';
+        $('#directed-mode-state').prop('checked', true);
         updateDirectedProvidersHiddenFields();
         updateDirectedProvidersCount();
-        $('#directed-providers-list .directed-provider-checkbox').prop('checked', false);
-        // Desmarcar o toggle
+        $('#directed-providers-list').html('');
         $('#directed_providers_toggle').prop('checked', false);
     }
     

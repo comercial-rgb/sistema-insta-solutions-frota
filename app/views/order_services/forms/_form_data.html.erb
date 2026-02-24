@@ -261,39 +261,84 @@
                 </div>
             </div>
             <div class="card-body py-2 d-none" id="directed-providers-panel">
-                <div class="row mb-2">
-                    <div class="col-12 col-md-4">
-                        <div class="input-group input-group-sm">
-                            <span class="input-group-text"><i class="bi bi-search"></i></span>
-                            <input type="text" class="form-control" id="directed-providers-search" 
-                                   placeholder="Buscar fornecedor por nome, cidade ou estado...">
+                <%# === Modo de seleção === %>
+                <div class="mb-3">
+                    <div class="d-flex gap-4 flex-wrap">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="directed_mode" id="directed-mode-state" value="state" checked>
+                            <label class="form-check-label fw-semibold" for="directed-mode-state">
+                                <i class="bi bi-geo-alt"></i> Por Estado
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="directed_mode" id="directed-mode-city" value="city">
+                            <label class="form-check-label fw-semibold" for="directed-mode-city">
+                                <i class="bi bi-building"></i> Por Estado / Cidade
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="directed_mode" id="directed-mode-provider" value="provider">
+                            <label class="form-check-label fw-semibold" for="directed-mode-provider">
+                                <i class="bi bi-person-check"></i> Fornecedor Específico
+                            </label>
                         </div>
                     </div>
+                    <small class="text-muted mt-1 d-block" id="directed-mode-description">
+                        Envia para todos os fornecedores compatíveis no estado selecionado.
+                    </small>
+                </div>
+
+                <%# === Filtros === %>
+                <div class="row mb-2 g-2">
                     <div class="col-12 col-md-4">
+                        <label class="form-label small mb-1 fw-semibold">Estado</label>
                         <select class="form-select form-select-sm" id="directed-providers-state-filter">
                             <option value="">Todos os estados</option>
                         </select>
                     </div>
-                    <div class="col-12 col-md-4 text-end">
-                        <button type="button" class="btn btn-sm btn-outline-primary" id="directed-providers-select-all">
-                            <i class="bi bi-check-all"></i> Selecionar todos
-                        </button>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="directed-providers-deselect-all">
-                            <i class="bi bi-x-lg"></i> Limpar seleção
-                        </button>
-                        <span class="badge bg-primary ms-2" id="directed-providers-count">0 selecionado(s)</span>
+                    <div class="col-12 col-md-4 d-none" id="directed-city-filter-container">
+                        <label class="form-label small mb-1 fw-semibold">Cidade</label>
+                        <select class="form-select form-select-sm" id="directed-providers-city-filter">
+                            <option value="">Todas as cidades</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4 d-none" id="directed-search-container">
+                        <label class="form-label small mb-1 fw-semibold">Buscar</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" id="directed-providers-search" placeholder="Nome do fornecedor...">
+                        </div>
                     </div>
                 </div>
+
+                <%# === Resumo (modos Estado e Cidade) === %>
+                <div id="directed-providers-summary" class="alert alert-info small py-2 mb-2">
+                    <i class="bi bi-info-circle"></i> <span id="directed-providers-summary-text">Carregando fornecedores...</span>
+                </div>
+
+                <%# === Loading === %>
                 <div id="directed-providers-loading" class="text-center py-3 d-none">
                     <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
                     <span class="ms-2">Carregando fornecedores...</span>
                 </div>
-                <div id="directed-providers-list" style="max-height: 300px; overflow-y: auto;">
-                    <p class="text-muted text-center py-3" id="directed-providers-empty">
-                        <i class="bi bi-info-circle"></i> Selecione o tipo de serviço para carregar os fornecedores disponíveis.
-                    </p>
+
+                <%# === Lista de fornecedores (modo Fornecedor Específico) === %>
+                <div id="directed-providers-list-container" class="d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="directed-providers-select-all">
+                                <i class="bi bi-check-all"></i> Selecionar todos
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="directed-providers-deselect-all">
+                                <i class="bi bi-x-lg"></i> Limpar seleção
+                            </button>
+                        </div>
+                        <span class="badge bg-primary" id="directed-providers-count">0 selecionado(s)</span>
+                    </div>
+                    <div id="directed-providers-list" style="max-height: 300px; overflow-y: auto;"></div>
                 </div>
-                <%# Campos hidden para enviar os IDs selecionados %>
+
+                <%# === Hidden fields === %>
                 <div id="directed-providers-hidden-fields">
                     <% if f.object.persisted? && f.object.directed_to_specific_providers? %>
                         <% f.object.directed_providers.each do |provider| %>
