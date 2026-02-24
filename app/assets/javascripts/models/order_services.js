@@ -64,10 +64,11 @@ $(document).ready(function () {
         setTimeout(fixSelect2Width, 100);
     } else if (initialOrderServiceTypeId == '2') { 
         // DIAGNÓSTICO - Mostra Fornecedor, esconde Grupo de Serviços
+        // NÃO mostra fornecedores direcionados - Diagnóstico precisa criar proposta primeiro
         console.log('✓ Configurando para DIAGNÓSTICO');
         $('#div-with-provider-selection').removeClass('d-none').show();
         $('#div-with-service-group-selection').addClass('d-none').hide();
-        $('#div-with-directed-providers').removeClass('d-none').show(); // Mostra seleção direcionada
+        $('#div-with-directed-providers').addClass('d-none').hide(); // Esconde - Diagnóstico usa Fornecedor específico
         $('.quantity-field-container').hide();
         setTimeout(fixSelect2Width, 100);
     } else if (initialOrderServiceTypeId == '1') { 
@@ -333,10 +334,11 @@ $(document).ready(function () {
             
         } else if (order_service_type_id == '2') {
             // DIAGNÓSTICO - Mostra Fornecedor, esconde Grupo de Serviços
+            // NÃO mostra fornecedores direcionados - Diagnóstico precisa criar proposta primeiro
             console.log('→ Mudando para DIAGNÓSTICO');
             $('#div-with-provider-selection').removeClass('d-none').show();
             $('#div-with-service-group-selection').addClass('d-none').hide();
-            $('#div-with-directed-providers').removeClass('d-none').show(); // Mostra seleção direcionada
+            $('#div-with-directed-providers').addClass('d-none').hide(); // Esconde - Diagnóstico usa Fornecedor específico
             $('.quantity-field-container').hide();
             adjustObservationWidth(false);
             // Limpar grupo de serviços selecionado
@@ -347,8 +349,8 @@ $(document).ready(function () {
             hideNewServiceButtons(false);
             // Corrigir largura do Select2
             setTimeout(fixSelect2Width, 100);
-            // Recarregar fornecedores direcionados
-            loadDirectedProviders();
+            // Limpar fornecedores direcionados (se havia selecionado em outro tipo)
+            clearDirectedProviders();
             
         } else {
             // COTAÇÕES ou qualquer outro
