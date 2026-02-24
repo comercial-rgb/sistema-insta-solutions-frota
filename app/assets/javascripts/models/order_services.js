@@ -1011,53 +1011,54 @@ $(document).ready(function () {
         }
     }  
 
+    // ===== Modal de confirmação de proposta (só executa se os elementos existirem) =====
     var form        = document.getElementById('order-service-proposal-form');
     var triggerBtn  = document.getElementById('btn-save-and-submit');
     var confirmBtn  = document.getElementById('btn-confirm-submit');
     var modalEl     = document.getElementById('confirmSubmitModal');
     var confirmText = document.getElementById('confirmSubmitText');
 
-    if (!form || !triggerBtn || !confirmBtn || !modalEl) return;
+    if (form && triggerBtn && confirmBtn && modalEl) {
+        // Ao abrir o modal via botão:
+        triggerBtn.addEventListener('click', function () {
+            // Ajusta o texto do modal (se quiser trocar por botão)
+            if (this.dataset.confirmText) {
+                confirmText.textContent = this.dataset.confirmText;
+            }
+            // Passa o name/value desejados para o botão de confirmar
+            confirmBtn.dataset.paramName  = this.dataset.paramName || 'save_and_submit';
+            confirmBtn.dataset.paramValue = this.dataset.paramValue || '';
+        });
 
-    // Ao abrir o modal via botão:
-    triggerBtn.addEventListener('click', function () {
-        // Ajusta o texto do modal (se quiser trocar por botão)
-        if (this.dataset.confirmText) {
-        confirmText.textContent = this.dataset.confirmText;
-        }
-        // Passa o name/value desejados para o botão de confirmar
-        confirmBtn.dataset.paramName  = this.dataset.paramName || 'save_and_submit';
-        confirmBtn.dataset.paramValue = this.dataset.paramValue || '';
-    });
+        // Ao confirmar no modal:
+        confirmBtn.addEventListener('click', function () {
+            var paramName  = this.dataset.paramName;
+            var paramValue = this.dataset.paramValue;
 
-    // Ao confirmar no modal:
-    confirmBtn.addEventListener('click', function () {
-        var paramName  = this.dataset.paramName;
-        var paramValue = this.dataset.paramValue;
+            // Remove hiddens anteriores (evitar duplicados)
+            Array.from(form.querySelectorAll('input[type="hidden"][name="' + paramName + '"]'))
+                .forEach(function (el) { el.remove(); });
 
-        // Remove hiddens anteriores (evitar duplicados)
-        Array.from(form.querySelectorAll('input[type="hidden"][name="' + paramName + '"]'))
-            .forEach(function (el) { el.remove(); });
+            // Cria o hidden com o name/value do botão original
+            var hidden = document.createElement('input');
+            hidden.type  = 'hidden';
+            hidden.name  = paramName;
+            hidden.value = paramValue;
+            form.appendChild(hidden);
 
-        // Cria o hidden com o name/value do botão original
-        var hidden = document.createElement('input');
-        hidden.type  = 'hidden';
-        hidden.name  = paramName;
-        hidden.value = paramValue;
-        form.appendChild(hidden);
+            // Evita duplo clique
+            confirmBtn.disabled = true;
+            triggerBtn.disabled = true;
 
-        // Evita duplo clique
-        confirmBtn.disabled = true;
-        triggerBtn.disabled = true;
+            // Fecha modal e submete
+            var modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
 
-        // Fecha modal e submete
-        var modal = bootstrap.Modal.getInstance(modalEl);
-        if (modal) modal.hide();
+            console.log('Submitting form with ' + paramName + '=' + paramValue);
 
-        console.log('Submitting form with ' + paramName + '=' + paramValue);
-
-        form.submit();
-    });
+            form.submit();
+        });
+    }
 
     // Quando uma nova linha de peça/serviço é adicionada, aplicar limites do grupo
     $(document).on('cocoon:after-insert', function(e, insertedItem) {
@@ -1115,7 +1116,7 @@ $(document).ready(function () {
     // Toggle do painel de fornecedores direcionados
     $(document).on('change', '#directed_providers_toggle', function() {
         if ($(this).is(':checked')) {
-            $('#directed-providers-panel').removeClass('d-none');
+            $('#directed-providers-panel').removeClass('d-none').show();
             loadDirectedProviders();
         } else {
             $('#directed-providers-panel').addClass('d-none');
@@ -1265,7 +1266,8 @@ $(document).ready(function () {
                 renderDirectedProvidersList(data);
                 updateDirectedProvidersCount();
             },
-            error: function() {
+            error: function(xhr, status, error) {
+                console.error('[Directed] Erro ao carregar fornecedores:', status, error);
                 $('#directed-providers-loading').addClass('d-none');
                 $('#directed-providers-list').html(
                     '<p class="text-danger text-center py-3"><i class="bi bi-exclamation-triangle"></i> Erro ao carregar fornecedores. Tente novamente.</p>'
