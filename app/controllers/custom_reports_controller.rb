@@ -100,35 +100,48 @@ class CustomReportsController < ApplicationController
       scope = scope.where(client_id: params[:client_id])
     end
     
-    # Filtro por mês/ano (período mensal)
-    if params[:month].present? && params[:year].present?
+    # Determinar o range de data a ser usado
+    date_range = nil
+    
+    # Prioridade: Data Inicial/Final > Mês/Ano
+    if params[:start_date].present? || params[:end_date].present?
+      start_date = params[:start_date].present? ? (Date.parse(params[:start_date]) rescue nil) : nil
+      end_date = params[:end_date].present? ? (Date.parse(params[:end_date]) rescue nil) : nil
+      
+      if start_date && end_date
+        date_range = start_date.beginning_of_day..end_date.end_of_day
+      elsif start_date
+        date_range = start_date.beginning_of_day..DateTime.now.end_of_day
+      elsif end_date
+        date_range = DateTime.new(2000,1,1)..end_date.end_of_day
+      end
+    elsif params[:month].present? && params[:year].present?
       month = params[:month].to_i
       year = params[:year].to_i
-      month_start = Date.new(year, month, 1).beginning_of_day
-      month_end = Date.new(year, month, 1).end_of_month.end_of_day
-      scope = scope.where(created_at: month_start..month_end)
+      date_range = Date.new(year, month, 1).beginning_of_day..Date.new(year, month, 1).end_of_month.end_of_day
     elsif params[:year].present?
       year = params[:year].to_i
-      year_start = Date.new(year, 1, 1).beginning_of_day
-      year_end = Date.new(year, 12, 31).end_of_day
-      scope = scope.where(created_at: year_start..year_end)
+      date_range = Date.new(year, 1, 1).beginning_of_day..Date.new(year, 12, 31).end_of_day
     end
 
-    # Filtro por período (data específica) — sobrepõe mês/ano se ambos preenchidos
-    if params[:start_date].present? && params[:end_date].present?
-      start_date = Date.parse(params[:start_date]) rescue nil
-      end_date = Date.parse(params[:end_date]) rescue nil
-      scope = scope.where(created_at: start_date.beginning_of_day..end_date.end_of_day) if start_date && end_date
-    elsif params[:start_date].present?
-      start_date = Date.parse(params[:start_date]) rescue nil
-      scope = scope.where('order_services.created_at >= ?', start_date.beginning_of_day) if start_date
-    elsif params[:end_date].present?
-      end_date = Date.parse(params[:end_date]) rescue nil
-      scope = scope.where('order_services.created_at <= ?', end_date.end_of_day) if end_date
-    end
+    # Se há status + datas: busca por auditoria (OS que PASSARAM por aquele status no período)
+    # Isso permite encontrar OS autorizadas em Dez/2025 mesmo que agora estejam em "Paga"
+    if params[:status_id].present? && date_range.present?
+      scope = scope
+        .left_outer_joins(:audits)
+        .where(audits: { auditable_type: 'OrderService' })
+        .where(audits: { associated_id: params[:status_id] })
+        .where(audits: { created_at: date_range })
+        .distinct
+    else
+      # Sem status: filtra por created_at
+      if date_range.present?
+        scope = scope.where(created_at: date_range)
+      end
 
-    if params[:status_id].present?
-      scope = scope.where(order_service_status_id: params[:status_id])
+      if params[:status_id].present?
+        scope = scope.where(order_service_status_id: params[:status_id])
+      end
     end
     
     # Filtro por tipo de OS
