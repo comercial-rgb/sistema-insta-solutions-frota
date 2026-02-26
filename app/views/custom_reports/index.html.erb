@@ -37,13 +37,30 @@ breadcrumbs = [
           </div>
         <% end %>
         
-        <!-- Período -->
-        <div class="col-md-3">
+        <!-- Período por Mês/Ano -->
+        <div class="col-md-2">
+          <%= label_tag :month, 'Mês', class: 'form-label' %>
+          <%= select_tag :month, 
+              options_for_select(CustomHelper.get_months_options, params[:month]&.to_i), 
+              { include_blank: 'Todos', class: 'form-select' } 
+          %>
+        </div>
+        
+        <div class="col-md-2">
+          <%= label_tag :year, 'Ano', class: 'form-label' %>
+          <%= select_tag :year, 
+              options_for_select(CustomHelper.get_years(2024, Date.today.year), params[:year]&.to_i), 
+              { include_blank: 'Todos', class: 'form-select' } 
+          %>
+        </div>
+
+        <!-- Período por Data Específica -->
+        <div class="col-md-2">
           <%= label_tag :start_date, 'Data Inicial', class: 'form-label' %>
           <%= date_field_tag :start_date, params[:start_date], class: 'form-control' %>
         </div>
         
-        <div class="col-md-3">
+        <div class="col-md-2">
           <%= label_tag :end_date, 'Data Final', class: 'form-label' %>
           <%= date_field_tag :end_date, params[:end_date], class: 'form-control' %>
         </div>
@@ -212,7 +229,7 @@ breadcrumbs = [
         <div class="text-center py-5">
           <i class="bi bi-inbox display-1 text-muted"></i>
           <p class="text-muted mt-3">
-            <% if params[:client_id].present? || params[:start_date].present? || params[:status_id].present? %>
+            <% if params[:client_id].present? || params[:start_date].present? || params[:month].present? || params[:year].present? || params[:status_id].present? %>
               Nenhuma ordem de serviço encontrada com os filtros aplicados.
             <% else %>
               Utilize os filtros acima para gerar seu relatório personalizado.

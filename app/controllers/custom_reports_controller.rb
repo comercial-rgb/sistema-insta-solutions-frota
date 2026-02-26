@@ -74,6 +74,7 @@ class CustomReportsController < ApplicationController
 
   def has_filters?
     params[:client_id].present? || params[:start_date].present? || 
+    params[:month].present? || params[:year].present? ||
     params[:status_id].present? || params[:type_id].present? ||
     params[:vehicle_id].present? || params[:provider_id].present? ||
     params[:cost_center_id].present? || params[:sub_unit_id].present?
@@ -99,11 +100,31 @@ class CustomReportsController < ApplicationController
       scope = scope.where(client_id: params[:client_id])
     end
     
-    # Filtro por período
+    # Filtro por mês/ano (período mensal)
+    if params[:month].present? && params[:year].present?
+      month = params[:month].to_i
+      year = params[:year].to_i
+      month_start = Date.new(year, month, 1).beginning_of_day
+      month_end = Date.new(year, month, 1).end_of_month.end_of_day
+      scope = scope.where(created_at: month_start..month_end)
+    elsif params[:year].present?
+      year = params[:year].to_i
+      year_start = Date.new(year, 1, 1).beginning_of_day
+      year_end = Date.new(year, 12, 31).end_of_day
+      scope = scope.where(created_at: year_start..year_end)
+    end
+
+    # Filtro por período (data específica) — sobrepõe mês/ano se ambos preenchidos
     if params[:start_date].present? && params[:end_date].present?
       start_date = Date.parse(params[:start_date]) rescue nil
       end_date = Date.parse(params[:end_date]) rescue nil
       scope = scope.where(created_at: start_date.beginning_of_day..end_date.end_of_day) if start_date && end_date
+    elsif params[:start_date].present?
+      start_date = Date.parse(params[:start_date]) rescue nil
+      scope = scope.where('order_services.created_at >= ?', start_date.beginning_of_day) if start_date
+    elsif params[:end_date].present?
+      end_date = Date.parse(params[:end_date]) rescue nil
+      scope = scope.where('order_services.created_at <= ?', end_date.end_of_day) if end_date
     end
 
     if params[:status_id].present?
