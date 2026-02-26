@@ -5,7 +5,7 @@ class OrderServicesController < ApplicationController
     :show, :edit, :update, :destroy,
     :get_order_service, :cancel_order_service, :show_historic,
     :reject_order_service, :unreject_order_service, :back_to_edit_order_service,
-    :print_no_values, :print_os, :request_reevaluation, :finish_reevaluation
+    :print_no_values, :print_os, :print_os_summary, :request_reevaluation, :finish_reevaluation
   ]
   before_action :load_warranty_panel_data, only: [:edit, :update, :show]
 
@@ -192,6 +192,12 @@ class OrderServicesController < ApplicationController
   end
 
   def print_os
+    authorize @order_service, :print_os?
+
+    render layout: 'print_no_values'
+  end
+
+  def print_os_summary
     authorize @order_service, :print_os?
 
     render layout: 'print_no_values'
