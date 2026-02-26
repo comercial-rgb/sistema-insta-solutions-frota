@@ -938,8 +938,10 @@ $(document).ready(function () {
         let checkBoxes = $('.' + SELECT_ORDER_SERVICE + ':checkbox:checked').map(function () {
             return this.value;
         }).get();
-        let order_service_ids = checkBoxes.join(",");
-        if (checkBoxes.length > 0) {
+        // Deduplica IDs para evitar processar a mesma OS múltiplas vezes
+        let uniqueIds = [...new Set(checkBoxes)];
+        let order_service_ids = uniqueIds.join(",");
+        if (uniqueIds.length > 0) {
             if (element.id == "authorize-order-services") {
                 authorizeSelectedOrderServices(order_service_ids);
             } else if (element.id == "waiting-payment-order-services") {

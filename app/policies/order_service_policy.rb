@@ -45,12 +45,25 @@ class OrderServicePolicy < ApplicationPolicy
     create?
   end
 
+  # Admin/Gestor/Adicional podem editar o cabeçalho da OS em qualquer status não-terminal
+  def can_edit_header?
+    return true unless record.persisted?
+    
+    terminal_statuses = [OrderServiceStatus::CANCELADA_ID, OrderServiceStatus::PAGA_ID]
+    
+    if user.admin? || (user.manager? && record.client_id == user.client_id) || (user.additional? && record.client_id == user.client_id)
+      return !terminal_statuses.include?(record.order_service_status_id)
+    end
+    
+    false
+  end
+
   def can_edit?
     # Se a OS não foi persistida ainda (nova), permite edição
     return true unless record.persisted?
     
-    # Fornecedor: pode editar Diagnóstico em aberto quando atribuído a ele
-    return true if user.provider? && record.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID && record.order_service_status_id == OrderServiceStatus::EM_ABERTO_ID && record.provider_id == user.id
+    # Fornecedor: pode editar Diagnóstico em aberto ou em reavaliação quando atribuído a ele
+    return true if user.provider? && record.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID && [OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::EM_REAVALIACAO_ID].include?(record.order_service_status_id) && record.provider_id == user.id
     
     # Admin/Gestor/Adicional: podem editar OS quando:
     # 1. OS está em status editável (Em Aberto ou Aguardando Avaliação)
@@ -65,7 +78,7 @@ class OrderServicePolicy < ApplicationPolicy
   end
 
   def update?
-    can_edit?
+    can_edit_header? || can_edit?
   end
 
   def edit?
@@ -158,6 +171,10 @@ class OrderServicePolicy < ApplicationPolicy
   def print_no_values?
     user.admin? || user.manager? || user.additional? || user.provider?
   end
+
+  def print_os?
+    user.admin? || user.manager? || user.additional?
+  end
   
   # Permissão para solicitar reavaliação (apenas Diagnóstico em Aguardando avaliação)
   def request_reevaluation?
@@ -186,30 +203,39 @@ class OrderServicePolicy < ApplicationPolicy
   
   # Permissão para editar peças/serviços em Cotações/Requisições (pode cancelar propostas)
   def manage_parts_services?
-    [OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID].include?(record.order_service_status_id) &&
+    terminal_statuses = [OrderServiceStatus::CANCELADA_ID, OrderServiceStatus::PAGA_ID]
+    
+    !terminal_statuses.include?(record.order_service_status_id) &&
     [OrderServiceType::COTACOES_ID, OrderServiceType::REQUISICAO_ID].include?(record.order_service_type_id) &&
     (user.admin? || user.manager? || (user.additional? && record.client_id == user.client_id))
   end
   
   # Permissão especial para ADMIN/GESTOR/ADICIONAL editar campos de empenho, contrato e centro de custo
-  # mesmo quando já existem propostas (desde que a OS esteja em status editável)
+  # mesmo quando já existem propostas, em qualquer status não-terminal
   def can_edit_commitment_fields?
     # Se não foi persistida, permite edição
     return true unless record.persisted?
     
-    # Admin, Gestor ou Adicional (do mesmo cliente) podem editar empenho mesmo com propostas
+    # Admin, Gestor ou Adicional (do mesmo cliente) podem editar empenho em qualquer status não-terminal
+    terminal_statuses = [OrderServiceStatus::CANCELADA_ID, OrderServiceStatus::PAGA_ID]
+    
     (user.admin? || 
      (user.manager? && record.client_id == user.client_id) || 
      (user.additional? && record.client_id == user.client_id)) &&
-    [OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID].include?(record.order_service_status_id)
+    !terminal_statuses.include?(record.order_service_status_id)
   end
   
-  # Verifica se pode editar campo específico de fornecedor/placa/empenho
-  # Para Diagnóstico: pode trocar fornecedor, placa ou empenho quando sem propostas
+  # Verifica se pode editar campos básicos (fornecedor, placa, km, etc)
   def can_edit_basic_fields?
     # Se não foi persistida, permite edição
     return true unless record.persisted?
     
+    # Admin/Gestor/Adicional: podem editar campos básicos se podem editar cabeçalho
+    if user.admin? || (user.manager? && record.client_id == user.client_id) || (user.additional? && record.client_id == user.client_id)
+      return can_edit_header?
+    end
+    
+    # Fornecedor: usa lógica original (can_edit?)
     return false unless can_edit?
     
     # Para Diagnóstico: permite editar fornecedor, placa e empenho

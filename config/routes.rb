@@ -291,6 +291,7 @@ resources :reference_prices
 
 	resources :order_services
 		get 'order_services/:id/print_no_values', to: 'order_services#print_no_values', as: 'print_no_values_order_service'
+		get 'order_services/:id/print_os', to: 'order_services#print_os', as: 'print_os_order_service'
 	get 'show_order_services/:order_service_status_id', :to => 'order_services#show_order_services', :as => 'show_order_services'
 	post 'cancel_order_service', :to => 'order_services#cancel_order_service', :as => 'cancel_order_service'
 	get 'show_historic/:id', :to => 'order_services#show_historic', :as => 'show_historic'

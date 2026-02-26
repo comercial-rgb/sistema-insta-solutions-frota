@@ -1,0 +1,124 @@
+<% os = @order_service %>
+
+<h2><%= OrderService.model_name.human %> - <%= os.code %></h2>
+<p class="muted">
+  <%= OrderService.human_attribute_name(:created_at) %>: <%= CustomHelper.get_text_date(os.created_at, 'datetime', :full) %>
+  · <%= OrderService.human_attribute_name(:order_service_status_id) %>: <%= os.order_service_status&.name %>
+</p>
+
+<div class="section">
+  <h3>Dados principais</h3>
+  <div class="grid">
+    <ul class="kv">
+      <li><strong><%= OrderService.human_attribute_name(:client_id) %>:</strong><span><%= os.client&.fantasy_name %></span></li>
+      <li><strong><%= OrderService.human_attribute_name(:cost_center_id) %>:</strong><span><%= os.cost_center&.name %></span></li>
+      <li><strong><%= OrderService.human_attribute_name(:manager_id) %>:</strong><span><%= os.manager&.name %></span></li>
+      <li><strong><%= OrderService.human_attribute_name(:provider_service_type_id) %>:</strong><span><%= os.provider_service_type&.name %></span></li>
+      <li><strong><%= OrderService.human_attribute_name(:order_service_type_id) %>:</strong><span><%= os.order_service_type&.name %></span></li>
+      <li><strong><%= OrderService.human_attribute_name(:vehicle_id) %>:</strong><span><%= os.vehicle&.getting_vehicle_data %></span></li>
+      <li><strong><%= Vehicle.human_attribute_name(:cost_center_id) %>:</strong><span><%= os.vehicle&.cost_center&.get_text_name %></span></li>
+      <% if os.vehicle&.sub_unit.present? %>
+        <li><strong><%= Vehicle.human_attribute_name(:sub_unit_id) %>:</strong><span><%= os.vehicle.sub_unit.get_text_name %></span></li>
+      <% end %>
+      <li><strong><%= OrderService.human_attribute_name(:commitment_id) %>:</strong><span><%= os.commitment&.get_text_name %></span></li>
+      <% if os.client&.needs_km && os.km.present? %>
+        <li><strong><%= OrderService.human_attribute_name(:km) %>:</strong><span><%= os.km %> km</span></li>
+      <% end %>
+      <% if os.driver.present? %>
+        <li><strong><%= OrderService.human_attribute_name(:driver) %>:</strong><span><%= os.driver %></span></li>
+      <% end %>
+    </ul>
+  </div>
+</div>
+
+<% if os.details.present? %>
+  <div class="section">
+    <h3><%= OrderService.human_attribute_name(:details) %></h3>
+    <p><%= os.details %></p>
+  </div>
+<% end %>
+
+<% proposals = os.order_service_proposals.includes(:provider, :order_service_proposal_status, :order_service_proposal_items).order(:created_at) %>
+<% if proposals.any? %>
+  <div class="section">
+    <h3>Propostas (<%= proposals.count %>)</h3>
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Código</th>
+          <th>Fornecedor</th>
+          <th>Status</th>
+          <th style="text-align: right;">Valor Total</th>
+          <th>Data</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% proposals.each do |proposal| %>
+          <tr>
+            <td><%= proposal.code %></td>
+            <td><%= proposal.provider&.fantasy_name.presence || proposal.provider&.name || '-' %></td>
+            <td><%= proposal.order_service_proposal_status&.name %></td>
+            <td style="text-align: right;"><%= CustomHelper.to_currency(proposal.total_value) %></td>
+            <td><%= proposal.created_at.strftime('%d/%m/%Y %H:%M') %></td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+
+  <%# Detalhamento de cada proposta com itens %>
+  <% proposals.each do |proposal| %>
+    <% next if proposal.order_service_proposal_items.empty? %>
+    <div class="section" style="page-break-before: auto;">
+      <h3>Proposta: <%= proposal.code %> - <%= proposal.provider&.fantasy_name.presence || proposal.provider&.name || '-' %></h3>
+      <p class="muted">
+        Status: <%= proposal.order_service_proposal_status&.name %>
+        · Valor Total: <%= CustomHelper.to_currency(proposal.total_value) %>
+        <% if proposal.is_complement %>
+          · <strong>Complemento</strong>
+        <% end %>
+      </p>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Peça/Serviço</th>
+            <th>Marca</th>
+            <th style="text-align: center;">Qtd</th>
+            <th style="text-align: right;">Valor Unit.</th>
+            <th style="text-align: right;">Desconto</th>
+            <th style="text-align: right;">Total</th>
+            <th>Garantia</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% proposal.order_service_proposal_items.order(:id).each do |item| %>
+            <% category_id = item.service&.category_id || item.get_category_id %>
+            <% tipo = category_id == Category::SERVICOS_PECAS_ID ? 'Peça' : 'Serviço' %>
+            <tr>
+              <td><%= tipo %></td>
+              <td><%= item.service_name.presence || item.service&.name || '-' %></td>
+              <td><%= item.brand.presence || '-' %></td>
+              <td style="text-align: center;"><%= item.quantity %></td>
+              <td style="text-align: right;"><%= CustomHelper.to_currency(item.unity_value) %></td>
+              <td style="text-align: right;"><%= CustomHelper.to_currency(item.discount) %></td>
+              <td style="text-align: right;"><%= CustomHelper.to_currency(item.total_value) %></td>
+              <td><%= item.warranty_period.present? ? "#{item.warranty_period} dias" : '-' %></td>
+            </tr>
+          <% end %>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="6" style="text-align: right;"><strong>Total da Proposta:</strong></td>
+            <td style="text-align: right;"><strong><%= CustomHelper.to_currency(proposal.total_value) %></strong></td>
+            <td></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  <% end %>
+<% else %>
+  <div class="section">
+    <p>Nenhuma proposta cadastrada para esta OS.</p>
+  </div>
+<% end %>

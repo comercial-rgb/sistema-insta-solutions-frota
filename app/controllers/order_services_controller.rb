@@ -5,7 +5,7 @@ class OrderServicesController < ApplicationController
     :show, :edit, :update, :destroy,
     :get_order_service, :cancel_order_service, :show_historic,
     :reject_order_service, :unreject_order_service, :back_to_edit_order_service,
-    :print_no_values, :request_reevaluation, :finish_reevaluation
+    :print_no_values, :print_os, :request_reevaluation, :finish_reevaluation
   ]
   before_action :load_warranty_panel_data, only: [:edit, :update, :show]
 
@@ -191,6 +191,12 @@ class OrderServicesController < ApplicationController
     render layout: 'print_no_values'
   end
 
+  def print_os
+    authorize @order_service, :print_os?
+
+    render layout: 'print_no_values'
+  end
+
   def defining_data(order_service_status_id, show_order_service_status, order_service_status_ids, filter_audit, period_filter, order_services_grid, order_services_grid_class, method)
     # Tratar pseudo-status "aguardando_complemento"
     if order_service_status_id == 'aguardando_complemento'
@@ -304,15 +310,18 @@ class OrderServicesController < ApplicationController
         # Mantém comportamento atual quando não há status informado (evita impacto em outras telas)
         @order_services.scope {|scope| scope.left_joins(:rejected_providers)
         .approved_in_current_month(filter_audit, current_month)
+        .distinct
         .page(params[:page]) }
 
         @order_services_to_export
         .scope {|scope| scope.left_joins(:rejected_providers)
-        .approved_in_current_month(filter_audit, current_month)}
+        .approved_in_current_month(filter_audit, current_month)
+        .distinct}
 
         @order_services_without_filter
         .scope {|scope| scope.left_joins(:rejected_providers)
-        .approved_in_current_month(filter_audit, current_month)}
+        .approved_in_current_month(filter_audit, current_month)
+        .distinct}
       else
         if method == "show_invoices" && !params[:order_services_invoice_grid].nil?
           client_id = params[:order_services_invoice_grid][:client_id].presence
@@ -452,7 +461,7 @@ class OrderServicesController < ApplicationController
             )
           end
 
-          scoped.page(params[:page]) }
+          scoped.distinct.page(params[:page]) }
 
           @order_services_to_export.scope {|scope|
           scoped = scope
@@ -474,7 +483,7 @@ class OrderServicesController < ApplicationController
             )
           end
 
-          scoped }
+          scoped.distinct }
 
           @order_services_without_filter.scope {|scope|
           scoped = scope
@@ -496,7 +505,7 @@ class OrderServicesController < ApplicationController
             )
           end
 
-          scoped }
+          scoped.distinct }
         end
       end
     elsif @current_user.manager? || @current_user.additional?
@@ -560,17 +569,17 @@ class OrderServicesController < ApplicationController
         @order_services.scope {|scope| scope.left_joins(:rejected_providers)
         .by_client_id(client_id)
         .by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids)
-        .approved_in_current_month(filter_audit, current_month).page(params[:page]) }
+        .approved_in_current_month(filter_audit, current_month).distinct.page(params[:page]) }
 
         @order_services_to_export.scope {|scope| scope.left_joins(:rejected_providers)
         .by_client_id(client_id)
         .by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids)
-        .approved_in_current_month(filter_audit, current_month)}
+        .approved_in_current_month(filter_audit, current_month).distinct}
 
         @order_services_without_filter.scope {|scope| scope.left_joins(:rejected_providers)
         .by_client_id(client_id)
         .by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids)
-        .approved_in_current_month(filter_audit, current_month)}
+        .approved_in_current_month(filter_audit, current_month).distinct}
       else
         # Aba FATURAS: sempre usa histórico para pegar OSs autorizadas no período
         if method == "show_invoices" && filter_audit && current_month
@@ -724,7 +733,7 @@ class OrderServicesController < ApplicationController
             )
           end
 
-          scoped.page(params[:page]) }
+          scoped.distinct.page(params[:page]) }
 
           @order_services_to_export.scope {|scope|
           scoped = scope
@@ -749,7 +758,7 @@ class OrderServicesController < ApplicationController
             )
           end
 
-          scoped }
+          scoped.distinct }
 
           @order_services_without_filter.scope {|scope|
           scoped = scope
@@ -773,7 +782,7 @@ class OrderServicesController < ApplicationController
             )
           end
 
-          scoped }
+          scoped.distinct }
         end
       end
     elsif @current_user.provider?
@@ -1314,8 +1323,8 @@ class OrderServicesController < ApplicationController
     authorize OrderService
     result = true
     begin
-      order_service_ids = params[:order_service_ids].split(",")
-      all_order_services = OrderService.where(id: [order_service_ids])
+      order_service_ids = params[:order_service_ids].split(",").map(&:strip).uniq
+      all_order_services = OrderService.where(id: order_service_ids)
       all_order_services.each do |order_service|
         # 🔒 Autorizar apenas propostas com NOTAS_INSERIDAS (não complementos)
         order_service_proposals = order_service.order_service_proposals
@@ -1356,10 +1365,11 @@ class OrderServicesController < ApplicationController
     authorize OrderService
     result = true
     begin
-      order_service_ids = params[:order_service_ids].split(",")
-      all_order_services = OrderService.where(id: [order_service_ids])
+      order_service_ids = params[:order_service_ids].split(",").map(&:strip).uniq
+      all_order_services = OrderService.where(id: order_service_ids)
       all_order_services.each do |order_service|
         order_service_proposals = order_service.order_service_proposals
+        .not_complement
         .where(order_service_proposal_status_id: OrderServiceProposalStatus::AUTORIZADA_ID)
         order_service_proposals.each do |order_service_proposal|
           # Manually create an audit record
@@ -1389,10 +1399,11 @@ class OrderServicesController < ApplicationController
     authorize OrderService
     result = true
     begin
-      order_service_ids = params[:order_service_ids].split(",")
-      all_order_services = OrderService.where(id: [order_service_ids])
+      order_service_ids = params[:order_service_ids].split(",").map(&:strip).uniq
+      all_order_services = OrderService.where(id: order_service_ids)
       all_order_services.each do |order_service|
         order_service_proposals = order_service.order_service_proposals
+        .not_complement
         .where(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID)
         order_service_proposals.each do |order_service_proposal|
           # Manually create an audit record

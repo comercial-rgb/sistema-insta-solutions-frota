@@ -53,7 +53,7 @@
   scope :by_order_service_status_id, lambda { |value| where("order_services.order_service_status_id = ?", value) if !value.nil? && !value.blank? }
   scope :by_order_service_statuses_id, lambda { |value| where("order_services.order_service_status_id IN (?)", value) if !value.nil? }
 
-  scope :by_order_service_proposal_status_id, lambda { |value| joins(:order_service_proposals).where("order_service_proposals.order_service_proposal_status_id = ?", value) if !value.nil? && !value.blank? }
+  scope :by_order_service_proposal_status_id, lambda { |value| joins(:order_service_proposals).where("order_service_proposals.order_service_proposal_status_id = ?", value).distinct if !value.nil? && !value.blank? }
 
   scope :by_initial_date, lambda { |value| where("order_services.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
   scope :by_final_date, lambda { |value| where("order_services.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
@@ -85,6 +85,7 @@
   scope :by_proposal_provider_id, lambda { |value|
     left_outer_joins(:order_service_proposals)
       .where("order_service_proposals.provider_id = ? OR order_services.provider_id = ?", value, value)
+      .distinct
   }
 
   # Exclui OSs onde o fornecedor já tem proposta ativa (não cancelada/reprovada)
@@ -175,10 +176,11 @@
 
   scope :reached_status_in_period, lambda { |status_id, date_range|
     if status_id.present? && date_range.present?
-      # Busca OSs que ESTÃO no status especificado E atingiram esse status no período
-      # Garante que a OS não apareça em aba errada
+      # Busca OSs que PASSARAM pelo status especificado no período informado
+      # Não exige que a OS esteja atualmente nesse status - permite rastrear histórico
+      # Ex: filtrar "Autorizadas" em Fev/2026 mostra todas que foram autorizadas nesse mês,
+      # mesmo que agora estejam em "Aguardando pagamento" ou "Paga"
       left_outer_joins(:audits)
-        .where(order_service_status_id: status_id)
         .where(audits: { auditable_type: 'OrderService' })
         .where(audits: { associated_id: status_id })
         .where(audits: { created_at: date_range })
@@ -189,9 +191,8 @@
   scope :in_statuses_reached_in_period, lambda { |status_ids, target_status_id, date_range|
     if status_ids.present? && target_status_id.present? && date_range.present?
       # Para abas com múltiplos status (ex: Autorizadas, Nota Fiscal, Paga)
-      # Mostra OSs que estão em qualquer dos status permitidos E passaram pelo status alvo no período
+      # Mostra OSs que passaram pelo status alvo no período, independente do status atual
       left_outer_joins(:audits)
-        .where(order_service_status_id: status_ids)
         .where(audits: { auditable_type: 'OrderService' })
         .where(audits: { associated_id: target_status_id })
         .where(audits: { created_at: date_range })
@@ -354,14 +355,14 @@
     if (current_user.admin? || current_user.client? || current_user.manager?) && order_service_status_id == OrderServiceStatus::TEMP_REJEITADA_ID
       return OrderService.joins(:rejected_providers).distinct.length
     elsif current_user.admin?
-      return OrderService.by_order_service_status_id(order_service_status_id).length
+      return OrderService.by_order_service_status_id(order_service_status_id).distinct.count
     elsif current_user.client?
-      return OrderService.by_client_id(current_user.id).by_order_service_status_id(order_service_status_id).length
+      return OrderService.by_client_id(current_user.id).by_order_service_status_id(order_service_status_id).distinct.count
     elsif current_user.manager? || current_user.additional?
       client_id = current_user.client_id
       cost_center_ids = current_user.associated_cost_centers.map(&:id)
       sub_unit_ids = current_user.associated_sub_units.map(&:id)
-      return OrderService.by_client_id(client_id).by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids).by_order_service_status_id(order_service_status_id).length
+      return OrderService.by_client_id(client_id).by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids).by_order_service_status_id(order_service_status_id).distinct.count
     elsif current_user.provider?
       provider_state_id = -1
       if !current_user.address.nil? && !current_user.address.state.nil?

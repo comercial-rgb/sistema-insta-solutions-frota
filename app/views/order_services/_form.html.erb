@@ -4,9 +4,11 @@
         # Cotações/Requisições podem ter itens editados
         can_edit_items = policy(f.object).manage_parts_services? || !f.object.persisted?
         
-        # Fornecedor pode editar itens em OS do tipo Diagnóstico se ainda não inseriu os dados
-        if @current_user.provider? && f.object.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID && !f.object.data_inserted_by_provider
-            can_edit_items = true
+        # Fornecedor pode editar itens em OS do tipo Diagnóstico se ainda não inseriu os dados ou se está em reavaliação
+        if @current_user.provider? && f.object.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID
+            if !f.object.data_inserted_by_provider || f.object.order_service_status_id == OrderServiceStatus::EM_REAVALIACAO_ID
+                can_edit_items = true
+            end
         end
         
         # ===== REGRAS DE DESABILITAÇÃO DE CAMPOS =====
@@ -118,7 +120,11 @@
                             <%= f.button :submit, name: 'release_to_quotation', class: 'btn-success d-none', id: 'btn-release-to-quotation-confirm', value: '✓ Confirmar e Enviar para Cotação', data: {confirm: 'Tem certeza que deseja enviar esta OS para cotação com os fornecedores selecionados?'} %>
                         <% end %>
                     <% end %>
-                    <%= f.button :submit, name: 'save_and_submit', class: 'btn-primary', value: OrderService.human_attribute_name(:save_and_submit), data: {confirm: t('model.confirm_action')} %>
+                    <% if f.object.order_service_status_id == OrderServiceStatus::EM_CADASTRO_ID %>
+                        <%= f.button :submit, name: 'save_and_submit', class: 'btn-primary', value: OrderService.human_attribute_name(:save_and_submit), data: {confirm: t('model.confirm_action')} %>
+                    <% else %>
+                        <%= f.button :submit, name: 'just_save', class: 'btn-primary', value: 'Salvar Alterações', data: {confirm: t('model.confirm_action')} %>
+                    <% end %>
                 <% else %>
                     <%= f.button :submit, name: 'save_and_submit', class: 'btn-secondary', value: OrderService.human_attribute_name(:save_and_submit), data: {confirm: t('model.confirm_action')} %>
                 <% end %>

@@ -14,7 +14,14 @@
       <span>
         <i class="bi bi-list-check me-2"></i>Itens da Ordem de Serviço (<%= os.part_service_order_services.count %>)
       </span>
-      <i class="bi bi-chevron-down"></i>
+      <span>
+        <% if policy(os).manage_parts_services? %>
+          <%= link_to edit_order_service_path(os), class: 'btn btn-sm btn-light me-2', title: 'Editar Peças/Serviços', onclick: 'event.stopPropagation();' do %>
+            <i class="bi bi-pencil"></i> Editar
+          <% end %>
+        <% end %>
+        <i class="bi bi-chevron-down"></i>
+      </span>
     </div>
     <div class="collapse" id="itemsPanel<%= os.id %>">
       <div class="card-body">

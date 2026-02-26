@@ -67,6 +67,17 @@ array_links = [
     class: 'dropdown-item'
   },
   {
+    link_path: print_os_order_service_path(record),
+    link_method: :get,
+    link_title: 'Imprimir OS',
+    confirm: nil,
+    link_image: 'bi bi-file-earmark-text',
+    text_action: 'Imprimir OS',
+    link_policy: policy(record).print_os?,
+    class: 'dropdown-item',
+    target: '_blank'
+  },
+  {
     link_path: print_no_values_order_service_path(record),
     link_method: :get,
     link_title: OrderService.human_attribute_name(:print_order_service_proposals),
