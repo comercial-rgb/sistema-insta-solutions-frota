@@ -1,0 +1,23 @@
+<h3>⚠️ Falha no envio ao Portal Financeiro</h3>
+<p>
+	A OS <strong><%= @os_code %></strong> do cliente <strong><%= @client_name %></strong>
+	não foi enviada ao Portal Financeiro após <strong>3 tentativas</strong>.
+</p>
+<table style="border-collapse: collapse; margin: 15px 0;">
+	<tr>
+		<td style="padding: 8px 12px; background: #f5f5f5; border: 1px solid #ddd; font-weight: bold;">OS</td>
+		<td style="padding: 8px 12px; border: 1px solid #ddd;"><%= @os_code %></td>
+	</tr>
+	<tr>
+		<td style="padding: 8px 12px; background: #f5f5f5; border: 1px solid #ddd; font-weight: bold;">Cliente</td>
+		<td style="padding: 8px 12px; border: 1px solid #ddd;"><%= @client_name %></td>
+	</tr>
+	<tr>
+		<td style="padding: 8px 12px; background: #f5f5f5; border: 1px solid #ddd; font-weight: bold;">Erro</td>
+		<td style="padding: 8px 12px; border: 1px solid #ddd; color: #c62828;"><%= @error_message %></td>
+	</tr>
+</table>
+<p>
+	<strong>Ação necessária:</strong> Verifique o Portal Financeiro e tente reenviar a OS manualmente se necessário.
+</p>
+<%= render "notification_mailer/default_footer" %>

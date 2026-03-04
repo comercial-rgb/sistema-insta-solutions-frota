@@ -5,6 +5,21 @@
     <% end %>
 <% end %>
 
+<%# Fornecedor: enviar valores via hidden fields quando campos estão desabilitados %>
+<% if @current_user.provider? && f.object.persisted? %>
+    <%= f.hidden_field :client_id %>
+    <%= f.hidden_field :vehicle_id %>
+    <%= f.hidden_field :provider_service_type_id %>
+    <%= f.hidden_field :maintenance_plan_id %>
+    <%= f.hidden_field :order_service_type_id %>
+    <%= f.hidden_field :provider_id %>
+    <%= f.hidden_field :commitment_id %>
+    <%= f.hidden_field :commitment_parts_id %>
+    <%= f.hidden_field :commitment_services_id %>
+    <%= f.hidden_field :service_group_id %>
+    <%= f.hidden_field :manager_id %>
+<% end %>
+
 <%
     # Variáveis de desabilitação podem vir do partial pai ou usar valor padrão
     disabled_basic_fields = local_assigns.fetch(:disabled_basic_fields, disabled)
@@ -39,7 +54,20 @@
 
 <div class="row">
     <div class="col-12 col-md-3">
-        <%= f.association :vehicle, disabled: disabled_basic_fields, collection: Vehicle.getting_data_by_user(@current_user), label_method: :board, as: :select, include_blank: t('model.select_option') %>
+        <% if @current_user.provider? && f.object.persisted? && f.object.vehicle.present? %>
+            <%# Para fornecedores, mostrar info do veículo ao invés de select desabilitado %>
+            <div class="form-group">
+                <label class="form-label"><%= OrderService.human_attribute_name(:vehicle) %> <abbr title="obrigatório">*</abbr></label>
+                <div class="form-control bg-light">
+                    <%= f.object.vehicle.board %> - <%= f.object.vehicle.brand %> <%= f.object.vehicle.model %>
+                </div>
+            </div>
+        <% else %>
+            <%= f.association :vehicle, disabled: disabled_basic_fields, collection: Vehicle.getting_data_by_user(@current_user), label_method: :board, as: :select, include_blank: t('model.select_option') %>
+        <% end %>
+        <div id="vehicle-sub-unit-info" class="small text-muted mt-1" style="display:none;">
+            <i class="fa fa-info-circle"></i> Subunidade: <strong id="vehicle-sub-unit-name"></strong>
+        </div>
     </div>
     <% if !f.object.persisted? %>
         <div class="col-12 col-md-4">
@@ -85,7 +113,13 @@
             <div id="div-with-global-commitment" class="col-12 col-md-12" style="<%= has_global ? '' : 'display:none;' %>">
                 <% 
                     if f.object.persisted?
-                        global_collection = f.object.commitment ? [f.object.commitment] : global_commitments
+                        # Admin/Gestor/Adicional podem trocar empenho mesmo com propostas ativas
+                        if (@current_user.admin? || @current_user.manager? || @current_user.additional?) && !disabled_commitment_fields
+                            global_collection = global_commitments
+                        else
+                            # Outros usuários (fornecedor) veem apenas o empenho atual
+                            global_collection = f.object.commitment ? [f.object.commitment] : global_commitments
+                        end
                     else
                         global_collection = global_commitments
                     end
@@ -97,7 +131,13 @@
             <div id="div-with-parts-commitment" class="col-12 col-md-6" style="<%= (has_parts && !has_global) ? '' : 'display:none;' %>">
                 <% 
                     if f.object.persisted?
-                        parts_collection = f.object.commitment_parts ? [f.object.commitment_parts] : []
+                        # Admin/Gestor/Adicional podem trocar empenho mesmo com propostas ativas
+                        if (@current_user.admin? || @current_user.manager? || @current_user.additional?) && !disabled_commitment_fields
+                            parts_collection = parts_commitments
+                        else
+                            # Outros usuários (fornecedor) veem apenas o empenho atual
+                            parts_collection = f.object.commitment_parts ? [f.object.commitment_parts] : []
+                        end
                     elsif f.object.client_id.present?
                         parts_collection = parts_commitments
                     else
@@ -110,7 +150,13 @@
             <div id="div-with-services-commitment" class="col-12 col-md-6" style="<%= (has_services && !has_global) ? '' : 'display:none;' %>">
                 <% 
                     if f.object.persisted?
-                        services_collection = f.object.commitment_services ? [f.object.commitment_services] : []
+                        # Admin/Gestor/Adicional podem trocar empenho mesmo com propostas ativas
+                        if (@current_user.admin? || @current_user.manager? || @current_user.additional?) && !disabled_commitment_fields
+                            services_collection = services_commitments
+                        else
+                            # Outros usuários (fornecedor) veem apenas o empenho atual
+                            services_collection = f.object.commitment_services ? [f.object.commitment_services] : []
+                        end
                     elsif f.object.client_id.present?
                         services_collection = services_commitments
                     else
@@ -138,8 +184,21 @@
             # Para Requisição: NUNCA desabilitar o select de grupo de serviços
             # Isso permite que o JavaScript carregue os limites corretamente
             service_group_disabled = f.object.order_service_type_id == OrderServiceType::REQUISICAO_ID ? false : disabled
+            
+            # Filtrar grupos pelo cliente (se cliente estiver definido)
+            client_for_group = nil
+            if @current_user.manager? || @current_user.additional?
+                client_for_group = User.find_by(id: @current_user.client_id, profile_id: Profile::CLIENT_ID)
+            elsif f.object.client.present?
+                client_for_group = f.object.client
+            elsif @current_user.client?
+                client_for_group = User.find_by(id: @current_user.id, profile_id: Profile::CLIENT_ID)
+            end
+            
+            # Aplicar filtro de cliente nos grupos (se grupo não tem clientes, está disponível para todos)
+            available_groups = client_for_group ? ServiceGroup.active.available_for_client(client_for_group.id) : ServiceGroup.active
         %>
-        <%= f.association :service_group, disabled: service_group_disabled, collection: ServiceGroup.active, as: :select, include_blank: t('model.select_option'), input_html: { class: 'form-control w-100', style: 'width: 100% !important;' } %>
+        <%= f.association :service_group, disabled: service_group_disabled, collection: available_groups, as: :select, include_blank: t('model.select_option'), input_html: { class: 'form-control w-100', style: 'width: 100% !important;' } %>
     </div>
     <div class="col-12 col-md-3 d-none" id="div-with-provider-selection">
         <% 
@@ -175,6 +234,165 @@
         <%= f.association :provider, disabled: disabled_basic_fields, label_method: :get_name, collection: providers_collection, as: :select, include_blank: t('model.select_option'), input_html: { class: 'form-control w-100', style: 'width: 100% !important;' } %>
     </div>
 </div>
+
+<!-- Link para download da Requisição de Serviços (visível apenas para tipo Requisição) -->
+<div class="row mt-2 d-none" id="div-requisicao-download">
+    <div class="col-12">
+        <div class="alert alert-info d-flex align-items-center py-2 mb-2" role="alert">
+            <i class="bi bi-file-earmark-word me-2" style="font-size: 1.3rem; color: #2b579a;"></i>
+            <div>
+                <strong>Requisição de Serviços:</strong>
+                <a href="/Requisicao_Servicos_InstaSolutions.docx" target="_blank" class="ms-2 btn btn-sm btn-outline-primary">
+                    <i class="bi bi-download me-1"></i> Baixar Formulário de Requisição (.docx)
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Link para download da Requisição de Serviços (visível apenas para tipo Requisição) -->
+<div class="row mt-2 d-none" id="div-requisicao-download">
+    <div class="col-12">
+        <div class="alert alert-info d-flex align-items-center py-2 mb-2" role="alert">
+            <i class="bi bi-file-earmark-word me-2" style="font-size: 1.3rem; color: #2b579a;"></i>
+            <div>
+                <strong>Requisição de Serviços:</strong>
+                <a href="/Requisicao_Servicos_InstaSolutions.docx" target="_blank" class="ms-2 btn btn-sm btn-outline-primary">
+                    <i class="bi bi-download me-1"></i> Baixar Formulário de Requisição (.docx)
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<%# ===== SEÇÃO: Enviar para Fornecedores Específicos (Cotações/Requisição/Diagnóstico ao liberar) ===== %>
+<% if !@current_user.provider? %>
+<%# Flag para JS: indica que Diagnóstico está pronto para liberar cotação %>
+<% if f.object.persisted? && f.object.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID && f.object.data_inserted_by_provider && !f.object.release_quotation %>
+    <input type="hidden" id="diagnostico_ready_for_release" value="true">
+<% end %>
+<%# Informativo para Diagnóstico %>
+<div class="row mt-2 d-none" id="div-diagnostico-info">
+    <div class="col-12">
+        <div class="alert alert-info d-flex align-items-start py-2 mb-0" role="alert">
+            <i class="bi bi-info-circle-fill me-2 mt-1" style="font-size: 1.1rem;"></i>
+            <div>
+                <strong>OS tipo Diagnóstico:</strong> O fornecedor selecionado acima irá criar o orçamento inicial.
+                Após o primeiro orçamento ser inserido, será possível direcionar esta OS para outros fornecedores através da opção <em>"Enviar para Cotação"</em>.
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row mt-2 d-none" id="div-with-directed-providers">
+    <div class="col-12">
+        <div class="card border-primary">
+            <div class="card-header bg-primary bg-opacity-10 py-2">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="directed_providers_toggle"
+                           name="order_service[directed_to_specific_providers]"
+                           value="true"
+                           <%= 'checked' if f.object.persisted? && f.object.directed_to_specific_providers? %>
+                           <%= 'disabled' if disabled_basic_fields %>>
+                    <label class="form-check-label fw-bold" for="directed_providers_toggle">
+                        <i class="bi bi-people-fill"></i> Enviar para fornecedores específicos
+                    </label>
+                    <small class="text-muted d-block">
+                        Quando ativado, apenas os fornecedores selecionados poderão visualizar esta OS. 
+                        Quando desativado, todos os fornecedores compatíveis (estado/tipo de serviço) poderão ver.
+                    </small>
+                </div>
+            </div>
+            <div class="card-body py-2 d-none" id="directed-providers-panel">
+                <%# === Modo de seleção === %>
+                <div class="mb-3">
+                    <div class="d-flex gap-4 flex-wrap">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="directed_mode" id="directed-mode-state" value="state" checked>
+                            <label class="form-check-label fw-semibold" for="directed-mode-state">
+                                <i class="bi bi-geo-alt"></i> Por Estado
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="directed_mode" id="directed-mode-city" value="city">
+                            <label class="form-check-label fw-semibold" for="directed-mode-city">
+                                <i class="bi bi-building"></i> Por Estado / Cidade
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="directed_mode" id="directed-mode-provider" value="provider">
+                            <label class="form-check-label fw-semibold" for="directed-mode-provider">
+                                <i class="bi bi-person-check"></i> Fornecedor Específico
+                            </label>
+                        </div>
+                    </div>
+                    <small class="text-muted mt-1 d-block" id="directed-mode-description">
+                        Envia para todos os fornecedores compatíveis no estado selecionado.
+                    </small>
+                </div>
+
+                <%# === Filtros === %>
+                <div class="row mb-2 g-2">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label small mb-1 fw-semibold">Estado</label>
+                        <select class="form-select form-select-sm" id="directed-providers-state-filter">
+                            <option value="">Todos os estados</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4 d-none" id="directed-city-filter-container">
+                        <label class="form-label small mb-1 fw-semibold">Cidade</label>
+                        <select class="form-select form-select-sm" id="directed-providers-city-filter">
+                            <option value="">Todas as cidades</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-4 d-none" id="directed-search-container">
+                        <label class="form-label small mb-1 fw-semibold">Buscar</label>
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="bi bi-search"></i></span>
+                            <input type="text" class="form-control" id="directed-providers-search" placeholder="Nome do fornecedor...">
+                        </div>
+                    </div>
+                </div>
+
+                <%# === Resumo (modos Estado e Cidade) === %>
+                <div id="directed-providers-summary" class="alert alert-info small py-2 mb-2">
+                    <i class="bi bi-info-circle"></i> <span id="directed-providers-summary-text">Carregando fornecedores...</span>
+                </div>
+
+                <%# === Loading === %>
+                <div id="directed-providers-loading" class="text-center py-3 d-none">
+                    <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
+                    <span class="ms-2">Carregando fornecedores...</span>
+                </div>
+
+                <%# === Lista de fornecedores (modo Fornecedor Específico) === %>
+                <div id="directed-providers-list-container" class="d-none">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div>
+                            <button type="button" class="btn btn-sm btn-outline-primary" id="directed-providers-select-all">
+                                <i class="bi bi-check-all"></i> Selecionar todos
+                            </button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" id="directed-providers-deselect-all">
+                                <i class="bi bi-x-lg"></i> Limpar seleção
+                            </button>
+                        </div>
+                        <span class="badge bg-primary" id="directed-providers-count">0 selecionado(s)</span>
+                    </div>
+                    <div id="directed-providers-list" style="max-height: 300px; overflow-y: auto;"></div>
+                </div>
+
+                <%# === Hidden fields === %>
+                <div id="directed-providers-hidden-fields">
+                    <% if f.object.persisted? && f.object.directed_to_specific_providers? %>
+                        <% f.object.directed_providers.each do |provider| %>
+                            <input type="hidden" name="order_service[directed_provider_ids][]" value="<%= provider.id %>" class="directed-provider-hidden">
+                        <% end %>
+                    <% end %>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<% end %>
 
 <% if f.object.order_service_type_id == OrderServiceType::REQUISICAO_ID && f.object.service_group.present? %>
     <div class="row mt-2">
@@ -216,10 +434,18 @@
         <% end %>
     </div>
     <div class="col-12 col-md-6">
-        <%= f.input :driver, disabled: disabled_basic_fields %>
+        <% if @current_user.provider? && f.object.persisted? %>
+            <%= f.input :driver, disabled: true, input_html: { readonly: true, class: 'bg-light' } %>
+        <% else %>
+            <%= f.input :driver, disabled: disabled_basic_fields %>
+        <% end %>
     </div>
     <div class="col-12">
-        <%= f.input :details, disabled: disabled_basic_fields %>
+        <% if @current_user.provider? && f.object.persisted? %>
+            <%= f.input :details, disabled: true, input_html: { readonly: true, class: 'bg-light', rows: 3 } %>
+        <% else %>
+            <%= f.input :details, disabled: disabled_basic_fields %>
+        <% end %>
     </div>
 </div>
 

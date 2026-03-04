@@ -23,7 +23,12 @@ class OrderServiceProposalsController < ApplicationController
       @order_service_proposals_to_export = OrderServiceProposalsGrid.new(params[:order_service_proposals_grid].merge(current_user: @current_user))
     end
 
-    @order_service_proposals.scope {|scope| scope.page(params[:page]) }
+    if @current_user.provider?
+      @order_service_proposals.scope {|scope| scope.where(provider_id: @current_user.id).page(params[:page]) }
+      @order_service_proposals_to_export.scope {|scope| scope.where(provider_id: @current_user.id) }
+    else
+      @order_service_proposals.scope {|scope| scope.page(params[:page]) }
+    end
 
     respond_to do |format|
       format.html
@@ -40,6 +45,7 @@ class OrderServiceProposalsController < ApplicationController
     authorize OrderServiceProposal
     if (params[:order_service_proposal_status_id].nil? || params[:order_service_proposal_status_id].blank? || params[:order_service_proposal_status_id].to_i == OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID)
       user_not_authorized
+      return
     end
 
     @order_service_proposal_status = OrderServiceProposalStatus.where(id: params[:order_service_proposal_status_id]).first
@@ -182,6 +188,13 @@ class OrderServiceProposalsController < ApplicationController
 
   def new
     authorize OrderServiceProposal
+    
+    # Validar order_service_id
+    if params[:order_service_id].blank?
+      flash[:error] = "ID da Ordem de Serviço não informado."
+      redirect_to order_services_path and return
+    end
+    
     @order_service_proposal = OrderServiceProposal
     .where(order_service_id: params[:order_service_id])
     .where(provider_id: @current_user.id, order_service_proposal_status_id: OrderServiceProposalStatus::EM_CADASTRO_ID)
@@ -189,12 +202,19 @@ class OrderServiceProposalsController < ApplicationController
     if @order_service_proposal
       redirect_to edit_order_service_proposal_path(id: @order_service_proposal.id)
     else
+      # Buscar OS com tratamento de erro
+      begin
+        os = OrderService.find(params[:order_service_id])
+      rescue ActiveRecord::RecordNotFound
+        flash[:error] = "Ordem de Serviço não encontrada."
+        redirect_to order_services_path and return
+      end
+      
       @order_service_proposal = OrderServiceProposal.new
       @order_service_proposal.order_service_id = params[:order_service_id]
       @order_service_proposal.provider_id = @current_user.id
       
       # 📊 Debug: verificar part_service_order_services da OS
-      os = OrderService.find(params[:order_service_id])
       Rails.logger.info "🔍 [PROPOSTA NEW DEBUG] OS ID: #{os.id}"
       Rails.logger.info "🔍 [PROPOSTA NEW DEBUG] Total part_service_order_services: #{os.part_service_order_services.count}"
       os.part_service_order_services.each_with_index do |ps, idx|
@@ -209,20 +229,15 @@ class OrderServiceProposalsController < ApplicationController
         end
       end
       
+      # Carregar sugestões do catálogo de peças para o veículo da OS
+      load_catalogo_sugestoes(os.vehicle)
+      
       build_initial_relations
     end
   end
 
   def edit
     authorize @order_service_proposal
-    
-    # 🔧 CORREÇÃO REAVALIAÇÃO: Garantir que proposta esteja em EM_CADASTRO para permitir edição
-    # Quando admin reprova, a proposta volta para EM_CADASTRO_ID
-    # Fornecedor pode editar apenas se estiver em EM_CADASTRO_ID
-    if @order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::EM_CADASTRO_ID
-      # Já está em cadastro, pode editar normalmente
-      @order_service_proposal.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::EM_CADASTRO_ID)
-    end
     
     # Carregar limites do grupo de serviços (para Requisição)
     @service_max_values = {}
@@ -233,6 +248,9 @@ class OrderServiceProposalsController < ApplicationController
       end
     end
     
+    # Carregar sugestões do catálogo de peças para o veículo da OS
+    load_catalogo_sugestoes(os.vehicle)
+    
     build_initial_relations
   end
 
@@ -242,6 +260,7 @@ class OrderServiceProposalsController < ApplicationController
     # Limpar service_id="novo" antes de criar o objeto
     cleaned_params = clean_provider_service_temps_params(order_service_proposal_params)
     @order_service_proposal = OrderServiceProposal.new(cleaned_params)
+    @order_service_proposal.provider_id = @current_user.id
     
     if !params[:save_and_submit].present?
       @order_service_proposal.skip_validation = true
@@ -282,6 +301,7 @@ class OrderServiceProposalsController < ApplicationController
       # Se estive tentando apenas inserir as notas fiscais
       if !policy(@order_service_proposal).can_insert_invoices?
         user_not_authorized
+        return
       end
     else
       # Se está atualizando a proposta em si
@@ -355,6 +375,8 @@ class OrderServiceProposalsController < ApplicationController
             OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID
           )
           @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID)
+          # Atualizar também o status da proposta para refletir no menu do fornecedor
+          @order_service_proposal.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::NOTAS_INSERIDAS_ID)
         end
         flash[:success] = t('flash.update')
         redirect_to show_order_service_proposal_path(id: @order_service_proposal.id)
@@ -390,41 +412,48 @@ class OrderServiceProposalsController < ApplicationController
   end
 
   def generate_order_service_proposal_items
-    @order_service_proposal.order_service_proposal_items.destroy_all
-    # @order_service_proposal.order_service_proposal_items.each do |order_service_proposal_item|
-    #   order_service_proposal_item.update_columns(
-    #     unity_value: order_service_proposal_item.service.price,
-    #     service_name: order_service_proposal_item.service.name,
-    #     brand: order_service_proposal_item.service.brand,
-    #     warranty_period: order_service_proposal_item.service.warranty_period,
-    #     service_description: order_service_proposal_item.service.description,
-    #     total_value_without_discount: (order_service_proposal_item.quantity * order_service_proposal_item.service.price)
-    #   )
-    # end
+    proposal_id = @order_service_proposal.id
+    temps_count = @order_service_proposal.provider_service_temps.count
 
-    @order_service_proposal.provider_service_temps.each do |provider_service_temp|
-      new_service = provider_service_temp.service
-      
-      # Para itens criados manualmente (sem service_id), usa os dados do provider_service_temp
-      if new_service.present?
-        service_id = new_service.id
-        service_name = new_service.name
-      else
-        service_id = nil
-        service_name = provider_service_temp.name
+    Rails.logger.info "[GENERATE_ITEMS] Proposta #{proposal_id}: Iniciando geração de #{temps_count} itens"
+
+    ActiveRecord::Base.transaction do
+      @order_service_proposal.order_service_proposal_items.destroy_all
+
+      @order_service_proposal.provider_service_temps.reload.each do |provider_service_temp|
+        new_service = provider_service_temp.service
+
+        # Para itens criados manualmente (sem service_id), usa os dados do provider_service_temp
+        if new_service.present?
+          service_id = new_service.id
+          service_name = new_service.name
+        else
+          service_id = nil
+          service_name = provider_service_temp.name
+        end
+
+        item = @order_service_proposal.order_service_proposal_items.create!(
+          service_id: service_id,
+          unity_value: provider_service_temp.price,
+          service_name: service_name,
+          quantity: provider_service_temp.quantity,
+          discount: provider_service_temp.discount,
+          total_value: provider_service_temp.total_value,
+          total_value_without_discount: (provider_service_temp.quantity * provider_service_temp.price),
+          brand: provider_service_temp.brand,
+          warranty_period: provider_service_temp.warranty_period,
+          referencia_catalogo: provider_service_temp.referencia_catalogo
+        )
+        Rails.logger.info "[GENERATE_ITEMS] Proposta #{proposal_id}: Item #{item.id} criado (service_id=#{service_id}, valor=#{provider_service_temp.price}, qty=#{provider_service_temp.quantity})"
       end
-      
-      @order_service_proposal.order_service_proposal_items.create(
-        service_id: service_id,
-        unity_value: provider_service_temp.price,
-        service_name: service_name,
-        quantity: provider_service_temp.quantity,
-        discount: provider_service_temp.discount,
-        total_value: provider_service_temp.total_value,
-        total_value_without_discount: (provider_service_temp.quantity * provider_service_temp.price),
-        brand: provider_service_temp.brand,
-        warranty_period: provider_service_temp.warranty_period
-      )
+    end
+
+    # Verificação pós-geração
+    items_count = @order_service_proposal.order_service_proposal_items.reload.count
+    if items_count != temps_count
+      Rails.logger.error "[GENERATE_ITEMS] ⚠️ MISMATCH Proposta #{proposal_id}: #{temps_count} temps vs #{items_count} items criados!"
+    else
+      Rails.logger.info "[GENERATE_ITEMS] ✅ Proposta #{proposal_id}: #{items_count} itens gerados com sucesso"
     end
   end
 
@@ -442,6 +471,7 @@ class OrderServiceProposalsController < ApplicationController
   end
 
   def get_order_service_proposal
+    authorize @order_service_proposal, :show_order_service_proposal?
     data = {
       result: @order_service_proposal
     }
@@ -488,16 +518,16 @@ class OrderServiceProposalsController < ApplicationController
     # ✅ Verificar saldo nos empenhos antes de aprovar (validação movida do update)
     order_service = @order_service_proposal.order_service
     
-    # Calcula valores totais DA PROPOSTA (não da OS inteira)
+    # Calcula valores totais DA PROPOSTA COM DESCONTO APLICADO
     parts_value = @order_service_proposal.order_service_proposal_items
                     .joins(:service)
                     .where(services: { category_id: Category::SERVICOS_PECAS_ID })
-                    .sum("order_service_proposal_items.quantity * order_service_proposal_items.unity_value")
+                    .sum(:total_value)
     
     services_value = @order_service_proposal.order_service_proposal_items
                        .joins(:service)
                        .where(services: { category_id: Category::SERVICOS_SERVICOS_ID })
-                       .sum("order_service_proposal_items.quantity * order_service_proposal_items.unity_value")
+                       .sum(:total_value)
     
     balance_check = order_service.check_commitment_balance(parts_value, services_value)
     
@@ -530,47 +560,70 @@ class OrderServiceProposalsController < ApplicationController
     elsif @current_user.manager? || @current_user.admin?
       order_service = @order_service_proposal.order_service
       
-      # ⚠️ VALIDAÇÃO: Verificar se já existe proposta aprovada/autorizada para a mesma OS
-      existing_active = order_service.order_service_proposals
-        .unscoped
+      # 🔒 Aprovação final dentro de transaction com lock pessimista nos empenhos
+      # Previne race conditions (duas aprovações simultâneas consumindo o mesmo saldo)
+      approval_error = nil
+      
+      ActiveRecord::Base.transaction do
+        # Re-verifica saldo com lock FOR UPDATE nos empenhos (garante atomicidade)
+        locked_balance_check = order_service.check_commitment_balance_with_lock!(parts_value, services_value)
+        unless locked_balance_check[:valid]
+          approval_error = "Não é possível aprovar: #{locked_balance_check[:message]}"
+          raise ActiveRecord::Rollback
+        end
+
+        # 🔒 Verificar se já existe outra proposta ativa (APROVADA ou posterior) nesta OS
+        active_proposal_statuses = [
+          OrderServiceProposalStatus::APROVADA_ID,
+          OrderServiceProposalStatus::NOTAS_INSERIDAS_ID,
+          OrderServiceProposalStatus::AUTORIZADA_ID,
+          OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+          OrderServiceProposalStatus::PAGA_ID
+        ]
+        
+        existing_active_proposals = order_service.order_service_proposals
+          .not_complement
+          .where(order_service_proposal_status_id: active_proposal_statuses)
+          .where.not(id: @order_service_proposal.id)
+        
+        if existing_active_proposals.any?
+          proposal_codes = existing_active_proposals.map(&:code).join(', ')
+          approval_error = "Não é possível aprovar: já existe(m) proposta(s) ativa(s) nesta OS (#{proposal_codes}). Cancele ou reprove a proposta existente antes de aprovar uma nova."
+          raise ActiveRecord::Rollback
+        end
+        
+        # Reprovar propostas que estão em AGUARDANDO_AVALIACAO
+        order_service_proposals = order_service.order_service_proposals
+        .where(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID)
         .where.not(id: @order_service_proposal.id)
-        .where(is_complement: [false, nil])
-        .where(order_service_proposal_status_id: OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES)
-      
-      if existing_active.exists?
-        flash[:error] = "Não é possível aprovar esta proposta. " \
-                        "Já existe uma proposta ativa (#{existing_active.first.code}) para esta OS. " \
-                        "Cancele ou reprove a proposta anterior antes de aprovar uma nova."
-        redirect_back(fallback_location: :back)
-        return
-      end
-      
-      order_service_proposals = order_service.order_service_proposals
-      .where(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID)
-      .where.not(id: @order_service_proposal.id)
 
-      order_service_proposals.each do |order_service_proposal|
-        # Manually create an audit record
-        OrderServiceProposal.generate_historic(order_service_proposal, @current_user, order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID)
-        order_service_proposal.update_columns(
-          reproved: true,
-          order_service_proposal_status_id: OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
-          reason_reproved: OrderServiceProposal.human_attribute_name(:another_proposal_approved)
-          )
-      end
+        order_service_proposals.each do |order_service_proposal|
+          OrderServiceProposal.generate_historic(order_service_proposal, @current_user, order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID)
+          order_service_proposal.update_columns(
+            reproved: true,
+            order_service_proposal_status_id: OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
+            reason_reproved: OrderServiceProposal.human_attribute_name(:another_proposal_approved)
+            )
+        end
 
-      # Manually create an audit record
-      OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, @order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::APROVADA_ID)
-      OrderService.generate_historic(order_service, @current_user, order_service.order_service_status_id, OrderServiceStatus::APROVADA_ID)
+        # Aprovar a proposta
+        OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, @order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::APROVADA_ID)
+        OrderService.generate_historic(order_service, @current_user, order_service.order_service_status_id, OrderServiceStatus::APROVADA_ID)
 
-      @order_service_proposal.update_columns(
-        order_service_proposal_status_id: OrderServiceProposalStatus::APROVADA_ID,
-        pending_manager_approval: false,
-        reason_approved: reason.presence
+        @order_service_proposal.update_columns(
+          order_service_proposal_status_id: OrderServiceProposalStatus::APROVADA_ID,
+          pending_manager_approval: false,
+          reason_approved: reason.presence
         )
       
-      # Recarrega a OS diretamente do banco para evitar problemas com cache
-      OrderService.where(id: order_service.id).update_all(order_service_status_id: OrderServiceStatus::APROVADA_ID)
+        # Recarrega a OS diretamente do banco para evitar problemas com cache
+        OrderService.where(id: order_service.id).update_all(order_service_status_id: OrderServiceStatus::APROVADA_ID)
+      end # fim da transaction
+
+      if approval_error
+        flash[:error] = approval_error
+        return redirect_back(fallback_location: :back)
+      end
 
       flash[:success] = OrderServiceProposal.human_attribute_name(:approved_with_success)
     else
@@ -633,25 +686,6 @@ class OrderServiceProposalsController < ApplicationController
       flash[:success] = "Pré-autorização realizada com sucesso. Aguardando autorização do gestor."
     # Usuário GESTOR ou ADMIN faz autorização final
     elsif @current_user.manager? || @current_user.admin?
-      # ⚠️ VALIDAÇÃO: Verificar se já existe proposta autorizada para a mesma OS
-      existing_authorized = @order_service_proposal.order_service.order_service_proposals
-        .unscoped
-        .where.not(id: @order_service_proposal.id)
-        .where(is_complement: [false, nil])
-        .where(order_service_proposal_status_id: [
-          OrderServiceProposalStatus::AUTORIZADA_ID,
-          OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
-          OrderServiceProposalStatus::PAGA_ID
-        ])
-      
-      if existing_authorized.exists?
-        flash[:error] = "Não é possível autorizar esta proposta. " \
-                        "Já existe uma proposta autorizada (#{existing_authorized.first.code}) para esta OS. " \
-                        "Entre em contato com o suporte se precisar substituir a proposta."
-        redirect_back(fallback_location: :back)
-        return
-      end
-      
       # Manually create an audit record
       OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, @order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::AUTORIZADA_ID)
       @order_service_proposal.update_columns(
@@ -662,6 +696,9 @@ class OrderServiceProposalsController < ApplicationController
       # Manually create an audit record
       OrderService.generate_historic(@order_service_proposal.order_service, @current_user, @order_service_proposal.order_service.order_service_status_id, OrderServiceStatus::AUTORIZADA_ID)
       @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID)
+      
+      # Envia webhook para sistema financeiro (assíncrono com retry)
+      SendAuthorizedOsWebhookJob.perform_later(@order_service_proposal.order_service.id)
 
       flash[:success] = OrderServiceProposal.human_attribute_name(:authorized_with_success)
     end
@@ -790,7 +827,7 @@ class OrderServiceProposalsController < ApplicationController
       
       sending_order_service_proposals_to_all_providers(order_service, last_proposal)
       message = OrderServiceProposal.human_attribute_name(:all_reproved_with_success)
-    rescue Exception => e
+    rescue StandardError => e
       result = false
       message = e.message
     end
@@ -849,44 +886,50 @@ class OrderServiceProposalsController < ApplicationController
       end
       
       # Marca a origem da OS como vinda de um Diagnóstico para cotação
-      # Isso permite que a view saiba que essa OS veio de um diagnóstico e possui uma proposta de referência
-      order_service.update_columns(
+      # Atualizar apenas campos que existem em produção
+      update_attrs = {
         provider_id: nil, 
-        order_service_status_id: OrderServiceStatus::EM_ABERTO_ID,
-        origin_type: OrderService::ORIGIN_DIAGNOSTICO_COTACOES
-      )
+        order_service_status_id: OrderServiceStatus::EM_ABERTO_ID
+      }
+      
+      # Adicionar origin_type apenas se a coluna existir
+      if order_service.class.column_names.include?('origin_type')
+        update_attrs[:origin_type] = OrderService::ORIGIN_DIAGNOSTICO_COTACOES
+      end
+      
+      order_service.update_columns(update_attrs)
     end
   end
 
   def cancel_order_service_proposal
     authorize @order_service_proposal
-    
-    # ⚠️ VALIDAÇÃO: Não permitir cancelar proposta em status crítico (autorizada/paga)
-    critical_statuses = [
-      OrderServiceProposalStatus::AUTORIZADA_ID,
-      OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
-      OrderServiceProposalStatus::PAGA_ID
-    ]
-    
-    if @order_service_proposal.order_service_proposal_status_id.in?(critical_statuses)
-      flash[:error] = "Não é possível cancelar uma proposta que já foi autorizada ou está em processo de pagamento. " \
-                      "Entre em contato com o suporte para assistência."
-      redirect_back(fallback_location: :back)
-      return
-    end
-    
+    old_status_id = @order_service_proposal.order_service_proposal_status_id
     @order_service_proposal.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::CANCELADA_ID)
-    OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, @order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::CANCELADA_ID)
+    OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, old_status_id, OrderServiceProposalStatus::CANCELADA_ID)
     flash[:success] = OrderServiceProposal.human_attribute_name(:cancel_proposal_success)
     redirect_back(fallback_location: :back)
   end
 
   def get_new_proposals_order_service_proposal
     authorize @order_service_proposal
-    # ⚠️ CORREÇÃO: Passar a proposta atual (@order_service_proposal) para garantir que os itens corretos sejam copiados
-    sending_order_service_proposals_to_all_providers(@order_service_proposal.order_service, @order_service_proposal)
-    flash[:success] = OrderServiceProposal.human_attribute_name(:send_proposal_to_all_providers_success)
-    redirect_back(fallback_location: :back)
+    
+    begin
+      # Validar que a proposta tem itens antes de enviar
+      if @order_service_proposal.order_service_proposal_items.empty?
+        flash[:error] = "A proposta não possui itens. Não é possível enviar para cotação."
+        redirect_back(fallback_location: :back) and return
+      end
+      
+      # ⚠️ CORREÇÃO: Passar a proposta atual (@order_service_proposal) para garantir que os itens corretos sejam copiados
+      sending_order_service_proposals_to_all_providers(@order_service_proposal.order_service, @order_service_proposal)
+      flash[:success] = OrderServiceProposal.human_attribute_name(:send_proposal_to_all_providers_success)
+      redirect_back(fallback_location: :back)
+    rescue => e
+      Rails.logger.error "❌ [ENVIAR COTAÇÃO] Erro ao enviar para cotação: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      flash[:error] = "Erro ao enviar para cotação: #{e.message}"
+      redirect_back(fallback_location: :back)
+    end
   end
   
   # ============================================
@@ -923,11 +966,6 @@ class OrderServiceProposalsController < ApplicationController
     @order_service_proposal.parent_proposal_id = @parent_proposal.id
     @order_service_proposal.is_complement = true
     @order_service_proposal.order_service_proposal_status_id = OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID
-    
-    # Marcar todos os itens como complemento
-    @order_service_proposal.provider_service_temps.each do |pst|
-      pst.is_complement = true
-    end
 
     # ✅ Garantir que o desconto do cliente seja aplicado e persistido no complemento
     apply_client_discount_to_complement_provider_temps(@order_service_proposal)
@@ -1093,8 +1131,6 @@ class OrderServiceProposalsController < ApplicationController
   def order_service_proposal_params
     params.require(:order_service_proposal).permit(:id,
     :order_service_id,
-    :provider_id,
-    :order_service_proposal_status_id,
     :details,
     :total_value,
     :total_discount,
@@ -1128,7 +1164,7 @@ class OrderServiceProposalsController < ApplicationController
       :brand,
       :warranty_period,
       :service_id,
-      :is_complement,
+      :referencia_catalogo,
       :_destroy
     ],
     order_service_invoices_attributes: [
@@ -1144,6 +1180,7 @@ class OrderServiceProposalsController < ApplicationController
   end
   
   # Limpa service_id="novo" dos parâmetros de provider_service_temps
+  # Normaliza nomes usando o catálogo de peças quando disponível
   def clean_provider_service_temps_params(params)
     return params unless params[:provider_service_temps_attributes].present?
     
@@ -1154,8 +1191,25 @@ class OrderServiceProposalsController < ApplicationController
         # Isso garante que o item exista no banco e possa ser copiado para a OS na cotação
         service_name = temp_attrs[:name].to_s.strip
         category_id = temp_attrs[:category_id]
+
+        # Tenta normalizar nome usando o catálogo de peças
+        if category_id.to_i == Category::SERVICOS_PECAS_ID && service_name.present?
+          service_name = normalizar_nome_pelo_catalogo(service_name)
+        end
+
+        # Padroniza capitalização (Title Case inteligente)
+        service_name = Service.padronizar_nome_peca(service_name) if service_name.present?
+
         if service_name.present? && category_id.present?
+          # Busca existente: case-insensitive + ignora acentos (após padronização, nomes são consistentes)
           existing_service = Service.where("LOWER(name) = ? AND category_id = ?", service_name.downcase, category_id).first
+          # Se não encontrou exato, tenta sem acentos (dados legados podem não ter sido padronizados ainda)
+          if existing_service.nil?
+            nome_sem_acento = I18n.transliterate(service_name.downcase.strip)
+            existing_service = Service.where(category_id: category_id)
+              .where("LOWER(name) LIKE ?", nome_sem_acento)
+              .first
+          end
           service = existing_service || Service.create!(
             name: service_name,
             category_id: category_id,
@@ -1164,12 +1218,68 @@ class OrderServiceProposalsController < ApplicationController
           )
           temp_attrs[:service_id] = service.id
           temp_attrs[:name] = service.name
+
+          # Auto-popular referência do catálogo se disponível
+          if category_id.to_i == Category::SERVICOS_PECAS_ID && temp_attrs[:referencia_catalogo].blank?
+            begin
+              os = OrderServiceProposal.find_by(id: temp_attrs[:order_service_proposal_id])&.order_service ||
+                   OrderService.find_by(id: params[:order_service_id])
+              vehicle = os&.vehicle
+              refs = CatalogoPeca.formatar_referencias(service_name, vehicle: vehicle)
+              temp_attrs[:referencia_catalogo] = refs if refs.present?
+            rescue => e
+              Rails.logger.warn "[CATALOGO] Erro ao buscar referência: #{e.message}"
+            end
+          end
         else
           temp_attrs[:service_id] = nil
         end
       end
     end
     cleaned_params
+  end
+
+  # Normaliza nome da peça usando o catálogo PDF
+  # Usa algoritmo inteligente com scoring por sobreposição de palavras
+  def normalizar_nome_pelo_catalogo(nome)
+    return nome if nome.blank?
+    CatalogoPeca.normalizar_nome_inteligente(nome)
+  rescue => e
+    Rails.logger.warn "[CATALOGO] Erro ao normalizar nome '#{nome}': #{e.message}"
+    nome
+  end
+
+  # Carrega sugestões do catálogo de peças para o veículo da OS
+  def load_catalogo_sugestoes(vehicle)
+    @catalogo_sugestoes = []
+    @catalogo_fornecedores = []
+    @catalogo_grupos = []
+    @catalogo_referencias = {} # Hash: nome_peca => "FRASLE: PD/1234 | FREMAX: BD-5560"
+
+    return unless vehicle.present?
+    return unless CatalogoPeca.table_exists?
+
+    begin
+      @catalogo_sugestoes = CatalogoPeca.buscar_por_veiculo(vehicle).limit(200)
+      @catalogo_fornecedores = CatalogoPeca.fornecedores_disponiveis
+      @catalogo_grupos = CatalogoPeca.grupos_produto_disponiveis
+
+      # Agrupa referências por grupo_produto para exibir no formulário
+      @catalogo_sugestoes.each do |sug|
+        grupo = sug.grupo_produto.to_s.strip
+        next if grupo.blank?
+        @catalogo_referencias[grupo] ||= []
+        ref = { fornecedor: sug.fornecedor, produto: sug.produto }
+        @catalogo_referencias[grupo] << ref unless @catalogo_referencias[grupo].include?(ref)
+      end
+
+      # Formata como strings "FORNECEDOR: CODIGO | ..."
+      @catalogo_referencias.transform_values! do |refs|
+        refs.map { |r| "#{r[:fornecedor]}: #{r[:produto]}" }.uniq.join(' | ')
+      end
+    rescue => e
+      Rails.logger.warn "[CATALOGO] Erro ao carregar sugestões: #{e.message}"
+    end
   end
 
   # Verifica saldo e define fluxo de aprovação para complemento
@@ -1194,9 +1304,8 @@ class OrderServiceProposalsController < ApplicationController
 
     parts_total, services_total = get_complement_totals_by_category(complement_proposal)
 
-    # Neste sistema o consumo do empenho é calculado pelos itens aprovados.
-    # Então aqui apenas validamos o saldo para evitar aprovar complemento sem cobertura.
-    order_service.check_commitment_balance(parts_total, services_total)
+    # Valida saldo com lock pessimista para evitar race conditions na aprovação de complementos
+    order_service.check_commitment_balance_with_lock!(parts_total, services_total)
   end
 
   # Retorna [parts_total, services_total] do complemento.
@@ -1317,7 +1426,8 @@ class OrderServiceProposalsController < ApplicationController
         warranty_period: pst.warranty_period,
         guarantee: pst.warranty_period.to_s,
         observation: pst.description,
-        is_complement: pst.is_complement || false
+        is_complement: proposal.is_complement || false,
+        referencia_catalogo: pst.referencia_catalogo
       )
     end
     

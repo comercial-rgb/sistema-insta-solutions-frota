@@ -57,22 +57,40 @@ $(document).ready(function () {
         console.log('✓ Configurando para REQUISIÇÃO');
         $('#div-with-service-group-selection').removeClass('d-none').show();
         $('#div-with-provider-selection').addClass('d-none').hide();
+        $('#div-with-directed-providers').removeClass('d-none').show(); // Mostra seleção direcionada
+        $('#div-diagnostico-info').addClass('d-none').hide(); // Esconde informativo
+        $('#div-requisicao-download').removeClass('d-none').show(); // Mostra link de download
         $('.quantity-field-container').show();
         hideNewServiceButtons(true);
         changeQuantityFieldType('number');
         setTimeout(fixSelect2Width, 100);
     } else if (initialOrderServiceTypeId == '2') { 
         // DIAGNÓSTICO - Mostra Fornecedor, esconde Grupo de Serviços
+        // NÃO mostra fornecedores direcionados - Diagnóstico precisa criar proposta primeiro
         console.log('✓ Configurando para DIAGNÓSTICO');
         $('#div-with-provider-selection').removeClass('d-none').show();
         $('#div-with-service-group-selection').addClass('d-none').hide();
+        $('#div-with-directed-providers').addClass('d-none').hide(); // Esconde - Diagnóstico usa Fornecedor específico
+        $('#div-diagnostico-info').removeClass('d-none').show(); // Mostra informativo
+        $('#div-requisicao-download').addClass('d-none').hide(); // Esconde link Requisição
         $('.quantity-field-container').hide();
         setTimeout(fixSelect2Width, 100);
-    } else { 
-        // COTAÇÕES (1) ou qualquer outro - Esconde ambos
+    } else if (initialOrderServiceTypeId == '1') { 
+        // COTAÇÕES - Esconde ambos, mostra seleção direcionada
         console.log('✓ Configurando para COTAÇÕES');
         $('#div-with-provider-selection').addClass('d-none').hide();
         $('#div-with-service-group-selection').addClass('d-none').hide();
+        $('#div-with-directed-providers').removeClass('d-none').show(); // Mostra seleção direcionada
+        $('#div-diagnostico-info').addClass('d-none').hide(); // Esconde informativo
+        $('#div-requisicao-download').addClass('d-none').hide(); // Esconde link Requisição
+        $('.quantity-field-container').show();
+        changeQuantityFieldType('text');
+    } else {
+        // Qualquer outro tipo
+        $('#div-with-provider-selection').addClass('d-none').hide();
+        $('#div-with-service-group-selection').addClass('d-none').hide();
+        $('#div-with-directed-providers').addClass('d-none').hide();
+        $('#div-diagnostico-info').addClass('d-none').hide();
         $('.quantity-field-container').show();
         changeQuantityFieldType('text');
     }
@@ -307,6 +325,8 @@ $(document).ready(function () {
             console.log('→ Mudando para REQUISIÇÃO');
             $('#div-with-service-group-selection').removeClass('d-none').show();
             $('#div-with-provider-selection').addClass('d-none').hide();
+            $('#div-with-directed-providers').removeClass('d-none').show(); // Mostra seleção direcionada
+            $('#div-diagnostico-info').addClass('d-none').hide(); // Esconde informativo
             $('.quantity-field-container').show();
             adjustObservationWidth(true);
             // Limpar fornecedor selecionado
@@ -315,14 +335,22 @@ $(document).ready(function () {
             hideNewServiceButtons(true);
             // Campo quantidade como number
             changeQuantityFieldType('number');
+            // Mostra link de download da Requisição
+            $('#div-requisicao-download').removeClass('d-none').show();
             // Corrigir largura do Select2
             setTimeout(fixSelect2Width, 100);
+            // Recarregar fornecedores direcionados
+            loadDirectedProviders();
             
         } else if (order_service_type_id == '2') {
             // DIAGNÓSTICO - Mostra Fornecedor, esconde Grupo de Serviços
+            // NÃO mostra fornecedores direcionados - Diagnóstico precisa criar proposta primeiro
             console.log('→ Mudando para DIAGNÓSTICO');
             $('#div-with-provider-selection').removeClass('d-none').show();
             $('#div-with-service-group-selection').addClass('d-none').hide();
+            $('#div-with-directed-providers').addClass('d-none').hide(); // Esconde - Diagnóstico usa Fornecedor específico
+            $('#div-diagnostico-info').removeClass('d-none').show(); // Mostra informativo
+            $('#div-requisicao-download').addClass('d-none').hide(); // Esconde link Requisição
             $('.quantity-field-container').hide();
             adjustObservationWidth(false);
             // Limpar grupo de serviços selecionado
@@ -333,12 +361,17 @@ $(document).ready(function () {
             hideNewServiceButtons(false);
             // Corrigir largura do Select2
             setTimeout(fixSelect2Width, 100);
+            // Limpar fornecedores direcionados (se havia selecionado em outro tipo)
+            clearDirectedProviders();
             
         } else {
-            // COTAÇÕES (1) - Esconde ambos os campos
-            console.log('→ Mudando para COTAÇÕES');
+            // COTAÇÕES ou qualquer outro
+            console.log('→ Mudando para COTAÇÕES/OUTRO');
             $('#div-with-provider-selection').addClass('d-none').hide();
             $('#div-with-service-group-selection').addClass('d-none').hide();
+            $('#div-with-directed-providers').removeClass('d-none').show(); // Mostra seleção direcionada
+            $('#div-diagnostico-info').addClass('d-none').hide(); // Esconde informativo
+            $('#div-requisicao-download').addClass('d-none').hide(); // Esconde link Requisição
             $('.quantity-field-container').show();
             adjustObservationWidth(true);
             // Limpar seleções
@@ -350,6 +383,8 @@ $(document).ready(function () {
             hideNewServiceButtons(false);
             // Campo quantidade como text (aceita texto livre)
             changeQuantityFieldType('text');
+            // Recarregar fornecedores direcionados
+            loadDirectedProviders();
         }
     });
     
@@ -710,6 +745,14 @@ $(document).ready(function () {
                 client_id: client_id
             },
             success: function (data) {
+                // Mostrar info da subunidade do veículo
+                if (data.sub_unit_name) {
+                    $('#vehicle-sub-unit-name').text(data.sub_unit_name);
+                    $('#vehicle-sub-unit-info').show();
+                } else {
+                    $('#vehicle-sub-unit-info').hide();
+                }
+                
                 // Separar empenhos por tipo
                 // SERVICOS_PECAS_ID = 1, SERVICOS_SERVICOS_ID = 2
                 let global_commitments = data.commitments.filter(c => c.category_id === null);
@@ -902,8 +945,10 @@ $(document).ready(function () {
         let checkBoxes = $('.' + SELECT_ORDER_SERVICE + ':checkbox:checked').map(function () {
             return this.value;
         }).get();
-        let order_service_ids = checkBoxes.join(",");
-        if (checkBoxes.length > 0) {
+        // Deduplica IDs para evitar processar a mesma OS múltiplas vezes
+        let uniqueIds = [...new Set(checkBoxes)];
+        let order_service_ids = uniqueIds.join(",");
+        if (uniqueIds.length > 0) {
             if (element.id == "authorize-order-services") {
                 authorizeSelectedOrderServices(order_service_ids);
             } else if (element.id == "waiting-payment-order-services") {
@@ -979,53 +1024,54 @@ $(document).ready(function () {
         }
     }  
 
+    // ===== Modal de confirmação de proposta (só executa se os elementos existirem) =====
     var form        = document.getElementById('order-service-proposal-form');
     var triggerBtn  = document.getElementById('btn-save-and-submit');
     var confirmBtn  = document.getElementById('btn-confirm-submit');
     var modalEl     = document.getElementById('confirmSubmitModal');
     var confirmText = document.getElementById('confirmSubmitText');
 
-    if (!form || !triggerBtn || !confirmBtn || !modalEl) return;
+    if (form && triggerBtn && confirmBtn && modalEl) {
+        // Ao abrir o modal via botão:
+        triggerBtn.addEventListener('click', function () {
+            // Ajusta o texto do modal (se quiser trocar por botão)
+            if (this.dataset.confirmText) {
+                confirmText.textContent = this.dataset.confirmText;
+            }
+            // Passa o name/value desejados para o botão de confirmar
+            confirmBtn.dataset.paramName  = this.dataset.paramName || 'save_and_submit';
+            confirmBtn.dataset.paramValue = this.dataset.paramValue || '';
+        });
 
-    // Ao abrir o modal via botão:
-    triggerBtn.addEventListener('click', function () {
-        // Ajusta o texto do modal (se quiser trocar por botão)
-        if (this.dataset.confirmText) {
-        confirmText.textContent = this.dataset.confirmText;
-        }
-        // Passa o name/value desejados para o botão de confirmar
-        confirmBtn.dataset.paramName  = this.dataset.paramName || 'save_and_submit';
-        confirmBtn.dataset.paramValue = this.dataset.paramValue || '';
-    });
+        // Ao confirmar no modal:
+        confirmBtn.addEventListener('click', function () {
+            var paramName  = this.dataset.paramName;
+            var paramValue = this.dataset.paramValue;
 
-    // Ao confirmar no modal:
-    confirmBtn.addEventListener('click', function () {
-        var paramName  = this.dataset.paramName;
-        var paramValue = this.dataset.paramValue;
+            // Remove hiddens anteriores (evitar duplicados)
+            Array.from(form.querySelectorAll('input[type="hidden"][name="' + paramName + '"]'))
+                .forEach(function (el) { el.remove(); });
 
-        // Remove hiddens anteriores (evitar duplicados)
-        Array.from(form.querySelectorAll('input[type="hidden"][name="' + paramName + '"]'))
-            .forEach(function (el) { el.remove(); });
+            // Cria o hidden com o name/value do botão original
+            var hidden = document.createElement('input');
+            hidden.type  = 'hidden';
+            hidden.name  = paramName;
+            hidden.value = paramValue;
+            form.appendChild(hidden);
 
-        // Cria o hidden com o name/value do botão original
-        var hidden = document.createElement('input');
-        hidden.type  = 'hidden';
-        hidden.name  = paramName;
-        hidden.value = paramValue;
-        form.appendChild(hidden);
+            // Evita duplo clique
+            confirmBtn.disabled = true;
+            triggerBtn.disabled = true;
 
-        // Evita duplo clique
-        confirmBtn.disabled = true;
-        triggerBtn.disabled = true;
+            // Fecha modal e submete
+            var modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
 
-        // Fecha modal e submete
-        var modal = bootstrap.Modal.getInstance(modalEl);
-        if (modal) modal.hide();
+            console.log('Submitting form with ' + paramName + '=' + paramValue);
 
-        console.log('Submitting form with ' + paramName + '=' + paramValue);
-
-        form.submit();
-    });
+            form.submit();
+        });
+    }
 
     // Quando uma nova linha de peça/serviço é adicionada, aplicar limites do grupo
     $(document).on('cocoon:after-insert', function(e, insertedItem) {
@@ -1069,5 +1115,357 @@ $(document).ready(function () {
         // Disparar o evento change nos selects da nova linha para aplicar limites
         insertedItem.find('.service-select-1, .service-select-2').trigger('change');
     });
+
+    // ==================== FORNECEDORES DIRECIONADOS ====================
+    
+    var directedProvidersData = []; // Cache dos fornecedores carregados
+    var selectedProviderIds = []; // IDs dos fornecedores selecionados
+    var directedMode = 'state'; // 'state', 'city', 'provider'
+    
+    // Inicializar IDs pré-selecionados (modo edição)
+    $('.directed-provider-hidden').each(function() {
+        selectedProviderIds.push(parseInt($(this).val()));
+    });
+    
+    // Se há fornecedores pré-selecionados, inicia no modo "fornecedor específico"
+    if (selectedProviderIds.length > 0) {
+        directedMode = 'provider';
+        $('#directed-mode-provider').prop('checked', true);
+    }
+
+    // Toggle do painel de fornecedores direcionados
+    $(document).on('change', '#directed_providers_toggle', function() {
+        if ($(this).is(':checked')) {
+            $('#directed-providers-panel').removeClass('d-none').show();
+            loadDirectedProviders();
+        } else {
+            $('#directed-providers-panel').addClass('d-none');
+            clearDirectedProviders();
+        }
+    });
+
+    // Se já estava marcado na inicialização (modo edição), mostrar painel
+    if ($('#directed_providers_toggle').is(':checked')) {
+        $('#directed-providers-panel').removeClass('d-none');
+        setTimeout(function() { loadDirectedProviders(); }, 300);
+    }
+
+    // ===== DIAGNÓSTICO: Fluxo de "Enviar para Cotação" em 2 passos =====
+    $(document).on('click', '#btn-release-to-quotation-step1', function() {
+        var $toggle = $('#directed_providers_toggle');
+        if (!$toggle.is(':checked')) {
+            $toggle.prop('checked', true).trigger('change');
+        }
+        $('#div-with-directed-providers').removeClass('d-none').show();
+        $('#directed-providers-panel').removeClass('d-none');
+        loadDirectedProviders();
+        $('html, body').animate({
+            scrollTop: $('#div-with-directed-providers').offset().top - 100
+        }, 500);
+        $(this).addClass('d-none');
+        $('#btn-release-to-quotation-confirm').removeClass('d-none');
+        if ($('#directed-providers-instruction').length === 0) {
+            $('#div-with-directed-providers .card-header').append(
+                '<div id="directed-providers-instruction" class="alert alert-info mt-2 mb-0 py-1 small">' +
+                '<i class="bi bi-info-circle"></i> <strong>Selecione os fornecedores</strong> que poderão cotar esta OS. ' +
+                'Depois clique em <strong>"✓ Confirmar e Enviar para Cotação"</strong> no final da página.</div>'
+            );
+        }
+    });
+
+    // Recarregar quando mudar o tipo de serviço
+    $(document).on('change', '#order_service_provider_service_type_id', function() {
+        var osType = $('#order_service_order_service_type_id').val();
+        if (osType == '1' || osType == '3' || osType == '2') {
+            loadDirectedProviders();
+        }
+    });
+
+    // ==================== MODO DE SELEÇÃO ====================
+    
+    // Mudança de modo
+    $(document).on('change', 'input[name="directed_mode"]', function() {
+        directedMode = $(this).val();
+        applyDirectedMode();
+    });
+
+    // Aplicar configuração baseada no modo selecionado
+    function applyDirectedMode() {
+        var state = $('#directed-providers-state-filter').val();
+        var city = $('#directed-providers-city-filter').val();
+        
+        // Atualizar descrição do modo
+        var descriptions = {
+            'state': 'Envia para todos os fornecedores compatíveis no estado selecionado.',
+            'city': 'Envia para todos os fornecedores na cidade selecionada.',
+            'provider': 'Selecione manualmente os fornecedores que receberão esta OS.'
+        };
+        $('#directed-mode-description').text(descriptions[directedMode] || '');
+        
+        if (directedMode === 'state') {
+            $('#directed-city-filter-container').addClass('d-none');
+            $('#directed-search-container').addClass('d-none');
+            $('#directed-providers-list-container').addClass('d-none');
+            $('#directed-providers-summary').removeClass('d-none');
+            autoSelectProvidersByFilter(state, '');
+        } else if (directedMode === 'city') {
+            $('#directed-city-filter-container').removeClass('d-none');
+            $('#directed-search-container').addClass('d-none');
+            $('#directed-providers-list-container').addClass('d-none');
+            $('#directed-providers-summary').removeClass('d-none');
+            populateCityFilter(state);
+            autoSelectProvidersByFilter(state, city);
+        } else if (directedMode === 'provider') {
+            $('#directed-city-filter-container').removeClass('d-none');
+            $('#directed-search-container').removeClass('d-none');
+            $('#directed-providers-list-container').removeClass('d-none');
+            $('#directed-providers-summary').addClass('d-none');
+            populateCityFilter(state);
+            renderProvidersList();
+        }
+    }
+
+    // ==================== FILTROS ====================
+    
+    // Filtro por estado
+    $(document).on('change', '#directed-providers-state-filter', function() {
+        var state = $(this).val();
+        if (directedMode === 'city' || directedMode === 'provider') {
+            populateCityFilter(state);
+            // Reset city ao mudar estado
+            $('#directed-providers-city-filter').val('');
+        }
+        applyDirectedMode();
+    });
+
+    // Filtro por cidade
+    $(document).on('change', '#directed-providers-city-filter', function() {
+        applyDirectedMode();
+    });
+
+    // Busca por texto (modo fornecedor)
+    $(document).on('input', '#directed-providers-search', function() {
+        renderProvidersList();
+    });
+
+    // Popular dropdown de cidades baseado no estado
+    function populateCityFilter(state) {
+        var cities = [];
+        directedProvidersData.forEach(function(p) {
+            if (!state || p.state === state) {
+                var cityName = p.city || 'Não informada';
+                if (cities.indexOf(cityName) === -1) cities.push(cityName);
+            }
+        });
+        cities.sort();
+        var $cf = $('#directed-providers-city-filter');
+        $cf.html('<option value="">Todas as cidades</option>');
+        cities.forEach(function(c) {
+            $cf.append('<option value="' + c + '">' + c + '</option>');
+        });
+    }
+
+    // ==================== AUTO-SELEÇÃO (MODOS ESTADO/CIDADE) ====================
+    
+    function autoSelectProvidersByFilter(state, city) {
+        selectedProviderIds = [];
+        var count = 0;
+        directedProvidersData.forEach(function(p) {
+            var matchState = !state || p.state === state;
+            var matchCity = !city || (p.city || 'Não informada') === city;
+            if (matchState && matchCity) {
+                selectedProviderIds.push(p.id);
+                count++;
+            }
+        });
+        updateDirectedProvidersHiddenFields();
+        
+        // Atualizar resumo
+        var text = '';
+        if (!state && !city) {
+            text = 'Todos os ' + directedProvidersData.length + ' fornecedores compatíveis receberão esta OS.';
+        } else if (state && !city) {
+            text = count + ' fornecedor(es) em ' + state + ' receberão esta OS.';
+        } else if (state && city) {
+            text = count + ' fornecedor(es) em ' + city + ' / ' + state + ' receberão esta OS.';
+        }
+        $('#directed-providers-summary-text').text(text);
+        updateDirectedProvidersCount();
+    }
+
+    // ==================== LISTA DE FORNECEDORES (MODO ESPECÍFICO) ====================
+    
+    function renderProvidersList() {
+        var state = $('#directed-providers-state-filter').val();
+        var city = $('#directed-providers-city-filter').val();
+        var search = ($('#directed-providers-search').val() || '').toLowerCase();
+        
+        var filtered = directedProvidersData.filter(function(p) {
+            var matchState = !state || p.state === state;
+            var matchCity = !city || (p.city || 'Não informada') === city;
+            var matchSearch = !search || 
+                p.name.toLowerCase().indexOf(search) !== -1 || 
+                (p.city || '').toLowerCase().indexOf(search) !== -1;
+            return matchState && matchCity && matchSearch;
+        });
+        
+        // Agrupar por estado
+        var grouped = {};
+        filtered.forEach(function(p) {
+            var s = p.state || 'Não informado';
+            if (!grouped[s]) grouped[s] = [];
+            grouped[s].push(p);
+        });
+        
+        var html = '';
+        var sortedStates = Object.keys(grouped).sort();
+        
+        sortedStates.forEach(function(s) {
+            html += '<div class="directed-providers-state-group mb-2">';
+            html += '<div class="bg-light rounded px-2 py-1 mb-1">';
+            html += '<strong><i class="bi bi-geo-alt"></i> ' + s + '</strong>';
+            html += '<span class="badge bg-secondary ms-2">' + grouped[s].length + '</span>';
+            html += '</div>';
+            
+            grouped[s].forEach(function(p) {
+                var isChecked = selectedProviderIds.indexOf(p.id) !== -1;
+                html += '<div class="form-check ms-3">';
+                html += '<input class="form-check-input directed-provider-checkbox" type="checkbox" value="' + p.id + '" id="dp_' + p.id + '"' + (isChecked ? ' checked' : '') + '>';
+                html += '<label class="form-check-label" for="dp_' + p.id + '">' + p.name;
+                if (p.city) html += ' <small class="text-muted">(' + p.city + ')</small>';
+                html += '</label></div>';
+            });
+            html += '</div>';
+        });
+        
+        if (filtered.length === 0) {
+            html = '<p class="text-muted text-center py-3"><i class="bi bi-info-circle"></i> Nenhum fornecedor encontrado para os filtros selecionados.</p>';
+        }
+        
+        $('#directed-providers-list').html(html);
+    }
+
+    // ==================== SELEÇÃO DE FORNECEDORES (MODO ESPECÍFICO) ====================
+    
+    // Checkbox individual
+    $(document).on('change', '.directed-provider-checkbox', function() {
+        var id = parseInt($(this).val());
+        if ($(this).is(':checked')) {
+            if (selectedProviderIds.indexOf(id) === -1) selectedProviderIds.push(id);
+        } else {
+            selectedProviderIds = selectedProviderIds.filter(function(x) { return x !== id; });
+        }
+        updateDirectedProvidersHiddenFields();
+        updateDirectedProvidersCount();
+    });
+
+    // Selecionar todos visíveis
+    $(document).on('click', '#directed-providers-select-all', function() {
+        $('#directed-providers-list .directed-provider-checkbox:not(:checked)').each(function() {
+            $(this).prop('checked', true);
+            var id = parseInt($(this).val());
+            if (selectedProviderIds.indexOf(id) === -1) selectedProviderIds.push(id);
+        });
+        updateDirectedProvidersHiddenFields();
+        updateDirectedProvidersCount();
+    });
+
+    // Limpar seleção
+    $(document).on('click', '#directed-providers-deselect-all', function() {
+        $('#directed-providers-list .directed-provider-checkbox:checked').each(function() {
+            $(this).prop('checked', false);
+        });
+        selectedProviderIds = [];
+        updateDirectedProvidersHiddenFields();
+        updateDirectedProvidersCount();
+    });
+
+    // ==================== AJAX & HELPERS ====================
+    
+    function loadDirectedProviders() {
+        if (!$('#directed_providers_toggle').is(':checked')) return;
+        
+        var clientId = $('#order_service_client_id').val();
+        var providerServiceTypeId = $('#order_service_provider_service_type_id').val();
+        
+        if (!providerServiceTypeId) {
+            $('#directed-providers-summary-text').text('Selecione o tipo de serviço para carregar os fornecedores.');
+            return;
+        }
+        
+        $('#directed-providers-loading').removeClass('d-none');
+        
+        $.ajax({
+            url: '/get_providers_for_directed_selection',
+            dataType: 'json',
+            data: {
+                client_id: clientId,
+                provider_service_type_id: providerServiceTypeId
+            },
+            success: function(data) {
+                directedProvidersData = data;
+                $('#directed-providers-loading').addClass('d-none');
+                
+                if (data.length === 0) {
+                    $('#directed-providers-summary-text').text('Nenhum fornecedor encontrado para o tipo de serviço e estados configurados.');
+                    return;
+                }
+
+                // Popular dropdown de estados
+                var states = [];
+                data.forEach(function(p) {
+                    if (p.state && states.indexOf(p.state) === -1) states.push(p.state);
+                });
+                states.sort();
+                var $sf = $('#directed-providers-state-filter');
+                var currentState = $sf.val(); // Preservar seleção atual
+                $sf.html('<option value="">Todos os estados</option>');
+                states.forEach(function(s) {
+                    $sf.append('<option value="' + s + '">' + s + '</option>');
+                });
+                // Restaurar seleção se ainda existe
+                if (currentState && states.indexOf(currentState) !== -1) {
+                    $sf.val(currentState);
+                }
+
+                applyDirectedMode();
+            },
+            error: function(xhr, status, error) {
+                console.error('[Directed] Erro ao carregar fornecedores:', status, error);
+                $('#directed-providers-loading').addClass('d-none');
+                $('#directed-providers-summary-text').text('Erro ao carregar fornecedores. Tente novamente.');
+            }
+        });
+    }
+
+    function updateDirectedProvidersHiddenFields() {
+        var container = $('#directed-providers-hidden-fields');
+        container.html('');
+        selectedProviderIds.forEach(function(id) {
+            container.append('<input type="hidden" name="order_service[directed_provider_ids][]" value="' + id + '" class="directed-provider-hidden">');
+        });
+    }
+
+    function updateDirectedProvidersCount() {
+        var count = selectedProviderIds.length;
+        var text = count + ' selecionado(s)';
+        $('#directed-providers-count').text(text);
+        if (count > 0) {
+            $('#directed-providers-count').removeClass('bg-primary').addClass('bg-success');
+        } else {
+            $('#directed-providers-count').removeClass('bg-success').addClass('bg-primary');
+        }
+    }
+
+    function clearDirectedProviders() {
+        selectedProviderIds = [];
+        directedProvidersData = [];
+        directedMode = 'state';
+        $('#directed-mode-state').prop('checked', true);
+        updateDirectedProvidersHiddenFields();
+        updateDirectedProvidersCount();
+        $('#directed-providers-list').html('');
+        $('#directed_providers_toggle').prop('checked', false);
+    }
     
 });

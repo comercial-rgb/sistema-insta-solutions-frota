@@ -62,11 +62,15 @@ class OrderService < ApplicationRecord
       start_time = Date.parse(start_date.to_s).beginning_of_day
       end_time = Date.parse(end_date.to_s).end_of_day
 
-      # IMPORTANTe: usar associated_id (novo status) para pegar ENTRADA no status,
+      # IMPORTANTE: usar associated_id (novo status) para pegar ENTRADA no status,
       # e não confundir com SAÍDA (onde AUTORIZADA aparece como status antigo no audited_changes).
+      # Suporta AMBOS os IDs para compatibilidade com renumeração:
+      # - ID antigo: AUTORIZADA_ID (5), ID novo: NEW_AUTORIZADA_ID (7)
+      autorizada_ids = [OrderServiceStatus::AUTORIZADA_ID, OrderServiceStatus::NEW_AUTORIZADA_ID].uniq
+      
       left_outer_joins(:audits)
         .where(audits: { auditable_type: 'OrderService' })
-        .where(audits: { associated_id: OrderServiceStatus::AUTORIZADA_ID })
+        .where(audits: { associated_id: autorizada_ids })
         .where(audits: { created_at: start_time..end_time })
         .distinct
     end
@@ -132,42 +136,27 @@ class OrderService < ApplicationRecord
 
   scope :approved_in_current_month, lambda { |filter, current_month|
     if filter && current_month
-      # REGRA DE NEGÓCIO: Pega OSs que foram AUTORIZADAS (saíram de "Nota fiscal inserida" para "Autorizada")
-      # 
-      # ATENÇÃO: O sistema teve renumeração de IDs de status!
-      # - IDs antigos (antes da renumeração): Nota fiscal = 4, Autorizada = 5
-      # - IDs novos (depois da renumeração): Nota fiscal = 6, Autorizada = 7
-      # 
-      # A query busca AMBOS os conjuntos de IDs para pegar todas as OSs, antigas e novas
+      # REGRA DE NEGÓCIO: Pega OSs que foram AUTORIZADAS no período selecionado.
+      # Usa o campo associated_id dos audits, que é preenchido pelo generate_historic
+      # com o novo status ID quando a OS muda de status.
+      #
+      # Suporta AMBOS os conjuntos de IDs para compatibilidade:
+      # - IDs antigos (antes da renumeração): Autorizada = 5
+      # - IDs novos (depois da renumeração): Autorizada = 7
+      #
+      # IMPORTANTE: Usa beginning_of_day/end_of_day para incluir o dia inteiro nas datas limites.
       
-      sql = <<-SQL
-        SELECT DISTINCT audits.auditable_id
-        FROM audits
-        WHERE audits.auditable_type = 'OrderService'
-        AND (
-          (audits.associated_id = 5 AND audits.audited_changes LIKE '%order_service_status_id%4%5%')
-          OR
-          (audits.associated_id = 7 AND audits.audited_changes LIKE '%order_service_status_id%6%7%')
-        )
-        AND audits.created_at BETWEEN '#{current_month.first}' AND '#{current_month.last}'
-        AND audits.id IN (
-          SELECT MIN(a2.id)
-          FROM audits a2
-          WHERE a2.auditable_type = 'OrderService'
-          AND a2.auditable_id = audits.auditable_id
-          AND (
-            (a2.associated_id = 5 AND a2.audited_changes LIKE '%order_service_status_id%4%5%')
-            OR
-            (a2.associated_id = 7 AND a2.audited_changes LIKE '%order_service_status_id%6%7%')
-          )
-          GROUP BY a2.auditable_id
-        )
-      SQL
+      start_time = current_month.first.to_date.beginning_of_day
+      end_time = current_month.last.to_date.end_of_day
       
-      result = ActiveRecord::Base.connection.execute(sql)
-      os_ids = result.map { |row| row[0] }.uniq
+      # IDs que representam "Autorizada" (antigo e novo)
+      autorizada_ids = [OrderServiceStatus::AUTORIZADA_ID, OrderServiceStatus::NEW_AUTORIZADA_ID].uniq
       
-      where(id: os_ids) if os_ids.any?
+      left_outer_joins(:audits)
+        .where(audits: { auditable_type: 'OrderService' })
+        .where(audits: { associated_id: autorizada_ids })
+        .where(audits: { created_at: start_time..end_time })
+        .distinct
     end
   }
 

@@ -1,5 +1,18 @@
 class CustomHelper < ApplicationRecord
 
+	# Emails que devem ser ignorados no envio de notificações
+	# (emails fictícios de admin que causam bounce/retry no servidor de e-mail)
+	BLOCKED_EMAILS = [
+		"admin@admin.com",
+		"administrador@administrador.com"
+	].map(&:downcase).freeze
+
+	# Verifica se o email NÃO está na lista de bloqueados
+	def self.email_not_blocked?(email)
+		return false if email.blank?
+		!BLOCKED_EMAILS.include?(email.to_s.downcase.strip)
+	end
+
 	# Retorna o texto da data formatado como desejado
 	# type = 'date' ou 'datetime'
 	# format = :default, :full ou qualquer outro especificado no arquivo de internacionalização

@@ -25,7 +25,7 @@ module MenuHelper
 			# Clientes
 			menu_links.push({
 				opened: is_menu_users_client_opened?,
-				icon: "bi bi-three-dots-vertical",
+				icon: "bi bi-building",
 				label: User.human_attribute_name(:client_users),
 				href: users_client_path
 			})
@@ -37,7 +37,7 @@ module MenuHelper
 			# Ordens de serviços
 			menu_links.push({
 				opened: (is_current_controller?("order_services") && !action?('show_order_services') && !action?('show_invoices') && !action?('dashboard')),
-				icon: "bi bi-three-dots-vertical",
+				icon: "bi bi-bar-chart",
 				label: OrderService.human_attribute_name(:reports),
 				href: order_services_path
 			})
@@ -47,7 +47,7 @@ module MenuHelper
 			# Faturas
 			menu_links.push({
 				opened: action?('dashboard'),
-				icon: "bi bi-three-dots-vertical",
+				icon: "bi bi-speedometer2",
 				label: OrderService.human_attribute_name(:dashboard),
 				href: dashboard_path
 			})
@@ -57,7 +57,7 @@ module MenuHelper
 			# Faturas
 			menu_links.push({
 				opened: action?('show_invoices'),
-				icon: "bi bi-three-dots-vertical",
+				icon: "bi bi-receipt",
 				label: OrderService.human_attribute_name(:show_invoices),
 				href: show_invoices_path
 			})
@@ -77,7 +77,7 @@ module MenuHelper
 			# Tipos de serviços de fornecedor
 			menu_links.push({
 				opened: is_current_controller?("provider_service_types"),
-				icon: "bi bi-three-dots-vertical",
+				icon: "bi bi-gear",
 				label: ProviderServiceType.model_name.human(count: 2),
 				href: provider_service_types_path
 			})
@@ -87,7 +87,7 @@ module MenuHelper
 			# Contratos
 			menu_links.push({
 				opened: is_current_controller?("contracts"),
-				icon: "bi bi-three-dots-vertical",
+				icon: "bi bi-file-earmark-text",
 				label: Contract.model_name.human(count: 2),
 				href: contracts_path
 			})
@@ -97,7 +97,7 @@ module MenuHelper
 			# Centros de custo
 			menu_links.push({
 				opened: is_current_controller?("cost_centers"),
-				icon: "bi bi-three-dots-vertical",
+				icon: "bi bi-wallet2",
 				label: CostCenter.model_name.human(count: 2),
 				href: cost_centers_path
 			})
@@ -107,7 +107,7 @@ module MenuHelper
 			# Empenhos
 			menu_links.push({
 				opened: is_current_controller?("commitments"),
-				icon: "bi bi-three-dots-vertical",
+				icon: "bi bi-clipboard-check",
 				label: Commitment.model_name.human(count: 2),
 				href: commitments_path
 			})
@@ -117,7 +117,7 @@ module MenuHelper
 			# Grupos de Serviço
 			menu_links.push({
 				opened: is_current_controller?("service_groups"),
-				icon: "bi bi-three-dots-vertical",
+				icon: "bi bi-collection",
 				label: ServiceGroup.model_name.human(count: 2),
 				href: service_groups_path
 			})
@@ -137,7 +137,7 @@ module MenuHelper
 			# Veículos
 			menu_links.push({
 				opened: is_current_controller?("vehicles"),
-				icon: "bi bi-three-dots-vertical",
+				icon: "bi bi-truck",
 				label: Vehicle.model_name.human(count: 2),
 				href: vehicles_path
 			})
@@ -158,7 +158,7 @@ module MenuHelper
 			# Tipos de veículos
 			menu_links.push({
 				opened: is_current_controller?("vehicle_types"),
-				icon: "bi bi-three-dots-vertical",
+				icon: "bi bi-ev-front",
 				label: VehicleType.model_name.human(count: 2),
 				href: vehicle_types_path
 			})
@@ -168,17 +168,17 @@ module MenuHelper
 			# Categorias de serviços
 			menu_links.push({
 				opened: is_menu_categories_vehicle_opened?,
-				icon: "bi bi-three-dots-vertical",
+				icon: "bi bi-tags",
 				label: Category.human_attribute_name(:vehicles),
 				href: categories_path(category_type_id: CategoryType::VEICULOS_ID)
 			})
 		end
 
 		if policy(Notification).index_by_menu?
-			# Tipos de veículos
+			# Notificações
 			menu_links.push({
 				opened: is_current_controller?("notifications"),
-				icon: "bi bi-three-dots-vertical",
+				icon: "bi bi-bell",
 				label: Notification.model_name.human(count: 2),
 				href: notifications_path
 			})
@@ -188,10 +188,19 @@ module MenuHelper
 			# Manuais de orientação
 			menu_links.push({
 				opened: is_current_controller?("orientation_manuals"),
-				icon: "bi bi-three-dots-vertical",
-				# icon: "bi bi-journal-bookmark",
+				icon: "bi bi-journal-bookmark",
 				label: OrientationManual.model_name.human(count: 2),
 				href: orientation_manuals_path
+			})
+		end
+
+		# Contato / Suporte (visível para todos os perfis, inclusive fornecedores)
+		if policy(SiteContact).new?
+			menu_links.push({
+				opened: is_current_controller?("visitors/site_contacts"),
+				icon: "bi bi-headset",
+				label: "Contato",
+				href: visitors_new_site_contact_path
 			})
 		end
 

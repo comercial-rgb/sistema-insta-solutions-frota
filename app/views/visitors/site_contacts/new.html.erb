@@ -15,25 +15,53 @@
             <%= render "form" %>
         </div>
         <div class="col-12 col-md-4">
-            <div class="card">
+            <div class="card mb-3">
                 <div class="card-body">
-                    <h5 class="card-title text-center"><%= SystemConfiguration.human_attribute_name(:contact_data).upcase %></h5>
+                    <h5 class="card-title text-center">DADOS DE CONTATO</h5>
+
+                    <!-- WhatsApp -->
+                    <p class="card-text">
+                        <a target="_blank" class="text-decoration-none text-success fw-bold" href="https://api.whatsapp.com/send?phone=551133366941">
+                            <i class="bi bi-whatsapp"></i>
+                            (11) 3336-6941
+                        </a>
+                    </p>
+
+                    <!-- Telefone -->
                     <p class="card-text">
                         <a target="_blank" class="text-decoration-none text-reset" href="tel:<%= format_phone(@system_configuration.phone) %>">
                             <i class="bi bi-telephone-outbound-fill"></i>
                             <%= @system_configuration.phone %>
                         </a>
                     </p>
+
+                    <hr>
+
+                    <!-- E-mail Comercial -->
                     <p class="card-text">
-                        <a target="_blank" class="text-decoration-none text-reset" href="mailto:<%= @system_configuration.contact_mail %>">
+                        <span class="fw-bold text-muted small">Comercial</span><br>
+                        <a target="_blank" class="text-decoration-none text-reset" href="mailto:comercial@instasolutions.com.br">
                             <i class="bi bi-envelope-check-fill"></i>
-                            <%= @system_configuration.contact_mail %>
+                            comercial@instasolutions.com.br
                         </a>
                     </p>
+
+                    <!-- E-mail Financeiro -->
+                    <p class="card-text">
+                        <span class="fw-bold text-muted small">Financeiro</span><br>
+                        <a target="_blank" class="text-decoration-none text-reset" href="mailto:financeiro@instasolutions.com.br">
+                            <i class="bi bi-envelope-check-fill"></i>
+                            financeiro@instasolutions.com.br
+                        </a>
+                    </p>
+
+                    <hr>
+
+                    <!-- Horário de Atendimento -->
                     <p class="card-text">
                         <div class="d-flex justify-content-start">
                             <i class="bi bi-stopwatch me-1"></i>
-                            <%= simple_format(@system_configuration.attendance_data) %>
+                            <span>Segunda a sexta de 09:00 as 18:00</span>
                         </div>
                     </p>
                 </div>

@@ -195,6 +195,16 @@ module MenuHelper
 			})
 		end
 
+		# Contato / Suporte (visível para todos os perfis, inclusive fornecedores)
+		if policy(SiteContact).new?
+			menu_links.push({
+				opened: is_current_controller?("visitors/site_contacts"),
+				icon: "bi bi-headset",
+				label: "Contato",
+				href: visitors_new_site_contact_path
+			})
+		end
+
 		return menu_links
 	end
 
