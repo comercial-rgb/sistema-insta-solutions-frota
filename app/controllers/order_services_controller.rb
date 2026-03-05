@@ -225,15 +225,9 @@ class OrderServicesController < ApplicationController
       year = Date.today.year.to_i
       current_month = (Date.new(year, month, 1)).beginning_of_month..Date.new(year, month, 1).end_of_month
     else
-      @order_services = order_services_grid_class.new(order_services_grid.merge(current_user: @current_user))
-      @order_services_to_export = order_services_grid_class.new(order_services_grid.merge(current_user: @current_user))
-      if order_services_grid[:month] && order_services_grid[:year]
-        month = order_services_grid[:month].to_i
-        year = order_services_grid[:year].to_i
-        current_month = (Date.new(year, month, 1)).beginning_of_month..Date.new(year, month, 1).end_of_month
-      end
-      
       # Verifica se há filtro de "Última atualização" e aba específica de status
+      # Neste caso, usaremos filtragem baseada em audits (reached_status_in_period)
+      # e removemos o updated_at dos params do grid para evitar filtro duplo
       if order_services_grid[:updated_at].present? && order_service_status_id.present? && 
          order_service_status_id != OrderServiceStatus::TEMP_REJEITADA_ID
         filter_by_status_date = true
@@ -246,6 +240,23 @@ class OrderServicesController < ApplicationController
         elsif end_date.present?
           status_date_range = DateTime.new(2000,1,1)..DateTime.parse("#{end_date} 23:59:59")
         end
+      end
+
+      # Quando filter_by_status_date está ativo, remove updated_at dos params do grid
+      # para evitar filtro duplo (grid filtra por updated_at da tabela E controller filtra por audits)
+      # O filtro de data será tratado exclusivamente pelo scope reached_status_in_period/in_statuses_reached_in_period
+      grid_params = if filter_by_status_date
+                      order_services_grid.except(:updated_at).merge(current_user: @current_user)
+                    else
+                      order_services_grid.merge(current_user: @current_user)
+                    end
+
+      @order_services = order_services_grid_class.new(grid_params)
+      @order_services_to_export = order_services_grid_class.new(grid_params)
+      if order_services_grid[:month] && order_services_grid[:year]
+        month = order_services_grid[:month].to_i
+        year = order_services_grid[:year].to_i
+        current_month = (Date.new(year, month, 1)).beginning_of_month..Date.new(year, month, 1).end_of_month
       end
     end
 
@@ -1315,7 +1326,8 @@ class OrderServicesController < ApplicationController
       @order_service.update_columns(
         cancel_justification: params[:cancel_justification],
         order_service_status_id: OrderServiceStatus::CANCELADA_ID,
-        km: nil
+        km: nil,
+        updated_at: Time.current
       )
 
       flash[:success] = OrderService.human_attribute_name(:cancel_success)
@@ -1344,7 +1356,7 @@ class OrderServicesController < ApplicationController
 
         # Manually create an audit record
         OrderService.generate_historic(order_service, @current_user, order_service.order_service_status_id, OrderServiceStatus::AUTORIZADA_ID)
-        order_service.update_columns(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID)
+        order_service.update_columns(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID, updated_at: Time.current)
         
         # Envia webhook para sistema financeiro (assíncrono com retry)
         SendAuthorizedOsWebhookJob.perform_later(order_service.id)
@@ -1381,7 +1393,7 @@ class OrderServicesController < ApplicationController
 
         # Manually create an audit record
         OrderService.generate_historic(order_service, @current_user, order_service.order_service_status_id, OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID)
-        order_service.update_columns(order_service_status_id: OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID)
+        order_service.update_columns(order_service_status_id: OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID, updated_at: Time.current)
       end
       message = OrderService.human_attribute_name(:all_waiting_payment_with_success)
     rescue Exception => e
@@ -1415,7 +1427,7 @@ class OrderServicesController < ApplicationController
 
         # Manually create an audit record
         OrderService.generate_historic(order_service, @current_user, order_service.order_service_status_id, OrderServiceStatus::PAGA_ID)
-        order_service.update_columns(order_service_status_id: OrderServiceStatus::PAGA_ID)
+        order_service.update_columns(order_service_status_id: OrderServiceStatus::PAGA_ID, updated_at: Time.current)
       end
       message = OrderService.human_attribute_name(:all_make_payment_with_success)
     rescue Exception => e
@@ -1459,7 +1471,7 @@ class OrderServicesController < ApplicationController
   def back_to_edit_order_service
     authorize @order_service
     old_order_service_status_id = @order_service.order_service_status_id
-    @order_service.update_columns(order_service_status_id: OrderServiceStatus::EM_CADASTRO_ID)
+    @order_service.update_columns(order_service_status_id: OrderServiceStatus::EM_CADASTRO_ID, updated_at: Time.current)
     OrderService.generate_historic(@order_service, @current_user, old_order_service_status_id, OrderServiceStatus::EM_CADASTRO_ID)
     flash[:success] = OrderService.human_attribute_name(:back_to_edit_success)
     redirect_to edit_order_service_path(@order_service)

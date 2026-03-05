@@ -275,7 +275,7 @@ class OrderServiceProposalsController < ApplicationController
         @order_service_proposal.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID)
         if @order_service_proposal.order_service.order_service_status_id != OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID
           OrderService.generate_historic(@order_service_proposal.order_service, @current_user, @order_service_proposal.order_service.order_service_status_id, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID)
-          @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID)
+          @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID, updated_at: Time.current)
         end
         @order_service_proposal.audit_creation(@current_user)
         flash[:success] = t('flash.create')
@@ -345,7 +345,7 @@ class OrderServiceProposalsController < ApplicationController
             @order_service_proposal.order_service.order_service_status_id,
             OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID
           )
-          @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID)
+          @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID, updated_at: Time.current)
         end
 
         @order_service_proposal.audit_creation(@current_user)
@@ -374,7 +374,7 @@ class OrderServiceProposalsController < ApplicationController
             @order_service_proposal.order_service.order_service_status_id,
             OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID
           )
-          @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID)
+          @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID, updated_at: Time.current)
           # Atualizar também o status da proposta para refletir no menu do fornecedor
           @order_service_proposal.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::NOTAS_INSERIDAS_ID)
         end
@@ -656,7 +656,7 @@ class OrderServiceProposalsController < ApplicationController
       # Atualizar status da OS apenas se não houver mais propostas aguardando avaliação
       if @order_service_proposal.order_service.order_service_proposals.select{|item| item.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID}.length == 0
         OrderService.generate_historic(@order_service_proposal.order_service, @current_user, @order_service_proposal.order_service.order_service_status_id, OrderServiceStatus::EM_ABERTO_ID)
-        @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::EM_ABERTO_ID)
+        @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::EM_ABERTO_ID, updated_at: Time.current)
       end
       
       # Não enviar para outros fornecedores ao reprovar - apenas volta para o fornecedor original reeditar
@@ -695,7 +695,7 @@ class OrderServiceProposalsController < ApplicationController
 
       # Manually create an audit record
       OrderService.generate_historic(@order_service_proposal.order_service, @current_user, @order_service_proposal.order_service.order_service_status_id, OrderServiceStatus::AUTORIZADA_ID)
-      @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID)
+      @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID, updated_at: Time.current)
       
       # Envia webhook para sistema financeiro (assíncrono com retry)
       SendAuthorizedOsWebhookJob.perform_later(@order_service_proposal.order_service.id)
@@ -768,7 +768,7 @@ class OrderServiceProposalsController < ApplicationController
 
     # Manually create an audit record
     OrderService.generate_historic(@order_service_proposal.order_service, @current_user, @order_service_proposal.order_service.order_service_status_id, OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID)
-    @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID)
+    @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID, updated_at: Time.current)
 
     flash[:success] = OrderServiceProposal.human_attribute_name(:waiting_payment_with_success)
 
@@ -783,7 +783,7 @@ class OrderServiceProposalsController < ApplicationController
 
     # Manually create an audit record
     OrderService.generate_historic(@order_service_proposal.order_service, @current_user, @order_service_proposal.order_service.order_service_status_id, OrderServiceStatus::PAGA_ID)
-    @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::PAGA_ID)
+    @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::PAGA_ID, updated_at: Time.current)
 
     flash[:success] = OrderServiceProposal.human_attribute_name(:make_payment_with_success)
 
