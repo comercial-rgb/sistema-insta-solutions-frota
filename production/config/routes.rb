@@ -248,6 +248,13 @@ resources :vehicle_models do
 end
 resources :reference_prices
 
+# Precificação Cilia
+get '/cilia_pricing', to: 'cilia_pricing#index', as: 'cilia_pricing_index'
+get '/cilia_pricing/:id', to: 'cilia_pricing#show', as: 'cilia_pricing_show'
+patch '/cilia_pricing/:id/update_prices', to: 'cilia_pricing#update_prices', as: 'update_prices_cilia_pricing'
+patch '/cilia_pricing/:id/mark_complete', to: 'cilia_pricing#mark_complete', as: 'mark_complete_cilia_pricing'
+patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete', as: 'unmark_complete_cilia_pricing'
+
 	resources :commitments do
 		member do
 			patch :inactivate

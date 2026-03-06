@@ -1,4 +1,4 @@
-﻿class OrderService < ApplicationRecord
+class OrderService < ApplicationRecord
   # audited
   paginates_per 50
   after_initialize :default_values
@@ -35,12 +35,7 @@
   scope :by_release_quotation, lambda { |value| where("order_services.release_quotation = ?", value) if !value.nil? && !value.blank? }
   scope :by_client_id, lambda { |value| where("order_services.client_id = ?", value) if !value.nil? && !value.blank? }
   scope :by_commitment_id, lambda { |value| where("order_services.commitment_id = ?", value) if !value.nil? && !value.blank? }
-  scope :by_sub_unit_id, lambda { |value| 
-    if !value.nil? && !value.blank?
-      joins(:vehicle).left_joins(:commitment)
-      .where("vehicles.sub_unit_id = ? OR commitments.sub_unit_id = ?", value, value)
-    end
-  }
+  scope :by_sub_unit_id, lambda { |value| joins(:commitment).where("commitments.sub_unit_id = ?", value) if !value.nil? && !value.blank? }
   scope :by_manager_id, lambda { |value| where("order_services.manager_id = ?", value) if !value.nil? && !value.blank? }
   scope :by_code, lambda { |value| where("LOWER(order_services.code) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
@@ -53,13 +48,17 @@
   scope :by_order_service_status_id, lambda { |value| where("order_services.order_service_status_id = ?", value) if !value.nil? && !value.blank? }
   scope :by_order_service_statuses_id, lambda { |value| where("order_services.order_service_status_id IN (?)", value) if !value.nil? }
 
-  scope :by_order_service_proposal_status_id, lambda { |value| joins(:order_service_proposals).where("order_service_proposals.order_service_proposal_status_id = ?", value).distinct if !value.nil? && !value.blank? }
+  scope :by_order_service_proposal_status_id, lambda { |value| joins(:order_service_proposals).where("order_service_proposals.order_service_proposal_status_id = ?", value) if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("order_services.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("order_services.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("order_services.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("order_services.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
 
-  scope :by_initial_updated_at, lambda { |value| where("order_services.updated_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
-  scope :by_final_updated_at, lambda { |value| where("order_services.updated_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
+  scope :by_initial_updated_at, lambda { |value| where("order_services.updated_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
+  scope :by_final_updated_at, lambda { |value| where("order_services.updated_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+
+  # Scopes para precificação Cilia
+  scope :cilia_pending, -> { where(cilia_priced_at: nil) }
+  scope :cilia_completed, -> { where.not(cilia_priced_at: nil) }
 
   # Scope para buscar OSs que ENTRARAM no status AUTORIZADA no período (usando histórico do Audited)
   scope :approved_in_period, lambda { |start_date, end_date|
@@ -89,7 +88,6 @@
   scope :by_proposal_provider_id, lambda { |value|
     left_outer_joins(:order_service_proposals)
       .where("order_service_proposals.provider_id = ? OR order_services.provider_id = ?", value, value)
-      .distinct
   }
 
   # Exclui OSs onde o fornecedor já tem proposta ativa (não cancelada/reprovada)
@@ -111,6 +109,13 @@
         'order_service_proposals.provider_id = :user_id OR rejected_order_services_providers.provider_id = :user_id',
         user_id: current_user_id
       ).distinct
+  }
+
+  # Scope para relatórios: mostra apenas OSs onde o fornecedor tem propostas (exclui rejected)
+  scope :with_provider_proposals_only, lambda { |provider_id|
+    joins(:order_service_proposals)
+      .where('order_service_proposals.provider_id = ?', provider_id)
+      .distinct
   }
 
   scope :by_provider_id_or_null, lambda { |value|
@@ -161,11 +166,10 @@
 
   scope :reached_status_in_period, lambda { |status_id, date_range|
     if status_id.present? && date_range.present?
-      # Busca OSs que PASSARAM pelo status especificado no período informado
-      # Não exige que a OS esteja atualmente nesse status - permite rastrear histórico
-      # Ex: filtrar "Autorizadas" em Fev/2026 mostra todas que foram autorizadas nesse mês,
-      # mesmo que agora estejam em "Aguardando pagamento" ou "Paga"
+      # Busca OSs que ESTÃO no status especificado E atingiram esse status no período
+      # Garante que a OS não apareça em aba errada
       left_outer_joins(:audits)
+        .where(order_service_status_id: status_id)
         .where(audits: { auditable_type: 'OrderService' })
         .where(audits: { associated_id: status_id })
         .where(audits: { created_at: date_range })
@@ -176,8 +180,9 @@
   scope :in_statuses_reached_in_period, lambda { |status_ids, target_status_id, date_range|
     if status_ids.present? && target_status_id.present? && date_range.present?
       # Para abas com múltiplos status (ex: Autorizadas, Nota Fiscal, Paga)
-      # Mostra OSs que passaram pelo status alvo no período, independente do status atual
+      # Mostra OSs que estão em qualquer dos status permitidos E passaram pelo status alvo no período
       left_outer_joins(:audits)
+        .where(order_service_status_id: status_ids)
         .where(audits: { auditable_type: 'OrderService' })
         .where(audits: { associated_id: target_status_id })
         .where(audits: { created_at: date_range })
@@ -212,6 +217,9 @@
   # Usuário que solicitou reavaliação
   belongs_to :reevaluation_requested_by, class_name: 'User', optional: true
 
+  # Precificação Cilia
+  belongs_to :cilia_priced_by, class_name: 'User', optional: true
+
   has_one :cost_center, :through => :vehicle
 
   has_one :sub_unit, :through => :vehicle
@@ -230,13 +238,6 @@
   has_and_belongs_to_many :rejected_providers,
             class_name: 'User',
             join_table: :rejected_order_services_providers,
-            association_foreign_key: :provider_id,
-            foreign_key: :order_service_id
-
-  # Fornecedores específicos direcionados para esta OS (quando directed_to_specific_providers = true)
-  has_and_belongs_to_many :directed_providers,
-            class_name: 'User',
-            join_table: :order_service_directed_providers,
             association_foreign_key: :provider_id,
             foreign_key: :order_service_id
 
@@ -340,14 +341,14 @@
     if (current_user.admin? || current_user.client? || current_user.manager?) && order_service_status_id == OrderServiceStatus::TEMP_REJEITADA_ID
       return OrderService.joins(:rejected_providers).distinct.length
     elsif current_user.admin?
-      return OrderService.by_order_service_status_id(order_service_status_id).distinct.count
+      return OrderService.by_order_service_status_id(order_service_status_id).length
     elsif current_user.client?
-      return OrderService.by_client_id(current_user.id).by_order_service_status_id(order_service_status_id).distinct.count
+      return OrderService.by_client_id(current_user.id).by_order_service_status_id(order_service_status_id).length
     elsif current_user.manager? || current_user.additional?
       client_id = current_user.client_id
       cost_center_ids = current_user.associated_cost_centers.map(&:id)
       sub_unit_ids = current_user.associated_sub_units.map(&:id)
-      return OrderService.by_client_id(client_id).by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids).by_order_service_status_id(order_service_status_id).distinct.count
+      return OrderService.by_client_id(client_id).by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids).by_order_service_status_id(order_service_status_id).length
     elsif current_user.provider?
       provider_state_id = -1
       if !current_user.address.nil? && !current_user.address.state.nil?
@@ -490,13 +491,11 @@
     return false unless can_request_reevaluation?
     
     old_status = order_service_status_id
-    
-    # Atualizar status (campos reevaluation_requested_at/by_id removidos - não existem na tabela)
-    update_attrs = { order_service_status_id: OrderServiceStatus::EM_REAVALIACAO_ID }
-    update_attrs[:reevaluation_requested_at] = Time.current if self.class.column_names.include?('reevaluation_requested_at')
-    update_attrs[:reevaluation_requested_by_id] = user.id if self.class.column_names.include?('reevaluation_requested_by_id')
-    update!(update_attrs)
-    
+    update!(
+      order_service_status_id: OrderServiceStatus::EM_REAVALIACAO_ID,
+      reevaluation_requested_at: Time.current,
+      reevaluation_requested_by_id: user.id
+    )
     OrderService.generate_historic(self, user, old_status, OrderServiceStatus::EM_REAVALIACAO_ID)
 
     # 🔧 Garantir que a proposta do fornecedor volte para edição (EM_CADASTRO)
@@ -992,28 +991,17 @@
     result
   end
 
-  # Verifica saldo com lock pessimista nos empenhos para evitar race conditions
-  # Usado na aprovação final para garantir atomicidade
-  def check_commitment_balance_with_lock!(parts_value, services_value)
-    # Recarrega empenhos com lock FOR UPDATE no banco para evitar aprovações simultâneas
-    Commitment.lock.find(commitment_id) if commitment_id.present?
-    Commitment.lock.find(commitment_parts_id) if commitment_parts_id.present?
-    Commitment.lock.find(commitment_services_id) if commitment_services_id.present?
-
-    # Recarrega associações para refletir dados após o lock
-    self.reload
-
-    check_commitment_balance(parts_value, services_value)
-  end
-
   private
 
   def generate_code
     result = ""
-    # Formata ID com 4 dígitos (0001, 0002, etc)
-    id = self.id.to_s.rjust(4, '0')
+    id = self.id.to_s
     client_id = self.client_id.to_s
-    result = 'OS'+client_id+'-'+id
+    today = self.created_at.to_date
+    year = today.year.to_s
+    month = today.month.to_s
+    day = today.day.to_s
+    result = 'OS'+client_id+id+year+month+day
     self.update_columns(code: result)
   end
 

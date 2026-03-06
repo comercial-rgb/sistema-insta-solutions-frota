@@ -192,13 +192,6 @@ Rails.application.routes.draw do
 		get :template, on: :collection
 	end
 
-	# Catálogo de peças (busca nos PDFs importados)
-	get '/catalogo_pecas/search', to: 'catalogo_pecas#search', as: 'catalogo_pecas_search'
-	get '/catalogo_pecas/sugestoes', to: 'catalogo_pecas#sugestoes', as: 'catalogo_pecas_sugestoes'
-	get '/catalogo_pecas/fornecedores', to: 'catalogo_pecas#fornecedores', as: 'catalogo_pecas_fornecedores'
-	get '/catalogo_pecas/grupos', to: 'catalogo_pecas#grupos', as: 'catalogo_pecas_grupos'
-	get '/catalogo_pecas/stats', to: 'catalogo_pecas#stats', as: 'catalogo_pecas_stats'
-
 	resources :teams
 
 	# Endereços (do usuário)
@@ -255,12 +248,18 @@ resources :vehicle_models do
 end
 resources :reference_prices
 
+# Precificação Cilia
+get '/cilia_pricing', to: 'cilia_pricing#index', as: 'cilia_pricing_index'
+get '/cilia_pricing/:id', to: 'cilia_pricing#show', as: 'cilia_pricing_show'
+patch '/cilia_pricing/:id/update_prices', to: 'cilia_pricing#update_prices', as: 'update_prices_cilia_pricing'
+patch '/cilia_pricing/:id/mark_complete', to: 'cilia_pricing#mark_complete', as: 'mark_complete_cilia_pricing'
+patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete', as: 'unmark_complete_cilia_pricing'
+
 	resources :commitments do
 		member do
 			patch :inactivate
 			post :save_cancel_commitment
 		end
-		resources :addendum_commitments, only: [:new, :create, :destroy]
 	end
 	get '/get_vehicles_by_cost_center_id', :to => 'vehicles#vehicles_by_cost_center_id'
 	get '/get_vehicles_by_client_id', :to => 'vehicles#vehicles_by_client_id'
@@ -269,7 +268,6 @@ resources :reference_prices
 	get '/get_commitment_types_by_vehicle_id', :to => 'vehicles#commitment_types_by_vehicle_id'
 	get '/get_warranty_items_by_vehicle_id', :to => 'order_services#warranty_items_by_vehicle_id'
 	get '/get_client_requirements', :to => 'order_services#get_client_requirements'
-	get '/get_providers_for_directed_selection', :to => 'order_services#get_providers_for_directed_selection'
 	get '/getting_vehicle_by_plate_integration', :to => 'vehicles#getting_vehicle_by_plate_integration', :as => 'getting_vehicle_by_plate_integration'
 
   resources :vehicle_types
@@ -291,13 +289,10 @@ resources :reference_prices
 
 	resources :order_services
 		get 'order_services/:id/print_no_values', to: 'order_services#print_no_values', as: 'print_no_values_order_service'
-		get 'order_services/:id/print_os', to: 'order_services#print_os', as: 'print_os_order_service'
-		get 'order_services/:id/print_os_summary', to: 'order_services#print_os_summary', as: 'print_os_summary_order_service'
 	get 'show_order_services/:order_service_status_id', :to => 'order_services#show_order_services', :as => 'show_order_services'
 	post 'cancel_order_service', :to => 'order_services#cancel_order_service', :as => 'cancel_order_service'
 	get 'show_historic/:id', :to => 'order_services#show_historic', :as => 'show_historic'
 	get 'show_invoices', :to => 'order_services#show_invoices', :as => 'show_invoices'
-	get 'rejected_history', :to => 'order_services#rejected_history', :as => 'rejected_history_order_services'
 
 	# Reavaliação e Complemento de OS
 	post 'request_reevaluation/:id', :to => 'order_services#request_reevaluation', :as => 'request_reevaluation'
@@ -337,13 +332,7 @@ resources :reference_prices
   resources :contracts
 
 	get 'dashboard', :to => 'order_services#dashboard', :as => 'dashboard'
-	
-	# Provider Dashboard
 	get 'provider_dashboard', :to => 'provider_dashboard#index', :as => 'provider_dashboard'
-	get 'provider_dashboard/index', :to => 'provider_dashboard#index', :as => 'provider_dashboard_index'
-	get 'provider_dashboard/rejections', :to => 'provider_dashboard#rejections', :as => 'rejections_provider_dashboard'
-	post 'provider_dashboard/bulk_reject', :to => 'provider_dashboard#bulk_reject', :as => 'bulk_reject_provider_dashboard'
-	post 'provider_dashboard/revert_rejection', :to => 'provider_dashboard#revert_rejection', :as => 'revert_rejection_provider_dashboard'
 
   resources :orientation_manuals
 

@@ -153,6 +153,16 @@ module MenuHelper
 			})
 		end
 
+		if policy(:cilia_pricing).index?
+			# Precificação Cilia
+			menu_links.push({
+				opened: is_current_controller?("cilia_pricing"),
+				icon: "bi bi-currency-dollar",
+				label: "Precificação Cilia",
+				href: cilia_pricing_index_path
+			})
+		end
+
 
 		if policy(VehicleType).index?
 			# Tipos de veículos

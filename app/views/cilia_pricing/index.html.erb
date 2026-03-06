@@ -1,0 +1,193 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: true, href: '#', text: 'Precificação Cilia'},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+
+  <div class="row mb-3">
+    <div class="col-12">
+      <h3>
+        <i class="bi bi-currency-dollar"></i> Precificação Cilia
+      </h3>
+      <p class="text-muted">
+        Ordens de Serviço com peças que precisam de precificação de referência Cilia.
+      </p>
+    </div>
+  </div>
+
+  <!-- Estatísticas -->
+  <div class="row mb-3">
+    <div class="col-md-3">
+      <div class="card border-warning">
+        <div class="card-body text-center py-2">
+          <h4 class="mb-0 text-warning"><%= @stats[:total_pending] %></h4>
+          <small class="text-muted">Pendentes</small>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card border-success">
+        <div class="card-body text-center py-2">
+          <h4 class="mb-0 text-success"><%= @stats[:total_completed] %></h4>
+          <small class="text-muted">Precificadas</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filtros -->
+  <div class="card mb-3">
+    <div class="card-header bg-light py-2">
+      <strong><i class="bi bi-funnel"></i> Filtros</strong>
+    </div>
+    <div class="card-body py-2">
+      <%= form_tag cilia_pricing_index_path, method: :get, class: 'd-flex flex-wrap gap-2 align-items-end' do %>
+        <div>
+          <label class="form-label small mb-0">Data Inicial</label>
+          <%= date_field_tag :start_date, params[:start_date], class: 'form-control form-control-sm' %>
+        </div>
+        <div>
+          <label class="form-label small mb-0">Data Final</label>
+          <%= date_field_tag :end_date, params[:end_date], class: 'form-control form-control-sm' %>
+        </div>
+        <div>
+          <label class="form-label small mb-0">Tipo de OS</label>
+          <%= select_tag :order_service_type_id,
+            options_from_collection_for_select(@order_service_types, :id, :name, params[:order_service_type_id]),
+            include_blank: 'Todos', class: 'form-select form-select-sm' %>
+        </div>
+        <div>
+          <label class="form-label small mb-0">Status</label>
+          <%= select_tag :order_service_status_id,
+            options_from_collection_for_select(@order_service_statuses, :id, :name, params[:order_service_status_id]),
+            include_blank: 'Todos', class: 'form-select form-select-sm' %>
+        </div>
+        <div>
+          <label class="form-label small mb-0">Placa</label>
+          <%= text_field_tag :vehicle_board, params[:vehicle_board],
+            class: 'form-control form-control-sm', placeholder: 'Ex: ABC1234', style: 'width: 120px' %>
+        </div>
+        <div class="form-check align-self-center ms-2 mt-3">
+          <%= check_box_tag :show_completed, '1', params[:show_completed] == '1', class: 'form-check-input' %>
+          <label class="form-check-label small">Mostrar precificadas</label>
+        </div>
+        <div class="mt-3">
+          <%= submit_tag 'Filtrar', class: 'btn btn-sm btn-primary' %>
+          <%= link_to 'Limpar', cilia_pricing_index_path, class: 'btn btn-sm btn-outline-secondary' %>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Tabela de OS -->
+  <div class="card">
+    <div class="card-body p-0">
+      <% if @order_services.any? %>
+        <div class="table-responsive">
+          <table class="table table-sm table-striped table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Código</th>
+                <th>Veículo</th>
+                <th>Modelo</th>
+                <th>Tipo</th>
+                <th>Status</th>
+                <th class="text-center">Peças</th>
+                <th class="text-center">Criada em</th>
+                <th class="text-center">Situação Cilia</th>
+                <th class="text-center">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @order_services.each do |os| %>
+                <%
+                  vehicle = os.vehicle
+                  vehicle_model = vehicle&.vehicle_model
+                  
+                  # Contagem de peças
+                  parts_count = os.order_service_proposals
+                    .flat_map(&:order_service_proposal_items)
+                    .count { |item| item.get_category_id == Category::SERVICOS_PECAS_ID }
+                  
+                  # Contagem de peças com referência
+                  if vehicle_model.present?
+                    parts_with_ref = os.order_service_proposals
+                      .flat_map(&:order_service_proposal_items)
+                      .select { |item| item.get_category_id == Category::SERVICOS_PECAS_ID && item.service_id.present? }
+                      .count { |item| ReferencePrice.active.where(vehicle_model_id: vehicle_model.id, service_id: item.service_id).exists? }
+                  else
+                    parts_with_ref = 0
+                  end
+                %>
+                <tr class="<%= 'table-success' if os.cilia_priced_at.present? %>">
+                  <td>
+                    <strong><%= os.code %></strong>
+                  </td>
+                  <td>
+                    <%= vehicle&.board || '-' %>
+                    <% if vehicle&.brand.present? %>
+                      <br><small class="text-muted"><%= vehicle.brand %> <%= vehicle.model %></small>
+                    <% end %>
+                  </td>
+                  <td>
+                    <% if vehicle_model.present? %>
+                      <span class="badge bg-info text-dark"><%= vehicle_model.display_name %></span>
+                    <% else %>
+                      <span class="badge bg-secondary" data-bs-toggle="tooltip" title="Veículo sem modelo vinculado">
+                        <i class="bi bi-exclamation-triangle"></i> Sem modelo
+                      </span>
+                    <% end %>
+                  </td>
+                  <td><%= os.order_service_type&.name || '-' %></td>
+                  <td><%= os.order_service_status&.name || '-' %></td>
+                  <td class="text-center">
+                    <% if parts_count > 0 %>
+                      <span class="badge <%= parts_with_ref == parts_count ? 'bg-success' : 'bg-warning text-dark' %>">
+                        <%= parts_with_ref %>/<%= parts_count %>
+                      </span>
+                    <% else %>
+                      <span class="text-muted">0</span>
+                    <% end %>
+                  </td>
+                  <td class="text-center">
+                    <small><%= os.created_at.strftime('%d/%m/%Y') %></small>
+                  </td>
+                  <td class="text-center">
+                    <% if os.cilia_priced_at.present? %>
+                      <span class="badge bg-success" data-bs-toggle="tooltip"
+                        title="Precificada em <%= os.cilia_priced_at.strftime('%d/%m/%Y %H:%M') %>">
+                        <i class="bi bi-check-circle"></i> Precificada
+                      </span>
+                    <% else %>
+                      <span class="badge bg-warning text-dark">
+                        <i class="bi bi-clock"></i> Pendente
+                      </span>
+                    <% end %>
+                  </td>
+                  <td class="text-center">
+                    <%= link_to cilia_pricing_show_path(os), class: 'btn btn-sm btn-outline-primary' do %>
+                      <i class="bi bi-pencil-square"></i> Precificar
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="d-flex justify-content-center py-3">
+          <%= paginate @order_services %>
+        </div>
+      <% else %>
+        <div class="text-center py-5">
+          <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+          <p class="text-muted mt-2">Nenhuma OS pendente de precificação Cilia.</p>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>

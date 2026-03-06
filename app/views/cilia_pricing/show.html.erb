@@ -1,0 +1,381 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: false, href: cilia_pricing_index_path, text: 'Precificação Cilia'},
+  {active: true, href: '#', text: "OS #{@order_service.code}"},
+]
+
+can_edit = policy(:cilia_pricing).update_prices?
+can_complete = policy(:cilia_pricing).mark_complete?
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+
+  <!-- Cabeçalho da OS -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-start">
+        <div>
+          <h3>
+            <i class="bi bi-currency-dollar"></i>
+            Precificação Cilia - OS <%= @order_service.code %>
+            <% if @order_service.cilia_priced_at.present? %>
+              <span class="badge bg-success ms-2">
+                <i class="bi bi-check-circle"></i> Precificada
+              </span>
+            <% end %>
+          </h3>
+        </div>
+        <div class="d-flex gap-2">
+          <% if can_complete %>
+            <% if @order_service.cilia_priced_at.present? %>
+              <%= link_to unmark_complete_cilia_pricing_path(@order_service),
+                method: :patch,
+                class: 'btn btn-outline-warning btn-sm',
+                data: { confirm: 'Deseja desmarcar esta OS como precificada?' } do %>
+                <i class="bi bi-arrow-counterclockwise"></i> Desmarcar
+              <% end %>
+            <% else %>
+              <%= link_to mark_complete_cilia_pricing_path(@order_service),
+                method: :patch,
+                class: 'btn btn-success btn-sm',
+                data: { confirm: 'Marcar esta OS como precificada pelo Cilia?' } do %>
+                <i class="bi bi-check-circle"></i> Marcar como Precificada
+              <% end %>
+            <% end %>
+          <% end %>
+          <%= link_to cilia_pricing_index_path, class: 'btn btn-outline-secondary btn-sm' do %>
+            <i class="bi bi-arrow-left"></i> Voltar
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Info da OS -->
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header bg-light py-2">
+          <strong><i class="bi bi-file-text"></i> Dados da OS</strong>
+        </div>
+        <div class="card-body py-2">
+          <div class="row">
+            <div class="col-6">
+              <small class="text-muted">Código</small><br>
+              <strong><%= @order_service.code %></strong>
+            </div>
+            <div class="col-6">
+              <small class="text-muted">Tipo</small><br>
+              <%= @order_service.order_service_type&.name || '-' %>
+            </div>
+          </div>
+          <div class="row mt-2">
+            <div class="col-6">
+              <small class="text-muted">Status</small><br>
+              <%= @order_service.order_service_status&.name || '-' %>
+            </div>
+            <div class="col-6">
+              <small class="text-muted">Criada em</small><br>
+              <%= @order_service.created_at.strftime('%d/%m/%Y %H:%M') %>
+            </div>
+          </div>
+          <% if @order_service.cilia_priced_at.present? %>
+            <div class="row mt-2">
+              <div class="col-12">
+                <small class="text-muted">Precificada em</small><br>
+                <span class="text-success">
+                  <i class="bi bi-check-circle"></i>
+                  <%= @order_service.cilia_priced_at.strftime('%d/%m/%Y %H:%M') %>
+                  <% if @order_service.cilia_priced_by.present? %>
+                    por <%= @order_service.cilia_priced_by.name %>
+                  <% end %>
+                </span>
+              </div>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header bg-light py-2">
+          <strong><i class="bi bi-truck"></i> Veículo</strong>
+        </div>
+        <div class="card-body py-2">
+          <div class="row">
+            <div class="col-6">
+              <small class="text-muted">Placa</small><br>
+              <strong><%= @vehicle&.board || '-' %></strong>
+            </div>
+            <div class="col-6">
+              <small class="text-muted">Marca / Modelo</small><br>
+              <%= @vehicle&.brand %> <%= @vehicle&.model %>
+            </div>
+          </div>
+          <div class="row mt-2">
+            <div class="col-6">
+              <small class="text-muted">Ano</small><br>
+              <%= @vehicle&.year || '-' %>
+            </div>
+            <div class="col-6">
+              <small class="text-muted">Modelo Vinculado</small><br>
+              <% if @vehicle_model.present? %>
+                <span class="badge bg-info text-dark">
+                  <i class="bi bi-link-45deg"></i> <%= @vehicle_model.display_name %>
+                </span>
+                <% if @vehicle_model.code_cilia.present? %>
+                  <br><small class="text-muted">Cód. Cilia: <%= @vehicle_model.code_cilia %></small>
+                <% end %>
+              <% else %>
+                <span class="badge bg-danger">
+                  <i class="bi bi-exclamation-triangle"></i> Sem modelo vinculado
+                </span>
+                <br>
+                <small class="text-muted">
+                  Vincule o modelo em 
+                  <%= link_to 'Veículos', edit_vehicle_path(@vehicle), target: '_blank' if @vehicle %>
+                  para salvar preços de referência.
+                </small>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Propostas e Itens -->
+  <% if @proposals_data.any? %>
+    <%= form_tag update_prices_cilia_pricing_path(@order_service), method: :patch do %>
+      <% @proposals_data.each_with_index do |pd, idx| %>
+        <% proposal = pd[:proposal] %>
+        <div class="card mb-3">
+          <div class="card-header bg-light py-2">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <strong>
+                  <i class="bi bi-file-earmark-text"></i>
+                  Proposta <%= proposal.code %>
+                </strong>
+                <% if proposal.provider.present? %>
+                  <span class="text-muted ms-2">
+                    - Fornecedor: <strong><%= proposal.provider.name %></strong>
+                  </span>
+                <% end %>
+              </div>
+              <div>
+                <span class="badge <%= pd[:parts_without_reference] > 0 ? 'bg-warning text-dark' : 'bg-success' %>">
+                  <%= pd[:parts_with_reference] %>/<%= pd[:total_parts] %> peças com referência
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="card-body p-0">
+            <% if pd[:parts].any? %>
+              <!-- Tabela de Peças -->
+              <div class="px-3 pt-2">
+                <h6 class="text-muted mb-0">
+                  <i class="bi bi-gear"></i> Peças (<%= pd[:parts].size %>)
+                </h6>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Peça</th>
+                      <th>Marca</th>
+                      <th class="text-end">Preço Fornecedor (R$)</th>
+                      <th class="text-end" style="width: 160px;">Preço Ref. Cilia (R$)</th>
+                      <th class="text-center" style="width: 80px;">% Máx.</th>
+                      <th style="width: 140px;">Fonte</th>
+                      <th class="text-center" style="width: 100px;">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% pd[:parts].each do |part_data| %>
+                      <%
+                        item = part_data[:item]
+                        ref = part_data[:reference_price]
+                        service_id = item.service_id
+                        provider_price = item.unity_value.to_f
+                        
+                        # Calcular diferença se houver referência
+                        if ref.present?
+                          diff_percent = ref.reference_price.to_f > 0 ? 
+                            (((provider_price - ref.reference_price.to_f) / ref.reference_price.to_f) * 100).round(0) : 0
+                          max_allowed = ref.max_allowed_price
+                          exceeded = provider_price > max_allowed
+                        end
+                      %>
+                      <tr class="<%= 'table-danger' if ref.present? && exceeded %>">
+                        <td>
+                          <strong><%= item.service_name.presence || item.service&.name || '-' %></strong>
+                          <% if item.service&.code.present? %>
+                            <br><small class="text-muted">Cód: <%= item.service.code %></small>
+                          <% end %>
+                        </td>
+                        <td><%= item.brand || '-' %></td>
+                        <td class="text-end">
+                          <strong><%= CustomHelper.to_currency(provider_price) %></strong>
+                          <% if item.quantity.to_i > 1 %>
+                            <br><small class="text-muted">x<%= item.quantity %> = <%= CustomHelper.to_currency(item.total_value) %></small>
+                          <% end %>
+                        </td>
+                        <td class="text-end">
+                          <% if service_id.present? && @vehicle_model.present? && can_edit %>
+                            <div class="input-group input-group-sm">
+                              <span class="input-group-text">R$</span>
+                              <%= text_field_tag "reference_prices[#{service_id}][reference_price]",
+                                ref.present? ? number_with_precision(ref.reference_price, precision: 2) : nil,
+                                class: "form-control form-control-sm text-end cilia-price-input",
+                                placeholder: '0,00',
+                                data: { provider_price: provider_price } %>
+                            </div>
+                          <% elsif ref.present? %>
+                            <strong><%= CustomHelper.to_currency(ref.reference_price) %></strong>
+                            <% if exceeded %>
+                              <br><span class="text-danger small">
+                                <i class="bi bi-exclamation-triangle"></i> +<%= diff_percent %>% acima
+                              </span>
+                            <% end %>
+                          <% else %>
+                            <span class="text-muted">-</span>
+                          <% end %>
+                        </td>
+                        <td class="text-center">
+                          <% if service_id.present? && @vehicle_model.present? && can_edit %>
+                            <%= number_field_tag "reference_prices[#{service_id}][max_percentage]",
+                              ref.present? ? ref.max_percentage : 110,
+                              class: 'form-control form-control-sm text-center',
+                              min: 100, step: 0.1, style: 'width: 70px' %>
+                          <% elsif ref.present? %>
+                            <%= ref.max_percentage %>%
+                          <% else %>
+                            -
+                          <% end %>
+                        </td>
+                        <td>
+                          <% if service_id.present? && @vehicle_model.present? && can_edit %>
+                            <%= text_field_tag "reference_prices[#{service_id}][source]",
+                              ref.present? ? ref.source : "Cilia #{Date.current.strftime('%m/%Y')}",
+                              class: 'form-control form-control-sm',
+                              placeholder: 'Fonte' %>
+                          <% elsif ref.present? %>
+                            <small><%= ref.source || '-' %></small>
+                          <% else %>
+                            -
+                          <% end %>
+                        </td>
+                        <td class="text-center">
+                          <% if ref.present? %>
+                            <% if exceeded %>
+                              <span class="badge bg-danger" data-bs-toggle="tooltip"
+                                title="Fornecedor: #{CustomHelper.to_currency(provider_price)} | Máx: #{CustomHelper.to_currency(max_allowed)}">
+                                <i class="bi bi-exclamation-circle"></i> +<%= diff_percent %>%
+                              </span>
+                            <% else %>
+                              <span class="badge bg-success">
+                                <i class="bi bi-check-circle"></i> OK
+                              </span>
+                            <% end %>
+                          <% elsif service_id.blank? %>
+                            <span class="badge bg-secondary" data-bs-toggle="tooltip" title="Item sem serviço vinculado">
+                              <i class="bi bi-dash-circle"></i> N/A
+                            </span>
+                          <% elsif @vehicle_model.blank? %>
+                            <span class="badge bg-secondary" data-bs-toggle="tooltip" title="Veículo sem modelo vinculado">
+                              <i class="bi bi-link"></i> Sem modelo
+                            </span>
+                          <% else %>
+                            <span class="badge bg-warning text-dark">
+                              <i class="bi bi-clock"></i> Pendente
+                            </span>
+                          <% end %>
+                        </td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
+            <% end %>
+
+            <% if pd[:services].any? %>
+              <!-- Tabela de Serviços (somente visualização) -->
+              <div class="px-3 pt-3">
+                <h6 class="text-muted mb-0">
+                  <i class="bi bi-wrench"></i> Serviços (<%= pd[:services].size %>) 
+                  <small class="text-muted">(somente visualização)</small>
+                </h6>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Serviço</th>
+                      <th class="text-end">Valor Unitário (R$)</th>
+                      <th class="text-center">Qtd</th>
+                      <th class="text-end">Total (R$)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <% pd[:services].each do |svc| %>
+                      <tr class="table-secondary">
+                        <td><%= svc.service_name.presence || svc.service&.name || '-' %></td>
+                        <td class="text-end"><%= CustomHelper.to_currency(svc.unity_value) %></td>
+                        <td class="text-center"><%= svc.quantity %></td>
+                        <td class="text-end"><%= CustomHelper.to_currency(svc.total_value) %></td>
+                      </tr>
+                    <% end %>
+                  </tbody>
+                </table>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      <% end %>
+
+      <!-- Botões de ação -->
+      <div class="row mb-4">
+        <div class="col-12 d-flex gap-2">
+          <% if can_edit && @vehicle_model.present? %>
+            <%= submit_tag 'Salvar Preços de Referência', class: 'btn btn-primary' %>
+          <% end %>
+          <% if can_complete && @order_service.cilia_priced_at.blank? %>
+            <%= link_to mark_complete_cilia_pricing_path(@order_service),
+              method: :patch,
+              class: 'btn btn-success',
+              data: { confirm: 'Marcar esta OS como precificada pelo Cilia?' } do %>
+              <i class="bi bi-check-circle"></i> Salvar e Marcar como Precificada
+            <% end %>
+          <% end %>
+          <%= link_to cilia_pricing_index_path, class: 'btn btn-outline-secondary' do %>
+            <i class="bi bi-arrow-left"></i> Voltar à Lista
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="card">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+        <p class="text-muted mt-2">Esta OS não possui propostas com itens.</p>
+        <%= link_to 'Voltar à Lista', cilia_pricing_index_path, class: 'btn btn-outline-secondary' %>
+      </div>
+    </div>
+  <% end %>
+</div>
+
+<style>
+.cilia-price-input:focus { border-color: #0d6efd; box-shadow: 0 0 0 0.15rem rgba(13, 110, 253, 0.25); }
+.table td { vertical-align: middle; }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Inicializar tooltips
+  var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  tooltipTriggerList.forEach(function(el) { new bootstrap.Tooltip(el); });
+});
+</script>

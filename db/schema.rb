@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_02_24_150000) do
+ActiveRecord::Schema[7.1].define(version: 2026_03_06_185330) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -506,6 +506,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_02_24_150000) do
     t.datetime "reevaluation_requested_at"
     t.bigint "reevaluation_requested_by_id"
     t.boolean "directed_to_specific_providers", default: false
+    t.datetime "cilia_priced_at"
+    t.bigint "cilia_priced_by_id"
+    t.index ["cilia_priced_at"], name: "index_order_services_on_cilia_priced_at"
+    t.index ["cilia_priced_by_id"], name: "index_order_services_on_cilia_priced_by_id"
     t.index ["client_id"], name: "index_order_services_on_client_id"
     t.index ["commitment_id"], name: "index_order_services_on_commitment_id"
     t.index ["commitment_parts_id"], name: "fk_rails_8411f8cafd"

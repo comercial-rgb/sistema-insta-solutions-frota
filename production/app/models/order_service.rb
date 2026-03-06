@@ -56,6 +56,10 @@ class OrderService < ApplicationRecord
   scope :by_initial_updated_at, lambda { |value| where("order_services.updated_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
   scope :by_final_updated_at, lambda { |value| where("order_services.updated_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
 
+  # Scopes para precificação Cilia
+  scope :cilia_pending, -> { where(cilia_priced_at: nil) }
+  scope :cilia_completed, -> { where.not(cilia_priced_at: nil) }
+
   # Scope para buscar OSs que ENTRARAM no status AUTORIZADA no período (usando histórico do Audited)
   scope :approved_in_period, lambda { |start_date, end_date|
     if start_date.present? && end_date.present?
@@ -212,6 +216,9 @@ class OrderService < ApplicationRecord
   
   # Usuário que solicitou reavaliação
   belongs_to :reevaluation_requested_by, class_name: 'User', optional: true
+
+  # Precificação Cilia
+  belongs_to :cilia_priced_by, class_name: 'User', optional: true
 
   has_one :cost_center, :through => :vehicle
 
