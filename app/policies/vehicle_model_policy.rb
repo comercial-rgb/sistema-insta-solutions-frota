@@ -1,12 +1,10 @@
 class VehicleModelPolicy < ApplicationPolicy
   def index?
-    # Fornecedores não têm acesso aos modelos de veículos
-    user.present? && !user.provider?
+    user.admin?
   end
 
   def show?
-    # Fornecedores não têm acesso aos modelos de veículos
-    user.present? && !user.provider?
+    user.admin?
   end
 
   def create?
@@ -30,7 +28,7 @@ class VehicleModelPolicy < ApplicationPolicy
   end
   
   def manage_prices?
-    user.admin? || user.manager? || user.additional?
+    user.admin?
   end
   
   def update_prices?
@@ -42,6 +40,6 @@ class VehicleModelPolicy < ApplicationPolicy
   end
   
   def export?
-    user.admin? || user.manager? || user.additional?
+    user.admin?
   end
 end

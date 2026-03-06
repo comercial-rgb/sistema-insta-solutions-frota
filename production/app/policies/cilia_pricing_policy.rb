@@ -1,10 +1,10 @@
 class CiliaPricingPolicy < Struct.new(:user, :cilia_pricing)
   def index?
-    user.admin? || user.manager? || user.additional?
+    user.admin?
   end
 
   def show?
-    user.admin? || user.manager? || user.additional?
+    user.admin?
   end
 
   def update_prices?
@@ -12,6 +12,6 @@ class CiliaPricingPolicy < Struct.new(:user, :cilia_pricing)
   end
 
   def mark_complete?
-    user.admin? || user.manager?
+    user.admin?
   end
 end

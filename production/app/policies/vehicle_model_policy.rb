@@ -1,10 +1,10 @@
 class VehicleModelPolicy < ApplicationPolicy
   def index?
-    user.present?
+    user.admin?
   end
 
   def show?
-    user.present?
+    user.admin?
   end
 
   def create?
@@ -28,7 +28,7 @@ class VehicleModelPolicy < ApplicationPolicy
   end
   
   def manage_prices?
-    user.admin? || user.manager? || user.additional?
+    user.admin?
   end
   
   def update_prices?
@@ -40,6 +40,6 @@ class VehicleModelPolicy < ApplicationPolicy
   end
   
   def export?
-    user.admin? || user.manager? || user.additional?
+    user.admin?
   end
 end
