@@ -335,6 +335,9 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
 
 	get 'dashboard', :to => 'order_services#dashboard', :as => 'dashboard'
 	get 'provider_dashboard', :to => 'provider_dashboard#index', :as => 'provider_dashboard'
+	get 'provider_dashboard/rejections', :to => 'provider_dashboard#rejections', :as => 'rejections_provider_dashboard'
+	post 'provider_dashboard/bulk_reject', :to => 'provider_dashboard#bulk_reject', :as => 'bulk_reject_provider_dashboard'
+	post 'provider_dashboard/revert_rejection', :to => 'provider_dashboard#revert_rejection', :as => 'revert_rejection_provider_dashboard'
 
   resources :orientation_manuals
 
