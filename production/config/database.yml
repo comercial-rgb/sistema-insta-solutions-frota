@@ -48,7 +48,7 @@ staging:
   adapter: mysql2
   encoding: utf8mb4
   collation: utf8mb4_unicode_ci
-  pool: 5
+  pool: <%= ENV.fetch('RAILS_MAX_THREADS', 10).to_i %>
   database: <%= ENV['DATABASE_DATABASE_STAGING'] %>
   username: <%= ENV['DATABASE_USERNAME_STAGING'] %>
   password: <%= ENV['DATABASE_PASSWORD_STAGING'] %>
@@ -61,7 +61,7 @@ production:
   adapter: mysql2
   encoding: utf8mb4
   collation: utf8mb4_unicode_ci
-  pool: 5
+  pool: <%= ENV.fetch('RAILS_MAX_THREADS', 10).to_i %>
   database: <%= ENV['DATABASE_DATABASE_PRODUCTION'] %>
   username: <%= ENV['DATABASE_USERNAME_PRODUCTION'] %>
   password: <%= ENV['DATABASE_PASSWORD_PRODUCTION'] %>
