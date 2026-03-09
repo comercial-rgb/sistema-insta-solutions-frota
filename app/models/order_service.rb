@@ -1015,6 +1015,39 @@ class OrderService < ApplicationRecord
     check_commitment_balance(parts_value, services_value)
   end
 
+  # Mapeamento entre status da OS e status da Proposta
+  OS_TO_PROPOSAL_STATUS = {
+    OrderServiceStatus::APROVADA_ID => OrderServiceProposalStatus::APROVADA_ID,
+    OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID => OrderServiceProposalStatus::NOTAS_INSERIDAS_ID,
+    OrderServiceStatus::AUTORIZADA_ID => OrderServiceProposalStatus::AUTORIZADA_ID,
+    OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID => OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+    OrderServiceStatus::PAGA_ID => OrderServiceProposalStatus::PAGA_ID
+  }.freeze
+
+  # Sincroniza o status das propostas ativas com o status da OS
+  # Previne dessincronização entre o que o admin vê (OS) e o fornecedor vê (proposta)
+  def sync_proposals_status!
+    target_proposal_status = OS_TO_PROPOSAL_STATUS[order_service_status_id]
+    return unless target_proposal_status.present?
+
+    # Só avança propostas que estão "atrás" do status da OS (nunca regride)
+    # Ignora canceladas (9), reprovadas (8) e complementos
+    eligible_statuses = OS_TO_PROPOSAL_STATUS.values.select { |s| s < target_proposal_status }
+    return if eligible_statuses.empty?
+
+    proposals_to_sync = order_service_proposals
+      .where(order_service_proposal_status_id: eligible_statuses)
+      .where.not(order_service_proposal_status_id: [
+        OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
+        OrderServiceProposalStatus::CANCELADA_ID
+      ])
+
+    proposals_to_sync.each do |proposal|
+      Rails.logger.info "[SYNC_STATUS] Proposta #{proposal.id}: #{proposal.order_service_proposal_status_id} -> #{target_proposal_status} (OS #{id} status #{order_service_status_id})"
+      proposal.update_columns(order_service_proposal_status_id: target_proposal_status)
+    end
+  end
+
   private
 
   def generate_code

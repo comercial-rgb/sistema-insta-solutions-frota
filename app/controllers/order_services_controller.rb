@@ -1358,6 +1358,9 @@ class OrderServicesController < ApplicationController
         OrderService.generate_historic(order_service, @current_user, order_service.order_service_status_id, OrderServiceStatus::AUTORIZADA_ID)
         order_service.update_columns(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID, updated_at: Time.current)
         
+        # 🔄 Sincroniza propostas que ficaram para trás
+        order_service.reload.sync_proposals_status!
+        
         # Envia webhook para sistema financeiro (assíncrono com retry)
         SendAuthorizedOsWebhookJob.perform_later(order_service.id)
       end
@@ -1394,6 +1397,9 @@ class OrderServicesController < ApplicationController
         # Manually create an audit record
         OrderService.generate_historic(order_service, @current_user, order_service.order_service_status_id, OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID)
         order_service.update_columns(order_service_status_id: OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID, updated_at: Time.current)
+        
+        # 🔄 Sincroniza propostas que ficaram para trás
+        order_service.reload.sync_proposals_status!
       end
       message = OrderService.human_attribute_name(:all_waiting_payment_with_success)
     rescue Exception => e

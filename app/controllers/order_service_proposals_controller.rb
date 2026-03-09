@@ -691,6 +691,9 @@ class OrderServiceProposalsController < ApplicationController
       OrderService.generate_historic(@order_service_proposal.order_service, @current_user, @order_service_proposal.order_service.order_service_status_id, OrderServiceStatus::AUTORIZADA_ID)
       @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID, updated_at: Time.current)
       
+      # 🔄 Sincroniza outras propostas que ficaram para trás
+      @order_service_proposal.order_service.reload.sync_proposals_status!
+      
       # Envia webhook para sistema financeiro (assíncrono com retry)
       SendAuthorizedOsWebhookJob.perform_later(@order_service_proposal.order_service.id)
 
@@ -764,6 +767,9 @@ class OrderServiceProposalsController < ApplicationController
     OrderService.generate_historic(@order_service_proposal.order_service, @current_user, @order_service_proposal.order_service.order_service_status_id, OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID)
     @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID, updated_at: Time.current)
 
+    # 🔄 Sincroniza outras propostas que ficaram para trás
+    @order_service_proposal.order_service.reload.sync_proposals_status!
+
     flash[:success] = OrderServiceProposal.human_attribute_name(:waiting_payment_with_success)
 
     redirect_back(fallback_location: :back)
@@ -778,6 +784,9 @@ class OrderServiceProposalsController < ApplicationController
     # Manually create an audit record
     OrderService.generate_historic(@order_service_proposal.order_service, @current_user, @order_service_proposal.order_service.order_service_status_id, OrderServiceStatus::PAGA_ID)
     @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::PAGA_ID, updated_at: Time.current)
+
+    # 🔄 Sincroniza outras propostas que ficaram para trás
+    @order_service_proposal.order_service.reload.sync_proposals_status!
 
     flash[:success] = OrderServiceProposal.human_attribute_name(:make_payment_with_success)
 
