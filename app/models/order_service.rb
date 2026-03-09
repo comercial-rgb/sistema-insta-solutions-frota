@@ -35,7 +35,7 @@ class OrderService < ApplicationRecord
   scope :by_release_quotation, lambda { |value| where("order_services.release_quotation = ?", value) if !value.nil? && !value.blank? }
   scope :by_client_id, lambda { |value| where("order_services.client_id = ?", value) if !value.nil? && !value.blank? }
   scope :by_commitment_id, lambda { |value| where("order_services.commitment_id = ?", value) if !value.nil? && !value.blank? }
-  scope :by_sub_unit_id, lambda { |value| joins(:commitment).where("commitments.sub_unit_id = ?", value) if !value.nil? && !value.blank? }
+  scope :by_sub_unit_id, lambda { |value| joins(:vehicle).where("vehicles.sub_unit_id = ?", value) if !value.nil? && !value.blank? }
   scope :by_manager_id, lambda { |value| where("order_services.manager_id = ?", value) if !value.nil? && !value.blank? }
   scope :by_code, lambda { |value| where("LOWER(order_services.code) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
@@ -88,6 +88,7 @@ class OrderService < ApplicationRecord
   scope :by_proposal_provider_id, lambda { |value|
     left_outer_joins(:order_service_proposals)
       .where("order_service_proposals.provider_id = ? OR order_services.provider_id = ?", value, value)
+      .distinct
   }
 
   # Exclui OSs onde o fornecedor já tem proposta ativa (não cancelada/reprovada)
