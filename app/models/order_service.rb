@@ -749,16 +749,19 @@ class OrderService < ApplicationRecord
     selected_cost_center_ids = cost_center_ids.presence || cost_centers.map(&:id)
 
     # 1) Saldo inicial = soma dos valores totais dos contratos ATIVOS
-    contracts_from_cost_centers = Contract.joins(:cost_center)
-      .where(cost_centers: { id: selected_cost_center_ids })
+    # Contract usa HABTM com cost_centers (tabela contracts_cost_centers)
+    contract_ids_from_cost_centers = Contract
+      .joins("INNER JOIN contracts_cost_centers ON contracts_cost_centers.contract_id = contracts.id")
+      .where("contracts_cost_centers.cost_center_id IN (?)", Array(selected_cost_center_ids))
       .where(active: true)
+      .pluck(:id)
 
     commitment_contract_ids = Commitment.by_cost_center_or_sub_unit_ids(selected_cost_center_ids, sub_unit_ids)
       .where(active: true)
       .where.not(contract_id: nil)
       .pluck(:contract_id)
 
-    all_contract_ids = (contracts_from_cost_centers.pluck(:id) + commitment_contract_ids).uniq
+    all_contract_ids = (contract_ids_from_cost_centers + commitment_contract_ids).uniq
     total_contracts_value = Contract.where(id: all_contract_ids, active: true).sum(:total_value).to_f
 
     # 2) Saldo dos empenhos ATIVOS (com cancelamentos em uma única query)
