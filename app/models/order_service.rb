@@ -241,6 +241,12 @@ class OrderService < ApplicationRecord
             association_foreign_key: :provider_id,
             foreign_key: :order_service_id
 
+  has_and_belongs_to_many :directed_providers,
+            class_name: 'User',
+            join_table: :order_service_directed_providers,
+            association_foreign_key: :provider_id,
+            foreign_key: :order_service_id
+
   validates_presence_of :client_id, :manager_id, :vehicle_id,
   :provider_service_type_id, :maintenance_plan_id,
   :order_service_type_id, :details, :order_service_status_id
@@ -991,17 +997,33 @@ class OrderService < ApplicationRecord
     result
   end
 
+  # Versão com lock pessimista (FOR UPDATE) para prevenir race conditions
+  # em aprovações simultâneas que consomem o mesmo saldo de empenho
+  def check_commitment_balance_with_lock!(parts_value, services_value)
+    # Adquire lock FOR UPDATE nos empenhos relacionados
+    if commitment_id.present? && commitment.present?
+      Commitment.lock("FOR UPDATE").find(commitment_id)
+    end
+    if commitment_parts_id.present? && commitment_parts.present?
+      Commitment.lock("FOR UPDATE").find(commitment_parts_id)
+    end
+    if commitment_services_id.present? && commitment_services.present?
+      Commitment.lock("FOR UPDATE").find(commitment_services_id)
+    end
+
+    # Re-verifica saldo após adquirir os locks
+    check_commitment_balance(parts_value, services_value)
+  end
+
   private
 
   def generate_code
     result = ""
     id = self.id.to_s
-    client_id = self.client_id.to_s
     today = self.created_at.to_date
-    year = today.year.to_s
-    month = today.month.to_s
-    day = today.day.to_s
-    result = 'OS'+client_id+id+year+month+day
+    year = today.strftime('%y')   # 2 dígitos do ano (ex: 26)
+    month = today.strftime('%m')  # mês com zero (ex: 03)
+    result = "OS#{id}-#{year}#{month}"
     self.update_columns(code: result)
   end
 

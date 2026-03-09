@@ -256,6 +256,7 @@ patch '/cilia_pricing/:id/mark_complete', to: 'cilia_pricing#mark_complete', as:
 patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete', as: 'unmark_complete_cilia_pricing'
 
 	resources :commitments do
+		resources :addendum_commitments, only: [:new, :create, :destroy]
 		member do
 			patch :inactivate
 			post :save_cancel_commitment
