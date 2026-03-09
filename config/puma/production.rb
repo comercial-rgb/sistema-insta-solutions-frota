@@ -41,7 +41,7 @@ threads threads_count, threads_count
 # Regra: 1 worker por core de CPU
 # Servidor com 2 cores: workers 2
 # Servidor com 4 cores: workers 4
-workers_count = ENV.fetch("WEB_CONCURRENCY") { 2 }
+workers_count = ENV.fetch("WEB_CONCURRENCY") { 3 }
 workers workers_count
 
 # Preload da aplicação
