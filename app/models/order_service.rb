@@ -682,8 +682,11 @@ class OrderService < ApplicationRecord
 
     # Query otimizada: agrupa direto no SQL para evitar N+1
     # Soma total_value das propostas por centro de custo e status da OS
+    # Usa SQL explícito para evitar conflito com default_scope do OrderService
     results = OrderServiceProposal
-      .joins(order_service: { vehicle: :cost_center })
+      .joins("INNER JOIN order_services ON order_services.id = order_service_proposals.order_service_id")
+      .joins("INNER JOIN vehicles ON vehicles.id = order_services.vehicle_id")
+      .joins("INNER JOIN cost_centers ON cost_centers.id = vehicles.cost_center_id")
       .where(order_services: { order_service_status_id: required_order_service_statuses })
       .where(order_service_proposal_status_id: required_proposal_statuses)
       .where(is_complement: [false, nil])
@@ -769,8 +772,10 @@ class OrderService < ApplicationRecord
     total_commitments_value = commitments_with_cancels.sum { |cv, cancel| cv.to_f - cancel.to_f }
 
     # 3) Saldo consumido = soma via SQL (evita N+1)
+    # Usa SQL explícito para evitar conflito com default_scope do OrderService
     total_consumed = OrderServiceProposal
-      .joins(order_service: :vehicle)
+      .joins("INNER JOIN order_services ON order_services.id = order_service_proposals.order_service_id")
+      .joins("INNER JOIN vehicles ON vehicles.id = order_services.vehicle_id")
       .where(order_services: { order_service_status_id: required_order_service_statuses })
       .where(order_service_proposal_status_id: required_proposal_statuses)
       .where(is_complement: [false, nil])
@@ -805,9 +810,12 @@ class OrderService < ApplicationRecord
     end
 
     # SQL agregado: soma total_value dos items agrupado por category_id do service
+    # Usa SQL explícito para evitar conflito com default_scope do OrderService
     totals = OrderServiceProposalItem
-      .joins(order_service_proposal: { order_service: :vehicle })
-      .joins(:service)
+      .joins("INNER JOIN order_service_proposals ON order_service_proposals.id = order_service_proposal_items.order_service_proposal_id")
+      .joins("INNER JOIN order_services ON order_services.id = order_service_proposals.order_service_id")
+      .joins("INNER JOIN vehicles ON vehicles.id = order_services.vehicle_id")
+      .joins("INNER JOIN services ON services.id = order_service_proposal_items.service_id")
       .where(order_services: { order_service_status_id: required_order_service_statuses })
       .where(order_service_proposals: { order_service_proposal_status_id: required_proposal_statuses })
       .where(
@@ -815,7 +823,7 @@ class OrderService < ApplicationRecord
         Array(selected_cost_center_ids), Array(sub_unit_ids)
       )
       .group("services.category_id")
-      .sum(:total_value)
+      .sum("order_service_proposal_items.total_value")
 
     {
       'Peças' => (totals[Category::SERVICOS_PECAS_ID] || 0).to_f.round(2),
