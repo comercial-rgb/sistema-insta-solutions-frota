@@ -69,6 +69,14 @@ class ProvidersGrid
     ApplicationController.helpers.safe_utf8(record.address&.get_address_value)
   end
 
+  column(:city, if: :check_user, header: User.human_attribute_name(:city_id) ) do |record, grid|
+    ApplicationController.helpers.safe_utf8(record.address&.city&.name)
+  end
+
+  column(:state, if: :check_user, header: User.human_attribute_name(:state_id) ) do |record, grid|
+    record.address&.state&.acronym
+  end
+
   column(:_cpf_cnpj, if: :check_user, header: User.human_attribute_name(:cpf_cnpj) ) do |record, grid|
     record.get_document
   end
