@@ -66,7 +66,11 @@ class ProvidersGrid
   end
 
   column(:address, if: :check_user, header: Address.model_name.human ) do |record, grid|
-    ApplicationController.helpers.safe_utf8(record.address&.get_address_value)
+    addr = record.address
+    next unless addr
+    text = addr.address.to_s
+    text += ", #{addr.number}" if addr.number.present?
+    ApplicationController.helpers.safe_utf8(text)
   end
 
   column(:city, if: :check_user, header: User.human_attribute_name(:city_id) ) do |record, grid|
