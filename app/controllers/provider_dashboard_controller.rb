@@ -141,7 +141,7 @@ class ProviderDashboardController < ApplicationController
     order_service_ids = params[:order_service_ids]
     
     if order_service_ids.blank?
-      redirect_to provider_dashboard_index_path, alert: "Nenhuma OS foi selecionada."
+      redirect_to provider_dashboard_path, alert: "Nenhuma OS foi selecionada."
       return
     end
     
@@ -161,9 +161,9 @@ class ProviderDashboardController < ApplicationController
     end
     
     if rejected_count > 0
-      redirect_to provider_dashboard_index_path, notice: "#{rejected_count} OS(s) rejeitada(s) com sucesso."
+      redirect_to provider_dashboard_path, notice: "#{rejected_count} OS(s) rejeitada(s) com sucesso."
     else
-      redirect_to provider_dashboard_index_path, alert: "Nenhuma OS foi rejeitada."
+      redirect_to provider_dashboard_path, alert: "Nenhuma OS foi rejeitada."
     end
   end
 
