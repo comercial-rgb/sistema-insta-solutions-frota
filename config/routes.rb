@@ -293,6 +293,7 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
 		get 'order_services/:id/print_os', to: 'order_services#print_os', as: 'print_os_order_service'
 		get 'order_services/:id/print_os_summary', to: 'order_services#print_os_summary', as: 'print_os_summary_order_service'
 	get 'show_order_services/:order_service_status_id', :to => 'order_services#show_order_services', :as => 'show_order_services'
+	get 'rejected_history_order_services', :to => 'order_services#rejected_history', :as => 'rejected_history_order_services'
 	post 'cancel_order_service', :to => 'order_services#cancel_order_service', :as => 'cancel_order_service'
 	get 'show_historic/:id', :to => 'order_services#show_historic', :as => 'show_historic'
 	get 'show_invoices', :to => 'order_services#show_invoices', :as => 'show_invoices'

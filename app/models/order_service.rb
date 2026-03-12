@@ -373,6 +373,10 @@ class OrderService < ApplicationRecord
         .by_provider_id_or_null(current_user.id)
         .by_order_service_statuses_id(statuses_to_filter)
         .excluded_by_active_proposal_by_provider(current_user.id)
+        .where(
+          "order_services.directed_to_specific_providers = FALSE OR order_services.directed_to_specific_providers IS NULL OR EXISTS (SELECT 1 FROM order_service_directed_providers osdp WHERE osdp.order_service_id = order_services.id AND osdp.provider_id = ?)",
+          current_user.id
+        )
         .distinct
         .length
       # Em reavaliação e Cancelada - fornecedor vê apenas OSs onde ele tem proposta
