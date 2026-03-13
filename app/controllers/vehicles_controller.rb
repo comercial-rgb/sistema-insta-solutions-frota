@@ -389,7 +389,8 @@ class VehiclesController < ApplicationController
     :gearbox_type,
     :fipe_code,
     :model_text,
-    :value_text
+    :value_text,
+    :vehicle_model_id
     )
   end
 end
