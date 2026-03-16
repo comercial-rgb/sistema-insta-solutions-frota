@@ -638,25 +638,16 @@ class OrderService < ApplicationRecord
     main_approved = getting_order_service_proposal_approved
     return 0 unless main_approved
 
-    proposal_ids = [main_approved.id]
+    # Usa items_for_totals que já faz deduplicação correta dos itens
+    # de complemento (evita contar 2x itens já copiados para a proposta pai)
+    items = OrderServiceProposal.items_for_totals(main_approved)
 
-    # Complementos aprovados também compõem o total da OS.
-    complement_ids = order_service_proposals
-      .where(is_complement: true, order_service_proposal_status_id: OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES)
-      .pluck(:id)
-    proposal_ids.concat(complement_ids) if complement_ids.any?
-
-    OrderServiceProposalItem
-      .includes(:service)
-      .where(order_service_proposal_id: proposal_ids)
-      .sum do |item|
-        service = item.service
-        next 0 unless service
-        next 0 unless service.category_id == category_id
-
-        # Usar total_value do item que já contém o desconto aplicado
-        item.total_value.to_f
-      end
+    items.sum do |item|
+      service = item.service
+      next 0 unless service
+      next 0 unless service.category_id == category_id
+      item.total_value.to_f
+    end
   end
 
   def total_parts_value
