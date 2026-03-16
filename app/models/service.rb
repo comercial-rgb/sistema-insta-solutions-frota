@@ -151,9 +151,11 @@
       # Verifica se um nome está contido no outro (ex: "amortecedor" e "amortecedor dianteiro")
       if normalized_name.length > 3 && existing_normalized.length > 3
         if normalized_name.include?(existing_normalized) || existing_normalized.include?(normalized_name)
-          # Apenas alerta se a diferença for muito pequena (menos de 5 caracteres)
+          # Bloqueia apenas se a diferença for de 1-2 caracteres (ex: typo/acento)
+          # Permite variações reais como "CORREIA DENTADA" vs "KIT CORREIA DENTADA"
+          shorter = [normalized_name.length, existing_normalized.length].min
           diff = (normalized_name.length - existing_normalized.length).abs
-          if diff <= 5
+          if diff <= 2 && diff > 0
             errors.add(:name, "muito similar a: '#{service.name}' (categoria: #{service.category.name})")
             return
           end
