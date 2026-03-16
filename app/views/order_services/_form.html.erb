@@ -59,7 +59,7 @@
         <%= render 'order_services/forms/form_data', f: f, disabled: disabled, disabled_basic_fields: disabled_basic_fields, disabled_commitment_fields: disabled_commitment_fields %>
     <% end %>
 
-    <% if @warranty_items.present? %>
+    <% if @warranty_items.present? && !@current_user.provider? %>
         <div class="row">
             <div class="col-12">
                 <%= render 'order_services/renders/warranty_panel', warranty_items: @warranty_items %>

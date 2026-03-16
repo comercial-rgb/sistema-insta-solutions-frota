@@ -132,7 +132,7 @@
     <% end %>
 
     <% if f.object.persisted? %>
-        <% if @warranty_items_vehicle.present? %>
+        <% if @warranty_items_vehicle.present? && !@current_user.provider? %>
             <%= render 'vehicles/warranty_panel', warranty_items: @warranty_items_vehicle %>
         <% end %>
         <%= render 'vehicles/order_services_list', order_services_for_vehicle: @order_services_for_vehicle %>
