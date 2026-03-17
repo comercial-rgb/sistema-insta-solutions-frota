@@ -246,7 +246,8 @@ class OrderService < ApplicationRecord
             class_name: 'User',
             join_table: :order_service_directed_providers,
             association_foreign_key: :provider_id,
-            foreign_key: :order_service_id
+            foreign_key: :order_service_id,
+            validate: false
 
   validates_presence_of :client_id, :manager_id, :vehicle_id,
   :provider_service_type_id, :maintenance_plan_id,
