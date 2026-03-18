@@ -204,6 +204,16 @@ module MenuHelper
 			})
 		end
 
+		if policy(:pricing_manual).index?
+			# Manual de Tributação e Precificação
+			menu_links.push({
+				opened: is_current_controller?("pricing_manuals"),
+				icon: "bi bi-book",
+				label: "Tributação e Precificação",
+				href: pricing_manuals_path
+			})
+		end
+
 		# Contato / Suporte (visível para todos os perfis, inclusive fornecedores)
 		if policy(SiteContact).new?
 			menu_links.push({

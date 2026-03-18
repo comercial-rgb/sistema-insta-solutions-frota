@@ -1,0 +1,418 @@
+<!-- Manutenção de Frota — Peças e Serviços -->
+
+<!-- SEÇÃO 1: ENTENDIMENTO ESSENCIAL -->
+<div class="card mb-4">
+  <div class="card-body">
+    <span class="badge bg-warning text-dark text-uppercase mb-2">Atenção — diferença essencial</span>
+    <h5 class="card-title">Peças e serviços na manutenção de frota — entenda antes de operar</h5>
+    <p>Na manutenção de frota, peças e serviços possuem lógicas fiscais, contábeis e operacionais completamente diferentes. Tratar ambos da mesma forma é o erro mais comum e gera retenção incorreta, nota fiscal errada e problemas na contabilidade de ambos os lados.</p>
+
+    <div class="row g-3 my-3">
+      <div class="col-md-6">
+        <div class="card bg-light border-primary">
+          <div class="card-body">
+            <h6 class="text-primary fw-semibold">Peças (mercadoria)</h6>
+            <p class="mb-0 small">Nota fiscal de venda (NF-e modelo 55). CFOP 5.102/6.102. Tributação: ICMS, IPI quando aplicável, PIS/Cofins conforme regime. Retenção federal: 5,85%.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card bg-light border-purple" style="border-color: #7c6dd8 !important;">
+          <div class="card-body">
+            <h6 class="fw-semibold" style="color: #3C3489;">Serviços (mão de obra)</h6>
+            <p class="mb-0 small">Nota fiscal de serviço (NFS-e municipal). ISS conforme alíquota municipal (2% a 5%). Taxa da plataforma em % sobre o valor. Retenção federal: 9,45%. Duas notas distintas por OS quando há peça e mão de obra.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-danger mb-0">
+      <strong>Regra inegociável:</strong> uma OS com peças e mão de obra gera duas notas fiscais — uma de mercadoria (peças) e uma de serviço (mão de obra). Emitir tudo numa NFS-e de serviço é erro fiscal que provoca retenção incorreta, ISS indevido sobre mercadorias e inconsistência no SPED. O sistema não aceita OS com nota única misturando peça e serviço.
+    </div>
+  </div>
+</div>
+
+<!-- SEÇÃO 2: FLUXO DA OS -->
+<div class="card mb-4">
+  <div class="card-body">
+    <span class="badge bg-info text-uppercase mb-2">Fluxo operacional</span>
+    <h5 class="card-title">Como funciona a ordem de serviço no sistema</h5>
+    <p>Toda manutenção gerenciada pelo sistema segue um fluxo de aprovação prévia. O fornecedor não executa sem autorização registrada na plataforma. Esse controle protege o fornecedor (garante que o serviço será pago), o cliente (garante que só paga o que aprovou) e a plataforma (garante rastreabilidade completa para auditoria).</p>
+
+    <!-- Fluxo visual da OS -->
+    <div class="d-flex flex-wrap gap-0 my-4 overflow-auto">
+      <div class="text-center p-2 flex-fill bg-light border" style="min-width: 110px;">
+        <div class="fw-semibold small">Solicitação</div>
+        <small class="text-muted">Cliente abre OS no sistema</small>
+      </div>
+      <div class="text-center p-2 flex-fill bg-light border" style="min-width: 110px;">
+        <div class="fw-semibold small">Orçamento</div>
+        <small class="text-muted">Fornecedor lança peças e serviços</small>
+      </div>
+      <div class="text-center p-2 flex-fill border" style="min-width: 110px; background-color: #d4edda;">
+        <div class="fw-semibold small text-success">Aprovação</div>
+        <small class="text-muted">Cliente aprova ou negocia</small>
+      </div>
+      <div class="text-center p-2 flex-fill bg-light border" style="min-width: 110px;">
+        <div class="fw-semibold small">Execução</div>
+        <small class="text-muted">Fornecedor executa o serviço</small>
+      </div>
+      <div class="text-center p-2 flex-fill bg-light border" style="min-width: 110px;">
+        <div class="fw-semibold small">Faturamento</div>
+        <small class="text-muted">Notas emitidas e enviadas</small>
+      </div>
+      <div class="text-center p-2 flex-fill border" style="min-width: 110px; background-color: #d4edda;">
+        <div class="fw-semibold small text-success">Repasse</div>
+        <small class="text-muted">Plataforma repassa líquido</small>
+      </div>
+    </div>
+
+    <p>A aprovação prévia registrada na plataforma tem valor probatório: em caso de questionamento pelo cliente, pelo órgão de controle ou pela contabilidade, o histórico da OS demonstra que o serviço foi autorizado antes da execução e que o valor faturado corresponde ao orçamento aprovado.</p>
+
+    <h6 class="mt-4 mb-3">O que deve constar obrigatoriamente na OS</h6>
+    <ol class="list-group list-group-numbered">
+      <li class="list-group-item">
+        <strong>Identificação do veículo:</strong> placa, chassi e hodômetro atual. A OS sem hodômetro não permite calcular intervalos de manutenção preventiva nem auditar a frequência de serviços por km.
+      </li>
+      <li class="list-group-item">
+        <strong>Discriminação de peças com referência de tabela:</strong> código da peça na tabela Cilia, Audatex, Molicar ou equivalente, quantidade e valor unitário. Peça sem referência de tabela não tem parâmetro de preço justo.
+      </li>
+      <li class="list-group-item">
+        <strong>Discriminação de mão de obra com tempo padrão:</strong> código do serviço, horas-padrão da tabela de referência e valor da hora aplicado. Serviço sem tempo-padrão não tem parâmetro de razoabilidade.
+      </li>
+      <li class="list-group-item">
+        <strong>Separação clara entre peças e serviços:</strong> o sistema deve calcular subtotais distintos para mercadorias e para serviços, pois as notas e as retenções são diferentes para cada natureza.
+      </li>
+    </ol>
+
+    <div class="bg-light rounded p-3 mt-3 small text-muted">
+      Código de Defesa do Consumidor, art. 40 (Lei nº 8.078/1990) — o fornecedor de serviços é obrigado a fornecer orçamento prévio discriminando o valor da mão de obra, peças e materiais. Mesmo em contratos B2B e com órgãos públicos, o orçamento prévio é boa prática exigível contratualmente e recomendada pelos órgãos de controle.
+    </div>
+  </div>
+</div>
+
+<!-- SEÇÃO 3: TABELAS DE REFERÊNCIA -->
+<div class="card mb-4">
+  <div class="card-body">
+    <span class="badge text-uppercase mb-2" style="background-color: #EEEDFE; color: #3C3489;">Tabelas de referência</span>
+    <h5 class="card-title">Cilia, Audatex, Molicar e equivalentes — o que são e por que importam</h5>
+    <p>As tabelas Cilia, Audatex e Molicar são as referências de mercado para precificação de peças automotivas e mão de obra de manutenção. São bases de dados mantidas por empresas especializadas, amplamente utilizadas por seguradoras, montadoras, concessionárias, oficinas e gestores de frota para padronizar orçamentos e evitar sobrepreço.</p>
+
+    <div class="bg-light rounded p-3 my-3">
+      <h6 class="text-muted text-uppercase small mb-3">Principais tabelas de referência do mercado</h6>
+      <div class="border-bottom py-2 d-flex gap-3">
+        <span class="fw-semibold" style="min-width: 100px;">Cilia</span>
+        <span class="text-muted small">Base de dados de peças de reposição com preços sugeridos ao consumidor (PSC) por montadora e linha de veículos. Referência amplamente utilizada por frotas, seguradoras e gestores. Atualizada periodicamente e segmentada por canal de venda (varejo, distribuidor, OEM).</span>
+      </div>
+      <div class="border-bottom py-2 d-flex gap-3">
+        <span class="fw-semibold" style="min-width: 100px;">Audatex</span>
+        <span class="text-muted small">Sistema de estimativa de reparos e precificação de peças utilizado principalmente por seguradoras e concessionárias. Contém tempos-padrão de mão de obra por operação e veículo, além de preços de peças originais.</span>
+      </div>
+      <div class="border-bottom py-2 d-flex gap-3">
+        <span class="fw-semibold" style="min-width: 100px;">Molicar</span>
+        <span class="text-muted small">Base de dados de peças de reposição e acessórios, com foco em identificação técnica por aplicação veicular. Utilizada por distribuidores e oficinas para identificação de peças equivalentes, originais e paralelas.</span>
+      </div>
+      <div class="py-2 d-flex gap-3">
+        <span class="fw-semibold" style="min-width: 100px;">Equivalentes</span>
+        <span class="text-muted small">Outras bases aceitas: tabelas próprias de montadoras (GM, Ford, VW, Fiat, Toyota), tabelas de distribuidoras nacionais homologadas e sistemas de gestão com base de preços auditável.</span>
+      </div>
+    </div>
+
+    <h6 class="mt-4">Como essas tabelas protegem o fornecedor e o cliente</h6>
+    <p>Para o fornecedor, a tabela de referência é a prova de que o preço cobrado está dentro do parâmetro de mercado. Em caso de contestação pelo cliente, pelo TCU ou pela CGU, o fornecedor apresenta o código da peça e o preço da tabela — e a discussão está encerrada.</p>
+    <p>Para o cliente e o órgão público, a tabela de referência é o parâmetro de pesquisa de preços exigido pelo art. 23 da Lei nº 14.133/2021 antes da contratação e durante a fiscalização do contrato. Um gestor público que aprova OS sem referência de tabela assume risco pessoal de responsabilização pelo TCU.</p>
+
+    <div class="alert alert-info mb-0">
+      <strong>Como o sistema utiliza as tabelas:</strong> ao lançar uma peça no orçamento da OS, o fornecedor informa o código da tabela de referência. O sistema consulta o preço sugerido e sinaliza se o valor orçado está dentro da faixa esperada. Isso não impede o fornecedor de praticar preço diferente — mas registra a comparação, o que protege ambos os lados em caso de auditoria.
+    </div>
+  </div>
+</div>
+
+<!-- SEÇÃO 4: NOTAS FISCAIS -->
+<div class="card mb-4">
+  <div class="card-body">
+    <span class="badge bg-danger text-uppercase mb-2">Notas fiscais</span>
+    <h5 class="card-title">Emissão correta das notas fiscais de manutenção</h5>
+    <p>Uma OS de manutenção que envolve peças e mão de obra gera obrigatoriamente duas notas fiscais distintas, emitidas pelo fornecedor diretamente em nome do adquirente final (cliente da frota ou órgão público). A plataforma não emite nota de peças nem de serviços em nome próprio — atua como intermediadora e emite documento fiscal somente sobre sua taxa de gestão.</p>
+
+    <div class="row g-3 my-3">
+      <div class="col-md-6">
+        <div class="card border-primary">
+          <div class="card-body">
+            <h6 class="text-primary fw-semibold">Nota fiscal de peças — mercadoria</h6>
+            <p class="mb-0 small">
+              Documento: NF-e (modelo 55)<br>
+              CFOP: 5.102 (dentro do estado) / 6.102 (fora do estado)<br>
+              Tributação: ICMS, IPI quando aplicável, PIS/Cofins conforme regime<br>
+              Retenção federal: <strong>5,85%</strong> para órgão federal<br>
+              <small class="text-muted">IR 1,20% + CSLL 1,00% + PIS 0,65% + Cofins 3,00%</small>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card" style="border-color: #7c6dd8 !important;">
+          <div class="card-body">
+            <h6 class="fw-semibold" style="color: #3C3489;">Nota fiscal de serviços — mão de obra</h6>
+            <p class="mb-0 small">
+              Documento: NFS-e (emitida pelo município)<br>
+              CFOP: não se aplica (ISS é municipal)<br>
+              Tributação: ISS conforme alíquota municipal (2% a 5%)<br>
+              Retenção federal: <strong>9,45%</strong> para órgão federal<br>
+              <small class="text-muted">IR 4,80% + CSLL 1,00% + PIS 0,65% + Cofins 3,00%</small>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h6 class="mt-4 mb-3">Retenções por tipo de órgão pagador</h6>
+    <div class="table-responsive">
+      <table class="table table-bordered table-sm align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Órgão pagador</th>
+            <th>Natureza</th>
+            <th>IR</th>
+            <th>CSLL</th>
+            <th>PIS</th>
+            <th>Cofins</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="2"><span class="badge bg-danger">Federal</span><br><small class="text-muted">Ministérios, autarquias, fundações</small></td>
+            <td><span class="badge" style="background:#E6F1FB;color:#0C447C;">Peças</span></td>
+            <td>1,20%</td><td>1,00%</td><td>0,65%</td><td>3,00%</td><td><strong>5,85%</strong></td>
+          </tr>
+          <tr>
+            <td><span class="badge" style="background:#EEEDFE;color:#3C3489;">Serviços</span></td>
+            <td>4,80%</td><td>1,00%</td><td>0,65%</td><td>3,00%</td><td><strong>9,45%</strong></td>
+          </tr>
+          <tr>
+            <td rowspan="2"><span class="badge bg-warning text-dark">Estadual / Municipal</span><br><small class="text-muted">Estados, DF, municípios</small></td>
+            <td><span class="badge" style="background:#E6F1FB;color:#0C447C;">Peças</span></td>
+            <td>1,20%</td><td>—</td><td>—</td><td>—</td><td><strong>1,20%</strong></td>
+          </tr>
+          <tr>
+            <td><span class="badge" style="background:#EEEDFE;color:#3C3489;">Serviços</span></td>
+            <td>4,80%</td><td>—</td><td>—</td><td>—</td><td><strong>4,80%</strong></td>
+          </tr>
+          <tr>
+            <td><span class="badge bg-success">Simples Nacional</span><br><small class="text-muted">Qualquer órgão</small></td>
+            <td>Peças ou serviços</td>
+            <td>—</td><td>—</td><td>—</td><td>—</td><td class="text-success"><strong>Dispensada</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="bg-light rounded p-3 mt-3 small text-muted">
+      IN RFB nº 1.234/2012, Anexo I — alíquotas de retenção por natureza. IN RFB nº 2.145/2023 — extensão da retenção de IR para estados, DF e municípios. LC nº 116/2003 — lista de serviços tributáveis pelo ISS (mão de obra de oficina mecânica está no item 14.01). Lei nº 9.430/1996, art. 64 — retenção como antecipação tributária.
+    </div>
+  </div>
+</div>
+
+<!-- SEÇÃO 5: OBRIGAÇÃO DA FONTE PAGADORA -->
+<div class="card mb-4">
+  <div class="card-body">
+    <span class="badge bg-danger text-uppercase mb-2">Obrigação da fonte pagadora</span>
+    <h5 class="card-title">Como órgãos e empresas devem reter na manutenção de frota</h5>
+    <p>Na manutenção de frota, a retenção tributária exige atenção redobrada: há duas notas de naturezas distintas (peças e serviços), e a retenção de cada uma segue alíquotas diferentes. O órgão que retém o mesmo percentual sobre peças e serviços está cometendo erro fiscal em pelo menos uma das duas.</p>
+
+    <ol class="list-group list-group-numbered my-3">
+      <li class="list-group-item">
+        <strong>Tratar nota de peças e nota de serviços separadamente.</strong> O sistema de pagamento do órgão deve processar as duas notas com enquadramentos distintos. Aplicar a alíquota de serviço (9,45%) sobre a nota de peças gera retenção a maior de 3,60 pontos percentuais.
+      </li>
+      <li class="list-group-item">
+        <strong>Vincular a retenção ao CNPJ do fornecedor credenciado.</strong> Na manutenção intermediada pela plataforma, a retenção deve ser feita em nome da oficina, autopeças ou concessionária que emitiu a nota — não em nome da gerenciadora.
+      </li>
+      <li class="list-group-item">
+        <strong>Verificar o Simples Nacional separadamente para cada fornecedor.</strong> Uma OS pode envolver fornecedor de peças (optante pelo Simples) e oficina de mão de obra (não optante). A dispensa de retenção é individual por CNPJ e por nota.
+      </li>
+      <li class="list-group-item">
+        <strong>Emitir comprovante de retenção para cada CNPJ retido.</strong> O fornecedor precisa do informe de retenção para comprovar o crédito tributário. Sem o documento correto, o fornecedor não consegue compensar o valor retido.
+      </li>
+    </ol>
+
+    <div class="alert alert-warning">
+      <strong>Ponto crítico — dois fornecedores, dois CNPJs, duas retenções</strong><br>
+      Quando a OS envolve fornecedor de peças diferente da oficina de serviços (ex.: distribuidora de autopeças + oficina mecânica), há dois CNPJs distintos, duas notas e duas retenções com alíquotas diferentes. O órgão deve processar cada nota individualmente, com a retenção vinculada ao CNPJ emissor de cada documento.
+    </div>
+
+    <div class="bg-light rounded p-3 small text-muted">
+      Art. 18 da IN RFB nº 1.234/2012 — nas operações intermediadas por sistema eletrônico, a retenção ocorre em nome do fornecedor identificado no pagamento. Lei nº 9.430/1996, art. 64 — retenção como antecipação tributária do fornecedor.
+    </div>
+  </div>
+</div>
+
+<!-- SEÇÃO 6: CONTABILIDADE DO FORNECEDOR -->
+<div class="card mb-4">
+  <div class="card-body">
+    <span class="badge bg-info text-uppercase mb-2">Contabilidade — fornecedor</span>
+    <h5 class="card-title">Como o fornecedor de manutenção registra e recupera o tributo retido</h5>
+    <p>Retenção não é perda — é crédito tributário recuperável. Na manutenção de frota, é necessário controlar dois créditos distintos: um da nota de peças e outro da nota de serviços, pois as alíquotas são diferentes.</p>
+
+    <div class="bg-light border-start border-3 border-info p-3 my-3 small" style="line-height: 1.9;">
+      <strong class="d-block mb-2">Lançamento padrão — fornecedor que sofre retenção (órgão federal)</strong>
+      <strong>Nota de peças — R$ 3.000,00 — retenção 5,85% = R$ 175,50</strong><br>
+      D — Clientes a receber: R$ 3.000,00<br>
+      C — Receita de vendas de mercadorias: R$ 3.000,00<br>
+      <em>No recebimento:</em><br>
+      D — Caixa/banco: R$ 2.824,50<br>
+      D — Tributos retidos a recuperar (peças): R$ 175,50<br>
+      C — Clientes a receber: R$ 3.000,00<br><br>
+      <strong>Nota de serviços — R$ 1.500,00 — retenção 9,45% = R$ 141,75</strong><br>
+      D — Clientes a receber: R$ 1.500,00<br>
+      C — Receita de serviços: R$ 1.500,00<br>
+      <em>No recebimento:</em><br>
+      D — Caixa/banco: R$ 1.358,25<br>
+      D — Tributos retidos a recuperar (serviços): R$ 141,75<br>
+      C — Clientes a receber: R$ 1.500,00
+    </div>
+
+    <div class="row g-3 my-3">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h6 class="text-muted text-uppercase small">Órgão federal — OS completa</h6>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Nota de peças (bruto)</span><span class="fw-semibold">R$ 3.000,00</span></div>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Retenção peças (5,85%)</span><span class="fw-semibold text-danger">− R$ 175,50</span></div>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Taxa plataforma (10%)</span><span class="fw-semibold text-danger">− R$ 300,00</span></div>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Nota de serviços (bruto)</span><span class="fw-semibold">R$ 1.500,00</span></div>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Retenção serviços (9,45%)</span><span class="fw-semibold text-danger">− R$ 141,75</span></div>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Taxa plataforma (10%)</span><span class="fw-semibold text-danger">− R$ 150,00</span></div>
+            <div class="d-flex justify-content-between pt-2"><span class="fw-bold">Líquido recebido</span><span class="fw-bold text-success">R$ 3.732,75</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h6 class="text-muted text-uppercase small">O que cada valor representa</h6>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Receita bruta total</span><span class="fw-semibold">R$ 4.500,00</span></div>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Taxa plataforma (custo comercial)</span><span class="fw-semibold text-danger">− R$ 450,00</span></div>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Retenção total (crédito fiscal)</span><span class="fw-semibold text-warning">R$ 317,25</span></div>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Entrada financeira</span><span class="fw-semibold text-success">R$ 3.732,75</span></div>
+            <div class="d-flex justify-content-between pt-2"><span class="fw-bold">Crédito tributário a recuperar</span><span class="fw-bold text-success">R$ 317,25</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-success mb-0">
+      <strong>Regra de ouro:</strong> taxa da plataforma é custo comercial definitivo — vai para despesa. Retenção tributária é crédito fiscal recuperável — vai para ativo (tributos retidos a recuperar). Misturar os dois no mesmo lançamento distorce o resultado e desperdiça dinheiro.
+    </div>
+  </div>
+</div>
+
+<!-- SEÇÃO 7: VANTAGENS DO GERENCIAMENTO -->
+<div class="card mb-4">
+  <div class="card-body">
+    <span class="badge bg-success text-uppercase mb-2">Gestão de frota</span>
+    <h5 class="card-title">Por que o gerenciamento de manutenção via plataforma é vantajoso</h5>
+    <p>Manutenção não gerenciada é o maior gerador oculto de custo em frotas. O sobrepreço em peças e o excesso de mão de obra são invisíveis sem parâmetro de comparação. Uma oficina pode faturar R$ 800 por uma peça que custa R$ 300 na tabela Cilia, e o gestor sem sistema não tem como saber.</p>
+    <p>A taxa da plataforma (0% a 15% sobre o valor da OS) é o custo do controle. A economia gerada pelo controle — em sobrepreço evitado, manutenções desnecessárias bloqueadas e histórico de veículo disponível — supera consistentemente esse custo em frotas com mais de 10 veículos.</p>
+
+    <div class="row g-3 my-3">
+      <div class="col-md-4">
+        <div class="card border-success bg-light">
+          <div class="card-body">
+            <h6 class="fw-semibold text-success small">Precificação auditada por tabela</h6>
+            <p class="mb-0 small text-muted">Cada peça orçada é comparada com Cilia, Audatex ou Molicar. O sistema sinaliza desvios antes da aprovação — não depois do pagamento.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-success bg-light">
+          <div class="card-body">
+            <h6 class="fw-semibold text-success small">Aprovação prévia obrigatória</h6>
+            <p class="mb-0 small text-muted">Nenhuma peça é instalada e nenhum serviço é executado sem aprovação registrada. Elimina cobrança por serviços não solicitados.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card border-success bg-light">
+          <div class="card-body">
+            <h6 class="fw-semibold text-success small">Histórico completo por veículo</h6>
+            <p class="mb-0 small text-muted">Cada OS fica vinculada à placa e ao hodômetro. Identifica veículos com frequência de manutenção acima do esperado.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card">
+          <div class="card-body">
+            <h6 class="fw-semibold small">Rede credenciada auditada</h6>
+            <p class="mb-0 small text-muted">Oficinas, autopeças e concessionárias credenciadas passam por avaliação. A rede já está qualificada.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card">
+          <div class="card-body">
+            <h6 class="fw-semibold small">Segregação fiscal automática</h6>
+            <p class="mb-0 small text-muted">O sistema separa automaticamente peças de serviços na OS, gerando a base correta para duas notas distintas.</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card">
+          <div class="card-body">
+            <h6 class="fw-semibold small">Prazo de pagamento</h6>
+            <p class="mb-0 small text-muted">O fornecedor recebe com prazo definido. O cliente paga faturado. Previsibilidade para ambos.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <h6 class="mt-4 mb-3">A conta que a maioria dos gestores não faz</h6>
+    <div class="table-responsive">
+      <table class="table table-bordered table-sm">
+        <thead class="table-light">
+          <tr>
+            <th>Item</th>
+            <th class="text-danger">Sem gerenciamento</th>
+            <th class="text-success">Com plataforma</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Referência de preço de peças</td>
+            <td class="text-danger">Orçamento da própria oficina</td>
+            <td class="text-success">Tabela Cilia / Audatex / Molicar</td>
+          </tr>
+          <tr>
+            <td>Controle de peças substituídas</td>
+            <td class="text-danger">Nenhum — confia na palavra da oficina</td>
+            <td class="text-success">Registrado na OS com código de referência</td>
+          </tr>
+          <tr>
+            <td>Aprovação antes da execução</td>
+            <td class="text-danger">Verbal ou ausente</td>
+            <td class="text-success">Registrada na plataforma com timestamp</td>
+          </tr>
+          <tr>
+            <td>Histórico de manutenção</td>
+            <td class="text-danger">Planilha manual ou nenhum</td>
+            <td class="text-success">Automático por placa, chassi e hodômetro</td>
+          </tr>
+          <tr>
+            <td>Segregação fiscal</td>
+            <td class="text-danger">Depende do contador</td>
+            <td class="text-success">Automática — peças e serviços separados</td>
+          </tr>
+          <tr>
+            <td>Auditabilidade</td>
+            <td class="text-danger">Baixa — sem rastro digital</td>
+            <td class="text-success">Completa — toda OS rastreável</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="alert alert-info mb-0">
+      <strong>Referência de mercado:</strong> pesquisas do setor indicam que gestores de frota sem sistema de controle de manutenção pagam em média 18% a 25% acima do preço de tabela em peças e aceitam serviços não executados em até 12% das OS. Em uma frota com R$ 30.000/mês em manutenção, isso representa entre R$ 5.400 e R$ 7.500 mensais em sobrepreço evitável.
+    </div>
+  </div>
+</div>

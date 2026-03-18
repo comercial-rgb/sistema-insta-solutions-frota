@@ -341,4 +341,7 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
 
   resources :orientation_manuals
 
+  # Manual de Tributação e Precificação
+  get 'pricing_manuals', to: 'pricing_manuals#index', as: 'pricing_manuals'
+
 end

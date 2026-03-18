@@ -1,0 +1,76 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: true, href: '#', text: 'Manual de Tributação e Precificação'},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+
+  <div class="row mb-3">
+    <div class="col-12">
+      <h4 class="mb-0">
+        <i class="bi bi-book"></i> Manual de Tributação e Precificação
+      </h4>
+      <p class="text-muted">Consulte informações sobre precificação, contabilidade, retenções tributárias e manutenção de frota</p>
+    </div>
+  </div>
+
+  <!-- Abas -->
+  <ul class="nav nav-tabs mb-4" id="manualTabs" role="tablist">
+    <% if @is_admin || @is_provider %>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link <%= @active_tab == 'precificacao' ? 'active' : '' %>" id="precificacao-tab"
+                data-bs-toggle="tab" data-bs-target="#precificacao" type="button" role="tab"
+                aria-controls="precificacao" aria-selected="<%= @active_tab == 'precificacao' %>">
+          <i class="bi bi-calculator"></i> Precificação e Contabilidade
+        </button>
+      </li>
+    <% end %>
+    <% if @is_admin || !@is_provider %>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link <%= @active_tab == 'manutencao' ? 'active' : '' %>" id="manutencao-tab"
+                data-bs-toggle="tab" data-bs-target="#manutencao" type="button" role="tab"
+                aria-controls="manutencao" aria-selected="<%= @active_tab == 'manutencao' %>">
+          <i class="bi bi-truck"></i> Manutenção de Frota — Peças e Serviços
+        </button>
+      </li>
+    <% end %>
+    <% if @is_admin || @is_provider %>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link <%= @active_tab == 'simulador' ? 'active' : '' %>" id="simulador-tab"
+                data-bs-toggle="tab" data-bs-target="#simulador" type="button" role="tab"
+                aria-controls="simulador" aria-selected="<%= @active_tab == 'simulador' %>">
+          <i class="bi bi-sliders"></i> Simulador de Precificação
+        </button>
+      </li>
+    <% end %>
+  </ul>
+
+  <!-- Conteúdo das Abas -->
+  <div class="tab-content" id="manualTabsContent">
+
+    <% if @is_admin || @is_provider %>
+      <!-- ABA: Precificação e Contabilidade (Admin + Fornecedor) -->
+      <div class="tab-pane fade <%= @active_tab == 'precificacao' ? 'show active' : '' %>" id="precificacao" role="tabpanel" aria-labelledby="precificacao-tab">
+        <%= render 'pricing_manuals/tab_precificacao' %>
+      </div>
+    <% end %>
+
+    <% if @is_admin || !@is_provider %>
+      <!-- ABA: Manutenção de Frota (Admin + Cliente/Gestor/Adicional) -->
+      <div class="tab-pane fade <%= @active_tab == 'manutencao' ? 'show active' : '' %>" id="manutencao" role="tabpanel" aria-labelledby="manutencao-tab">
+        <%= render 'pricing_manuals/tab_manutencao' %>
+      </div>
+    <% end %>
+
+    <% if @is_admin || @is_provider %>
+      <!-- ABA: Simulador (Admin + Fornecedor) -->
+      <div class="tab-pane fade <%= @active_tab == 'simulador' ? 'show active' : '' %>" id="simulador" role="tabpanel" aria-labelledby="simulador-tab">
+        <%= render 'pricing_manuals/tab_simulador' %>
+      </div>
+    <% end %>
+
+  </div>
+</div>
