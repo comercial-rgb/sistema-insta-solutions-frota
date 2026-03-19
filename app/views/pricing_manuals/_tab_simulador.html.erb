@@ -129,9 +129,9 @@
       <h6>Como interpretar os resultados</h6>
       <ul class="small text-muted">
         <li><strong>Taxa total</strong> = taxa gerenciadora + taxa de antecipação. É o percentual efetivamente descontado pela plataforma.</li>
-        <li><strong>Preço mínimo de venda</strong> = o valor que você deve cobrar na OS para que, após o desconto da plataforma e da licitação, sobre exatamente o líquido desejado.</li>
-        <li><strong>Custo da plataforma</strong> = valor retido pela gerenciadora (taxa gerenciadora + antecipação). É custo comercial — vai para a conta de despesas.</li>
-        <li><strong>Desconto peça ou serviço</strong> = desconto obrigatório do cliente sobre o preço. Se o cliente não possuir desconto obrigatório, deixe em 0%.</li>
+        <li><strong>Preço mínimo de venda</strong> = preço de tabela que você deve cobrar na OS. Após o desconto do cliente e a taxa da plataforma, sobra exatamente o líquido desejado.</li>
+        <li><strong>Custo da plataforma</strong> = valor retido pela gerenciadora (taxa gerenciadora + antecipação), calculado sobre o valor <strong>após o desconto</strong> — não sobre o preço de tabela.</li>
+        <li><strong>Desconto peça ou serviço</strong> = desconto obrigatório do cliente aplicado sobre o preço de tabela. A taxa da plataforma incide apenas sobre o valor restante após este desconto.</li>
         <li><strong>Retenção tributária</strong> = valor retido pelo órgão pagador. Não é custo — é crédito fiscal recuperável via PER/DCOMP ou compensação em DARF.</li>
         <li><strong>Líquido estimado</strong> = valor que efetivamente entra no caixa do fornecedor após todos os descontos e retenções.</li>
       </ul>
@@ -157,12 +157,22 @@
       var ant  = parseFloat(elAnt.value);
       var ret  = parseFloat(elRet.value);
       var taxa = base + ant;
-      var taxaTotal = taxa + desc;
-      var preco = taxaTotal >= 100 ? 0 : liq / (1 - taxaTotal / 100);
-      var custoPlataforma = preco * taxa / 100;
-      var descontoLic = preco * desc / 100;
-      var retVal = preco * ret / 100;
-      var liquidoFinal = preco - custoPlataforma - descontoLic - retVal;
+
+      // Cálculo: desconto primeiro, taxa incide no valor APÓS desconto
+      // valorNota = preco * (1 - desc/100)
+      // custoPlataforma = valorNota * taxa/100
+      // retVal = valorNota * ret/100
+      // liq = valorNota - custoPlataforma - retVal
+      // liq = preco * (1 - desc/100) * (1 - taxa/100 - ret/100)
+      var fatorDesc = 1 - desc / 100;
+      var fatorLiq  = 1 - taxa / 100 - ret / 100;
+      var denominador = fatorDesc * fatorLiq;
+      var preco = denominador <= 0 ? 0 : liq / denominador;
+      var valorNota = preco * fatorDesc;
+      var descontoVal = preco - valorNota;
+      var custoPlataforma = valorNota * taxa / 100;
+      var retVal = valorNota * ret / 100;
+      var liquidoFinal = valorNota - custoPlataforma - retVal;
 
       document.getElementById('simLiqVal').textContent = fmt(liq);
       document.getElementById('simBaseVal').textContent = fmtPct(base);
@@ -172,18 +182,18 @@
       document.getElementById('simResTaxa').textContent = fmtPct(taxa);
       document.getElementById('simResPreco').textContent = fmt(preco);
       document.getElementById('simResDesc').textContent = '− ' + fmt(custoPlataforma);
-      document.getElementById('simResDescLic').textContent = descontoLic > 0 ? '− ' + fmt(descontoLic) : 'R$ 0';
+      document.getElementById('simResDescLic').textContent = descontoVal > 0 ? '− ' + fmt(descontoVal) : 'R$ 0';
       document.getElementById('simResRet').textContent = retVal > 0 ? fmt(retVal) : 'R$ 0';
       document.getElementById('simResLiq').textContent = fmt(liquidoFinal);
 
       var alertContainer = document.getElementById('simAlertContainer');
 
-      if (taxaTotal >= 100) {
-        alertContainer.innerHTML = '<div class="alert alert-danger mb-0"><strong>Erro:</strong> a soma das taxas e desconto atingiu 100% ou mais. Nenhum preço é viável nesta combinação.</div>';
+      if (denominador <= 0) {
+        alertContainer.innerHTML = '<div class="alert alert-danger mb-0"><strong>Erro:</strong> a combinação de desconto, taxa e retenção inviabiliza a operação. Nenhum preço é viável.</div>';
       } else if (liquidoFinal < liq * 0.85) {
         alertContainer.innerHTML = '<div class="alert alert-danger mb-0"><strong>Atenção:</strong> com a retenção tributária, seu líquido final será ' + fmt(liquidoFinal) + '. Lembre-se: a retenção é crédito fiscal recuperável — não é perda definitiva.</div>';
-      } else if (taxaTotal >= 25) {
-        alertContainer.innerHTML = '<div class="alert alert-warning mb-0"><strong>Atenção:</strong> taxa total + desconto acima de 25%. Revise o preço de venda antes de aceitar esta ordem.</div>';
+      } else if (taxa + desc >= 25) {
+        alertContainer.innerHTML = '<div class="alert alert-warning mb-0"><strong>Atenção:</strong> desconto + taxa acima de 25%. Revise o preço de venda antes de aceitar esta ordem.</div>';
       } else if (taxa === 0 && desc === 0) {
         alertContainer.innerHTML = '<div class="alert alert-success mb-0">Sem taxas nem desconto aplicados. Operação com custo zero.</div>';
       } else {
