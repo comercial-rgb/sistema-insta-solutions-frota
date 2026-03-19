@@ -26,12 +26,12 @@
           </div>
         </div>
 
-        <!-- Desconto licitação -->
+        <!-- Desconto peça ou serviço -->
         <div class="col-md-6">
-          <label for="simDesc" class="form-label fw-semibold">Desconto licitação (%)</label>
-          <small class="d-block text-muted mb-1">Aplique quando a licitação foi ganha com desconto sobre tabela.</small>
+          <label for="simDesc" class="form-label fw-semibold">Desconto peça ou serviço (%)</label>
+          <small class="d-block text-muted mb-1">Aplique quando o cliente possuir desconto obrigatório.</small>
           <div class="d-flex align-items-center gap-3">
-            <input type="range" class="form-range flex-grow-1" min="0" max="30" step="0.5" value="0" id="simDesc">
+            <input type="range" class="form-range flex-grow-1" min="0" max="50" step="0.5" value="0" id="simDesc">
             <span class="fw-bold fs-5" id="simDescVal" style="min-width: 60px; text-align: right;">0%</span>
           </div>
         </div>
@@ -97,7 +97,7 @@
         <div class="col-md-4">
           <div class="card text-center">
             <div class="card-body">
-              <div class="small text-muted">Desconto licitação</div>
+              <div class="small text-muted">Desconto peça ou serviço</div>
               <div class="fs-3 fw-bold text-primary" id="simResDescLic">R$ 0</div>
             </div>
           </div>
@@ -131,7 +131,7 @@
         <li><strong>Taxa total</strong> = taxa gerenciadora + taxa de antecipação. É o percentual efetivamente descontado pela plataforma.</li>
         <li><strong>Preço mínimo de venda</strong> = o valor que você deve cobrar na OS para que, após o desconto da plataforma e da licitação, sobre exatamente o líquido desejado.</li>
         <li><strong>Custo da plataforma</strong> = valor retido pela gerenciadora (taxa gerenciadora + antecipação). É custo comercial — vai para a conta de despesas.</li>
-        <li><strong>Desconto licitação</strong> = desconto concedido sobre o preço de tabela para ganhar a licitação. Se não houve desconto em licitação, deixe em 0%.</li>
+        <li><strong>Desconto peça ou serviço</strong> = desconto obrigatório do cliente sobre o preço. Se o cliente não possuir desconto obrigatório, deixe em 0%.</li>
         <li><strong>Retenção tributária</strong> = valor retido pelo órgão pagador. Não é custo — é crédito fiscal recuperável via PER/DCOMP ou compensação em DARF.</li>
         <li><strong>Líquido estimado</strong> = valor que efetivamente entra no caixa do fornecedor após todos os descontos e retenções.</li>
       </ul>
