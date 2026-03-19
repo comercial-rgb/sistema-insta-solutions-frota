@@ -18,6 +18,12 @@ pt-BR:
         manage_read: "Marcar como lida"
         view_message: "Marcar como lida"
         users: "Usuários específicos"
+        state: "Estado"
+        state_id: "Estado"
+        city: "Cidade"
+        city_id: "Cidade"
+        is_important: "Importante"
+        success_read_all: "Todas as notificações foram marcadas como lidas"
 en:
   activerecord:
     models:
@@ -38,3 +44,9 @@ en:
         manage_read: "Marcar como lida"
         view_message: "Marcar como lida"
         users: "Usuários específicos"
+        state: "Estado"
+        state_id: "Estado"
+        city: "Cidade"
+        city_id: "Cidade"
+        is_important: "Importante"
+        success_read_all: "Todas as notificações foram marcadas como lidas"

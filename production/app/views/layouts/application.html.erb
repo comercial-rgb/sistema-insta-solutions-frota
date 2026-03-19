@@ -35,6 +35,7 @@
             </div>
          <% else %>
             <%= render 'users/modals/reset_password' %>
+            <%= render 'notifications/modals/important_popup' %>
             <!-- Trocar o final da class da div abaixo entre: 'open' e 'closed' -->
             <div class="custom-display-screen-menu-open" id="div-with-page-content">
                <%= hidden_field_tag 'current_logged_user_id', @current_user.id %>

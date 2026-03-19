@@ -38,11 +38,20 @@ class OrderServicePolicy < ApplicationPolicy
   end
 
   def create?
+    return false if client_os_blocked?
     general_can_access?
   end
 
   def new?
     create?
+  end
+
+  def client_os_blocked?
+    if user.manager? || user.additional?
+      client = User.find_by(id: user.client_id)
+      return client&.os_blocked?
+    end
+    false
   end
 
   # Admin/Gestor/Adicional podem editar o cabeçalho da OS em qualquer status não-terminal

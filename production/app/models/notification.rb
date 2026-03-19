@@ -1,4 +1,4 @@
-class Notification < ApplicationRecord
+﻿class Notification < ApplicationRecord
   acts_as_readable on: :created_at
   after_initialize :default_values
 
@@ -11,19 +11,37 @@ class Notification < ApplicationRecord
   scope :by_profile_id, lambda { |value| where("notifications.profile_id = ?", value) if !value.nil? && !value.blank? }
   # scope :by_name, lambda { |value| where("LOWER(notifications.name) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("notifications.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("notifications.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("notifications.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("notifications.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
   scope :is_to_my_profile, lambda {
     |value| where("notifications.profile_id = ? OR notifications.profile_id IS NULL", value) if !value.nil? && !value.blank?
   }
 
-  scope :is_to_me, lambda { |profile_id, user_id|
+  scope :by_state_id, lambda { |value| where("notifications.state_id = ?", value) if !value.nil? && !value.blank? }
+  scope :by_city_id, lambda { |value| where("notifications.city_id = ?", value) if !value.nil? && !value.blank? }
+  scope :important, -> { where(is_important: true) }
+
+  scope :is_to_me, lambda { |profile_id, user_id, user_state_id = nil, user_city_id = nil|
     if profile_id.present? && user_id.present?
       to_my_profile_scope = left_outer_joins(:users).is_to_my_profile(profile_id)
 
-      to_my_profile_scope.where("users.id IN (?)", user_id)
+      result = to_my_profile_scope.where("users.id IN (?)", user_id)
                         .or(to_my_profile_scope.where(send_all: 1))
+
+      if user_state_id.present?
+        result = result.where("notifications.state_id IS NULL OR notifications.state_id = ?", user_state_id)
+      else
+        result = result.where(state_id: nil)
+      end
+
+      if user_city_id.present?
+        result = result.where("notifications.city_id IS NULL OR notifications.city_id = ?", user_city_id)
+      else
+        result = result.where(city_id: nil)
+      end
+
+      result
     else
       none
     end
@@ -41,6 +59,8 @@ class Notification < ApplicationRecord
   # }
 
   belongs_to :profile, optional: true
+  belongs_to :state, optional: true
+  belongs_to :city, optional: true
 
   has_and_belongs_to_many :users, dependent: :destroy, validate: false
 
@@ -59,11 +79,18 @@ class Notification < ApplicationRecord
   end
 
   def self.getting_current_unread(current_user)
-    result = Notification.is_to_me(current_user.profile_id, current_user.id)
+    result = Notification.is_to_me(current_user.profile_id, current_user.id, current_user.state_id, current_user.city_id)
     .unread_by(current_user)
     .unscope(:limit, :offset)
     .length
     return result
+  end
+
+  def self.important_unread_for(current_user)
+    Notification.is_to_me(current_user.profile_id, current_user.id, current_user.state_id, current_user.city_id)
+    .important
+    .unread_by(current_user)
+    .unscope(:limit, :offset)
   end
 
   def get_users
@@ -72,6 +99,14 @@ class Notification < ApplicationRecord
       result = self.users.map(&:name).join(", ")
     end
     return result
+  end
+
+  def getting_state_text
+    self.state.present? ? self.state.name : I18n.t("model.select_all")
+  end
+
+  def getting_city_text
+    self.city.present? ? self.city.name : I18n.t("model.select_all")
   end
 
   private

@@ -31,6 +31,18 @@
         <% end %>
     </div>
 
+    <div class="row mt-2">
+        <div class="col-12 col-md-3">
+            <%= f.association :state, collection: State.all.order(:name), as: :select, include_blank: t('model.select_all'), input_html: { id: 'notification_state_id' } %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.association :city, collection: (f.object.state.present? ? City.by_state_id(f.object.state_id).order(:name) : []), as: :select, include_blank: t('model.select_all'), input_html: { id: 'notification_city_id' } %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :is_important, as: :select, collection: CustomHelper.return_select_options_true_false, include_blank: false, label: Notification.human_attribute_name(:is_important) %>
+        </div>
+    </div>
+
     <div class="row">
         <div class="col-12">
             <%= f.input :title %>

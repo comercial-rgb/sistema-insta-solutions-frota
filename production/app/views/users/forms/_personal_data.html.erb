@@ -47,6 +47,11 @@
             <div class="col-12 col-md-3 mb-3">
                 <%= f.input :require_vehicle_photos, as: :boolean, label: 'Exigir fotos do veículo (frontal, lateral, hodômetro) nas OS' %>
             </div>
+            <% if @current_user.admin? %>
+                <div class="col-12 col-md-3 mb-3">
+                    <%= f.input :os_blocked, as: :select, collection: [['Liberado', false],['Bloqueado', true]], include_blank: false, label: 'Abertura de OS', hint: 'Ao bloquear, todos os usuários deste cliente não poderão abrir novas OS.' %>
+                </div>
+            <% end %>
         <% end %>
         <% if f.object.profile_id == Profile::MANAGER_ID %>
             <div class="col-12 col-md-2 mb-3">

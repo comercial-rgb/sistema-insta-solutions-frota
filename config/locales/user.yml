@@ -21,6 +21,7 @@ pt-BR:
         access_user: 'Usuário de acesso'
         password: "Senha"
         is_blocked: "Bloqueado?"
+        os_blocked: "Abertura de OS"
         password_confirmation: "Confirmação de senha"
         profile_id: "Eu sou"
         profile: "Eu sou"
@@ -156,6 +157,7 @@ en:
         only_email_text: "E-mail"
         password: "Senha"
         is_blocked: "Bloqueado?"
+        os_blocked: "Abertura de OS"
         password_confirmation: "Confirmação de senha"
         profile_id: "Eu sou"
         profile: "Eu sou"

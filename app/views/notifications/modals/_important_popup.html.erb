@@ -1,0 +1,48 @@
+<% important_notifications = Notification.important_unread_for(@current_user) %>
+<% if important_notifications.any? %>
+<!-- Modal de Notificações Importantes -->
+<div class="modal fade" id="importantNotificationsModal" tabindex="-1" aria-labelledby="importantNotificationsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+
+            <!-- Cabeçalho -->
+            <div class="modal-header bg-warning bg-opacity-10 border-warning">
+                <h5 class="modal-title" id="importantNotificationsModalLabel">
+                    <i class="bi bi-exclamation-triangle-fill text-warning me-2"></i>
+                    Notificações Importantes
+                    <span class="badge bg-warning text-dark ms-2"><%= important_notifications.length %></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <!-- Conteúdo -->
+            <div class="modal-body" style="max-height: 400px; overflow-y: auto;">
+                <% important_notifications.each_with_index do |notification, index| %>
+                    <div class="card mb-2 border-warning">
+                        <div class="card-body py-2 px-3">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <h6 class="card-title mb-1 fw-bold"><%= notification.title %></h6>
+                                <small class="text-muted"><%= CustomHelper.get_text_date(notification.created_at, "datetime", :full) %></small>
+                            </div>
+                            <div class="card-text small">
+                                <%= sanitize(notification.message) %>
+                            </div>
+                        </div>
+                    </div>
+                <% end %>
+            </div>
+
+            <!-- Rodapé -->
+            <div class="modal-footer">
+                <a href="<%= notifications_path %>" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-bell me-1"></i> Ver todas as notificações
+                </a>
+                <button type="button" class="btn btn-warning btn-sm" id="markImportantAsRead" data-bs-dismiss="modal">
+                    <i class="bi bi-check2-all me-1"></i> Entendido
+                </button>
+            </div>
+
+        </div>
+    </div>
+</div>
+<% end %>

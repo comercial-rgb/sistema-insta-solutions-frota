@@ -20,6 +20,16 @@ $(document).ready(function () {
         }
     });
 
+    // Cascade: ao trocar Estado, carregar cidades
+    $(document).on('change', '#notification_state_id', function () {
+        var state_id = $(this).val();
+        var citySelect = $('#notification_city_id');
+        citySelect.html('<option value="">' + (citySelect.data('blank') || 'Todos') + '</option>');
+        if (state_id != null && state_id != '') {
+            find_by_state(state_id, '#notification_city_id');
+        }
+    });
+
     let MANAGE_READ_NOTIFICATION = 'read-notification';
     let URL_MANAGE_LIKED_MESSAGE = '/manage_read_notification';
 
@@ -41,5 +51,12 @@ $(document).ready(function () {
                 }
             });
     });
+
+    // Popup de notificações importantes ao acessar o sistema
+    var importantModal = document.getElementById('importantNotificationsModal');
+    if (importantModal) {
+        var bsModal = new bootstrap.Modal(importantModal);
+        bsModal.show();
+    }
 
 });

@@ -38,6 +38,7 @@ class OrderServicePolicy < ApplicationPolicy
   end
 
   def create?
+    return false if client_os_blocked?
     general_can_access?
   end
 
@@ -220,6 +221,14 @@ class OrderServicePolicy < ApplicationPolicy
       return true
     end
     
+    false
+  end
+
+  def client_os_blocked?
+    if user.manager? || user.additional?
+      client = User.find_by(id: user.client_id)
+      return client&.os_blocked?
+    end
     false
   end
 

@@ -1093,7 +1093,7 @@ class UsersController < ApplicationController
       :current_plan_id, :set_manually_plan, :manually_plan_id, :limit_date_manually_plan,
       :municipal_inscription, :state_inscription, :discount_percent, :department, :state_id, :city_id, :client_id,
       :registration, :optante_simples, :needs_km,
-        :require_vehicle_photos,
+        :require_vehicle_photos, :os_blocked,
       phones_attributes: [:id, :is_whatsapp, :phone_code, :phone, :phone_type_id, :responsible],
       emails_attributes: [:id, :email, :email_type_id],
       attachment_attributes: [:id, :attachment, :attachment_type],

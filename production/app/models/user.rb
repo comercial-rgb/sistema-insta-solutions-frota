@@ -304,6 +304,10 @@ class User < ActiveRecord::Base
 		!profile.nil? && profile.provider?
 	end
 
+	def os_blocked?
+		os_blocked == true
+	end
+
 	def discount_percent=(new_discount_percent)
 		self[:discount_percent] = CustomHelper.currency_to_value(new_discount_percent)
 	end

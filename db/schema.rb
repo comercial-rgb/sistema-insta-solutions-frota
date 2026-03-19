@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_03_06_185330) do
+ActiveRecord::Schema[7.1].define(version: 2026_03_19_130000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -359,7 +359,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_03_06_185330) do
     t.text "message", size: :long
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "state_id"
+    t.bigint "city_id"
+    t.boolean "is_important", default: false, null: false
+    t.index ["city_id"], name: "index_notifications_on_city_id"
     t.index ["profile_id"], name: "index_notifications_on_profile_id"
+    t.index ["state_id"], name: "index_notifications_on_state_id"
   end
 
   create_table "notifications_users", id: false, charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -835,6 +840,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_03_06_185330) do
     t.boolean "optante_simples", default: false
     t.boolean "needs_km", default: false
     t.boolean "require_vehicle_photos", default: false, null: false
+    t.boolean "os_blocked", default: false, null: false
     t.index ["city_id"], name: "index_users_on_city_id"
     t.index ["client_id"], name: "index_users_on_client_id"
     t.index ["person_type_id"], name: "index_users_on_person_type_id"
@@ -938,7 +944,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_03_06_185330) do
   add_foreign_key "cost_centers", "users", column: "client_id"
   add_foreign_key "data_banks", "banks"
   add_foreign_key "data_banks", "data_bank_types"
+  add_foreign_key "notifications", "cities"
   add_foreign_key "notifications", "profiles"
+  add_foreign_key "notifications", "states"
   add_foreign_key "order_service_directed_providers", "order_services"
   add_foreign_key "order_service_directed_providers", "users", column: "provider_id"
   add_foreign_key "order_service_invoices", "order_service_invoice_types"
