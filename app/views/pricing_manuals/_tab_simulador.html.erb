@@ -17,12 +17,22 @@
           </div>
         </div>
 
-        <!-- Taxa base -->
+        <!-- Taxa gerenciadora -->
         <div class="col-md-6">
-          <label for="simBase" class="form-label fw-semibold">Taxa base do cliente (%)</label>
+          <label for="simBase" class="form-label fw-semibold">Taxa gerenciadora (%)</label>
           <div class="d-flex align-items-center gap-3">
             <input type="range" class="form-range flex-grow-1" min="0" max="15" step="0.5" value="10" id="simBase">
             <span class="fw-bold fs-5" id="simBaseVal" style="min-width: 60px; text-align: right;">10,0%</span>
+          </div>
+        </div>
+
+        <!-- Desconto licitação -->
+        <div class="col-md-6">
+          <label for="simDesc" class="form-label fw-semibold">Desconto licitação (%)</label>
+          <small class="d-block text-muted mb-1">Aplique quando a licitação foi ganha com desconto sobre tabela.</small>
+          <div class="d-flex align-items-center gap-3">
+            <input type="range" class="form-range flex-grow-1" min="0" max="30" step="0.5" value="0" id="simDesc">
+            <span class="fw-bold fs-5" id="simDescVal" style="min-width: 60px; text-align: right;">0%</span>
           </div>
         </div>
 
@@ -53,19 +63,20 @@
         <button type="button" class="btn btn-sm btn-outline-secondary me-1" onclick="document.getElementById('simRet').value=4.80;simCalc();">Estadual/Municipal Serviços (4,80%)</button>
         <button type="button" class="btn btn-sm btn-outline-secondary me-1" onclick="document.getElementById('simRet').value=5.85;simCalc();">Federal Peças (5,85%)</button>
         <button type="button" class="btn btn-sm btn-outline-secondary me-1" onclick="document.getElementById('simRet').value=9.45;simCalc();">Federal Serviços (9,45%)</button>
+        <div class="small text-muted mt-2"><i class="bi bi-info-circle"></i> Use os atalhos acima somente se o cliente/órgão pagador realiza retenção tributária na fonte. Se o cliente for empresa privada sem retenção ou se você é optante pelo Simples Nacional, deixe em "Sem retenção".</div>
       </div>
 
       <!-- Resultados -->
       <div class="row g-3 mt-4">
-        <div class="col-md-3">
+        <div class="col-md-4">
           <div class="card text-center">
             <div class="card-body">
-              <div class="small text-muted">Taxa total</div>
+              <div class="small text-muted">Taxa total (gerenciadora + antecipação)</div>
               <div class="fs-3 fw-bold text-warning" id="simResTaxa">10,0%</div>
             </div>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
           <div class="card text-center">
             <div class="card-body">
               <div class="small text-muted">Preço mínimo de venda</div>
@@ -73,19 +84,37 @@
             </div>
           </div>
         </div>
-        <div class="col-md-3">
+        <div class="col-md-4">
           <div class="card text-center">
             <div class="card-body">
-              <div class="small text-muted">Desconto da plataforma</div>
+              <div class="small text-muted">Custo da plataforma</div>
               <div class="fs-3 fw-bold text-danger" id="simResDesc">− R$ 94</div>
             </div>
           </div>
         </div>
-        <div class="col-md-3">
+      </div>
+      <div class="row g-3 mt-2">
+        <div class="col-md-4">
+          <div class="card text-center">
+            <div class="card-body">
+              <div class="small text-muted">Desconto licitação</div>
+              <div class="fs-3 fw-bold text-primary" id="simResDescLic">R$ 0</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
           <div class="card text-center">
             <div class="card-body">
               <div class="small text-muted">Retenção (crédito fiscal)</div>
               <div class="fs-3 fw-bold text-muted" id="simResRet">R$ 0</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-4">
+          <div class="card text-center border-success">
+            <div class="card-body">
+              <div class="small text-muted">Líquido estimado</div>
+              <div class="fs-3 fw-bold text-success" id="simResLiq">R$ 850</div>
             </div>
           </div>
         </div>
@@ -99,10 +128,12 @@
     <div class="mt-4">
       <h6>Como interpretar os resultados</h6>
       <ul class="small text-muted">
-        <li><strong>Taxa total</strong> = taxa base + taxa de antecipação. É o percentual efetivamente descontado pela plataforma.</li>
-        <li><strong>Preço mínimo de venda</strong> = o valor que você deve cobrar na OS para que, após o desconto da plataforma, sobre exatamente o líquido desejado.</li>
-        <li><strong>Desconto da plataforma</strong> = diferença entre o preço de venda e o líquido que chega até você. É custo comercial — vai para a conta de despesas.</li>
+        <li><strong>Taxa total</strong> = taxa gerenciadora + taxa de antecipação. É o percentual efetivamente descontado pela plataforma.</li>
+        <li><strong>Preço mínimo de venda</strong> = o valor que você deve cobrar na OS para que, após o desconto da plataforma e da licitação, sobre exatamente o líquido desejado.</li>
+        <li><strong>Custo da plataforma</strong> = valor retido pela gerenciadora (taxa gerenciadora + antecipação). É custo comercial — vai para a conta de despesas.</li>
+        <li><strong>Desconto licitação</strong> = desconto concedido sobre o preço de tabela para ganhar a licitação. Se não houve desconto em licitação, deixe em 0%.</li>
         <li><strong>Retenção tributária</strong> = valor retido pelo órgão pagador. Não é custo — é crédito fiscal recuperável via PER/DCOMP ou compensação em DARF.</li>
+        <li><strong>Líquido estimado</strong> = valor que efetivamente entra no caixa do fornecedor após todos os descontos e retenções.</li>
       </ul>
     </div>
   </div>
@@ -112,6 +143,7 @@
   (function() {
     var elLiq  = document.getElementById('simLiq');
     var elBase = document.getElementById('simBase');
+    var elDesc = document.getElementById('simDesc');
     var elAnt  = document.getElementById('simAnt');
     var elRet  = document.getElementById('simRet');
 
@@ -121,37 +153,45 @@
     window.simCalc = function() {
       var liq  = parseFloat(elLiq.value);
       var base = parseFloat(elBase.value);
+      var desc = parseFloat(elDesc.value);
       var ant  = parseFloat(elAnt.value);
       var ret  = parseFloat(elRet.value);
       var taxa = base + ant;
-      var preco = taxa >= 100 ? 0 : liq / (1 - taxa / 100);
-      var desconto = preco - liq;
+      var taxaTotal = taxa + desc;
+      var preco = taxaTotal >= 100 ? 0 : liq / (1 - taxaTotal / 100);
+      var custoPlataforma = preco * taxa / 100;
+      var descontoLic = preco * desc / 100;
       var retVal = preco * ret / 100;
+      var liquidoFinal = preco - custoPlataforma - descontoLic - retVal;
 
       document.getElementById('simLiqVal').textContent = fmt(liq);
       document.getElementById('simBaseVal').textContent = fmtPct(base);
+      document.getElementById('simDescVal').textContent = fmtPct(desc);
       document.getElementById('simAntVal').textContent = fmtPct(ant);
       document.getElementById('simRetVal').textContent = fmtPct(ret);
       document.getElementById('simResTaxa').textContent = fmtPct(taxa);
       document.getElementById('simResPreco').textContent = fmt(preco);
-      document.getElementById('simResDesc').textContent = '− ' + fmt(desconto);
+      document.getElementById('simResDesc').textContent = '− ' + fmt(custoPlataforma);
+      document.getElementById('simResDescLic').textContent = descontoLic > 0 ? '− ' + fmt(descontoLic) : 'R$ 0';
       document.getElementById('simResRet').textContent = retVal > 0 ? fmt(retVal) : 'R$ 0';
+      document.getElementById('simResLiq').textContent = fmt(liquidoFinal);
 
       var alertContainer = document.getElementById('simAlertContainer');
-      var liquidoFinal = liq - retVal;
 
-      if (liquidoFinal < liq * 0.9) {
-        alertContainer.innerHTML = '<div class="alert alert-danger mb-0"><strong>Atenção:</strong> com a retenção tributária, seu líquido final será ' + fmt(liquidoFinal) + '. A retenção é crédito fiscal recuperável — não é perda definitiva.</div>';
-      } else if (taxa >= 20) {
-        alertContainer.innerHTML = '<div class="alert alert-danger mb-0">Taxa total acima de 20%. Revise o preço de venda antes de aceitar esta ordem.</div>';
-      } else if (taxa === 0) {
-        alertContainer.innerHTML = '<div class="alert alert-success mb-0">Sem taxas aplicadas. Operação com custo zero de plataforma.</div>';
+      if (taxaTotal >= 100) {
+        alertContainer.innerHTML = '<div class="alert alert-danger mb-0"><strong>Erro:</strong> a soma das taxas e desconto atingiu 100% ou mais. Nenhum preço é viável nesta combinação.</div>';
+      } else if (liquidoFinal < liq * 0.85) {
+        alertContainer.innerHTML = '<div class="alert alert-danger mb-0"><strong>Atenção:</strong> com a retenção tributária, seu líquido final será ' + fmt(liquidoFinal) + '. Lembre-se: a retenção é crédito fiscal recuperável — não é perda definitiva.</div>';
+      } else if (taxaTotal >= 25) {
+        alertContainer.innerHTML = '<div class="alert alert-warning mb-0"><strong>Atenção:</strong> taxa total + desconto acima de 25%. Revise o preço de venda antes de aceitar esta ordem.</div>';
+      } else if (taxa === 0 && desc === 0) {
+        alertContainer.innerHTML = '<div class="alert alert-success mb-0">Sem taxas nem desconto aplicados. Operação com custo zero.</div>';
       } else {
         alertContainer.innerHTML = '';
       }
     };
 
-    [elLiq, elBase, elAnt, elRet].forEach(function(el) {
+    [elLiq, elBase, elDesc, elAnt, elRet].forEach(function(el) {
       el.addEventListener('input', window.simCalc);
     });
 
