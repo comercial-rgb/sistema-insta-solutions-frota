@@ -538,10 +538,10 @@ $(document).on('click', '.add-provider-service-temp', function(e) {
         success: function(services) {
             // Gerar options do select
             let optionsHtml = '<option value="">Selecionar do banco...</option>';
+            optionsHtml += '<option value="novo" data-name="">➕ Criar novo item</option>';
             services.forEach(function(service) {
                 optionsHtml += `<option value="${service.id}" data-name="${service.name}">${service.name}</option>`;
             });
-            optionsHtml += '<option value="novo" data-name="">➕ Criar novo item</option>';
             
             // Template do novo item com SELECT e campo de texto condicional
             let newItemHtml = `
