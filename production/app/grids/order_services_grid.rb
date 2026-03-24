@@ -125,7 +125,7 @@ class OrderServicesGrid
     relation.by_manager_id(value)
   end
 
-  filter(:provider_id, :enum, if: :check_admin, select: :get_providers, header: OrderService.human_attribute_name(:provider_id), include_blank: I18n.t('model.select_option') ) do |value, relation, grid|
+  filter(:provider_id, :enum, if: :check_not_provider, select: :get_providers, header: OrderService.human_attribute_name(:provider_id), include_blank: I18n.t('model.select_option') ) do |value, relation, grid|
     relation.by_proposal_provider_id(value)
   end
 

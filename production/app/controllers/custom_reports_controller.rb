@@ -34,6 +34,28 @@ class CustomReportsController < ApplicationController
 
     @selected_client = User.client.active.find_by(id: selected_client_id) if selected_client_id.present?
     
+    # Carregar coleções para filtros
+    @providers = User.provider.order(:fantasy_name)
+    @cost_centers = if @current_user.admin?
+      CostCenter.order(:name)
+    elsif @current_user.manager? || @current_user.additional?
+      CostCenter.by_client_id(@current_user.client_id).order(:name)
+    else
+      CostCenter.none
+    end
+    @sub_units = if @current_user.admin?
+      SubUnit.order(:name)
+    elsif @current_user.manager? || @current_user.additional?
+      SubUnit.by_client_id(@current_user.client_id).order(:name)
+    else
+      SubUnit.none
+    end
+    @vehicles = if @current_user.admin?
+      Vehicle.order(:board)
+    else
+      Vehicle.getting_data_by_user(@current_user)
+    end
+    
     # Inicializar como vazio se não houver filtros
     if has_filters?
       @order_services = apply_filters(policy_scope(OrderService))
@@ -52,8 +74,10 @@ class CustomReportsController < ApplicationController
 
   def has_filters?
     params[:client_id].present? || params[:start_date].present? || 
+    params[:month].present? || params[:year].present? ||
     params[:status_id].present? || params[:type_id].present? ||
-    params[:vehicle_id].present?
+    params[:vehicle_id].present? || params[:provider_id].present? ||
+    params[:cost_center_id].present? || params[:sub_unit_id].present?
   end
 
   def authorize_access
@@ -76,15 +100,48 @@ class CustomReportsController < ApplicationController
       scope = scope.where(client_id: params[:client_id])
     end
     
-    # Filtro por período
-    if params[:start_date].present? && params[:end_date].present?
-      start_date = Date.parse(params[:start_date]) rescue nil
-      end_date = Date.parse(params[:end_date]) rescue nil
-      scope = scope.where(created_at: start_date.beginning_of_day..end_date.end_of_day) if start_date && end_date
+    # Determinar o range de data a ser usado
+    date_range = nil
+    
+    # Prioridade: Data Inicial/Final > Mês/Ano
+    if params[:start_date].present? || params[:end_date].present?
+      start_date = params[:start_date].present? ? (Date.parse(params[:start_date]) rescue nil) : nil
+      end_date = params[:end_date].present? ? (Date.parse(params[:end_date]) rescue nil) : nil
+      
+      if start_date && end_date
+        date_range = start_date.beginning_of_day..end_date.end_of_day
+      elsif start_date
+        date_range = start_date.beginning_of_day..DateTime.now.end_of_day
+      elsif end_date
+        date_range = DateTime.new(2000,1,1)..end_date.end_of_day
+      end
+    elsif params[:month].present? && params[:year].present?
+      month = params[:month].to_i
+      year = params[:year].to_i
+      date_range = Date.new(year, month, 1).beginning_of_day..Date.new(year, month, 1).end_of_month.end_of_day
+    elsif params[:year].present?
+      year = params[:year].to_i
+      date_range = Date.new(year, 1, 1).beginning_of_day..Date.new(year, 12, 31).end_of_day
     end
 
-    if params[:status_id].present?
-      scope = scope.where(order_service_status_id: params[:status_id])
+    # Se há status + datas: busca por auditoria (OS que PASSARAM por aquele status no período)
+    # Isso permite encontrar OS autorizadas em Dez/2025 mesmo que agora estejam em "Paga"
+    if params[:status_id].present? && date_range.present?
+      scope = scope
+        .left_outer_joins(:audits)
+        .where(audits: { auditable_type: 'OrderService' })
+        .where(audits: { associated_id: params[:status_id] })
+        .where(audits: { created_at: date_range })
+        .distinct
+    else
+      # Sem status: filtra por created_at
+      if date_range.present?
+        scope = scope.where(created_at: date_range)
+      end
+
+      if params[:status_id].present?
+        scope = scope.where(order_service_status_id: params[:status_id])
+      end
     end
     
     # Filtro por tipo de OS
@@ -95,6 +152,23 @@ class CustomReportsController < ApplicationController
     # Filtro por veículo
     if params[:vehicle_id].present?
       scope = scope.where(vehicle_id: params[:vehicle_id])
+    end
+    
+    # Filtro por fornecedor (busca OS que têm propostas deste fornecedor OU foram atribuídas a ele)
+    if params[:provider_id].present?
+      scope = scope.left_outer_joins(:order_service_proposals)
+                   .where("order_service_proposals.provider_id = :pid OR order_services.provider_id = :pid", pid: params[:provider_id])
+                   .distinct
+    end
+    
+    # Filtro por centro de custo (via veículo)
+    if params[:cost_center_id].present?
+      scope = scope.joins(:vehicle).where(vehicles: { cost_center_id: params[:cost_center_id] })
+    end
+    
+    # Filtro por subunidade (via veículo)
+    if params[:sub_unit_id].present?
+      scope = scope.joins(:vehicle).where(vehicles: { sub_unit_id: params[:sub_unit_id] })
     end
     
     scope.order(created_at: :desc)
@@ -117,7 +191,7 @@ class CustomReportsController < ApplicationController
     
     csv_data = CSV.generate(headers: true, col_sep: ';', encoding: 'UTF-8') do |csv|
       # Cabeçalho principal
-      csv << ['Código', 'Cliente', 'Veículo', 'Placa', 'Tipo OS', 'Status', 'Data Criação', 'Valor Total']
+      csv << ['Código', 'Cliente', 'Veículo', 'Placa', 'Tipo OS', 'Status', 'Data Criação', 'Valor Peças', 'Valor Serviços', 'Valor Total']
       
       # Dados de cada OS
       @order_services.each do |os|
@@ -129,6 +203,8 @@ class CustomReportsController < ApplicationController
           os.order_service_type&.name || '-',
           os.order_service_status&.name || '-',
           os.created_at.strftime('%d/%m/%Y'),
+          os.total_parts_value || 0,
+          os.total_services_value || 0,
           os.total_value || 0
         ]
         
@@ -156,6 +232,8 @@ class CustomReportsController < ApplicationController
       # Totalizadores
       csv << []
       csv << ['Total de OSs:', @order_services.count]
+      csv << ['Total Peças:', @order_services.sum(&:total_parts_value)]
+      csv << ['Total Serviços:', @order_services.sum(&:total_services_value)]
       csv << ['Valor Total:', @order_services.sum(&:total_value)]
     end
     
@@ -252,6 +330,21 @@ class CustomReportsController < ApplicationController
         filters_lines << "Veículo: #{vehicle_label || '-'}"
       end
 
+      if report_params[:provider_id].present?
+        provider = User.find_by(id: report_params[:provider_id])
+        filters_lines << "Fornecedor: #{provider&.fantasy_name || provider&.social_name || '-'}"
+      end
+
+      if report_params[:cost_center_id].present?
+        cost_center = CostCenter.find_by(id: report_params[:cost_center_id])
+        filters_lines << "Centro de Custo: #{cost_center&.name || '-'}"
+      end
+
+      if report_params[:sub_unit_id].present?
+        sub_unit = SubUnit.find_by(id: report_params[:sub_unit_id])
+        filters_lines << "Subunidade: #{sub_unit&.name || '-'}"
+      end
+
       if filters_lines.any?
         pdf.text 'Filtros aplicados:', style: :bold
         filters_lines.each { |line| pdf.text line, size: 9 }
@@ -277,6 +370,8 @@ class CustomReportsController < ApplicationController
             ['Placa', os.vehicle&.board || '-'],
             ['Tipo OS', os.order_service_type&.name || '-'],
             ['Data Criação', os.created_at.strftime('%d/%m/%Y')],
+            ['Valor Peças', CustomHelper.to_currency(os.total_parts_value || 0)],
+            ['Valor Serviços', CustomHelper.to_currency(os.total_services_value || 0)],
             ['Valor Total', os.total_value ? CustomHelper.to_currency(os.total_value) : 'R$ 0,00']
           ]
           
@@ -321,9 +416,13 @@ class CustomReportsController < ApplicationController
         
         # Totalizador final
         pdf.move_down 10
+        total_parts = order_services.sum(&:total_parts_value)
+        total_services = order_services.sum(&:total_services_value)
         total_value = order_services.sum(&:total_value)
         pdf.text "Total de OSs: #{order_services.count}", style: :bold
-        pdf.text "Valor Total: #{CustomHelper.to_currency(total_value)}", style: :bold
+        pdf.text "Total Peças: #{CustomHelper.to_currency(total_parts)}", style: :bold
+        pdf.text "Total Serviços: #{CustomHelper.to_currency(total_services)}", style: :bold
+        pdf.text "Valor Total: #{CustomHelper.to_currency(total_value)}", style: :bold, size: 12
       else
         pdf.text "Nenhuma ordem de serviço encontrada com os filtros aplicados.", align: :center
       end

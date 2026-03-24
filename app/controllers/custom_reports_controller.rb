@@ -154,10 +154,10 @@ class CustomReportsController < ApplicationController
       scope = scope.where(vehicle_id: params[:vehicle_id])
     end
     
-    # Filtro por fornecedor (busca OS que têm propostas deste fornecedor)
+    # Filtro por fornecedor (busca OS que têm propostas deste fornecedor OU foram atribuídas a ele)
     if params[:provider_id].present?
-      scope = scope.joins(:order_service_proposals)
-                   .where(order_service_proposals: { provider_id: params[:provider_id] })
+      scope = scope.left_outer_joins(:order_service_proposals)
+                   .where("order_service_proposals.provider_id = :pid OR order_services.provider_id = :pid", pid: params[:provider_id])
                    .distinct
     end
     
