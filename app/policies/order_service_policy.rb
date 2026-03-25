@@ -4,6 +4,10 @@ class OrderServicePolicy < ApplicationPolicy
     user.admin? || user.manager? || user.additional?
   end
 
+  def warranty_items_by_vehicle_id?
+    general_can_access?
+  end
+
   def index?
     user.admin? || user.manager? || user.additional? || user.provider?
   end
