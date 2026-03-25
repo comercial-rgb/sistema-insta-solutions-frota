@@ -266,6 +266,7 @@ class OrderService < ApplicationRecord
   validate :validate_commitments_by_category
   validate :validate_service_group_for_requisicao
   validate :validate_services_in_service_group
+  validate :validate_provider_for_diagnostico
 
 	def as_json(options = {})
 		{
@@ -1091,6 +1092,12 @@ class OrderService < ApplicationRecord
   def has_services?
     # Verifica se há itens de serviços na OS
     part_service_order_services.joins(:service).where(services: { category_id: Category::SERVICOS_SERVICOS_ID }).any?
+  end
+
+  def validate_provider_for_diagnostico
+    if order_service_type_id == OrderServiceType::DIAGNOSTICO_ID && provider_id.blank?
+      errors.add(:provider_id, "deve ser selecionado para ordens de serviço do tipo Diagnóstico")
+    end
   end
 
   def validate_service_group_for_requisicao

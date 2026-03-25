@@ -703,9 +703,20 @@ $(document).ready(function () {
             }
         });
         
+        // Validar fornecedor obrigatório para Diagnóstico
+        var osTypeId = $('#order_service_order_service_type_id').val();
+        if (osTypeId == '2') {
+            var providerId = $('#order_service_provider_id').val();
+            if (!providerId || providerId.trim() === '') {
+                hasError = true;
+                errorMessages.push('Fornecedor é obrigatório para OS tipo Diagnóstico');
+                $('#order_service_provider_id').addClass('is-invalid');
+            }
+        }
+
         if (hasError) {
             e.preventDefault();
-            alert('❌ ERRO: Não é possível salvar a Ordem de Serviço.\n\nOs seguintes itens excedem a quantidade máxima do grupo de serviços:\n\n' + errorMessages.join('\n') + '\n\nAjuste as quantidades para continuar.');
+            alert('❌ ERRO: Não é possível salvar a Ordem de Serviço.\n\n' + errorMessages.join('\n') + '\n\nAjuste os campos para continuar.');
             $('html, body').animate({
                 scrollTop: $('.is-invalid').first().offset().top - 100
             }, 500);
