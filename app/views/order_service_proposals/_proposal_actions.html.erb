@@ -25,6 +25,16 @@ array_links = [
     class: 'dropdown-item'
   },
   {
+    link_path: edit_complement_path(record),
+    link_method: :get,
+    link_title: 'Editar Complemento',
+    confirm: nil,
+    link_image: 'bi bi-pencil-square',
+    text_action: 'Editar Complemento',
+    link_policy: policy(record).edit_complement?,
+    class: 'dropdown-item'
+  },
+  {
     link_path: approve_order_service_proposal_path(id: record.id),
     link_method: :post,
     link_title: OrderServiceProposal.human_attribute_name(:approve_order_service_proposal),

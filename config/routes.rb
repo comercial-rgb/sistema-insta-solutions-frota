@@ -304,8 +304,11 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
 	post 'finish_reevaluation/:id', :to => 'order_services#finish_reevaluation', :as => 'finish_reevaluation'
 	get 'new_complement/:id', :to => 'order_service_proposals#new_complement', :as => 'new_complement'
 	post 'create_complement/:id', :to => 'order_service_proposals#create_complement', :as => 'create_complement'
+	get 'edit_complement/:id', :to => 'order_service_proposals#edit_complement', :as => 'edit_complement'
+	patch 'update_complement/:id', :to => 'order_service_proposals#update_complement', :as => 'update_complement'
 	post 'approve_complement/:id', :to => 'order_service_proposals#approve_complement', :as => 'approve_complement'
 	post 'reprove_complement/:id', :to => 'order_service_proposals#reprove_complement', :as => 'reprove_complement'
+	post 'request_complement_reevaluation/:id', :to => 'order_service_proposals#request_complement_reevaluation', :as => 'request_complement_reevaluation'
 
 	post '/authorize_order_services', :to => 'order_services#authorize_order_services', :as => 'authorize_order_services'
 	post '/waiting_payment_order_services', :to => 'order_services#waiting_payment_order_services', :as => 'waiting_payment_order_services'

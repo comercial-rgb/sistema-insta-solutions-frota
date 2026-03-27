@@ -34,6 +34,14 @@ class OrderServiceProposalPolicy < ApplicationPolicy
     ].include?(record.order_service_proposal_status_id)
   end
 
+  # Fornecedor pode editar complemento enquanto aguardando aprovação ou devolvido para edição
+  def edit_complement?
+    user.provider? &&
+    record.is_complement &&
+    record.provider_id == user.id &&
+    [OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID, OrderServiceProposalStatus::EM_CADASTRO_ID].include?(record.order_service_proposal_status_id)
+  end
+
   def can_insert_invoices?
     # Permite fornecedor, admin, gestor e adicional inserir/editar notas fiscais
     (general_can_access? && record.provider_id == user.id && ([OrderServiceStatus::APROVADA_ID].include?(record.order_service.order_service_status_id))) || 

@@ -1091,6 +1091,74 @@ class OrderServiceProposalsController < ApplicationController
     redirect_to order_service_path(@order_service)
   end
 
+  # Devolver complemento para edição pelo fornecedor
+  def request_complement_reevaluation
+    @order_service_proposal = OrderServiceProposal.find(params[:id])
+    @order_service = @order_service_proposal.order_service
+    authorize @order_service, :approve_complement?
+
+    if @order_service_proposal.is_complement && @order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID
+      old_status = @order_service_proposal.order_service_proposal_status_id
+      @order_service_proposal.update!(
+        order_service_proposal_status_id: OrderServiceProposalStatus::EM_CADASTRO_ID
+      )
+      OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, old_status, OrderServiceProposalStatus::EM_CADASTRO_ID)
+      flash[:success] = "Complemento devolvido para edição pelo fornecedor."
+    else
+      flash[:error] = "Não é possível devolver este complemento para edição."
+    end
+
+    redirect_to show_order_service_proposal_path(@order_service_proposal.parent_proposal_id)
+  end
+
+  # Formulário para editar complemento pendente de aprovação
+  def edit_complement
+    @order_service_proposal = OrderServiceProposal.find(params[:id])
+    authorize @order_service_proposal, :edit_complement?
+
+    @order_service = @order_service_proposal.order_service
+    @parent_proposal = OrderServiceProposal.find(@order_service_proposal.parent_proposal_id)
+
+    # Garantir que existam provider_service_temps para o formulário
+    @order_service_proposal.provider_service_temps.build if @order_service_proposal.provider_service_temps.empty?
+  end
+
+  # Atualizar complemento pendente de aprovação
+  def update_complement
+    @order_service_proposal = OrderServiceProposal.find(params[:id])
+    authorize @order_service_proposal, :edit_complement?
+
+    @order_service = @order_service_proposal.order_service
+    @parent_proposal = OrderServiceProposal.find(@order_service_proposal.parent_proposal_id)
+
+    # Remover itens antigos para recriá-los
+    @order_service_proposal.order_service_proposal_items.destroy_all
+
+    if @order_service_proposal.update(order_service_proposal_params)
+      # Restaurar status para aguardando aprovação (caso estivesse em edição/EM_CADASTRO)
+      old_status = @order_service_proposal.order_service_proposal_status_id
+      if old_status == OrderServiceProposalStatus::EM_CADASTRO_ID
+        @order_service_proposal.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID)
+        OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, old_status, OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID)
+      end
+
+      # Reaplicar desconto do cliente
+      apply_client_discount_to_complement_provider_temps(@order_service_proposal.reload)
+
+      # Recriar order_service_proposal_items a partir dos provider_service_temps atualizados
+      convert_provider_temps_to_items(@order_service_proposal)
+
+      # Reverificar saldo e fluxo de aprovação
+      check_complement_balance_and_approval(@order_service_proposal)
+
+      flash[:success] = "Complemento atualizado com sucesso."
+      redirect_to show_order_service_proposal_path(@order_service_proposal.parent_proposal_id)
+    else
+      flash.now[:error] = @order_service_proposal.errors.full_messages.join('<br>')
+      render :edit_complement
+    end
+  end
+
   private
   # Aplica desconto do cliente e ajusta categoria_id nos provider_service_temps do complemento.
   # Faz update somente quando:
