@@ -346,24 +346,16 @@ class OrderServicesGrid
   column(:total_value_without_discount, header: OrderServiceProposal.human_attribute_name(:total_value_without_discount) ) do |record, grid|
     order_service_proposal_approved = record.getting_order_service_proposal_approved
     if order_service_proposal_approved.present?
-      # Calcular valor sem desconto incluindo complementos aprovados
-      base_value = order_service_proposal_approved.total_value_without_discount.to_f
-      complement_value = order_service_proposal_approved.complement_proposals
-        .where(order_service_proposal_status_id: OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES)
-        .sum(:total_value_without_discount).to_f
-      CustomHelper.to_currency(base_value + complement_value)
+      # Valor armazenado já inclui itens de complementos mesclados (via merge_complement_to_parent)
+      CustomHelper.to_currency(order_service_proposal_approved.total_value_without_discount.to_f)
     end
   end
 
   column(:total_discount, header: OrderServiceProposal.human_attribute_name(:total_discount) ) do |record, grid|
     order_service_proposal_approved = record.getting_order_service_proposal_approved
     if order_service_proposal_approved.present?
-      # Calcular desconto total incluindo complementos aprovados
-      base_discount = order_service_proposal_approved.total_discount.to_f
-      complement_discount = order_service_proposal_approved.complement_proposals
-        .where(order_service_proposal_status_id: OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES)
-        .sum(:total_discount).to_f
-      CustomHelper.to_currency(base_discount + complement_discount)
+      # Valor armazenado já inclui desconto de complementos mesclados (via merge_complement_to_parent)
+      CustomHelper.to_currency(order_service_proposal_approved.total_discount.to_f)
     end
   end
 
@@ -380,8 +372,8 @@ class OrderServicesGrid
   column(:total_value, header: OrderServiceProposal.human_attribute_name(:total_value) ) do |record, grid|
     order_service_proposal_approved = record.getting_order_service_proposal_approved
     if order_service_proposal_approved.present?
-      # Usar método que inclui complementos aprovados
-      CustomHelper.to_currency(order_service_proposal_approved.total_value_with_complements)
+      # Valor armazenado já inclui itens de complementos mesclados (via merge_complement_to_parent)
+      CustomHelper.to_currency(order_service_proposal_approved.total_value.to_f)
     end
   end
 
