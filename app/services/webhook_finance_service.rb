@@ -84,8 +84,8 @@ class WebhookFinanceService
     {
       # Campos obrigatórios
       codigo: utf8(@order_service.code),
-      clienteNomeFantasia: utf8(@order_service.client&.fantasy_name || @order_service.client&.social_name),
-      fornecedorNomeFantasia: utf8(get_provider_name(approved_proposal)),
+      clienteNomeFantasia: utf8(@order_service.client&.fantasy_name || @order_service.client&.social_name).strip,
+      fornecedorNomeFantasia: utf8(get_provider_name(approved_proposal)).strip,
       tipoServicoSolicitado: utf8(@order_service.order_service_type&.name),
       tipo: utf8(get_tipo),
       centroCusto: utf8(@order_service.cost_center&.name),
