@@ -105,7 +105,7 @@ class OrderServicePolicy < ApplicationPolicy
         OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
         OrderServiceProposalStatus::PAGA_ID,
       ].include?(item.order_service_proposal_status_id)}.length == 0 &&
-      record.provider_id != user.id
+      (record.provider_id != user.id || record.order_service_proposals.select{|item| item.provider_id == user.id && [OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID, OrderServiceProposalStatus::CANCELADA_ID].include?(item.order_service_proposal_status_id)}.length > 0)
     )
   end
 
