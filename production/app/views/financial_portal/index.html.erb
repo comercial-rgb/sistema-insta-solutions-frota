@@ -40,14 +40,12 @@ portal_url = FinancialPortalController::PORTAL_URL
               <% end %>
             </div>
             <div class="col-md-4 text-md-end mt-3 mt-md-0">
-              <a href="<%= portal_url %>" target="_blank" class="btn btn-light btn-lg shadow-sm">
+              <a href="<%= financial_portal_sso_path %>" class="btn btn-light btn-lg shadow-sm">
                 <i class="bi bi-box-arrow-up-right me-1"></i> Acessar Portal Financeiro
               </a>
-              <% if @current_user.provider? %>
-                <p class="mt-2 mb-0 small opacity-75">
-                  <i class="bi bi-key me-1"></i> Use seu login do portal ou entre com as credenciais separadas
-                </p>
-              <% end %>
+              <p class="mt-2 mb-0 small opacity-75">
+                <i class="bi bi-shield-check me-1"></i> Login automático com sua conta do sistema de frotas
+              </p>
             </div>
           </div>
         </div>

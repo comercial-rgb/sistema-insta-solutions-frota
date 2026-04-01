@@ -348,6 +348,7 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
 
 	# Portal Financeiro
 	get 'financial_portal', :to => 'financial_portal#index', :as => 'financial_portal'
+	get 'financial_portal/sso_redirect', :to => 'financial_portal#sso_redirect', :as => 'financial_portal_sso'
 
   resources :orientation_manuals
 

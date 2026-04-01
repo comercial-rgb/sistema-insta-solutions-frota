@@ -2,6 +2,7 @@ class FinancialPortalController < ApplicationController
   before_action :verify_access
 
   PORTAL_URL = 'https://portal.frotainstasolutions.com.br'.freeze
+  SSO_SECRET = '30bfff7ce392036b19d87dd6336c6e326d5312b943e01e3e8926c7aa22136b14'.freeze
 
   def index
     authorize :financial_portal, :index?
@@ -14,6 +15,43 @@ class FinancialPortalController < ApplicationController
     elsif @current_user.admin? || @current_user.manager? || @current_user.additional?
       load_admin_stats
     end
+  end
+
+  def sso_redirect
+    authorize :financial_portal, :index?
+
+    # Mapear role do Frota para role do Portal
+    portal_role = if @current_user.provider?
+                    'fornecedor'
+                  elsif @current_user.client?
+                    'cliente'
+                  elsif @current_user.admin?
+                    'admin'
+                  else
+                    'gerente'
+                  end
+
+    # Montar payload com expiração de 120 segundos
+    payload = {
+      email: @current_user.email,
+      nome: @current_user.name,
+      role: portal_role,
+      frota_user_id: @current_user.id,
+      exp: Time.now.to_i + 120,
+      nonce: SecureRandom.hex(16)
+    }
+
+    # Codificar payload em Base64URL
+    payload_b64 = Base64.urlsafe_encode64(payload.to_json, padding: false)
+
+    # Assinar com HMAC-SHA256
+    signature = OpenSSL::HMAC.digest('SHA256', SSO_SECRET, payload_b64)
+    signature_b64 = Base64.urlsafe_encode64(signature, padding: false)
+
+    # Token final: payload.signature
+    sso_token = "#{payload_b64}.#{signature_b64}"
+
+    redirect_to "#{PORTAL_URL}/sso-callback?token=#{sso_token}", allow_other_host: true
   end
 
   private
