@@ -117,10 +117,8 @@
 
   <div class="row my-3">
     <div class="col-12 text-end">
-      <%= link_to stock_items_path, class: 'btn btn-link text-decoration-none' do %>
-        <%= t('model.cancel') %>
-      <% end %>
-      <%= f.button :submit, class: 'btn btn-primary', value: stock_item.persisted? ? t('model.update') : t('model.create') %>
+      <%= link_to 'Cancelar', stock_items_path, class: 'btn btn-link text-decoration-none' %>
+      <%= f.button :submit, class: 'btn btn-primary', value: stock_item.persisted? ? 'Salvar Alterações' : 'Cadastrar Item' %>
     </div>
   </div>
 <% end %>
