@@ -34,8 +34,8 @@ class StockMovement < ApplicationRecord
   scope :by_document_number, ->(doc) { where("stock_movements.document_number LIKE ?", "%#{doc}%") if doc.present? }
   scope :by_initial_date, ->(date) { where("stock_movements.created_at >= ?", date.beginning_of_day) if date.present? }
   scope :by_final_date, ->(date) { where("stock_movements.created_at <= ?", date.end_of_day) if date.present? }
-  scope :entries, -> { where(movement_type: [:entry, :adjustment_entry, :os_return]) }
-  scope :exits, -> { where(movement_type: [:exit, :adjustment_exit, :os_consumption]) }
+  scope :entry_movements, -> { where(movement_type: [:entry, :adjustment_entry, :os_return]) }
+  scope :exit_movements, -> { where(movement_type: [:exit, :adjustment_exit, :os_consumption]) }
 
   # Methods
   def is_entry?
