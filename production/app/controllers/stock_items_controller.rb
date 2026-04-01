@@ -202,7 +202,7 @@ class StockItemsController < ApplicationController
 
   def set_filter_data
     if @current_user.admin?
-      @clients = User.where(profile_id: Profile::CLIENTE_ID).order(:name)
+      @clients = User.where(profile_id: Profile::CLIENT_ID).order(:name)
       @cost_centers = CostCenter.all.order(:name)
       @sub_units = SubUnit.all.order(:name)
     elsif @current_user.manager? || @current_user.additional?
