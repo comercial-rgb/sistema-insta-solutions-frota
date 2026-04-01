@@ -1,0 +1,27 @@
+<div class="col-12 col-md-3 mb-3">
+    <%= email_setting.input :email, input_html: { class: 'text-lowercase', type: 'email', placeholder: 'email@exemplo.com' } %>
+</div>
+<div class="col-12 col-md-2 mb-3">
+    <%= email_setting.input :sector, as: :select, collection: UserEmailSetting::SECTORS, include_blank: 'Selecione...', label: 'Setor' %>
+</div>
+<div class="col-12 col-md-3 mb-3">
+    <%= email_setting.input :description, input_html: { placeholder: 'Ex: E-mail do setor financeiro' }, label: 'Descrição' %>
+</div>
+<div class="col-12 col-md-3 mb-3">
+    <label class="form-label d-block">Receber notificações de:</label>
+    <div class="form-check form-check-inline">
+        <%= email_setting.input :receive_os_notifications, as: :boolean, label: 'OS', wrapper: :inline_checkbox, boolean_style: :inline %>
+    </div>
+    <div class="form-check form-check-inline">
+        <%= email_setting.input :receive_invoice_notifications, as: :boolean, label: 'Faturas', wrapper: :inline_checkbox, boolean_style: :inline %>
+    </div>
+    <div class="form-check form-check-inline">
+        <%= email_setting.input :receive_payment_notifications, as: :boolean, label: 'Pagamentos', wrapper: :inline_checkbox, boolean_style: :inline %>
+    </div>
+    <div class="form-check form-check-inline">
+        <%= email_setting.input :receive_approval_notifications, as: :boolean, label: 'Aprovações', wrapper: :inline_checkbox, boolean_style: :inline %>
+    </div>
+    <div class="form-check form-check-inline">
+        <%= email_setting.input :receive_report_notifications, as: :boolean, label: 'Relatórios', wrapper: :inline_checkbox, boolean_style: :inline %>
+    </div>
+</div>

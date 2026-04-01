@@ -93,6 +93,16 @@ module MenuHelper
 			})
 		end
 
+		if policy(:financial_portal).index?
+			# Portal Financeiro
+			menu_links.push({
+				opened: is_current_controller?("financial_portal"),
+				icon: "bi bi-bank",
+				label: "Portal Financeiro",
+				href: financial_portal_path
+			})
+		end
+
 		if policy(CostCenter).index?
 			# Centros de custo
 			menu_links.push({
@@ -211,6 +221,37 @@ module MenuHelper
 				icon: "bi bi-book",
 				label: "Tributação e Precificação",
 				href: pricing_manuals_path
+			})
+		end
+
+		# Estoque
+		if policy(StockItem).index?
+			stock_submenus = []
+			stock_submenus.push({
+				opened: is_current_controller?("stock_items") && is_current_action?("dashboard"),
+				label: "Dashboard",
+				href: dashboard_stock_items_path
+			})
+			stock_submenus.push({
+				opened: is_current_controller?("stock_items") && (is_current_action?("index") || is_current_action?("show") || is_current_action?("new") || is_current_action?("edit")),
+				label: "Itens de Estoque",
+				href: stock_items_path
+			})
+			stock_submenus.push({
+				opened: is_current_controller?("stock_movements"),
+				label: "Movimentações",
+				href: stock_movements_path
+			})
+			stock_submenus.push({
+				opened: is_current_controller?("stock_items") && is_current_action?("new_import_xml"),
+				label: "Importar XML",
+				href: new_import_xml_stock_items_path
+			})
+			menu_links.push({
+				opened: is_current_controller?("stock_items") || is_current_controller?("stock_movements"),
+				icon: "bi bi-box-seam",
+				label: "Estoque",
+				submenus: stock_submenus
 			})
 		end
 

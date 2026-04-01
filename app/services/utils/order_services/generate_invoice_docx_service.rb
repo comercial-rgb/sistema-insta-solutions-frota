@@ -7,10 +7,11 @@ require 'fileutils'
 module Utils
   module OrderServices
     class GenerateInvoiceDocxService
-      def initialize(order_services, client, current_month)
+      def initialize(order_services, client, current_month, invoice_split: nil)
         @order_services = order_services
         @client = client
         @current_month = current_month
+        @invoice_split = invoice_split # nil = all, 'parts' = only parts, 'services' = only services
         @order_service_invoices = []
       end
 
@@ -198,8 +199,17 @@ module Utils
         @order_services.each do |order_service|
           order_service_proposal_approved = order_service.getting_order_service_proposal_approved
           if order_service_proposal_approved
-            @order_service_invoices.concat(order_service_proposal_approved.order_service_invoices.sort_by{|item| item.order_service_invoice_type_id})
-            order_service_invoices_grouped = order_service_proposal_approved.order_service_invoices.group_by(&:order_service_invoice_type_id)
+            invoices = order_service_proposal_approved.order_service_invoices.sort_by{|item| item.order_service_invoice_type_id}
+            
+            # Filtrar por tipo de fatura quando invoice_split está definido
+            if @invoice_split == 'parts'
+              invoices = invoices.select { |inv| inv.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }
+            elsif @invoice_split == 'services'
+              invoices = invoices.select { |inv| inv.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }
+            end
+            
+            @order_service_invoices.concat(invoices)
+            order_service_invoices_grouped = invoices.group_by(&:order_service_invoice_type_id)
             total_value += order_service_proposal_approved.total_value
             total_discount += order_service_proposal_approved.total_discount
             total_value_without_discount += order_service_proposal_approved.total_value_without_discount

@@ -7,10 +7,11 @@ require 'fileutils'
 module Utils
   module OrderServices
     class GenerateInvoiceDocxService
-      def initialize(order_services, client, current_month)
+      def initialize(order_services, client, current_month, invoice_split: nil)
         @order_services = order_services
         @client = client
         @current_month = current_month
+        @invoice_split = invoice_split # nil = all, 'parts' = only parts, 'services' = only services
         @order_service_invoices = []
       end
 
@@ -132,6 +133,16 @@ module Utils
         end
       end
 
+      # Escapa caracteres especiais XML para evitar corrupção do DOCX
+      def escape_xml(value)
+        value.to_s
+             .gsub('&', '&amp;')
+             .gsub('<', '&lt;')
+             .gsub('>', '&gt;')
+             .gsub('"', '&quot;')
+             .gsub("'", '&apos;')
+      end
+
       def generate_docx_without_rename(template_path, output_path, replacements)
         # Lê todo o conteúdo do template em memória
         entries_data = {}
@@ -140,11 +151,11 @@ module Utils
           zip_file.each do |entry|
             content = entry.get_input_stream.read
             
-            # Substitui placeholders em arquivos XML
+            # Substitui placeholders em arquivos XML (com escape de caracteres especiais)
             if entry.name =~ /\.xml$/ || entry.name =~ /\.rels$/
               content = content.force_encoding('UTF-8')
               replacements.each do |key, value|
-                content = content.gsub(key.to_s, value.to_s)
+                content = content.gsub(key.to_s, escape_xml(value))
               end
             end
             
@@ -188,8 +199,17 @@ module Utils
         @order_services.each do |order_service|
           order_service_proposal_approved = order_service.getting_order_service_proposal_approved
           if order_service_proposal_approved
-            @order_service_invoices.concat(order_service_proposal_approved.order_service_invoices.sort_by{|item| item.order_service_invoice_type_id})
-            order_service_invoices_grouped = order_service_proposal_approved.order_service_invoices.group_by(&:order_service_invoice_type_id)
+            invoices = order_service_proposal_approved.order_service_invoices.sort_by{|item| item.order_service_invoice_type_id}
+            
+            # Filtrar por tipo de fatura quando invoice_split está definido
+            if @invoice_split == 'parts'
+              invoices = invoices.select { |inv| inv.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }
+            elsif @invoice_split == 'services'
+              invoices = invoices.select { |inv| inv.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }
+            end
+            
+            @order_service_invoices.concat(invoices)
+            order_service_invoices_grouped = invoices.group_by(&:order_service_invoice_type_id)
             total_value += order_service_proposal_approved.total_value
             total_discount += order_service_proposal_approved.total_discount
             total_value_without_discount += order_service_proposal_approved.total_value_without_discount

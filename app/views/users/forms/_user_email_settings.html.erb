@@ -1,0 +1,101 @@
+<div class="row">
+    <div class="col-12">
+        <h5 class="mt-4">E-MAILS DE NOTIFICAÇÃO</h5>
+        <p class="text-muted small mb-3">
+            <i class="bi bi-info-circle"></i>
+            Cadastre e-mails adicionais indicando o setor e quais tipos de notificações cada e-mail deve receber.
+        </p>
+    </div>
+
+    <div class="col-12 multi-user-email-setting-block">
+        <input type="hidden" value="<%= f.object.user_email_settings.length.to_s %>" class="multi-user-email-setting-cont" disabled>
+
+        <%= f.fields_for :user_email_settings do |email_setting| %>
+        <div class="row multi-user-email-setting align-items-end border-bottom pb-3 mb-3">
+            <%= render 'users/forms/user_email_setting_fields', f: f, email_setting: email_setting %>
+            <% if email_setting.object.persisted? %>
+                <div class="col-12 col-md-1 mb-3">
+                    <%= email_setting.input :_destroy, as: :boolean, label: 'Remover', wrapper_html: { class: 'text-danger' } %>
+                </div>
+            <% end %>
+        </div>
+        <% end %>
+    </div>
+
+    <div class="col-12 mb-3">
+        <button type="button" class="btn btn-sm btn-outline-primary" id="add-email-setting-btn">
+            <i class="bi bi-plus-circle"></i> Adicionar E-mail
+        </button>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var addBtn = document.getElementById('add-email-setting-btn');
+    if (addBtn) {
+        addBtn.addEventListener('click', function() {
+            var block = document.querySelector('.multi-user-email-setting-block');
+            var counter = block.querySelector('.multi-user-email-setting-cont');
+            var index = parseInt(counter.value);
+            
+            var template = `
+            <div class="row multi-user-email-setting align-items-end border-bottom pb-3 mb-3">
+                <div class="col-12 col-md-3 mb-3">
+                    <label class="form-label">E-mail</label>
+                    <input type="email" name="user[user_email_settings_attributes][${index}][email]" class="form-control text-lowercase" placeholder="email@exemplo.com">
+                </div>
+                <div class="col-12 col-md-2 mb-3">
+                    <label class="form-label">Setor</label>
+                    <select name="user[user_email_settings_attributes][${index}][sector]" class="form-select">
+                        <option value="">Selecione...</option>
+                        <option value="Financeiro">Financeiro</option>
+                        <option value="Operacional">Operacional</option>
+                        <option value="Diretoria">Diretoria</option>
+                        <option value="Administrativo">Administrativo</option>
+                        <option value="Compras">Compras</option>
+                        <option value="Frotas">Frotas</option>
+                        <option value="RH">RH</option>
+                        <option value="TI">TI</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                </div>
+                <div class="col-12 col-md-3 mb-3">
+                    <label class="form-label">Descrição</label>
+                    <input type="text" name="user[user_email_settings_attributes][${index}][description]" class="form-control" placeholder="Ex: E-mail do setor financeiro">
+                </div>
+                <div class="col-12 col-md-4 mb-3">
+                    <label class="form-label d-block">Receber notificações de:</label>
+                    <div class="form-check form-check-inline">
+                        <input type="hidden" name="user[user_email_settings_attributes][${index}][receive_os_notifications]" value="0">
+                        <input type="checkbox" name="user[user_email_settings_attributes][${index}][receive_os_notifications]" value="1" class="form-check-input">
+                        <label class="form-check-label">OS</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input type="hidden" name="user[user_email_settings_attributes][${index}][receive_invoice_notifications]" value="0">
+                        <input type="checkbox" name="user[user_email_settings_attributes][${index}][receive_invoice_notifications]" value="1" class="form-check-input">
+                        <label class="form-check-label">Faturas</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input type="hidden" name="user[user_email_settings_attributes][${index}][receive_payment_notifications]" value="0">
+                        <input type="checkbox" name="user[user_email_settings_attributes][${index}][receive_payment_notifications]" value="1" class="form-check-input">
+                        <label class="form-check-label">Pagamentos</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input type="hidden" name="user[user_email_settings_attributes][${index}][receive_approval_notifications]" value="0">
+                        <input type="checkbox" name="user[user_email_settings_attributes][${index}][receive_approval_notifications]" value="1" class="form-check-input">
+                        <label class="form-check-label">Aprovações</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input type="hidden" name="user[user_email_settings_attributes][${index}][receive_report_notifications]" value="0">
+                        <input type="checkbox" name="user[user_email_settings_attributes][${index}][receive_report_notifications]" value="1" class="form-check-input">
+                        <label class="form-check-label">Relatórios</label>
+                    </div>
+                </div>
+            </div>`;
+            
+            block.insertAdjacentHTML('beforeend', template);
+            counter.value = index + 1;
+        });
+    }
+});
+</script>

@@ -40,14 +40,18 @@
   # Se a OS já tem proposta aprovada/enviada de outro fornecedor, este é secundário e não pode alterar itens
   is_secondary_provider = false
   if is_diagnostico && f.object.order_service.present?
-    # Buscar primeira proposta não em cadastro (enviada/aprovada)
+    # Buscar primeira proposta ativa (excluir em_cadastro, cancelada e reprovada)
     first_submitted_proposal = f.object.order_service.order_service_proposals
-      .where.not(order_service_proposal_status_id: OrderServiceProposalStatus::EM_CADASTRO_ID)
+      .where.not(order_service_proposal_status_id: [
+        OrderServiceProposalStatus::EM_CADASTRO_ID,
+        OrderServiceProposalStatus::CANCELADA_ID,
+        OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID
+      ])
       .order(:created_at)
       .first
     
-    # Se existe proposta anterior e NÃO é a proposta atual (comparar IDs com segurança)
-    # Para proposta nova (id nil), sempre considera secundário se existir outra proposta
+    # Se existe proposta ativa anterior e NÃO é a proposta atual (comparar IDs com segurança)
+    # Para proposta nova (id nil), considera secundário apenas se existir outra proposta ATIVA
     if first_submitted_proposal.present?
       is_secondary_provider = f.object.id.nil? || first_submitted_proposal.id != f.object.id
     end

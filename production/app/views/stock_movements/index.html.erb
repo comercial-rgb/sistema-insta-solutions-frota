@@ -1,0 +1,21 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: false, href: stock_items_path, text: 'Estoque'},
+  {active: true, href: '#', text: 'Movimentações'},
+]
+%>
+
+<%= 
+  render 'common_pages/index',
+  attributes: {
+    page_title: StockMovement.model_name.human(count: 2),
+    url_new_path: nil,
+    policy_true: false,
+    objects: @stock_movements,
+    objects_path: stock_movements_path,
+    object_name: StockMovement.model_name.human,
+    breadcrumbs: breadcrumbs,
+    objects_path_export: stock_movements_path(format: "csv", stock_movements_grid: (params[:stock_movements_grid].nil? ? "" : params[:stock_movements_grid].to_enum.to_h)),
+  }
+%>

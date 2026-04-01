@@ -1,0 +1,17 @@
+pt-BR:
+  activerecord:
+    models:
+      user_email_setting:
+        one: "E-mail de Notificação"
+        other: "E-mails de Notificação"
+    attributes:
+      user_email_setting:
+        email: "E-mail"
+        sector: "Setor"
+        description: "Descrição"
+        receive_os_notifications: "OS"
+        receive_invoice_notifications: "Faturas"
+        receive_payment_notifications: "Pagamentos"
+        receive_approval_notifications: "Aprovações"
+        receive_report_notifications: "Relatórios"
+        active: "Ativo"

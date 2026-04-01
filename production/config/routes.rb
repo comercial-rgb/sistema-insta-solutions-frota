@@ -256,6 +256,7 @@ patch '/cilia_pricing/:id/mark_complete', to: 'cilia_pricing#mark_complete', as:
 patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete', as: 'unmark_complete_cilia_pricing'
 
 	resources :commitments do
+		resources :addendum_commitments, only: [:new, :create, :destroy]
 		member do
 			patch :inactivate
 			post :save_cancel_commitment
@@ -268,6 +269,7 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
 	get '/get_commitment_types_by_vehicle_id', :to => 'vehicles#commitment_types_by_vehicle_id'
 	get '/get_warranty_items_by_vehicle_id', :to => 'order_services#warranty_items_by_vehicle_id'
 	get '/get_client_requirements', :to => 'order_services#get_client_requirements'
+	get '/get_providers_for_directed_selection', :to => 'order_services#get_providers_for_directed_selection'
 	get '/getting_vehicle_by_plate_integration', :to => 'vehicles#getting_vehicle_by_plate_integration', :as => 'getting_vehicle_by_plate_integration'
 
   resources :vehicle_types
@@ -291,7 +293,9 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
 		get 'order_services/:id/print_no_values', to: 'order_services#print_no_values', as: 'print_no_values_order_service'
 		get 'order_services/:id/print_os', to: 'order_services#print_os', as: 'print_os_order_service'
 		get 'order_services/:id/print_os_summary', to: 'order_services#print_os_summary', as: 'print_os_summary_order_service'
+	post 'order_services/batch_print', to: 'order_services#batch_print', as: 'batch_print_order_services'
 	get 'show_order_services/:order_service_status_id', :to => 'order_services#show_order_services', :as => 'show_order_services'
+	get 'rejected_history_order_services', :to => 'order_services#rejected_history', :as => 'rejected_history_order_services'
 	post 'cancel_order_service', :to => 'order_services#cancel_order_service', :as => 'cancel_order_service'
 	get 'show_historic/:id', :to => 'order_services#show_historic', :as => 'show_historic'
 	get 'show_invoices', :to => 'order_services#show_invoices', :as => 'show_invoices'
@@ -342,9 +346,35 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
 	post 'provider_dashboard/bulk_reject', :to => 'provider_dashboard#bulk_reject', :as => 'bulk_reject_provider_dashboard'
 	post 'provider_dashboard/revert_rejection', :to => 'provider_dashboard#revert_rejection', :as => 'revert_rejection_provider_dashboard'
 
+	# Portal Financeiro
+	get 'financial_portal', :to => 'financial_portal#index', :as => 'financial_portal'
+
   resources :orientation_manuals
 
   # Manual de Tributação e Precificação
   get 'pricing_manuals', to: 'pricing_manuals#index', as: 'pricing_manuals'
+
+  # ==================== ESTOQUE ====================
+  resources :stock_items do
+    member do
+      get :movement_history
+      post :adjust_stock
+    end
+    collection do
+      get :dashboard
+      get :new_import_xml
+      post :import_xml
+      get :by_cost_center
+    end
+  end
+
+  resources :stock_movements, only: [:index, :show]
+
+  # AJAX: Buscar itens de estoque por centro de custo (para uso em OS)
+  get '/get_stock_items_by_cost_center', to: 'stock_items#by_cost_center', as: 'stock_items_by_cost_center'
+
+  # Deletar item de estoque de uma OS
+  delete 'delete_stock_order_service_item', to: 'stock_order_service_items#destroy', as: 'delete_stock_order_service_item'
+  # ================ FIM ESTOQUE =================
 
 end

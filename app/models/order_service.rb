@@ -236,6 +236,11 @@ class OrderService < ApplicationRecord
     reject_if: proc { |attrs| attrs[:service_id].blank? },
     allow_destroy: true
 
+  has_many :stock_order_service_items, validate: false, dependent: :destroy
+  accepts_nested_attributes_for :stock_order_service_items,
+    reject_if: proc { |attrs| attrs[:stock_item_id].blank? },
+    allow_destroy: true
+
   has_and_belongs_to_many :rejected_providers,
             class_name: 'User',
             join_table: :rejected_order_services_providers,

@@ -1,0 +1,351 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: false, href: stock_items_path, text: 'Estoque'},
+  {active: true, href: '#', text: t('stock.dashboard.title')},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+
+  <div class="row mb-3">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+      <h4 class="mb-0"><i class="bi bi-speedometer2 me-2"></i><%= t('stock.dashboard.title') %></h4>
+      <div class="d-flex gap-2">
+        <%= link_to new_stock_item_path, class: 'btn btn-primary btn-sm' do %>
+          <i class="bi bi-plus-circle"></i> Nova Peça
+        <% end %>
+        <%= link_to new_import_xml_stock_items_path, class: 'btn btn-success btn-sm' do %>
+          <i class="bi bi-file-earmark-code"></i> Importar XML
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cards de Resumo -->
+  <div class="row mb-4">
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+      <div class="card shadow-sm border-0 border-start border-primary border-4 h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <p class="text-muted small mb-1"><%= t('stock.dashboard.total_items') %></p>
+              <h3 class="mb-0 text-primary"><%= @total_items %></h3>
+            </div>
+            <i class="bi bi-box-seam text-primary fs-1 opacity-25"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-4 col-sm-6 mb-3">
+      <div class="card shadow-sm border-0 border-start border-success border-4 h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <p class="text-muted small mb-1"><%= t('stock.dashboard.total_value') %></p>
+              <h3 class="mb-0 text-success"><%= number_to_currency(@total_value, unit: 'R$', separator: ',', delimiter: '.') %></h3>
+            </div>
+            <i class="bi bi-currency-dollar text-success fs-1 opacity-25"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+      <div class="card shadow-sm border-0 border-start border-info border-4 h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <p class="text-muted small mb-1"><%= t('stock.dashboard.with_stock') %></p>
+              <h3 class="mb-0 text-info"><%= @items_with_stock %></h3>
+            </div>
+            <i class="bi bi-check-circle text-info fs-1 opacity-25"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+      <div class="card shadow-sm border-0 border-start border-warning border-4 h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <p class="text-muted small mb-1"><%= t('stock.dashboard.below_minimum') %></p>
+              <h3 class="mb-0 text-warning"><%= @items_below_minimum %></h3>
+            </div>
+            <i class="bi bi-exclamation-triangle text-warning fs-1 opacity-25"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-xl-3 col-md-4 col-sm-6 mb-3">
+      <div class="card shadow-sm border-0 border-start border-danger border-4 h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <p class="text-muted small mb-1"><%= t('stock.dashboard.without_stock') %></p>
+              <h3 class="mb-0 text-danger"><%= @items_without_stock %></h3>
+            </div>
+            <i class="bi bi-x-circle text-danger fs-1 opacity-25"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row mb-4">
+    <!-- Gráfico de Movimentações -->
+    <div class="col-lg-8 mb-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-primary text-white">
+          <i class="bi bi-graph-up me-2"></i><%= t('stock.dashboard.movements_chart') %>
+        </div>
+        <div class="card-body">
+          <div id="movements-chart" style="width: 100%; height: 300px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Itens que precisam de atenção -->
+    <div class="col-lg-4 mb-3">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-warning text-dark">
+          <i class="bi bi-exclamation-triangle me-2"></i><%= t('stock.dashboard.items_attention') %>
+        </div>
+        <div class="card-body" style="max-height: 340px; overflow-y: auto;">
+          <% if @items_below_minimum_list.any? %>
+            <% @items_below_minimum_list.each do |item| %>
+              <div class="d-flex justify-content-between align-items-center border-bottom py-2">
+                <div>
+                  <%= link_to item.formatted_name, stock_item_path(item), class: 'text-decoration-none fw-bold' %>
+                  <br>
+                  <small class="text-muted"><%= item.cost_center&.name %><%= " / #{item.sub_unit&.name}" if item.sub_unit %></small>
+                </div>
+                <div class="text-end">
+                  <span class="badge bg-danger"><%= item.quantity %> / <%= item.minimum_quantity %> <%= item.unit_measure %></span>
+                </div>
+              </div>
+            <% end %>
+          <% else %>
+            <p class="text-muted text-center mb-0 py-4">
+              <i class="bi bi-check-circle fs-3 d-block mb-2 text-success"></i>
+              Todos os itens estão com estoque adequado.
+            </p>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Movimentações Recentes -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+          <span><i class="bi bi-clock-history me-2"></i><%= t('stock.dashboard.recent_movements') %></span>
+          <%= link_to stock_movements_path, class: 'btn btn-sm btn-light' do %>
+            Ver Todas <i class="bi bi-arrow-right"></i>
+          <% end %>
+        </div>
+        <div class="card-body">
+          <% if @recent_movements.any? %>
+            <div class="table-responsive">
+              <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                  <tr>
+                    <th>Data</th>
+                    <th>Peça</th>
+                    <th>Tipo</th>
+                    <th>Quantidade</th>
+                    <th>Saldo</th>
+                    <th>Origem</th>
+                    <th>Usuário</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <% @recent_movements.each do |mov| %>
+                    <tr>
+                      <td><%= mov.created_at.strftime('%d/%m/%Y %H:%M') %></td>
+                      <td><%= link_to mov.stock_item&.formatted_name, stock_item_path(mov.stock_item), class: 'text-decoration-none' %></td>
+                      <td>
+                        <span class="badge <%= mov.is_entry? ? 'bg-success' : 'bg-danger' %>"><%= mov.movement_type_label %></span>
+                      </td>
+                      <td class="<%= mov.is_entry? ? 'text-success' : 'text-danger' %> fw-bold">
+                        <%= mov.is_entry? ? '+' : '-' %><%= mov.quantity %>
+                      </td>
+                      <td><%= mov.balance_after %></td>
+                      <td><span class="badge bg-light text-dark"><%= mov.source_label %></span></td>
+                      <td><%= mov.user&.name %></td>
+                    </tr>
+                  <% end %>
+                </tbody>
+              </table>
+            </div>
+          <% else %>
+            <p class="text-muted mb-0 text-center py-3">Nenhuma movimentação registrada ainda.</p>
+          <% end %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cards de Orientação -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <h5 class="mb-3"><i class="bi bi-lightbulb me-2 text-warning"></i><%= t('stock.guidance.title') %></h5>
+    </div>
+    <div class="col-lg-4 col-md-6 mb-3">
+      <div class="card shadow-sm border-0 h-100" style="border-top: 3px solid #0d6efd !important;">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2">
+            <span class="bg-primary bg-opacity-10 rounded-circle p-2 me-2">
+              <i class="bi bi-pencil-square text-primary fs-5"></i>
+            </span>
+            <h6 class="mb-0"><%= t('stock.guidance.cards.register.title') %></h6>
+          </div>
+          <p class="text-muted small mb-0"><%= t('stock.guidance.cards.register.description') %></p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4 col-md-6 mb-3">
+      <div class="card shadow-sm border-0 h-100" style="border-top: 3px solid #198754 !important;">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2">
+            <span class="bg-success bg-opacity-10 rounded-circle p-2 me-2">
+              <i class="bi bi-file-earmark-code text-success fs-5"></i>
+            </span>
+            <h6 class="mb-0"><%= t('stock.guidance.cards.xml_import.title') %></h6>
+          </div>
+          <p class="text-muted small mb-0"><%= t('stock.guidance.cards.xml_import.description') %></p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4 col-md-6 mb-3">
+      <div class="card shadow-sm border-0 h-100" style="border-top: 3px solid #ffc107 !important;">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2">
+            <span class="bg-warning bg-opacity-10 rounded-circle p-2 me-2">
+              <i class="bi bi-exclamation-triangle text-warning fs-5"></i>
+            </span>
+            <h6 class="mb-0"><%= t('stock.guidance.cards.minimum_stock.title') %></h6>
+          </div>
+          <p class="text-muted small mb-0"><%= t('stock.guidance.cards.minimum_stock.description') %></p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4 col-md-6 mb-3">
+      <div class="card shadow-sm border-0 h-100" style="border-top: 3px solid #0dcaf0 !important;">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2">
+            <span class="bg-info bg-opacity-10 rounded-circle p-2 me-2">
+              <i class="bi bi-link-45deg text-info fs-5"></i>
+            </span>
+            <h6 class="mb-0"><%= t('stock.guidance.cards.os_integration.title') %></h6>
+          </div>
+          <p class="text-muted small mb-0"><%= t('stock.guidance.cards.os_integration.description') %></p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4 col-md-6 mb-3">
+      <div class="card shadow-sm border-0 h-100" style="border-top: 3px solid #6f42c1 !important;">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2">
+            <span class="bg-primary bg-opacity-10 rounded-circle p-2 me-2">
+              <i class="bi bi-calendar-check text-primary fs-5"></i>
+            </span>
+            <h6 class="mb-0"><%= t('stock.guidance.cards.periodic_review.title') %></h6>
+          </div>
+          <p class="text-muted small mb-0"><%= t('stock.guidance.cards.periodic_review.description') %></p>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4 col-md-6 mb-3">
+      <div class="card shadow-sm border-0 h-100" style="border-top: 3px solid #dc3545 !important;">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-2">
+            <span class="bg-danger bg-opacity-10 rounded-circle p-2 me-2">
+              <i class="bi bi-graph-up-arrow text-danger fs-5"></i>
+            </span>
+            <h6 class="mb-0"><%= t('stock.guidance.cards.cost_tracking.title') %></h6>
+          </div>
+          <p class="text-muted small mb-0"><%= t('stock.guidance.cards.cost_tracking.description') %></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var chartDom = document.getElementById('movements-chart');
+    if (!chartDom || typeof echarts === 'undefined') return;
+
+    var chart = echarts.init(chartDom);
+
+    // Preparar dados do gráfico
+    var chartData = <%= raw @movements_chart_data.to_json %>;
+    var dates = [];
+    var entries = [];
+    var exits = [];
+
+    // Processar últimos 30 dias
+    for (var i = 29; i >= 0; i--) {
+      var date = new Date();
+      date.setDate(date.getDate() - i);
+      var dateStr = date.toISOString().split('T')[0];
+      dates.push(dateStr.split('-').reverse().join('/'));
+
+      var entryCount = 0;
+      var exitCount = 0;
+
+      // Mapear tipos de entrada (0=entry, 2=adjustment_entry, 5=os_return)
+      [0, 2, 5].forEach(function(type) {
+        var key = dateStr + ',' + type;
+        if (chartData[key]) entryCount += chartData[key];
+      });
+
+      // Mapear tipos de saída (1=exit, 3=adjustment_exit, 4=os_consumption)
+      [1, 3, 4].forEach(function(type) {
+        var key = dateStr + ',' + type;
+        if (chartData[key]) exitCount += chartData[key];
+      });
+
+      entries.push(entryCount);
+      exits.push(exitCount);
+    }
+
+    var option = {
+      tooltip: { trigger: 'axis' },
+      legend: { data: ['Entradas', 'Saídas'] },
+      grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
+      xAxis: {
+        type: 'category',
+        boundaryGap: false,
+        data: dates,
+        axisLabel: { rotate: 45, fontSize: 10 }
+      },
+      yAxis: { type: 'value', minInterval: 1 },
+      series: [
+        {
+          name: 'Entradas',
+          type: 'line',
+          smooth: true,
+          color: '#198754',
+          areaStyle: { opacity: 0.1 },
+          data: entries
+        },
+        {
+          name: 'Saídas',
+          type: 'line',
+          smooth: true,
+          color: '#dc3545',
+          areaStyle: { opacity: 0.1 },
+          data: exits
+        }
+      ]
+    };
+
+    chart.setOption(option);
+    window.addEventListener('resize', function() { chart.resize(); });
+  });
+</script>

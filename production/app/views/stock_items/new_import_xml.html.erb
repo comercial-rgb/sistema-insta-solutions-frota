@@ -1,0 +1,129 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: false, href: stock_items_path, text: 'Estoque'},
+  {active: true, href: '#', text: t('stock.import.title')},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+
+  <div class="row mb-3">
+    <div class="col-12">
+      <h4 class="mb-0"><i class="bi bi-file-earmark-code me-2"></i><%= t('stock.import.title') %></h4>
+    </div>
+  </div>
+
+  <!-- Card de instruções -->
+  <div class="alert alert-info d-flex mb-4" role="alert">
+    <i class="bi bi-info-circle me-3 fs-4"></i>
+    <div>
+      <h6 class="alert-heading mb-1">Como funciona a importação via XML?</h6>
+      <ul class="mb-0 small">
+        <li>Selecione o arquivo <strong>XML da NF-e</strong> (Nota Fiscal Eletrônica) recebida do fornecedor.</li>
+        <li>O sistema extrairá automaticamente os <strong>itens (peças)</strong> da nota fiscal.</li>
+        <li>Se a peça já existir no estoque (mesmo código/nome), a <strong>quantidade será somada</strong>.</li>
+        <li>Se for uma peça nova, ela será <strong>cadastrada automaticamente</strong> no estoque.</li>
+        <li>Todas as movimentações ficam registradas com o número da NF e dados do fornecedor.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+      <i class="bi bi-upload me-2"></i>Importar Arquivo XML
+    </div>
+    <div class="card-body">
+      <%= form_tag(import_xml_stock_items_path, multipart: true, class: 'needs-validation') do %>
+        <div class="row">
+          <% if @current_user.admin? %>
+            <div class="col-md-4 mb-3">
+              <label class="form-label">Cliente *</label>
+              <select name="client_id" class="form-select" id="import_client_id" onchange="loadCostCentersImport(this.value)" required>
+                <option value="">Selecione o cliente</option>
+                <% @clients.each do |client| %>
+                  <option value="<%= client.id %>"><%= client.name %></option>
+                <% end %>
+              </select>
+            </div>
+          <% end %>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Centro de Custo *</label>
+            <select name="cost_center_id" class="form-select" id="import_cost_center_id" onchange="loadSubUnitsImport(this.value)" required>
+              <option value="">Selecione o centro de custo</option>
+              <% @cost_centers.each do |cc| %>
+                <option value="<%= cc.id %>"><%= cc.name %></option>
+              <% end %>
+            </select>
+          </div>
+          <div class="col-md-4 mb-3">
+            <label class="form-label">Subunidade</label>
+            <select name="sub_unit_id" class="form-select" id="import_sub_unit_id">
+              <option value="">Selecione (opcional)</option>
+              <% @sub_units.each do |su| %>
+                <option value="<%= su.id %>"><%= su.name %></option>
+              <% end %>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-md-6 mb-3">
+            <label class="form-label">Arquivo XML da NF-e *</label>
+            <input type="file" name="xml_file" class="form-control" accept=".xml" required>
+            <small class="text-muted"><%= t('stock.import.supported') %></small>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-12 text-end">
+            <%= link_to stock_items_path, class: 'btn btn-link text-decoration-none' do %>
+              <%= t('model.cancel') %>
+            <% end %>
+            <button type="submit" class="btn btn-success">
+              <i class="bi bi-upload"></i> Importar Peças
+            </button>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+</div>
+
+<script>
+  function loadCostCentersImport(clientId) {
+    if (!clientId) return;
+    
+    $.ajax({
+      url: '/get_cost_centers_by_client_id',
+      data: { client_id: clientId },
+      dataType: 'json',
+      success: function(data) {
+        var select = $('#import_cost_center_id');
+        select.empty().append('<option value="">Selecione o centro de custo</option>');
+        $.each(data, function(i, cc) {
+          select.append('<option value="' + cc.id + '">' + cc.name + '</option>');
+        });
+        $('#import_sub_unit_id').empty().append('<option value="">Selecione (opcional)</option>');
+      }
+    });
+  }
+
+  function loadSubUnitsImport(costCenterId) {
+    if (!costCenterId) return;
+    
+    $.ajax({
+      url: '/get_sub_units_by_cost_center_id',
+      data: { cost_center_id: costCenterId },
+      dataType: 'json',
+      success: function(data) {
+        var select = $('#import_sub_unit_id');
+        select.empty().append('<option value="">Selecione (opcional)</option>');
+        $.each(data, function(i, su) {
+          select.append('<option value="' + su.id + '">' + su.name + '</option>');
+        });
+      }
+    });
+  }
+</script>

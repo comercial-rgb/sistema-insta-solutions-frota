@@ -33,6 +33,57 @@ breadcrumbs = [
     <%= render 'order_services/renders/warranty_panel', warranty_items: (@warranty_items || []) %>
   <% end %>
 
+  <!-- Itens da OS (Cotações, Requisição, Diagnóstico) -->
+  <% if @current_user.admin? || @current_user.manager? || @current_user.additional? %>
+    <% # Exibir itens para OS tipo Cotações, Requisição, ou Diagnóstico com itens definidos %>
+    <% if [OrderServiceType::COTACOES_ID, OrderServiceType::REQUISICAO_ID, OrderServiceType::DIAGNOSTICO_ID].include?(@order_service.order_service_type_id) %>
+      <%= render 'order_services/renders/items_panel', os: @order_service %>
+    <% end %>
+  <% end %>
+
+  <%# Peças do Estoque Próprio %>
+  <% if (@current_user.admin? || @current_user.manager? || @current_user.additional?) && @order_service.stock_order_service_items.any? %>
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-info text-white">
+        <i class="bi bi-box-seam me-2"></i>Peças do Estoque Próprio (<%= @order_service.stock_order_service_items.count %>)
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Peça</th>
+                <th>Quantidade</th>
+                <th>Preço Unit.</th>
+                <th>Total</th>
+                <th>Mão de Obra</th>
+                <th>Adicionado por</th>
+                <th>Observação</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @order_service.stock_order_service_items.includes(:stock_item, :added_by).each do |sosi| %>
+                <tr>
+                  <td><%= link_to sosi.stock_item&.formatted_name, stock_item_path(sosi.stock_item), class: 'text-decoration-none' %></td>
+                  <td><%= sosi.quantity %> <%= sosi.stock_item&.unit_measure %></td>
+                  <td><%= number_to_currency(sosi.unit_price || sosi.stock_item&.unit_price, unit: 'R$', separator: ',', delimiter: '.') %></td>
+                  <td><%= number_to_currency(sosi.total_value, unit: 'R$', separator: ',', delimiter: '.') %></td>
+                  <td>
+                    <span class="badge <%= sosi.own_labor? ? 'bg-info' : 'bg-primary' %>">
+                      <%= sosi.labor_type_label %>
+                    </span>
+                  </td>
+                  <td><%= sosi.added_by&.name %></td>
+                  <td><%= sosi.observation || '-' %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
   <!-- Propostas -->
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
@@ -76,7 +127,7 @@ breadcrumbs = [
                       </span>
                     <% end %>
                   </td>
-                  <td><%= proposal.provider&.name || '-' %></td>
+                  <td><%= (proposal.provider&.fantasy_name.presence || proposal.provider&.name) || '-' %></td>
                   <td>
                     <%= render 'order_service_proposals/order_service_proposal_status', record: proposal %>
                   </td>

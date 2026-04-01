@@ -1,0 +1,20 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: false, href: stock_items_path, text: 'Estoque'},
+  {active: false, href: stock_item_path(@stock_item), text: @stock_item.formatted_name},
+  {active: true, href: '#', text: t('stock.form.edit_title')},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+
+  <div class="row mb-3">
+    <div class="col-12">
+      <h4 class="mb-0"><i class="bi bi-pencil me-2"></i><%= t('stock.form.edit_title') %></h4>
+    </div>
+  </div>
+
+  <%= render 'form', stock_item: @stock_item %>
+</div>

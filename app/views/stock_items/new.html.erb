@@ -1,0 +1,28 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: false, href: stock_items_path, text: 'Estoque'},
+  {active: true, href: '#', text: t('stock.form.new_title')},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+
+  <div class="row mb-3">
+    <div class="col-12">
+      <h4 class="mb-0"><i class="bi bi-plus-circle me-2"></i><%= t('stock.form.new_title') %></h4>
+    </div>
+  </div>
+
+  <!-- Dica rápida -->
+  <div class="alert alert-info d-flex align-items-center mb-4" role="alert">
+    <i class="bi bi-lightbulb me-2 fs-5"></i>
+    <div>
+      <strong>Dica:</strong> Para incluir várias peças de uma vez, utilize a 
+      <%= link_to 'importação via XML da Nota Fiscal', new_import_xml_stock_items_path, class: 'alert-link' %>.
+    </div>
+  </div>
+
+  <%= render 'form', stock_item: @stock_item %>
+</div>

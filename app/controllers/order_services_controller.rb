@@ -203,6 +203,43 @@ class OrderServicesController < ApplicationController
     render layout: 'print_no_values'
   end
 
+  # Download em lote de múltiplas OS em um único PDF
+  def batch_print
+    authorize OrderService, :index?
+    
+    os_ids = params[:order_service_ids]
+    if os_ids.blank?
+      redirect_back(fallback_location: order_services_path, alert: 'Nenhuma OS selecionada para download.')
+      return
+    end
+
+    # Limitar a 200 OSs por vez para evitar timeout
+    os_ids = os_ids.first(200)
+    
+    order_services = OrderService
+      .where(id: os_ids)
+      .includes(:client, :vehicle, :cost_center, :manager, :provider_service_type, 
+                :order_service_type, :order_service_status, :commitment,
+                order_service_proposals: [:provider, :order_service_proposal_status, :order_service_proposal_items])
+    
+    # Filtrar por permissão do usuário
+    if @current_user.manager? || @current_user.additional?
+      cost_center_ids = @current_user.associated_cost_centers.map(&:id)
+      sub_unit_ids = @current_user.associated_sub_units.map(&:id)
+      order_services = order_services.by_client_id(@current_user.client_id)
+                                      .by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids)
+    elsif @current_user.provider?
+      order_services = order_services.where(provider_id: @current_user.id)
+    end
+    
+    pdf_data = Utils::OrderServices::BatchPdfExporter.new(order_services, @current_user).call
+    
+    send_data pdf_data,
+      type: 'application/pdf',
+      disposition: 'attachment',
+      filename: "ordens_servico_lote_#{Time.now.strftime('%Y%m%d_%H%M%S')}.pdf"
+  end
+
   def defining_data(order_service_status_id, show_order_service_status, order_service_status_ids, filter_audit, period_filter, order_services_grid, order_services_grid_class, method)
     # Tratar pseudo-status "aguardando_complemento"
     if order_service_status_id == 'aguardando_complemento'
@@ -1100,9 +1137,15 @@ class OrderServicesController < ApplicationController
       format.html
       format.text do
         current_client = User.client.where(id: clients.first[1]).first
-        file_path = Utils::OrderServices::GenerateInvoiceDocxService.new(@order_services_to_export.assets, current_client, current_month).call
+        invoice_split = params[:invoice_split] # nil = all, 'parts' = only parts, 'services' = only services
+        file_path = Utils::OrderServices::GenerateInvoiceDocxService.new(@order_services_to_export.assets, current_client, current_month, invoice_split: invoice_split).call
+        split_label = case invoice_split
+                      when 'parts' then '_pecas'
+                      when 'services' then '_servicos'
+                      else ''
+                      end
         send_file file_path,
-        filename: 'fatura_template.docx',
+        filename: "fatura_template#{split_label}.docx",
         :content_type => "application/docx",
         type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         :disposition => 'inline'
@@ -1165,7 +1208,10 @@ class OrderServicesController < ApplicationController
     @order_service.invoice_service_pis = 0.65
     @order_service.invoice_service_cofins = 3
     @order_service.invoice_service_csll = 1
-    
+
+    # Setar added_by nos itens de estoque
+    @order_service.stock_order_service_items.each { |sosi| sosi.added_by = @current_user }
+
     if @order_service.save
       if @order_service.order_service_type_id == OrderServiceType::COTACOES_ID
         @order_service.update_columns(provider_id: nil)
@@ -1215,6 +1261,12 @@ class OrderServicesController < ApplicationController
     end
     
     # CORREÇÃO: Verificar se update foi bem-sucedido (respeita validações)
+    # Setar added_by nos novos itens de estoque antes do update
+    if params[:stock_order_service_items_attributes].present?
+      params[:stock_order_service_items_attributes].each do |_key, attrs|
+        attrs[:added_by_id] = @current_user.id if attrs[:id].blank?
+      end
+    end
     update_success = @order_service.update(order_service_params)
     
     # 📊 Log após update
@@ -1702,6 +1754,7 @@ class OrderServicesController < ApplicationController
     :origin_type,
     :directed_to_specific_providers,
     part_service_order_services_attributes: [:id, :order_service_id, :service_id, :observation, :quantity, :_destroy],
+    stock_order_service_items_attributes: [:id, :stock_item_id, :quantity, :unit_price, :labor_type, :observation, :added_by_id, :_destroy],
     files: [],
     vehicle_photos: [],
     parts_photos: [],

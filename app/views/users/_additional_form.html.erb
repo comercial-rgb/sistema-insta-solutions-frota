@@ -30,6 +30,8 @@
 		<% end %>
 	<% end %>
 
+	<%= render 'users/forms/user_email_settings', f: f %>
+
 	<%= render 'common_pages/save', f: f, return_path: (@current_user.id != @user.id) ? users_additional_path : nil %>
 
 <% end %>

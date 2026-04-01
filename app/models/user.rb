@@ -43,6 +43,9 @@
 	has_one :data_bank, as: :ownertable, validate: false, dependent: :destroy
 	accepts_nested_attributes_for :data_bank, :reject_if => :all_blank
 
+	has_many :user_email_settings, dependent: :destroy
+	accepts_nested_attributes_for :user_email_settings, reject_if: proc { |attrs| attrs[:email].blank? }, allow_destroy: true
+
 	has_and_belongs_to_many :provider_service_types, dependent: :destroy
 
 	# This association represents cost centers where the user is the client

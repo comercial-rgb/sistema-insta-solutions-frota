@@ -102,6 +102,15 @@
         </div>
     </div>
 
+    <%# Painel de Peças do Estoque Próprio - somente para admin/gestor/adicional %>
+    <% if !@current_user.provider? && policy(StockItem).index? %>
+        <div class="row">
+            <div class="col-12">
+                <%= render 'stock_items/renders/stock_items_os_panel', order_service: @order_service, disabled: items_disabled %>
+            </div>
+        </div>
+    <% end %>
+
     <div class="row my-3">
         <div class="col-12 mb-3 text-end">
             <a href="<%= show_order_services_path(order_service_status_id: @order_service.order_service_status_id) %>" class="btn btn-link text-decoration-none"><%= t('model.cancel') %></a>

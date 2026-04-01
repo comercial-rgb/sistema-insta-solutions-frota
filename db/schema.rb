@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_03_19_130000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -731,6 +731,80 @@ ActiveRecord::Schema[7.1].define(version: 2026_03_19_130000) do
     t.bigint "state_id", null: false
   end
 
+  create_table "stock_items", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "client_id", null: false
+    t.bigint "cost_center_id", null: false
+    t.bigint "sub_unit_id"
+    t.string "name", null: false
+    t.string "code"
+    t.string "brand"
+    t.text "description"
+    t.decimal "quantity", precision: 12, scale: 2, default: "0.0", null: false
+    t.decimal "minimum_quantity", precision: 12, scale: 2, default: "0.0"
+    t.decimal "unit_price", precision: 12, scale: 2, default: "0.0"
+    t.string "unit_measure", default: "UN"
+    t.string "ncm"
+    t.string "part_number"
+    t.string "location"
+    t.integer "status", default: 0, null: false
+    t.bigint "category_id"
+    t.bigint "created_by_id", null: false
+    t.bigint "updated_by_id"
+    t.datetime "created_at", precision: nil, null: false
+    t.datetime "updated_at", precision: nil, null: false
+    t.index ["category_id"], name: "index_stock_items_on_category_id"
+    t.index ["client_id", "cost_center_id", "code"], name: "idx_stock_items_unique_code", unique: true
+    t.index ["client_id", "cost_center_id", "name"], name: "idx_stock_items_client_cc_name"
+    t.index ["client_id"], name: "index_stock_items_on_client_id"
+    t.index ["cost_center_id"], name: "index_stock_items_on_cost_center_id"
+    t.index ["created_by_id"], name: "index_stock_items_on_created_by_id"
+    t.index ["part_number"], name: "index_stock_items_on_part_number"
+    t.index ["status"], name: "index_stock_items_on_status"
+    t.index ["sub_unit_id"], name: "index_stock_items_on_sub_unit_id"
+    t.index ["updated_by_id"], name: "index_stock_items_on_updated_by_id"
+  end
+
+  create_table "stock_movements", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "stock_item_id", null: false
+    t.bigint "user_id", null: false
+    t.integer "movement_type", null: false
+    t.decimal "quantity", precision: 12, scale: 2, null: false
+    t.decimal "unit_price", precision: 12, scale: 2
+    t.decimal "balance_after", precision: 12, scale: 2, null: false
+    t.text "reason"
+    t.string "document_number"
+    t.string "supplier_name"
+    t.string "supplier_cnpj"
+    t.string "xml_file_name"
+    t.bigint "order_service_id"
+    t.integer "source", default: 0, null: false
+    t.datetime "created_at", precision: nil, null: false
+    t.datetime "updated_at", precision: nil, null: false
+    t.index ["created_at"], name: "index_stock_movements_on_created_at"
+    t.index ["document_number"], name: "index_stock_movements_on_document_number"
+    t.index ["movement_type"], name: "index_stock_movements_on_movement_type"
+    t.index ["order_service_id"], name: "index_stock_movements_on_order_service_id"
+    t.index ["source"], name: "index_stock_movements_on_source"
+    t.index ["stock_item_id"], name: "index_stock_movements_on_stock_item_id"
+    t.index ["user_id"], name: "index_stock_movements_on_user_id"
+  end
+
+  create_table "stock_order_service_items", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "order_service_id", null: false
+    t.bigint "stock_item_id", null: false
+    t.decimal "quantity", precision: 12, scale: 2, default: "1.0", null: false
+    t.decimal "unit_price", precision: 12, scale: 2
+    t.integer "labor_type", default: 0, null: false
+    t.text "observation"
+    t.bigint "added_by_id", null: false
+    t.datetime "created_at", precision: nil, null: false
+    t.datetime "updated_at", precision: nil, null: false
+    t.index ["added_by_id"], name: "index_stock_order_service_items_on_added_by_id"
+    t.index ["order_service_id", "stock_item_id"], name: "idx_stock_os_items_unique", unique: true
+    t.index ["order_service_id"], name: "index_stock_order_service_items_on_order_service_id"
+    t.index ["stock_item_id"], name: "index_stock_order_service_items_on_stock_item_id"
+  end
+
   create_table "sub_categories", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name"
     t.bigint "category_id"
@@ -793,6 +867,23 @@ ActiveRecord::Schema[7.1].define(version: 2026_03_19_130000) do
     t.text "about_product", size: :long
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "user_email_settings", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "email", null: false
+    t.string "sector", comment: "Setor responsável (ex: Financeiro, Operacional, Diretoria)"
+    t.string "description", comment: "Descrição livre do propósito deste e-mail"
+    t.boolean "receive_os_notifications", default: false, comment: "Receber notificações de OS"
+    t.boolean "receive_invoice_notifications", default: false, comment: "Receber notificações de faturas"
+    t.boolean "receive_payment_notifications", default: false, comment: "Receber notificações de pagamentos"
+    t.boolean "receive_approval_notifications", default: false, comment: "Receber notificações de aprovações"
+    t.boolean "receive_report_notifications", default: false, comment: "Receber relatórios periódicos"
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "email"], name: "index_user_email_settings_on_user_id_and_email", unique: true
+    t.index ["user_id"], name: "index_user_email_settings_on_user_id"
   end
 
   create_table "user_statuses", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -988,9 +1079,22 @@ ActiveRecord::Schema[7.1].define(version: 2026_03_19_130000) do
   add_foreign_key "site_contacts", "site_contact_subjects"
   add_foreign_key "site_contacts", "users"
   add_foreign_key "states", "countries"
+  add_foreign_key "stock_items", "categories"
+  add_foreign_key "stock_items", "cost_centers"
+  add_foreign_key "stock_items", "sub_units"
+  add_foreign_key "stock_items", "users", column: "client_id"
+  add_foreign_key "stock_items", "users", column: "created_by_id"
+  add_foreign_key "stock_items", "users", column: "updated_by_id"
+  add_foreign_key "stock_movements", "order_services"
+  add_foreign_key "stock_movements", "stock_items"
+  add_foreign_key "stock_movements", "users"
+  add_foreign_key "stock_order_service_items", "order_services"
+  add_foreign_key "stock_order_service_items", "stock_items"
+  add_foreign_key "stock_order_service_items", "users", column: "added_by_id"
   add_foreign_key "sub_categories", "categories"
   add_foreign_key "sub_units", "budget_types"
   add_foreign_key "sub_units", "cost_centers"
+  add_foreign_key "user_email_settings", "users"
   add_foreign_key "users", "cities"
   add_foreign_key "users", "person_types"
   add_foreign_key "users", "profiles"

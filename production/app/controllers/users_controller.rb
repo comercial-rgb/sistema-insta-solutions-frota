@@ -325,7 +325,7 @@ class UsersController < ApplicationController
   def update_access_data
     authorize @user
     valid = false
-    if !user_params[:current_password].nil? || !user_params[:current_password].blank?
+    if user_params[:current_password].present?
       if @user.authenticate(user_params[:current_password])
         if (user_params[:password].nil? || user_params[:password].blank?) && !user_params[:email].nil? && CustomHelper.address_valid?(user_params[:email])
           @user.update_columns(email: user_params[:email])
@@ -366,8 +366,10 @@ class UsersController < ApplicationController
       @user.password = new_password
       @user.password_confirmation = new_password
       @user.save(validate: false)
-      # Email não será enviado - admin visualiza a senha diretamente
-      # NotificationMailer.reset_password(@user, @system_configuration, new_password).deliver_later
+      
+      # Enviar email com a nova senha
+      NotificationMailer.reset_password(@user, @system_configuration, new_password).deliver_now
+      
       data = {
         result: true,
         password: new_password
@@ -387,6 +389,9 @@ class UsersController < ApplicationController
   def build_initials_relations
     if @user.person_contacts.select{ |item| item[:id].nil? }.length == 0
       @user.person_contacts.build
+    end
+    if @user.user_email_settings.select{ |item| item[:id].nil? }.length == 0
+      @user.user_email_settings.build
     end
     @user.build_address(address_area_id: AddressArea::GENERAL_ID) if @user.address.nil?
     @user.build_data_bank if @user.data_bank.nil?
@@ -436,7 +441,8 @@ class UsersController < ApplicationController
     user = User.active.find_by_email(recover_params)
     if user
       user.update_column(:recovery_token, SecureRandom.urlsafe_base64)
-      NotificationMailer.forgot_password(user, @system_configuration).deliver_later
+      user.reload
+      NotificationMailer.forgot_password(user, @system_configuration).deliver_now
       flash[:success] = t('flash.change_password')
       redirect_to login_path
     else
@@ -449,6 +455,7 @@ class UsersController < ApplicationController
     if params[:recovery_token]
       session[:user_id] = nil
       @user = User.find_by_recovery_token params[:recovery_token]
+      @recovery_token = params[:recovery_token]
     end
 
     @user = current_user if current_user
@@ -461,6 +468,16 @@ class UsersController < ApplicationController
 
   def update_pass
     @user = User.active.find(params[:id])
+
+    # Verificar recovery_token para impedir alteração de senha sem autorização
+    if @user.recovery_token.blank? || params[:recovery_token].blank? || @user.recovery_token != params[:recovery_token]
+      # Permitir apenas se o próprio usuário logado está alterando
+      unless current_user && current_user.id == @user.id
+        flash[:error] = t('flash.change_password_error')
+        redirect_to login_path and return
+      end
+    end
+
     if user_params[:password].nil? || user_params[:password].blank?
       flash[:error] = User.human_attribute_name(:invalid_password)
       redirect_back(fallback_location: :back)
@@ -491,6 +508,11 @@ class UsersController < ApplicationController
   def delete_order_service_invoice
     order_service_invoice = OrderServiceInvoice.where(id: params[:model_id]).first
     if order_service_invoice
+      os_client_id = order_service_invoice.order_service_proposal&.order_service&.client_id
+      unless verify_record_ownership(os_client_id)
+        flash[:error] = t('flash.login_error')
+        redirect_back(fallback_location: root_path) and return
+      end
       order_service_invoice.destroy
       flash[:success] = t('flash.destroy')
       redirect_back(fallback_location: :back)
@@ -502,6 +524,11 @@ class UsersController < ApplicationController
   def delete_order_service_proposal_item
     order_service_proposal_item = OrderServiceProposalItem.where(id: params[:model_id]).first
     if order_service_proposal_item
+      os_client_id = order_service_proposal_item.order_service_proposal&.order_service&.client_id
+      unless verify_record_ownership(os_client_id)
+        flash[:error] = t('flash.login_error')
+        redirect_back(fallback_location: root_path) and return
+      end
       order_service_proposal_item.destroy
       flash[:success] = t('flash.destroy')
       redirect_back(fallback_location: :back)
@@ -513,6 +540,11 @@ class UsersController < ApplicationController
   def delete_provider_service_temp
     provider_service_temp = ProviderServiceTemp.where(id: params[:model_id]).first
     if provider_service_temp
+      os_client_id = provider_service_temp.order_service_proposal&.order_service&.client_id
+      unless verify_record_ownership(os_client_id)
+        flash[:error] = t('flash.login_error')
+        redirect_back(fallback_location: root_path) and return
+      end
       provider_service_temp.destroy
       flash[:success] = t('flash.destroy')
       redirect_back(fallback_location: :back)
@@ -546,6 +578,10 @@ class UsersController < ApplicationController
   def delete_sub_unit
     sub_unit = SubUnit.where(id: params[:model_id]).first
     if sub_unit
+      unless verify_record_ownership(sub_unit.cost_center&.client_id)
+        flash[:error] = t('flash.login_error')
+        redirect_back(fallback_location: root_path) and return
+      end
       sub_unit.vehicles.update_all(sub_unit_id: nil)
       sub_unit.destroy
       flash[:success] = t('flash.destroy')
@@ -623,6 +659,10 @@ class UsersController < ApplicationController
   def delete_addendum_contract
     addendum_contract = AddendumContract.where(id: params[:model_id]).first
     if addendum_contract
+      unless verify_record_ownership(addendum_contract.contract&.client_id)
+        flash[:error] = t('flash.login_error')
+        redirect_back(fallback_location: root_path) and return
+      end
       if addendum_contract.can_delete?
         addendum_contract.destroy
         flash[:success] = t('flash.destroy')
@@ -638,6 +678,10 @@ class UsersController < ApplicationController
   def delete_part_service_order_service
     part_service_order_service = PartServiceOrderService.where(id: params[:model_id]).first
     if part_service_order_service
+      unless verify_record_ownership(part_service_order_service.order_service&.client_id)
+        flash[:error] = t('flash.login_error')
+        redirect_back(fallback_location: root_path) and return
+      end
       part_service_order_service.destroy
       flash[:success] = t('flash.destroy')
       redirect_back(fallback_location: :back)
@@ -649,10 +693,16 @@ class UsersController < ApplicationController
   def delete_cancel_commitment
     cancel_commitment = CancelCommitment.where(id: params[:model_id]).first
     if cancel_commitment
-      canceled_value = cancel_commitment.commitment.canceled_value
-      new_canceled_value = canceled_value - cancel_commitment.value
-      cancel_commitment.commitment.update(canceled_value: new_canceled_value)
-      cancel_commitment.destroy
+      unless verify_record_ownership(cancel_commitment.commitment&.client_id)
+        flash[:error] = t('flash.login_error')
+        redirect_back(fallback_location: root_path) and return
+      end
+      ActiveRecord::Base.transaction do
+        commitment = cancel_commitment.commitment.lock!
+        new_canceled_value = commitment.canceled_value - cancel_commitment.value
+        commitment.update!(canceled_value: new_canceled_value)
+        cancel_commitment.destroy!
+      end
       flash[:success] = t('flash.destroy')
       redirect_back(fallback_location: :back)
     else
@@ -1004,6 +1054,26 @@ class UsersController < ApplicationController
 
   private
 
+  # Retorna o client_id do usuário logado para verificações de ownership
+  def current_client_id
+    return nil unless @current_user
+    if @current_user.admin?
+      nil # Admin pode acessar tudo
+    elsif @current_user.client?
+      @current_user.id
+    else
+      @current_user.client_id
+    end
+  end
+
+  # Verifica se o registro pertence ao client do usuário atual
+  # Retorna true se for admin ou se o client_id bater
+  def verify_record_ownership(record_client_id)
+    return true if @current_user&.admin?
+    return false unless @current_user
+    current_client_id == record_client_id
+  end
+
   def set_user
     @user = User.find_by_id(params[:id])
   end
@@ -1037,6 +1107,7 @@ class UsersController < ApplicationController
       address_attributes: [:id, :latitude, :longitude, :ownertable_type, :ownertable_id, :page_title, :address_type_id, :address_area_id, :name, :zipcode, :address, :district, :number, :complement, :address_type, :state_id, :city_id, :country_id, :reference],
       addresses_attributes: [:id, :latitude, :longitude, :ownertable_type, :ownertable_id, :page_title, :address_type_id, :address_area_id, :name, :zipcode, :address, :district, :number, :complement, :address_type, :state_id, :city_id, :country_id, :reference],
       person_contacts_attributes: [:id, :ownertable_type, :ownertable_id, :name, :phone, :email, :office],
+      user_email_settings_attributes: [:id, :email, :sector, :description, :receive_os_notifications, :receive_invoice_notifications, :receive_payment_notifications, :receive_approval_notifications, :receive_report_notifications, :active, :_destroy],
       provider_service_type_ids: [], associated_cost_center_ids: [], associated_sub_unit_ids: [], state_ids: []
       )
   end

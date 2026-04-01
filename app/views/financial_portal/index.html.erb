@@ -1,0 +1,271 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: true, href: '#', text: 'Portal Financeiro'},
+]
+
+portal_url = FinancialPortalController::PORTAL_URL
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+
+  <!-- Banner Informativo -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #1a237e 0%, #283593 50%, #3949ab 100%);">
+        <div class="card-body text-white p-4">
+          <div class="row align-items-center">
+            <div class="col-md-8">
+              <h3 class="mb-2">
+                <i class="bi bi-bank me-2"></i> Portal Financeiro
+              </h3>
+              <p class="mb-2 opacity-75">
+                O Portal Financeiro é uma ferramenta complementar ao sistema de frotas, criada para otimizar e 
+                facilitar o acompanhamento financeiro de ordens de serviço, faturas e pagamentos.
+              </p>
+              <% if @current_user.provider? %>
+                <p class="mb-0 opacity-75">
+                  <i class="bi bi-info-circle me-1"></i>
+                  Você possui acesso com seu login de fornecedor. Ao clicar em "Acessar Portal", 
+                  você será direcionado para o Portal Financeiro onde poderá ver detalhes de todas as suas 
+                  OS aprovadas, autorizadas, em aguardo de pagamento e pagas, incluindo comprovantes.
+                </p>
+              <% else %>
+                <p class="mb-0 opacity-75">
+                  <i class="bi bi-info-circle me-1"></i>
+                  Acompanhe o status financeiro das ordens de serviço dos fornecedores. 
+                  O portal possui dados sincronizados via webhook a cada autorização de OS.
+                </p>
+              <% end %>
+            </div>
+            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+              <a href="<%= portal_url %>" target="_blank" class="btn btn-light btn-lg shadow-sm">
+                <i class="bi bi-box-arrow-up-right me-1"></i> Acessar Portal Financeiro
+              </a>
+              <% if @current_user.provider? %>
+                <p class="mt-2 mb-0 small opacity-75">
+                  <i class="bi bi-key me-1"></i> Use seu login do portal ou entre com as credenciais separadas
+                </p>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aviso de Divergência para dados antigos -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center" role="alert">
+        <i class="bi bi-exclamation-triangle-fill fs-4 me-3"></i>
+        <div>
+          <strong>Atenção:</strong> Para fornecedores novos, os dados deste painel devem estar consistentes com o Portal Financeiro.
+          Para fornecedores mais antigos (cujas OS foram criadas antes da integração), poderá haver divergência de valores
+          entre os sistemas. <strong>O sistema de frotas é a referência oficial</strong> para dados históricos.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cards de Estatísticas do Frota (referência) -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <h5 class="text-muted mb-3">
+        <i class="bi bi-graph-up me-1"></i> Resumo Financeiro 
+        <span class="badge bg-secondary fw-normal">Dados do Sistema de Frotas</span>
+      </h5>
+    </div>
+  </div>
+
+  <div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card shadow-sm border-success h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Aprovadas</h6>
+              <h3 class="mb-0 text-success"><%= @aprovadas_count %></h3>
+              <small class="text-muted"><%= CustomHelper.to_currency(@valor_aprovado) %></small>
+            </div>
+            <div class="text-success">
+              <i class="bi bi-check-circle fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card shadow-sm border-info h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Autorizadas</h6>
+              <h3 class="mb-0 text-info"><%= @autorizadas_count %></h3>
+              <small class="text-muted"><%= CustomHelper.to_currency(@valor_autorizado) %></small>
+            </div>
+            <div class="text-info">
+              <i class="bi bi-shield-check fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card shadow-sm border-primary h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Ag. Pagamento</h6>
+              <h3 class="mb-0 text-primary"><%= @ag_pagamento_count %></h3>
+              <small class="text-muted"><%= CustomHelper.to_currency(@valor_ag_pagamento) %></small>
+            </div>
+            <div class="text-primary">
+              <i class="bi bi-credit-card fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card shadow-sm border-dark h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted mb-1">Pagas</h6>
+              <h3 class="mb-0 text-dark"><%= @pagas_count %></h3>
+              <small class="text-muted"><%= CustomHelper.to_currency(@valor_pago) %></small>
+            </div>
+            <div class="text-dark">
+              <i class="bi bi-cash-coin fs-1"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cards Informativos -->
+  <div class="row mb-4">
+    <div class="col-md-4 mb-3">
+      <div class="card shadow-sm h-100 border-0 bg-light">
+        <div class="card-body">
+          <h6 class="card-title">
+            <i class="bi bi-arrow-repeat text-primary me-1"></i> Sincronização Automática
+          </h6>
+          <p class="card-text small text-muted">
+            Toda OS autorizada no sistema de frotas é enviada automaticamente para o Portal Financeiro 
+            via webhook. Isso garante que os dados financeiros estejam sempre atualizados.
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 mb-3">
+      <div class="card shadow-sm h-100 border-0 bg-light">
+        <div class="card-body">
+          <h6 class="card-title">
+            <i class="bi bi-key text-warning me-1"></i> Acesso ao Portal
+          </h6>
+          <p class="card-text small text-muted">
+            <% if @current_user.provider? %>
+              Você pode acessar o Portal Financeiro com seu login separado ou diretamente pelo botão acima.
+              No portal você encontra: detalhes de OS, faturas, comprovantes de pagamento e histórico completo.
+            <% else %>
+              Fornecedores possuem login próprio no Portal Financeiro. Administradores podem acessar 
+              para verificar os dados de OS e acompanhar o fluxo de pagamentos.
+            <% end %>
+          </p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4 mb-3">
+      <div class="card shadow-sm h-100 border-0 bg-light">
+        <div class="card-body">
+          <h6 class="card-title">
+            <i class="bi bi-shield-lock text-success me-1"></i> Dados Verificados
+          </h6>
+          <p class="card-text small text-muted">
+            Os valores exibidos aqui (aprovadas, ag. pagamento, pagas) devem corresponder aos mesmos dados 
+            registrados no Portal Financeiro. Em caso de divergência em registros antigos, 
+            <strong>o sistema de frotas é a referência oficial</strong>.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <% if @current_user.provider? && @os_recentes.present? %>
+    <!-- Tabela de OS Recentes do Fornecedor -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-clock-history me-2"></i> OS Recentes (últimas 20)</span>
+        <a href="<%= portal_url %>/ordens-servico" target="_blank" class="btn btn-sm btn-outline-light">
+          <i class="bi bi-box-arrow-up-right me-1"></i> Ver todas no Portal
+        </a>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Código</th>
+                <th>Cliente</th>
+                <th>Centro de Custo</th>
+                <th>Veículo</th>
+                <th>Status</th>
+                <th class="text-end">Valor</th>
+                <th>Atualização</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @os_recentes.each do |os| %>
+                <tr>
+                  <td><strong><%= os.code %></strong></td>
+                  <td><%= os.client&.fantasy_name %></td>
+                  <td><%= os.cost_center&.name %></td>
+                  <td><%= os.vehicle&.board %></td>
+                  <td>
+                    <% 
+                      badge_class = case os.order_service_status_id
+                                    when OrderServiceStatus::APROVADA_ID then 'bg-success'
+                                    when OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID then 'bg-info'
+                                    when OrderServiceStatus::AUTORIZADA_ID then 'bg-primary'
+                                    when OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID then 'bg-warning text-dark'
+                                    when OrderServiceStatus::PAGA_ID then 'bg-dark'
+                                    else 'bg-secondary'
+                                    end
+                    %>
+                    <span class="badge <%= badge_class %>"><%= os.order_service_status&.name %></span>
+                  </td>
+                  <td class="text-end">
+                    <% approved_proposal = os.getting_order_service_proposal_approved %>
+                    <%= CustomHelper.to_currency(approved_proposal&.total_value || 0) %>
+                  </td>
+                  <td><%= os.updated_at.strftime('%d/%m/%Y') %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Link rápido para o portal -->
+  <div class="row mb-4">
+    <div class="col-12 text-center">
+      <a href="<%= portal_url %>" target="_blank" class="btn btn-outline-primary btn-lg">
+        <i class="bi bi-box-arrow-up-right me-1"></i> Abrir Portal Financeiro em nova aba
+      </a>
+      <% if @current_user.provider? %>
+        <p class="text-muted small mt-2">
+          Acesse o portal para ver detalhes completos, comprovantes de pagamento e faturas detalhadas.
+        </p>
+      <% end %>
+    </div>
+  </div>
+</div>

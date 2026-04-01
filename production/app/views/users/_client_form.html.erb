@@ -11,6 +11,8 @@
 	
 	<%= render 'common_pages/person_contacts/person_contacts', f: f %>
 
+	<%= render 'users/forms/user_email_settings', f: f %>
+
 	<%= render 'common_pages/save', f: f, return_path: (@current_user.id != @user.id) ? users_client_path : nil %>
 
 <% end %>

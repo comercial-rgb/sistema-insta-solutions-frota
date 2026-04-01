@@ -1,0 +1,21 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: false, href: stock_items_path, text: 'Estoque'},
+  {active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+  render 'common_pages/index',
+  attributes: {
+    page_title: StockItem.model_name.human(count: 2),
+    url_new_path: new_stock_item_path,
+    policy_true: policy(StockItem).new?,
+    objects: @stock_items,
+    objects_path: stock_items_path,
+    object_name: StockItem.model_name.human,
+    breadcrumbs: breadcrumbs,
+    objects_path_export: stock_items_path(format: "csv", stock_items_grid: (params[:stock_items_grid].nil? ? "" : params[:stock_items_grid].to_enum.to_h)),
+  }
+%>

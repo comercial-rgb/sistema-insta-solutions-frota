@@ -1,0 +1,130 @@
+pt-BR:
+  activerecord:
+    models:
+      stock_item:
+        one: "Item de Estoque"
+        other: "Itens de Estoque"
+      stock_movement:
+        one: "Movimentação"
+        other: "Movimentações"
+      stock_order_service_item:
+        one: "Peça do Estoque na OS"
+        other: "Peças do Estoque na OS"
+    attributes:
+      stock_item:
+        name: "Nome da Peça"
+        code: "Código"
+        brand: "Marca"
+        description: "Descrição"
+        quantity: "Quantidade"
+        minimum_quantity: "Quantidade Mínima"
+        unit_price: "Preço Unitário"
+        unit_measure: "Unidade de Medida"
+        ncm: "NCM"
+        part_number: "Part Number"
+        location: "Localização"
+        status: "Status"
+        category_id: "Categoria"
+        client_id: "Cliente"
+        cost_center_id: "Centro de Custo"
+        sub_unit_id: "Subunidade"
+        created_by: "Incluído por"
+        updated_by: "Alterado por"
+        created_at: "Data de Inclusão"
+        updated_at: "Última Atualização"
+        total_value: "Valor Total"
+        statuses:
+          active: "Ativo"
+          inactive: "Inativo"
+          below_minimum: "Abaixo do Mínimo"
+        dashboard: "Dashboard do Estoque"
+        reports: "Relatório de Estoque"
+        import_xml: "Importar XML"
+        movement_history: "Histórico de Movimentações"
+        stock_module: "Estoque"
+      stock_movement:
+        stock_item_id: "Item"
+        user_id: "Usuário"
+        movement_type: "Tipo de Movimentação"
+        quantity: "Quantidade"
+        unit_price: "Preço Unitário"
+        balance_after: "Saldo Após"
+        reason: "Motivo"
+        document_number: "Nº Documento"
+        supplier_name: "Fornecedor"
+        supplier_cnpj: "CNPJ Fornecedor"
+        xml_file_name: "Arquivo XML"
+        order_service_id: "Ordem de Serviço"
+        source: "Origem"
+        created_at: "Data"
+        movement_types:
+          entry: "Entrada"
+          exit: "Saída"
+          adjustment_entry: "Ajuste (Entrada)"
+          adjustment_exit: "Ajuste (Saída)"
+          os_consumption: "Consumo OS"
+          os_return: "Devolução OS"
+        sources:
+          manual: "Manual"
+          xml_import: "Importação XML"
+          order_service_usage: "Uso em OS"
+          adjustment: "Ajuste"
+      stock_order_service_item:
+        order_service_id: "Ordem de Serviço"
+        stock_item_id: "Peça do Estoque"
+        quantity: "Quantidade"
+        unit_price: "Preço Unitário"
+        labor_type: "Tipo de Mão de Obra"
+        observation: "Observação"
+        added_by: "Adicionado por"
+        labor_types:
+          credentialed_network: "Rede Credenciada"
+          own_labor: "Mão de Obra Própria"
+  stock:
+    dashboard:
+      title: "Dashboard do Estoque"
+      total_items: "Total de Itens"
+      total_value: "Valor Total em Estoque"
+      below_minimum: "Abaixo do Mínimo"
+      without_stock: "Sem Estoque"
+      with_stock: "Com Estoque"
+      recent_movements: "Movimentações Recentes"
+      items_attention: "Itens que Precisam de Atenção"
+      movements_chart: "Movimentações (Últimos 30 dias)"
+    guidance:
+      title: "Dicas para Manter seu Estoque Atualizado"
+      cards:
+        register:
+          title: "Cadastre Todas as Peças"
+          description: "Registre cada peça que entra no seu estoque. Use o código da peça e part number para facilitar a identificação."
+        xml_import:
+          title: "Importe via XML da Nota Fiscal"
+          description: "Ao receber peças de fornecedores, importe o XML da NF-e para entrada automática no estoque, evitando erros manuais."
+        minimum_stock:
+          title: "Configure o Estoque Mínimo"
+          description: "Defina quantidades mínimas para cada peça. O sistema alertará quando o estoque estiver baixo para que você possa reabastecer."
+        os_integration:
+          title: "Vincule Peças às Ordens de Serviço"
+          description: "Ao criar uma OS, selecione peças do seu estoque. As quantidades serão atualizadas automaticamente."
+        periodic_review:
+          title: "Faça Revisões Periódicas"
+          description: "Realize inventários mensais para garantir que o estoque físico corresponde ao registrado no sistema. Use o ajuste de estoque quando necessário."
+        cost_tracking:
+          title: "Acompanhe os Custos"
+          description: "Monitore o valor total do estoque por centro de custo e subunidade. Use os relatórios para controle financeiro."
+    import:
+      title: "Importar Peças via XML da Nota Fiscal"
+      description: "Selecione o arquivo XML da NF-e para importar automaticamente as peças ao estoque."
+      select_file: "Selecionar arquivo XML"
+      instructions: "O sistema irá extrair os itens da nota fiscal e adicioná-los ao estoque do centro de custo selecionado."
+      supported: "Formato suportado: XML de NF-e (Nota Fiscal Eletrônica)"
+    form:
+      new_title: "Novo Item de Estoque"
+      edit_title: "Editar Item de Estoque"
+      basic_data: "Dados da Peça"
+      stock_data: "Dados de Estoque"
+      location_data: "Localização"
+    messages:
+      stock_consumed: "Peça consumida do estoque na OS"
+      stock_returned: "Peça devolvida ao estoque"
+      insufficient_stock: "Estoque insuficiente para esta peça"

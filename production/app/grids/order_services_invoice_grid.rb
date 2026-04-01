@@ -75,6 +75,10 @@ class OrderServicesInvoiceGrid
     return cost_centers
   end
 
+  def get_sub_units
+    return sub_units || []
+  end
+
   def get_provider_service_types
     return provider_service_types
   end
@@ -129,6 +133,10 @@ class OrderServicesInvoiceGrid
 
   filter(:cost_center_id, :enum, if: :check_not_provider, select: :get_cost_centers, header: OrderService.human_attribute_name(:cost_center_id), include_blank: I18n.t('model.select_option') ) do |value, relation, grid|
     relation.by_cost_center_id(value)
+  end
+
+  filter(:sub_unit_id, :enum, if: :check_not_provider, select: :get_sub_units, header: SubUnit.model_name.human, include_blank: I18n.t('model.select_option') ) do |value, relation, grid|
+    relation.by_sub_unit_id(value)
   end
 
   filter(:vehicle_id, :enum, if: false, select: :get_vehicles, header: OrderService.human_attribute_name(:vehicle_id), include_blank: I18n.t('model.select_option') ) do |value, relation, grid|

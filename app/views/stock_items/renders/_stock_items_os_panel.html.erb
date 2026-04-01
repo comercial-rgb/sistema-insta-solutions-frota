@@ -1,0 +1,257 @@
+<!-- Painel de Peças do Estoque Próprio -->
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-box-seam me-2"></i>Peças do Estoque Próprio</span>
+    <% if !disabled %>
+      <button type="button" class="btn btn-sm btn-light" id="btn-add-stock-item" data-bs-toggle="modal" data-bs-target="#addStockItemModal">
+        <i class="bi bi-plus-circle"></i> Adicionar Peça do Estoque
+      </button>
+    <% end %>
+  </div>
+  <div class="card-body">
+    <div id="stock-items-list">
+      <% if order_service.persisted? && order_service.stock_order_service_items.any? %>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Peça</th>
+                <th>Quantidade</th>
+                <th>Preço Unit.</th>
+                <th>Total</th>
+                <th>Mão de Obra</th>
+                <th>Observação</th>
+                <% if !disabled %>
+                  <th class="text-center">Ações</th>
+                <% end %>
+              </tr>
+            </thead>
+            <tbody id="stock-items-table-body">
+              <% order_service.stock_order_service_items.includes(:stock_item).each do |sosi| %>
+                <tr id="stock-os-item-<%= sosi.id %>">
+                  <td><%= sosi.stock_item&.formatted_name %></td>
+                  <td><%= sosi.quantity %> <%= sosi.stock_item&.unit_measure %></td>
+                  <td><%= number_to_currency(sosi.unit_price || sosi.stock_item&.unit_price, unit: 'R$', separator: ',', delimiter: '.') %></td>
+                  <td><%= number_to_currency(sosi.total_value, unit: 'R$', separator: ',', delimiter: '.') %></td>
+                  <td>
+                    <span class="badge <%= sosi.own_labor? ? 'bg-info' : 'bg-primary' %>">
+                      <%= sosi.labor_type_label %>
+                    </span>
+                  </td>
+                  <td><%= sosi.observation || '-' %></td>
+                  <% if !disabled %>
+                    <td class="text-center">
+                      <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeStockOsItem(<%= sosi.id %>)">
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </td>
+                  <% end %>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      <% else %>
+        <p class="text-muted mb-0" id="no-stock-items-msg">
+          Nenhuma peça do estoque próprio adicionada.
+          <br>
+          <small>Utilize o botão acima para incluir peças do seu estoque nesta OS.</small>
+        </p>
+      <% end %>
+    </div>
+
+    <!-- Campos hidden para novos itens de estoque na OS -->
+    <div id="stock-items-fields"></div>
+  </div>
+</div>
+
+<!-- Modal para adicionar peça do estoque -->
+<div class="modal fade" id="addStockItemModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white">
+        <h5 class="modal-title"><i class="bi bi-box-seam me-2"></i>Adicionar Peça do Estoque</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="row mb-3">
+          <div class="col-12">
+            <label class="form-label">Selecione a Peça *</label>
+            <select class="form-select" id="stock_item_select">
+              <option value="">Carregando peças do estoque...</option>
+            </select>
+            <small class="text-muted">Apenas peças com estoque disponível são exibidas.</small>
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-md-4">
+            <label class="form-label">Quantidade *</label>
+            <input type="number" step="0.01" min="0.01" class="form-control" id="stock_item_qty" value="1">
+            <small class="text-muted" id="stock_item_available">-</small>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Preço Unitário</label>
+            <input type="number" step="0.01" min="0" class="form-control" id="stock_item_price" readonly>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Tipo de Mão de Obra *</label>
+            <select class="form-select" id="stock_item_labor_type">
+              <option value="credentialed_network">Rede Credenciada</option>
+              <option value="own_labor">Mão de Obra Própria</option>
+            </select>
+          </div>
+        </div>
+        <div class="row mb-3">
+          <div class="col-12">
+            <label class="form-label">Observação</label>
+            <input type="text" class="form-control" id="stock_item_observation" placeholder="Observação sobre o uso desta peça (opcional)">
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-info text-white" onclick="addStockItemToOS()">
+          <i class="bi bi-plus-circle"></i> Adicionar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  var stockItemsData = {};
+  var addedStockItemIndex = 0;
+
+  // Carregar peças do estoque quando o modal abrir
+  document.getElementById('addStockItemModal')?.addEventListener('show.bs.modal', function() {
+    var costCenterId = document.querySelector('[name="order_service[cost_center_id]"], #order_service_cost_center_id, [id*="cost_center"]')?.value;
+    var subUnitId = document.querySelector('[name="order_service[sub_unit_id]"], #order_service_sub_unit_id, [id*="sub_unit"]')?.value;
+    
+    if (!costCenterId) {
+      $('#stock_item_select').html('<option value="">Selecione um Centro de Custo na OS primeiro</option>');
+      return;
+    }
+
+    $.ajax({
+      url: '/get_stock_items_by_cost_center',
+      data: { cost_center_id: costCenterId, sub_unit_id: subUnitId },
+      dataType: 'json',
+      success: function(items) {
+        var select = $('#stock_item_select');
+        select.empty().append('<option value="">Selecione uma peça</option>');
+        stockItemsData = {};
+        items.forEach(function(item) {
+          stockItemsData[item.id] = item;
+          select.append('<option value="' + item.id + '">' + item.name + '</option>');
+        });
+        if (items.length === 0) {
+          select.html('<option value="">Nenhuma peça disponível neste centro de custo</option>');
+        }
+      },
+      error: function() {
+        $('#stock_item_select').html('<option value="">Erro ao carregar peças</option>');
+      }
+    });
+  });
+
+  // Atualizar info ao selecionar peça
+  $('#stock_item_select').on('change', function() {
+    var itemId = $(this).val();
+    if (itemId && stockItemsData[itemId]) {
+      var item = stockItemsData[itemId];
+      $('#stock_item_price').val(item.unit_price);
+      $('#stock_item_available').text('Disponível: ' + item.quantity + ' ' + item.unit_measure);
+      $('#stock_item_qty').attr('max', item.quantity);
+    } else {
+      $('#stock_item_price').val('');
+      $('#stock_item_available').text('-');
+    }
+  });
+
+  function addStockItemToOS() {
+    var itemId = $('#stock_item_select').val();
+    var qty = parseFloat($('#stock_item_qty').val());
+    var laborType = $('#stock_item_labor_type').val();
+    var observation = $('#stock_item_observation').val();
+    var price = parseFloat($('#stock_item_price').val());
+    
+    if (!itemId || !qty || qty <= 0) {
+      alert('Selecione uma peça e informe a quantidade.');
+      return;
+    }
+
+    var item = stockItemsData[itemId];
+    if (qty > item.quantity) {
+      alert('Quantidade excede o estoque disponível (' + item.quantity + ' ' + item.unit_measure + ')');
+      return;
+    }
+
+    var laborLabel = laborType === 'own_labor' ? 'Mão de Obra Própria' : 'Rede Credenciada';
+    var laborBadge = laborType === 'own_labor' ? 'bg-info' : 'bg-primary';
+    var totalValue = (qty * price).toFixed(2);
+
+    // Adicionar hidden fields
+    var prefix = 'stock_order_service_items_attributes[' + addedStockItemIndex + ']';
+    var fieldsHtml = '<div id="stock-fields-' + addedStockItemIndex + '">' +
+      '<input type="hidden" name="' + prefix + '[stock_item_id]" value="' + itemId + '">' +
+      '<input type="hidden" name="' + prefix + '[quantity]" value="' + qty + '">' +
+      '<input type="hidden" name="' + prefix + '[unit_price]" value="' + price + '">' +
+      '<input type="hidden" name="' + prefix + '[labor_type]" value="' + laborType + '">' +
+      '<input type="hidden" name="' + prefix + '[observation]" value="' + observation + '">' +
+      '</div>';
+    $('#stock-items-fields').append(fieldsHtml);
+
+    // Adicionar linha na tabela
+    var noMsg = $('#no-stock-items-msg');
+    if (noMsg.length) {
+      noMsg.replaceWith(
+        '<div class="table-responsive"><table class="table table-hover align-middle mb-0">' +
+        '<thead class="table-light"><tr>' +
+        '<th>Peça</th><th>Quantidade</th><th>Preço Unit.</th><th>Total</th><th>Mão de Obra</th><th>Observação</th><th class="text-center">Ações</th>' +
+        '</tr></thead><tbody id="stock-items-table-body"></tbody></table></div>'
+      );
+    }
+
+    var rowHtml = '<tr id="stock-row-' + addedStockItemIndex + '">' +
+      '<td>' + item.name.split(' [')[0] + '</td>' +
+      '<td>' + qty + ' ' + item.unit_measure + '</td>' +
+      '<td>R$ ' + price.toFixed(2).replace('.', ',') + '</td>' +
+      '<td>R$ ' + totalValue.replace('.', ',') + '</td>' +
+      '<td><span class="badge ' + laborBadge + '">' + laborLabel + '</span></td>' +
+      '<td>' + (observation || '-') + '</td>' +
+      '<td class="text-center"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeNewStockItem(' + addedStockItemIndex + ')"><i class="bi bi-trash"></i></button></td>' +
+      '</tr>';
+
+    $('#stock-items-table-body').append(rowHtml);
+    addedStockItemIndex++;
+
+    // Fechar modal e limpar
+    $('#addStockItemModal').modal('hide');
+    $('#stock_item_select').val('');
+    $('#stock_item_qty').val(1);
+    $('#stock_item_price').val('');
+    $('#stock_item_observation').val('');
+    $('#stock_item_available').text('-');
+  }
+
+  function removeNewStockItem(index) {
+    $('#stock-row-' + index).remove();
+    $('#stock-fields-' + index).remove();
+  }
+
+  function removeStockOsItem(id) {
+    if (!confirm('Deseja remover esta peça? A quantidade será devolvida ao estoque.')) return;
+    
+    $.ajax({
+      url: '/delete_stock_order_service_item',
+      method: 'DELETE',
+      data: { id: id },
+      success: function() {
+        $('#stock-os-item-' + id).remove();
+      },
+      error: function() {
+        alert('Erro ao remover item do estoque.');
+      }
+    });
+  }
+</script>

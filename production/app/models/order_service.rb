@@ -35,7 +35,7 @@ class OrderService < ApplicationRecord
   scope :by_release_quotation, lambda { |value| where("order_services.release_quotation = ?", value) if !value.nil? && !value.blank? }
   scope :by_client_id, lambda { |value| where("order_services.client_id = ?", value) if !value.nil? && !value.blank? }
   scope :by_commitment_id, lambda { |value| where("order_services.commitment_id = ?", value) if !value.nil? && !value.blank? }
-  scope :by_sub_unit_id, lambda { |value| joins(:commitment).where("commitments.sub_unit_id = ?", value) if !value.nil? && !value.blank? }
+  scope :by_sub_unit_id, lambda { |value| joins(:vehicle).where("vehicles.sub_unit_id = ?", value) if !value.nil? && !value.blank? }
   scope :by_manager_id, lambda { |value| where("order_services.manager_id = ?", value) if !value.nil? && !value.blank? }
   scope :by_code, lambda { |value| where("LOWER(order_services.code) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
@@ -88,6 +88,7 @@ class OrderService < ApplicationRecord
   scope :by_proposal_provider_id, lambda { |value|
     left_outer_joins(:order_service_proposals)
       .where("order_service_proposals.provider_id = ? OR order_services.provider_id = ?", value, value)
+      .distinct
   }
 
   # Exclui OSs onde o fornecedor já tem proposta ativa (não cancelada/reprovada)
@@ -235,11 +236,23 @@ class OrderService < ApplicationRecord
     reject_if: proc { |attrs| attrs[:service_id].blank? },
     allow_destroy: true
 
+  has_many :stock_order_service_items, validate: false, dependent: :destroy
+  accepts_nested_attributes_for :stock_order_service_items,
+    reject_if: proc { |attrs| attrs[:stock_item_id].blank? },
+    allow_destroy: true
+
   has_and_belongs_to_many :rejected_providers,
             class_name: 'User',
             join_table: :rejected_order_services_providers,
             association_foreign_key: :provider_id,
             foreign_key: :order_service_id
+
+  has_and_belongs_to_many :directed_providers,
+            class_name: 'User',
+            join_table: :order_service_directed_providers,
+            association_foreign_key: :provider_id,
+            foreign_key: :order_service_id,
+            validate: false
 
   validates_presence_of :client_id, :manager_id, :vehicle_id,
   :provider_service_type_id, :maintenance_plan_id,
@@ -367,6 +380,10 @@ class OrderService < ApplicationRecord
         .by_provider_id_or_null(current_user.id)
         .by_order_service_statuses_id(statuses_to_filter)
         .excluded_by_active_proposal_by_provider(current_user.id)
+        .where(
+          "order_services.directed_to_specific_providers = FALSE OR order_services.directed_to_specific_providers IS NULL OR EXISTS (SELECT 1 FROM order_service_directed_providers osdp WHERE osdp.order_service_id = order_services.id AND osdp.provider_id = ?)",
+          current_user.id
+        )
         .distinct
         .length
       # Em reavaliação e Cancelada - fornecedor vê apenas OSs onde ele tem proposta
@@ -628,25 +645,16 @@ class OrderService < ApplicationRecord
     main_approved = getting_order_service_proposal_approved
     return 0 unless main_approved
 
-    proposal_ids = [main_approved.id]
+    # Usa items_for_totals que já faz deduplicação correta dos itens
+    # de complemento (evita contar 2x itens já copiados para a proposta pai)
+    items = OrderServiceProposal.items_for_totals(main_approved)
 
-    # Complementos aprovados também compõem o total da OS.
-    complement_ids = order_service_proposals
-      .where(is_complement: true, order_service_proposal_status_id: OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES)
-      .pluck(:id)
-    proposal_ids.concat(complement_ids) if complement_ids.any?
-
-    OrderServiceProposalItem
-      .includes(:service)
-      .where(order_service_proposal_id: proposal_ids)
-      .sum do |item|
-        service = item.service
-        next 0 unless service
-        next 0 unless service.category_id == category_id
-
-        # Usar total_value do item que já contém o desconto aplicado
-        item.total_value.to_f
-      end
+    items.sum do |item|
+      service = item.service
+      next 0 unless service
+      next 0 unless service.category_id == category_id
+      item.total_value.to_f
+    end
   end
 
   def total_parts_value
@@ -663,8 +671,6 @@ class OrderService < ApplicationRecord
   end
 
   def self.generate_dashboard_to_charts(order_services, cost_centers, cost_center_ids = nil, sub_unit_ids = nil)
-    # Considerar todos os status que representam consumo (aprovada e etapas posteriores)
-    # para manter consistência com os demais gráficos do dashboard.
     required_order_service_statuses = OrderServiceStatus::REQUIRED_ORDER_SERVICE_STATUSES
     required_proposal_statuses = OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES
 
@@ -677,36 +683,31 @@ class OrderService < ApplicationRecord
       return { charts: {}, components: {}, all: 0 }
     end
 
-    os_query = OrderService.joins(:vehicle)
-      .where(order_service_status_id: required_order_service_statuses)
-
-    if selected_cost_center_ids.present? || sub_unit_ids.present?
-      os_query = os_query.where(
+    # Query otimizada: agrupa direto no SQL para evitar N+1
+    # Soma total_value das propostas por centro de custo e status da OS
+    # Usa SQL explícito para evitar conflito com default_scope do OrderService
+    results = OrderServiceProposal
+      .joins("INNER JOIN order_services ON order_services.id = order_service_proposals.order_service_id")
+      .joins("INNER JOIN vehicles ON vehicles.id = order_services.vehicle_id")
+      .joins("INNER JOIN cost_centers ON cost_centers.id = vehicles.cost_center_id")
+      .where(order_services: { order_service_status_id: required_order_service_statuses })
+      .where(order_service_proposal_status_id: required_proposal_statuses)
+      .where(is_complement: [false, nil])
+      .where(
         "vehicles.cost_center_id IN (?) OR vehicles.sub_unit_id IN (?)",
         Array(selected_cost_center_ids), Array(sub_unit_ids)
       )
-    end
+      .group("cost_centers.name", "order_services.order_service_status_id")
+      .sum(:total_value)
 
-    # Totais por centro de custo (nome) para manter compatibilidade com o front.
     approved_by_cost_center = Hash.new(0.0)
     authorized_by_cost_center = Hash.new(0.0)
 
-    os_query.includes(:order_service_proposals, vehicle: :cost_center).find_each do |os|
-      cost_center_name = os.vehicle&.cost_center&.name
-      next if cost_center_name.blank?
-
-      os.order_service_proposals.each do |proposal|
-        next unless required_proposal_statuses.include?(proposal.order_service_proposal_status_id)
-        next if proposal.is_complement # Complementos já estão somados na proposta principal
-
-        proposal_total = proposal.total_value_with_complements.to_f
-
-        if os.order_service_status_id == OrderServiceStatus::APROVADA_ID
-          approved_by_cost_center[cost_center_name] += proposal_total
-        else
-          # NOTA_FISCAL_INSERIDA / AUTORIZADA / AGUARDANDO_PAGAMENTO / PAGA
-          authorized_by_cost_center[cost_center_name] += proposal_total
-        end
+    results.each do |(cc_name, os_status_id), total|
+      if os_status_id == OrderServiceStatus::APROVADA_ID
+        approved_by_cost_center[cc_name] += total.to_f
+      else
+        authorized_by_cost_center[cc_name] += total.to_f
       end
     end
 
@@ -750,48 +751,50 @@ class OrderService < ApplicationRecord
 
     selected_cost_center_ids = cost_center_ids.presence || cost_centers.map(&:id)
 
-    # 1) Saldo inicial = soma dos valores totais dos contratos ATIVOS (diretos ou via empenhos ativos)
-    total_contracts_value = 0
-    contracts_from_cost_centers = CostCenter.where(id: selected_cost_center_ids).map(&:contracts).flatten.select(&:active)
-    contracts_from_commitments = Commitment.by_cost_center_or_sub_unit_ids(selected_cost_center_ids, sub_unit_ids)
-                                           .where(active: true).map(&:contract).compact.select(&:active)
-    contracts_for_selection = (contracts_from_cost_centers + contracts_from_commitments).uniq
-    contracts_for_selection.each do |contract|
-      total_contracts_value += contract.get_total_value.to_f
-    end
+    # 1) Saldo inicial = soma dos valores totais dos contratos ATIVOS
+    # Contract usa HABTM com cost_centers (tabela contracts_cost_centers)
+    contract_ids_from_cost_centers = Contract
+      .joins("INNER JOIN contracts_cost_centers ON contracts_cost_centers.contract_id = contracts.id")
+      .where("contracts_cost_centers.cost_center_id IN (?)", Array(selected_cost_center_ids))
+      .where(active: true)
+      .pluck(:id)
 
-    # 2) Saldo dos empenhos ATIVOS criados (aplicando filtro por cost_center OU sub_unit)
-    total_commitments_value = 0
-    commitments_query = Commitment.by_cost_center_or_sub_unit_ids(selected_cost_center_ids, sub_unit_ids)
-                                  .where(active: true)
-    commitments_query.each do |commitment|
-      commitment_value = commitment.commitment_value.to_f
-      cancel_value = commitment.cancel_commitments.sum(:value).to_f
-      total_commitments_value += (commitment_value - cancel_value)
-    end
+    commitment_contract_ids = Commitment.by_cost_center_or_sub_unit_ids(selected_cost_center_ids, sub_unit_ids)
+      .where(active: true)
+      .where.not(contract_id: nil)
+      .pluck(:contract_id)
 
-    # 3) Saldo consumido = soma dos total_value (com desconto) das propostas aprovadas/autorizadas
-    total_consumed = 0
-    approved_order_services = OrderService.joins(:vehicle).where(order_service_status_id: required_order_service_statuses)
-    if selected_cost_center_ids.present? || sub_unit_ids.present?
-      approved_order_services = approved_order_services.where(
+    all_contract_ids = (contract_ids_from_cost_centers + commitment_contract_ids).uniq
+    total_contracts_value = Contract.where(id: all_contract_ids, active: true).sum(:total_value).to_f
+
+    # 2) Saldo dos empenhos ATIVOS (com cancelamentos em uma única query)
+    commitments_with_cancels = Commitment
+      .by_cost_center_or_sub_unit_ids(selected_cost_center_ids, sub_unit_ids)
+      .where(active: true)
+      .left_joins(:cancel_commitments)
+      .group("commitments.id")
+      .pluck(Arel.sql("commitments.commitment_value, COALESCE(SUM(cancel_commitments.value), 0)"))
+
+    total_commitments_value = commitments_with_cancels.sum { |cv, cancel| cv.to_f - cancel.to_f }
+
+    # 3) Saldo consumido = soma via SQL (evita N+1)
+    # Usa SQL explícito para evitar conflito com default_scope do OrderService
+    total_consumed = OrderServiceProposal
+      .joins("INNER JOIN order_services ON order_services.id = order_service_proposals.order_service_id")
+      .joins("INNER JOIN vehicles ON vehicles.id = order_services.vehicle_id")
+      .where(order_services: { order_service_status_id: required_order_service_statuses })
+      .where(order_service_proposal_status_id: required_proposal_statuses)
+      .where(is_complement: [false, nil])
+      .where(
         "vehicles.cost_center_id IN (?) OR vehicles.sub_unit_id IN (?)",
         Array(selected_cost_center_ids), Array(sub_unit_ids)
       )
-    end
-    approved_order_services.includes(:order_service_proposals).each do |os|
-      os.order_service_proposals.each do |proposal|
-        next unless required_proposal_statuses.include?(proposal.order_service_proposal_status_id)
-        next if proposal.is_complement # Complementos já estão somados na proposta principal
-        # Usar total_value_with_complements para incluir valores de complementos aprovados
-        total_consumed += proposal.total_value_with_complements
-      end
-    end
+      .sum(:total_value).to_f
 
-    # 4) Saldo restante do contrato = saldo inicial - consumido (não negativo)
+    # 4) Saldo restante do contrato
     remaining_contract_value = [total_contracts_value - total_consumed, 0].max
     
-    # 5) Saldo disponível para empenho = saldo inicial - empenhos criados (não negativo)
+    # 5) Saldo disponível para empenho
     available_for_commitment = [total_contracts_value - total_commitments_value, 0].max
 
     {
@@ -812,45 +815,25 @@ class OrderService < ApplicationRecord
       return { 'Peças' => 0.0, 'Serviços' => 0.0 }
     end
 
-    parts_total = 0.0
-    services_total = 0.0
-
-    # Mantém compatibilidade com a assinatura antiga, mas garante consistência
-    # com o gráfico de "Saldo consumido" (mesma seleção por centro/sub-unidade).
-    os_query = OrderService.joins(:vehicle).where(order_service_status_id: required_order_service_statuses)
-    if selected_cost_center_ids.present? || sub_unit_ids.present?
-      os_query = os_query.where(
+    # SQL agregado: soma total_value dos items agrupado por category_id do service
+    # Usa SQL explícito para evitar conflito com default_scope do OrderService
+    totals = OrderServiceProposalItem
+      .joins("INNER JOIN order_service_proposals ON order_service_proposals.id = order_service_proposal_items.order_service_proposal_id")
+      .joins("INNER JOIN order_services ON order_services.id = order_service_proposals.order_service_id")
+      .joins("INNER JOIN vehicles ON vehicles.id = order_services.vehicle_id")
+      .joins("INNER JOIN services ON services.id = order_service_proposal_items.service_id")
+      .where(order_services: { order_service_status_id: required_order_service_statuses })
+      .where(order_service_proposals: { order_service_proposal_status_id: required_proposal_statuses })
+      .where(
         "vehicles.cost_center_id IN (?) OR vehicles.sub_unit_id IN (?)",
         Array(selected_cost_center_ids), Array(sub_unit_ids)
       )
-    end
-
-    os_query
-      .includes(order_service_proposals: { order_service_proposal_items: :service })
-      .find_each do |os|
-        main_proposal = os.getting_order_service_proposal_approved
-        next unless main_proposal.present?
-        next unless required_proposal_statuses.include?(main_proposal.order_service_proposal_status_id)
-
-        os.order_service_proposals.each do |proposal|
-          next unless required_proposal_statuses.include?(proposal.order_service_proposal_status_id)
-          next unless proposal.id == main_proposal.id || proposal.is_complement
-
-          proposal.order_service_proposal_items.each do |item|
-            item_total = item.total_value.to_f
-            case item.service&.category_id
-            when Category::SERVICOS_PECAS_ID
-              parts_total += item_total
-            when Category::SERVICOS_SERVICOS_ID
-              services_total += item_total
-            end
-          end
-        end
-      end
+      .group("services.category_id")
+      .sum("order_service_proposal_items.total_value")
 
     {
-      'Peças' => parts_total.round(2),
-      'Serviços' => services_total.round(2)
+      'Peças' => (totals[Category::SERVICOS_PECAS_ID] || 0).to_f.round(2),
+      'Serviços' => (totals[Category::SERVICOS_SERVICOS_ID] || 0).to_f.round(2)
     }
   end
 
@@ -992,17 +975,66 @@ class OrderService < ApplicationRecord
     result
   end
 
+  # Versão com lock pessimista (FOR UPDATE) para prevenir race conditions
+  # em aprovações simultâneas que consomem o mesmo saldo de empenho
+  def check_commitment_balance_with_lock!(parts_value, services_value)
+    # Adquire lock FOR UPDATE nos empenhos relacionados
+    if commitment_id.present? && commitment.present?
+      Commitment.lock("FOR UPDATE").find(commitment_id)
+    end
+    if commitment_parts_id.present? && commitment_parts.present?
+      Commitment.lock("FOR UPDATE").find(commitment_parts_id)
+    end
+    if commitment_services_id.present? && commitment_services.present?
+      Commitment.lock("FOR UPDATE").find(commitment_services_id)
+    end
+
+    # Re-verifica saldo após adquirir os locks
+    check_commitment_balance(parts_value, services_value)
+  end
+
+  # Mapeamento entre status da OS e status da Proposta
+  OS_TO_PROPOSAL_STATUS = {
+    OrderServiceStatus::APROVADA_ID => OrderServiceProposalStatus::APROVADA_ID,
+    OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID => OrderServiceProposalStatus::NOTAS_INSERIDAS_ID,
+    OrderServiceStatus::AUTORIZADA_ID => OrderServiceProposalStatus::AUTORIZADA_ID,
+    OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID => OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+    OrderServiceStatus::PAGA_ID => OrderServiceProposalStatus::PAGA_ID
+  }.freeze
+
+  # Sincroniza o status das propostas ativas com o status da OS
+  # Previne dessincronização entre o que o admin vê (OS) e o fornecedor vê (proposta)
+  def sync_proposals_status!
+    target_proposal_status = OS_TO_PROPOSAL_STATUS[order_service_status_id]
+    return unless target_proposal_status.present?
+
+    # Só avança propostas que estão "atrás" do status da OS (nunca regride)
+    # Ignora canceladas (9), reprovadas (8) e complementos
+    eligible_statuses = OS_TO_PROPOSAL_STATUS.values.select { |s| s < target_proposal_status }
+    return if eligible_statuses.empty?
+
+    proposals_to_sync = order_service_proposals
+      .where(order_service_proposal_status_id: eligible_statuses)
+      .where.not(order_service_proposal_status_id: [
+        OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
+        OrderServiceProposalStatus::CANCELADA_ID
+      ])
+
+    proposals_to_sync.each do |proposal|
+      Rails.logger.info "[SYNC_STATUS] Proposta #{proposal.id}: #{proposal.order_service_proposal_status_id} -> #{target_proposal_status} (OS #{id} status #{order_service_status_id})"
+      proposal.update_columns(order_service_proposal_status_id: target_proposal_status)
+    end
+  end
+
   private
 
   def generate_code
     result = ""
     id = self.id.to_s
-    client_id = self.client_id.to_s
     today = self.created_at.to_date
-    year = today.year.to_s
-    month = today.month.to_s
-    day = today.day.to_s
-    result = 'OS'+client_id+id+year+month+day
+    year = today.strftime('%y')   # 2 dígitos do ano (ex: 26)
+    month = today.strftime('%m')  # mês com zero (ex: 03)
+    result = "OS#{id}-#{year}#{month}"
     self.update_columns(code: result)
   end
 

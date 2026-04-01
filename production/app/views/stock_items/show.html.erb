@@ -1,0 +1,277 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: false, href: stock_items_path, text: 'Estoque'},
+  {active: true, href: '#', text: @stock_item.formatted_name},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+
+  <div class="row mb-3">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+      <h4 class="mb-0">
+        <i class="bi bi-box-seam me-2"></i><%= @stock_item.formatted_name %>
+        <% status_class = case @stock_item.status
+           when 'active' then 'bg-success'
+           when 'inactive' then 'bg-secondary'
+           when 'below_minimum' then 'bg-warning text-dark'
+           end %>
+        <span class="badge <%= status_class %> fs-6"><%= I18n.t("activerecord.attributes.stock_item.statuses.#{@stock_item.status}") %></span>
+      </h4>
+      <div class="d-flex gap-2">
+        <% if policy(@stock_item).edit? %>
+          <%= link_to edit_stock_item_path(@stock_item), class: 'btn btn-primary btn-sm' do %>
+            <i class="bi bi-pencil"></i> Editar
+          <% end %>
+        <% end %>
+        <%= link_to stock_items_path, class: 'btn btn-secondary btn-sm' do %>
+          <i class="bi bi-arrow-left"></i> Voltar
+        <% end %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cards resumo -->
+  <div class="row mb-4">
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body text-center">
+          <h6 class="text-muted mb-1">Quantidade em Estoque</h6>
+          <h3 class="mb-0 <%= @stock_item.is_below_minimum? ? 'text-warning' : 'text-primary' %>">
+            <%= @stock_item.quantity %> <%= @stock_item.unit_measure %>
+          </h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body text-center">
+          <h6 class="text-muted mb-1">Preço Unitário</h6>
+          <h3 class="mb-0 text-success"><%= number_to_currency(@stock_item.unit_price, unit: 'R$', separator: ',', delimiter: '.') %></h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body text-center">
+          <h6 class="text-muted mb-1">Valor Total</h6>
+          <h3 class="mb-0 text-info"><%= number_to_currency(@stock_item.total_value, unit: 'R$', separator: ',', delimiter: '.') %></h3>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3 col-sm-6 mb-3">
+      <div class="card shadow-sm border-0 h-100">
+        <div class="card-body text-center">
+          <h6 class="text-muted mb-1">Estoque Mínimo</h6>
+          <h3 class="mb-0 <%= @stock_item.is_below_minimum? ? 'text-danger' : 'text-secondary' %>">
+            <%= @stock_item.minimum_quantity > 0 ? "#{@stock_item.minimum_quantity} #{@stock_item.unit_measure}" : 'Não definido' %>
+          </h3>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dados da Peça -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+      <i class="bi bi-info-circle me-2"></i>Dados da Peça
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="text-muted small">Nome</label>
+          <p class="mb-0 fw-bold"><%= @stock_item.name %></p>
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="text-muted small">Código</label>
+          <p class="mb-0"><%= @stock_item.code.present? ? @stock_item.code : '-' %></p>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="text-muted small">Marca</label>
+          <p class="mb-0"><%= @stock_item.brand.present? ? @stock_item.brand : '-' %></p>
+        </div>
+        <div class="col-md-3 mb-3">
+          <label class="text-muted small">Part Number</label>
+          <p class="mb-0"><%= @stock_item.part_number.present? ? @stock_item.part_number : '-' %></p>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-2 mb-3">
+          <label class="text-muted small">NCM</label>
+          <p class="mb-0"><%= @stock_item.ncm.present? ? @stock_item.ncm : '-' %></p>
+        </div>
+        <div class="col-md-2 mb-3">
+          <label class="text-muted small">Unidade</label>
+          <p class="mb-0"><%= @stock_item.unit_measure %></p>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="text-muted small">Localização</label>
+          <p class="mb-0"><%= @stock_item.location.present? ? @stock_item.location : '-' %></p>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="text-muted small">Categoria</label>
+          <p class="mb-0"><%= @stock_item.category&.name || '-' %></p>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="text-muted small">Centro de Custo</label>
+          <p class="mb-0"><%= @stock_item.cost_center&.name %></p>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="text-muted small">Subunidade</label>
+          <p class="mb-0"><%= @stock_item.sub_unit&.name || '-' %></p>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="text-muted small">Cliente</label>
+          <p class="mb-0"><%= @stock_item.client&.name %></p>
+        </div>
+      </div>
+      <% if @stock_item.description.present? %>
+        <div class="row">
+          <div class="col-12 mb-3">
+            <label class="text-muted small">Descrição</label>
+            <p class="mb-0"><%= @stock_item.description %></p>
+          </div>
+        </div>
+      <% end %>
+      <div class="row">
+        <div class="col-md-4 mb-3">
+          <label class="text-muted small">Incluído por</label>
+          <p class="mb-0"><%= @stock_item.created_by&.name %></p>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="text-muted small">Data de Inclusão</label>
+          <p class="mb-0"><%= @stock_item.created_at.strftime('%d/%m/%Y %H:%M') %></p>
+        </div>
+        <div class="col-md-4 mb-3">
+          <label class="text-muted small">Última Atualização</label>
+          <p class="mb-0"><%= @stock_item.updated_at.strftime('%d/%m/%Y %H:%M') %></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ajuste de Estoque -->
+  <% if policy(@stock_item).update? %>
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-warning text-dark">
+        <i class="bi bi-sliders me-2"></i>Ajuste de Estoque
+      </div>
+      <div class="card-body">
+        <%= form_tag(adjust_stock_stock_item_path(@stock_item), method: :post, class: 'd-flex flex-wrap gap-3 align-items-end') do %>
+          <div>
+            <label class="form-label small">Nova Quantidade</label>
+            <input type="number" name="new_quantity" step="0.01" min="0" value="<%= @stock_item.quantity %>" class="form-control" required style="width: 150px;">
+          </div>
+          <div class="flex-grow-1">
+            <label class="form-label small">Motivo do Ajuste *</label>
+            <input type="text" name="reason" class="form-control" placeholder="Ex: Inventário físico, correção de contagem..." required>
+          </div>
+          <div>
+            <button type="submit" class="btn btn-warning" data-confirm="Tem certeza que deseja ajustar o estoque?">
+              <i class="bi bi-check-circle"></i> Ajustar
+            </button>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <!-- Histórico de Movimentações -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+      <span><i class="bi bi-clock-history me-2"></i>Histórico de Movimentações</span>
+      <span class="badge bg-light text-primary"><%= @movements.total_count %> registros</span>
+    </div>
+    <div class="card-body">
+      <% if @movements.any? %>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Data</th>
+                <th>Tipo</th>
+                <th>Quantidade</th>
+                <th>Saldo Após</th>
+                <th>Origem</th>
+                <th>Documento</th>
+                <th>Usuário</th>
+                <th>Motivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @movements.each do |movement| %>
+                <tr>
+                  <td><%= movement.created_at.strftime('%d/%m/%Y %H:%M') %></td>
+                  <td>
+                    <% css = movement.is_entry? ? 'bg-success' : 'bg-danger' %>
+                    <span class="badge <%= css %>"><%= movement.movement_type_label %></span>
+                  </td>
+                  <td>
+                    <span class="<%= movement.is_entry? ? 'text-success' : 'text-danger' %> fw-bold">
+                      <%= movement.is_entry? ? '+' : '-' %><%= movement.quantity %>
+                    </span>
+                  </td>
+                  <td><%= movement.balance_after %></td>
+                  <td><span class="badge bg-light text-dark"><%= movement.source_label %></span></td>
+                  <td><%= movement.document_number || '-' %></td>
+                  <td><%= movement.user&.name %></td>
+                  <td><%= movement.reason.present? ? movement.reason.truncate(60) : '-' %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+        <div class="mt-3">
+          <%= paginate @movements %>
+        </div>
+      <% else %>
+        <p class="text-muted mb-0">Nenhuma movimentação registrada.</p>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- OS vinculadas -->
+  <% if @stock_item.stock_order_service_items.any? %>
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-primary text-white">
+        <i class="bi bi-link-45deg me-2"></i>Ordens de Serviço Vinculadas
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>OS</th>
+                <th>Quantidade</th>
+                <th>Mão de Obra</th>
+                <th>Adicionado por</th>
+                <th>Data</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @stock_item.stock_order_service_items.includes(:order_service, :added_by).order(created_at: :desc).each do |sosi| %>
+                <tr>
+                  <td>
+                    <%= link_to sosi.order_service&.code, order_service_path(sosi.order_service) %>
+                  </td>
+                  <td><%= sosi.quantity %></td>
+                  <td>
+                    <span class="badge <%= sosi.own_labor? ? 'bg-info' : 'bg-primary' %>">
+                      <%= sosi.labor_type_label %>
+                    </span>
+                  </td>
+                  <td><%= sosi.added_by&.name %></td>
+                  <td><%= sosi.created_at.strftime('%d/%m/%Y %H:%M') %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <% end %>
+</div>

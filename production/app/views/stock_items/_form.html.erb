@@ -1,0 +1,166 @@
+<%= simple_form_for stock_item, validate: false do |f| %>
+  <div class="row">
+    <div class="col-12">
+      <%= f.error_notification %>
+      <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+    </div>
+  </div>
+
+  <!-- Dados da Peça -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+      <i class="bi bi-box me-2"></i><%= t('stock.form.basic_data') %>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <% if @current_user.admin? %>
+          <div class="col-md-4 mb-3">
+            <%= f.input :client_id, as: :select,
+              collection: @clients.map { |c| [c.name, c.id] },
+              include_blank: 'Selecione o cliente',
+              input_html: { class: 'form-select', id: 'stock_item_client_id',
+                            onchange: 'loadCostCentersByClient(this.value)' },
+              label: StockItem.human_attribute_name(:client_id) %>
+          </div>
+        <% end %>
+        <div class="col-md-4 mb-3">
+          <%= f.input :cost_center_id, as: :select,
+            collection: @cost_centers.map { |cc| [cc.name, cc.id] },
+            include_blank: 'Selecione o centro de custo',
+            input_html: { class: 'form-select', id: 'stock_item_cost_center_id',
+                          onchange: 'loadSubUnitsByCostCenter(this.value)' },
+            label: StockItem.human_attribute_name(:cost_center_id) %>
+        </div>
+        <div class="col-md-4 mb-3">
+          <%= f.input :sub_unit_id, as: :select,
+            collection: @sub_units.map { |su| [su.name, su.id] },
+            include_blank: 'Selecione a subunidade (opcional)',
+            input_html: { class: 'form-select', id: 'stock_item_sub_unit_id' },
+            label: StockItem.human_attribute_name(:sub_unit_id) %>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-6 mb-3">
+          <%= f.input :name, input_html: { class: 'form-control', placeholder: 'Ex: Filtro de óleo motor' },
+            label: StockItem.human_attribute_name(:name) %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <%= f.input :code, input_html: { class: 'form-control', placeholder: 'Ex: FLT-001' },
+            label: StockItem.human_attribute_name(:code) %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <%= f.input :brand, input_html: { class: 'form-control', placeholder: 'Ex: Tecfil' },
+            label: StockItem.human_attribute_name(:brand) %>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-3 mb-3">
+          <%= f.input :part_number, input_html: { class: 'form-control', placeholder: 'Ex: PH5548' },
+            label: StockItem.human_attribute_name(:part_number) %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <%= f.input :ncm, input_html: { class: 'form-control', placeholder: 'Ex: 8421.23.00' },
+            label: StockItem.human_attribute_name(:ncm) %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <%= f.input :category_id, as: :select,
+            collection: @categories.map { |c| [c.name, c.id] },
+            include_blank: 'Selecione (opcional)',
+            input_html: { class: 'form-select' },
+            label: StockItem.human_attribute_name(:category_id) %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <%= f.input :location, input_html: { class: 'form-control', placeholder: 'Ex: Prateleira A-3' },
+            label: StockItem.human_attribute_name(:location) %>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-12 mb-3">
+          <%= f.input :description, as: :text, input_html: { class: 'form-control', rows: 3, placeholder: 'Descrição ou observações sobre a peça...' },
+            label: StockItem.human_attribute_name(:description) %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dados de Estoque -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white">
+      <i class="bi bi-clipboard-data me-2"></i><%= t('stock.form.stock_data') %>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <% if !stock_item.persisted? %>
+          <div class="col-md-3 mb-3">
+            <%= f.input :quantity, input_html: { class: 'form-control', step: '0.01', min: '0', value: stock_item.quantity || 0 },
+              label: 'Quantidade Inicial' %>
+          </div>
+        <% end %>
+        <div class="col-md-3 mb-3">
+          <%= f.input :minimum_quantity, input_html: { class: 'form-control', step: '0.01', min: '0', value: stock_item.minimum_quantity || 0 },
+            label: StockItem.human_attribute_name(:minimum_quantity),
+            hint: 'O sistema alertará quando o estoque atingir esta quantidade.' %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <%= f.input :unit_price, input_html: { class: 'form-control', step: '0.01', min: '0' },
+            label: StockItem.human_attribute_name(:unit_price) %>
+        </div>
+        <div class="col-md-3 mb-3">
+          <%= f.input :unit_measure, as: :select,
+            collection: [['Unidade (UN)', 'UN'], ['Peça (PC)', 'PC'], ['Par (PR)', 'PR'], ['Jogo (JG)', 'JG'], ['Litro (LT)', 'LT'], ['Quilograma (KG)', 'KG'], ['Metro (MT)', 'MT'], ['Caixa (CX)', 'CX']],
+            input_html: { class: 'form-select' },
+            label: StockItem.human_attribute_name(:unit_measure) %>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row my-3">
+    <div class="col-12 text-end">
+      <%= link_to stock_items_path, class: 'btn btn-link text-decoration-none' do %>
+        <%= t('model.cancel') %>
+      <% end %>
+      <%= f.button :submit, class: 'btn btn-primary', value: stock_item.persisted? ? t('model.update') : t('model.create') %>
+    </div>
+  </div>
+<% end %>
+
+<script>
+  function loadCostCentersByClient(clientId) {
+    if (!clientId) return;
+    
+    $.ajax({
+      url: '/get_cost_centers_by_client_id',
+      data: { client_id: clientId },
+      dataType: 'json',
+      success: function(data) {
+        var select = $('#stock_item_cost_center_id');
+        select.empty();
+        select.append('<option value="">Selecione o centro de custo</option>');
+        $.each(data, function(i, cc) {
+          select.append('<option value="' + cc.id + '">' + cc.name + '</option>');
+        });
+        // Limpar subunidade
+        $('#stock_item_sub_unit_id').empty().append('<option value="">Selecione a subunidade (opcional)</option>');
+      }
+    });
+  }
+
+  function loadSubUnitsByCostCenter(costCenterId) {
+    if (!costCenterId) return;
+    
+    $.ajax({
+      url: '/get_sub_units_by_cost_center_id',
+      data: { cost_center_id: costCenterId },
+      dataType: 'json',
+      success: function(data) {
+        var select = $('#stock_item_sub_unit_id');
+        select.empty();
+        select.append('<option value="">Selecione a subunidade (opcional)</option>');
+        $.each(data, function(i, su) {
+          select.append('<option value="' + su.id + '">' + su.name + '</option>');
+        });
+      }
+    });
+  }
+</script>

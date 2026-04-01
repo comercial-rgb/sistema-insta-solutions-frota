@@ -1,15 +1,38 @@
 <div class="row py-2">
-    <div class="col-12 d-flex justify-content-end">
+    <div class="col-12 d-flex justify-content-end flex-wrap gap-2">
         <!-- Baixar em excel -->
         <button id="button-export-table" class="btn btn-success text-white btn-sm">
             <i class="bi bi-file-earmark-excel-fill"></i>
             <%= t('model.export_excel') %>
         </button>
         <% if !params[:order_services_invoice_grid].nil? && !params[:order_services_invoice_grid][:client_id].nil? && !params[:order_services_invoice_grid][:client_id].blank? %>
-            <a href="<%= show_invoices_path(format: "text", order_services_invoice_grid: (params[:order_services_invoice_grid].nil? ? "" : params[:order_services_invoice_grid].to_enum.to_h)) %>" class="ms-2 btn btn-primary text-white btn-sm">
-                <i class="bi bi-filetype-docx"></i>
-                <%= t('model.download_invoice') %>
-            </a>
+            <div class="btn-group">
+                <a href="<%= show_invoices_path(format: "text", order_services_invoice_grid: (params[:order_services_invoice_grid].nil? ? "" : params[:order_services_invoice_grid].to_enum.to_h)) %>" class="btn btn-primary text-white btn-sm">
+                    <i class="bi bi-filetype-docx"></i>
+                    Fatura Completa (Peças + Serviços)
+                </a>
+                <button type="button" class="btn btn-primary btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+                    <span class="visually-hidden">Opções</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a class="dropdown-item" href="<%= show_invoices_path(format: "text", invoice_split: "parts", order_services_invoice_grid: (params[:order_services_invoice_grid].nil? ? "" : params[:order_services_invoice_grid].to_enum.to_h)) %>">
+                            <i class="bi bi-box-seam me-1"></i> Somente Peças
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="<%= show_invoices_path(format: "text", invoice_split: "services", order_services_invoice_grid: (params[:order_services_invoice_grid].nil? ? "" : params[:order_services_invoice_grid].to_enum.to_h)) %>">
+                            <i class="bi bi-wrench me-1"></i> Somente Serviços
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="<%= show_invoices_path(format: "text", order_services_invoice_grid: (params[:order_services_invoice_grid].nil? ? "" : params[:order_services_invoice_grid].to_enum.to_h)) %>">
+                            <i class="bi bi-files me-1"></i> Peças + Serviços (Juntas)
+                        </a>
+                    </li>
+                </ul>
+            </div>
         <% end %>
     </div>
 </div>

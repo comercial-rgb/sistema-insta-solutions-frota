@@ -1,4 +1,4 @@
-class User < ActiveRecord::Base
+﻿class User < ActiveRecord::Base
 	acts_as_reader
 	paginates_per 24
 	after_initialize :default_values
@@ -43,6 +43,9 @@ class User < ActiveRecord::Base
 	has_one :data_bank, as: :ownertable, validate: false, dependent: :destroy
 	accepts_nested_attributes_for :data_bank, :reject_if => :all_blank
 
+	has_many :user_email_settings, dependent: :destroy
+	accepts_nested_attributes_for :user_email_settings, reject_if: proc { |attrs| attrs[:email].blank? }, allow_destroy: true
+
 	has_and_belongs_to_many :provider_service_types, dependent: :destroy
 
 	# This association represents cost centers where the user is the client
@@ -69,6 +72,13 @@ class User < ActiveRecord::Base
 							association_foreign_key: :order_service_id,
 							foreign_key: :provider_id,
 							dependent: :destroy
+
+	# OSs direcionadas especificamente a este fornecedor
+	has_and_belongs_to_many :directed_order_services,
+							class_name: 'OrderService',
+							join_table: :order_service_directed_providers,
+							association_foreign_key: :order_service_id,
+							foreign_key: :provider_id
 
 	# <%= collection_check_boxes(:user, :example_ids, Example.order(:name), :id, :name) do |b| %>
 	# <div class="col-12 mt-2">
@@ -268,11 +278,11 @@ class User < ActiveRecord::Base
 
 	scope :by_cpf_cnpj, lambda { |value| where("users.cpf LIKE ? or users.cnpj LIKE ?", "%#{value}%", "%#{value}%") if !value.nil? && !value.blank? }
 
-	scope :by_initial_date, lambda { |value| where("users.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-	scope :by_final_date, lambda { |value| where("users.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+	scope :by_initial_date, lambda { |value| where("users.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+	scope :by_final_date, lambda { |value| where("users.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
-	scope :by_initial_limit_date_manually_plan, lambda { |value| where("users.limit_date_manually_plan >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  	scope :by_final_limit_date_manually_plan, lambda { |value| where("users.limit_date_manually_plan <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+	scope :by_initial_limit_date_manually_plan, lambda { |value| where("users.limit_date_manually_plan >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  	scope :by_final_limit_date_manually_plan, lambda { |value| where("users.limit_date_manually_plan <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
 	# Usuário é administrador?
 	def admin?
@@ -368,7 +378,7 @@ class User < ActiveRecord::Base
 	def get_profile_image
 		result = "icons/profile-empty-new.webp"
 		if self.profile_image.attached?
-			result = self.profile_image.url
+			result = Rails.application.routes.url_helpers.rails_blob_path(self.profile_image, only_path: true)
 		end
 		return result
 	end

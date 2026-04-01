@@ -7,6 +7,8 @@
 
 	<%= render 'users/forms/personal_data', f: f %>
 
+	<%= render 'users/forms/user_email_settings', f: f %>
+
 	<%= render 'common_pages/save', f: f, return_path: (@current_user.id != @user.id) ? users_manager_path : nil %>
 
 <% end %>

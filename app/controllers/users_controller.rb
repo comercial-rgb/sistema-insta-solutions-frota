@@ -390,6 +390,9 @@ class UsersController < ApplicationController
     if @user.person_contacts.select{ |item| item[:id].nil? }.length == 0
       @user.person_contacts.build
     end
+    if @user.user_email_settings.select{ |item| item[:id].nil? }.length == 0
+      @user.user_email_settings.build
+    end
     @user.build_address(address_area_id: AddressArea::GENERAL_ID) if @user.address.nil?
     @user.build_data_bank if @user.data_bank.nil?
     # @user.build_attachment if @user.attachment.nil?
@@ -1104,6 +1107,7 @@ class UsersController < ApplicationController
       address_attributes: [:id, :latitude, :longitude, :ownertable_type, :ownertable_id, :page_title, :address_type_id, :address_area_id, :name, :zipcode, :address, :district, :number, :complement, :address_type, :state_id, :city_id, :country_id, :reference],
       addresses_attributes: [:id, :latitude, :longitude, :ownertable_type, :ownertable_id, :page_title, :address_type_id, :address_area_id, :name, :zipcode, :address, :district, :number, :complement, :address_type, :state_id, :city_id, :country_id, :reference],
       person_contacts_attributes: [:id, :ownertable_type, :ownertable_id, :name, :phone, :email, :office],
+      user_email_settings_attributes: [:id, :email, :sector, :description, :receive_os_notifications, :receive_invoice_notifications, :receive_payment_notifications, :receive_approval_notifications, :receive_report_notifications, :active, :_destroy],
       provider_service_type_ids: [], associated_cost_center_ids: [], associated_sub_unit_ids: [], state_ids: []
       )
   end
