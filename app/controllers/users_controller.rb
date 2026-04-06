@@ -244,6 +244,22 @@ class UsersController < ApplicationController
     redirect_back(fallback_location: :back)
   end
 
+  def toggle_os_block
+    authorize @user
+
+    new_value = !@user.os_blocked
+    if @user.update_column(:os_blocked, new_value)
+      if new_value
+        flash[:success] = 'Abertura de OS bloqueada com sucesso. Todos os gestores e adicionais deste cliente não poderão abrir novas OS.'
+      else
+        flash[:success] = 'Abertura de OS liberada com sucesso.'
+      end
+    else
+      flash[:error] = @user.errors.full_messages.join('<br>')
+    end
+    redirect_back(fallback_location: :back)
+  end
+
   def create
     authorize User
     @user = User.new(user_params)

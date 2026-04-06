@@ -15,6 +15,9 @@
 	%>
 
 	<span class="badge <%= span_class %>"><%= span_text %></span>
+	<% if record.client? && record.os_blocked? %>
+		<br><span class="badge bg-warning text-dark mt-1">OS Bloqueada</span>
+	<% end %>
 	<% if policy(record).reset_user_password? %>
 		<br>
 		<button type="button" class="mt-2 btn btn-primary btn-sm reset-password text-white px-4 py-1" id="reset-password-<%= record.id.to_s %>"><%= User.human_attribute_name(:reset_user_password) %></button>

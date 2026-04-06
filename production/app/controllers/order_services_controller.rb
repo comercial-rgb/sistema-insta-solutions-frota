@@ -1167,6 +1167,11 @@ class OrderServicesController < ApplicationController
   end
 
   def new
+    if OrderServicePolicy.new(@current_user, OrderService).client_os_blocked?
+      flash[:alert] = 'A abertura de novas OS está bloqueada para este cliente. Entre em contato com o administrador.'
+      redirect_to show_order_services_path(order_service_status_id: OrderServiceStatus::EM_ABERTO_ID)
+      return
+    end
     authorize OrderService
     @order_service = OrderService.new(order_service_status_id: OrderServiceStatus::EM_CADASTRO_ID)
     build_initial_relations

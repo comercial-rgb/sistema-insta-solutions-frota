@@ -269,6 +269,16 @@ SimpleForm.setup do |config|
     b.optional :hint, wrap_with: { tag: 'small', class: 'form-text text-muted' }
   end
 
+  # inline checkbox wrapper (used in email settings)
+  config.wrappers :inline_checkbox, tag: 'span', class: '', error_class: 'form-group-invalid', valid_class: 'form-group-valid' do |b|
+    b.use :html5
+    b.optional :readonly
+    b.use :input, class: 'form-check-input', error_class: 'is-invalid', valid_class: 'is-valid'
+    b.use :label, class: 'form-check-label'
+    b.use :error, wrap_with: { tag: 'div', class: 'invalid-feedback' }
+    b.optional :hint, wrap_with: { tag: 'small', class: 'form-text text-muted' }
+  end
+
 
   # bootstrap custom forms
   #

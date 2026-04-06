@@ -64,6 +64,10 @@ class UserPolicy < ApplicationPolicy
     !user.nil? && (user.admin? || (user.manager? && record.additional? && user.client_id == record.client_id)) && user.id != record.id && record.id != 2
   end
 
+  def toggle_os_block?
+    !user.nil? && user.admin? && record.client?
+  end
+
   def destroy?
     !user.nil? && (user.admin? || (user.manager? && record.additional? && user.client_id == record.client_id)) && user.id != record.id && record.id != 2
   end

@@ -37,6 +37,7 @@ Rails.application.routes.draw do
 		member do
 			put :block
 			get :block
+			put :toggle_os_block
 		end
 	end
 	get '/destroy_profile_image', :to => 'users#destroy_profile_image', :as => 'destroy_profile_image'

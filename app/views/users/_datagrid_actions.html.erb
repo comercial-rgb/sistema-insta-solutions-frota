@@ -65,6 +65,16 @@ array_links = [
     class: 'dropdown-item'
   },
   {
+    link_path: toggle_os_block_user_path(record),
+    link_method: :put,
+    link_title: (record.os_blocked? ? 'Liberar Abertura de OS' : 'Bloquear Abertura de OS'),
+    confirm: t('model.confirm_action'),
+    link_image: (record.os_blocked? ? 'bi bi-unlock-fill' : 'bi bi-lock-fill'),
+    text_action: (record.os_blocked? ? 'Liberar Abertura de OS' : 'Bloquear Abertura de OS'),
+    link_policy: policy(record).toggle_os_block?,
+    class: 'dropdown-item'
+  },
+  {
     link_path: chat_path(sender_id: @current_user.id, receiver_id: record.id),
     link_title: 'Iniciar chat',
     link_image: 'bi bi-chat-fill',
