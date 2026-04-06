@@ -285,6 +285,8 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
 	resources :notifications
 	put '/check_all_read_notifications', :to => 'notifications#check_all_read_notifications', :as => "check_all_read_notifications"
   get 'manage_read_notification', :to => 'notifications#manage_read_notification', :as => 'manage_read_notification'
+  post 'acknowledge_notification/:id', :to => 'notifications#acknowledge_notification', :as => 'acknowledge_notification'
+  get 'show_acknowledgments/:id', :to => 'notifications#show_acknowledgments', :as => 'show_acknowledgments'
 
 	# Relatórios Personalizados
 	get 'custom_reports', :to => 'custom_reports#index', :as => 'custom_reports'

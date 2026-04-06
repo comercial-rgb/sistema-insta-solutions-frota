@@ -69,6 +69,19 @@ class NotificationsGrid
     CustomHelper.get_text_date(record.created_at, 'datetime', :full)
   end
 
+  column(:display_type, if: :check_admin, header: 'Exibição') do |record, grid|
+    Notification::DISPLAY_TYPES[record.display_type] || 'Sino'
+  end
+
+  column(:acknowledgments, if: :check_admin, html: true, header: 'Ciência') do |record, grid|
+    if record.requires_acknowledgment
+      ack_count = record.notification_acknowledgments.count
+      render "show_acknowledgments", record: record, ack_count: ack_count
+    else
+      '-'
+    end
+  end
+
   column(:manage_read, if: :check_not_admin, html: true, header: Notification.human_attribute_name(:manage_read) ) do |record, grid|
     render "manage_read", record: record
   end

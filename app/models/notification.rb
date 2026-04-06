@@ -2,6 +2,17 @@
   acts_as_readable on: :created_at
   after_initialize :default_values
 
+  # display_type: 0 = sino (bell), 1 = popup, 2 = ambos (popup + sino)
+  DISPLAY_BELL  = 0
+  DISPLAY_POPUP = 1
+  DISPLAY_BOTH  = 2
+
+  DISPLAY_TYPES = {
+    DISPLAY_BELL  => 'Sino de notificações',
+    DISPLAY_POPUP => 'Pop-up na tela',
+    DISPLAY_BOTH  => 'Pop-up + Sino'
+  }.freeze
+
   default_scope {
     left_outer_joins(:profile)
     .order(created_at: :desc)
@@ -9,7 +20,6 @@
 
   scope :by_id, lambda { |value| where("notifications.id = ?", value) if !value.nil? && !value.blank? }
   scope :by_profile_id, lambda { |value| where("notifications.profile_id = ?", value) if !value.nil? && !value.blank? }
-  # scope :by_name, lambda { |value| where("LOWER(notifications.name) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
   scope :by_initial_date, lambda { |value| where("notifications.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
   scope :by_final_date, lambda { |value| where("notifications.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
@@ -21,6 +31,8 @@
   scope :by_state_id, lambda { |value| where("notifications.state_id = ?", value) if !value.nil? && !value.blank? }
   scope :by_city_id, lambda { |value| where("notifications.city_id = ?", value) if !value.nil? && !value.blank? }
   scope :important, -> { where(is_important: true) }
+  scope :popup, -> { where(display_type: [DISPLAY_POPUP, DISPLAY_BOTH]) }
+  scope :bell, -> { where(display_type: [DISPLAY_BELL, DISPLAY_BOTH]) }
 
   scope :is_to_me, lambda { |profile_id, user_id, user_state_id = nil, user_city_id = nil|
     if profile_id.present? && user_id.present?
@@ -63,6 +75,7 @@
   belongs_to :city, optional: true
 
   has_and_belongs_to_many :users, dependent: :destroy, validate: false
+  has_many :notification_acknowledgments, dependent: :destroy
 
   validates_presence_of :title, :message
 
@@ -91,6 +104,24 @@
     .important
     .unread_by(current_user)
     .unscope(:limit, :offset)
+  end
+
+  # Notificações popup não reconhecidas pelo usuário
+  def self.popup_unread_for(current_user)
+    Notification.is_to_me(current_user.profile_id, current_user.id, current_user.state_id, current_user.city_id)
+    .popup
+    .where.not(id: NotificationAcknowledgment.where(user_id: current_user.id).select(:notification_id))
+    .unscope(:limit, :offset)
+  end
+
+  def acknowledged_by?(user)
+    notification_acknowledgments.exists?(user_id: user.id)
+  end
+
+  def acknowledge!(user)
+    notification_acknowledgments.find_or_create_by!(user_id: user.id) do |ack|
+      ack.acknowledged_at = Time.current
+    end
   end
 
   def get_users

@@ -23,6 +23,8 @@ pt-BR:
         city: "Cidade"
         city_id: "Cidade"
         is_important: "Importante"
+        display_type: "Exibição"
+        requires_acknowledgment: "Exigir ciência"
         success_read_all: "Todas as notificações foram marcadas como lidas"
 en:
   activerecord:
@@ -49,4 +51,6 @@ en:
         city: "Cidade"
         city_id: "Cidade"
         is_important: "Importante"
+        display_type: "Exibição"
+        requires_acknowledgment: "Exigir ciência"
         success_read_all: "Todas as notificações foram marcadas como lidas"

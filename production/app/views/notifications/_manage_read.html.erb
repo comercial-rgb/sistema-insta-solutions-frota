@@ -1,4 +1,12 @@
-<% if record.unread?(@current_user) %>
+<% if record.requires_acknowledgment && record.acknowledged_by?(@current_user) %>
+  <span class="badge bg-success" data-bs-toggle="tooltip" title="Ciência registrada">
+    <i class="bi bi-check-circle-fill"></i> Ciente
+  </span>
+<% elsif record.requires_acknowledgment && record.unread?(@current_user) %>
+  <button type="button" class="btn btn-sm btn-outline-success acknowledge-notification-btn" data-notification-id="<%= record.id %>">
+    <i class="bi bi-check-circle me-1"></i> Marcar Ciente
+  </button>
+<% elsif record.unread?(@current_user) %>
 	<span data-bs-toggle="tooltip" title="<%= Notification.human_attribute_name(:manage_read) %>" class="text-danger pointer read-notification read-notification-<%= record.id.to_s %>" id="read-notification-<%= record.id.to_s %>">
 		<label class="circle-read-notifications" for=""></label>
 	</span>

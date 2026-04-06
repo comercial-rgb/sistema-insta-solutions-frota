@@ -147,6 +147,63 @@ class NotificationsController < ApplicationController
     end
   end
 
+  def acknowledge_notification
+    notification = Notification.find_by(id: params[:id])
+    if notification
+      notification.acknowledge!(@current_user)
+      # Também marca como lida
+      unless notification.read_by?(@current_user)
+        notification.mark_as_read! for: @current_user
+        read_mark = notification.read_marks.find_by(reader_id: @current_user.id)
+        read_mark&.update_columns(timestamp: DateTime.now)
+      end
+      quantity = Notification.getting_current_unread(@current_user)
+      respond_to do |format|
+        format.json { render json: { result: true, quantity: quantity }, status: 200 }
+      end
+    else
+      respond_to do |format|
+        format.json { render json: { result: false, message: 'Notificação não encontrada' }, status: 404 }
+      end
+    end
+  end
+
+  def show_acknowledgments
+    authorize Notification, :index_by_menu?
+    @notification = Notification.find(params[:id])
+    @acknowledgments = @notification.notification_acknowledgments.includes(:user).order(acknowledged_at: :desc)
+
+    # Determinar todos os destinatários da notificação
+    if @notification.send_all && @notification.profile_id.present?
+      @target_users = User.active.where(profile_id: @notification.profile_id)
+    elsif @notification.send_all
+      @target_users = User.active
+    else
+      @target_users = @notification.users
+    end
+
+    # Filtrar por estado/cidade se necessário
+    if @notification.state_id.present?
+      @target_users = @target_users.where(state_id: @notification.state_id)
+    end
+    if @notification.city_id.present?
+      @target_users = @target_users.where(city_id: @notification.city_id)
+    end
+
+    @pending_users = @target_users.where.not(id: @acknowledgments.pluck(:user_id))
+
+    respond_to do |format|
+      format.json do
+        render json: {
+          acknowledged: @acknowledgments.map { |a| { user: a.user.get_name, date: CustomHelper.get_text_date(a.acknowledged_at, 'datetime', :full) } },
+          pending: @pending_users.map { |u| u.get_name },
+          total: @target_users.count,
+          acknowledged_count: @acknowledgments.count
+        }
+      end
+    end
+  end
+
   private
 
   # Use callbacks to share common setup or constraints between actions.
@@ -164,6 +221,8 @@ class NotificationsController < ApplicationController
     :state_id,
     :city_id,
     :is_important,
+    :display_type,
+    :requires_acknowledgment,
     user_ids: []
     )
   end

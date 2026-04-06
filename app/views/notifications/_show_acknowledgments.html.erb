@@ -1,0 +1,18 @@
+<span class="badge bg-info text-dark pointer" onclick="showAcknowledgments(<%= record.id %>)" data-bs-toggle="tooltip" title="Clique para ver detalhes">
+  <i class="bi bi-check-circle me-1"></i><%= ack_count %> ciente(s)
+</span>
+
+<!-- Modal de detalhes -->
+<div class="modal fade" id="ackModal-<%= record.id %>" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Ciência - <%= record.title %></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="ackModalBody-<%= record.id %>">
+        <div class="text-center"><i class="bi bi-hourglass-split"></i> Carregando...</div>
+      </div>
+    </div>
+  </div>
+</div>
