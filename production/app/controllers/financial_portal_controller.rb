@@ -12,6 +12,8 @@ class FinancialPortalController < ApplicationController
     # Estatísticas do fornecedor no sistema de frotas (dados de referência)
     if @current_user.provider?
       load_provider_stats
+    elsif @current_user.client?
+      load_client_stats
     elsif @current_user.admin? || @current_user.manager? || @current_user.additional?
       load_admin_stats
     end
@@ -57,7 +59,7 @@ class FinancialPortalController < ApplicationController
   private
 
   def verify_access
-    unless @current_user.provider? || @current_user.admin? || @current_user.manager? || @current_user.additional?
+    unless @current_user.provider? || @current_user.admin? || @current_user.manager? || @current_user.additional? || @current_user.client?
       redirect_to root_path, alert: "Acesso negado."
     end
   end
@@ -157,5 +159,54 @@ class FinancialPortalController < ApplicationController
     @valor_pago = values[OrderServiceProposalStatus::PAGA_ID] || 0
     
     @os_recentes = OrderService.none
+  end
+
+  def load_client_stats
+    os_ids = OrderService.where(client_id: @current_user.id).pluck(:id)
+    base_scope = OrderServiceProposal.where(order_service_id: os_ids)
+
+    counts = base_scope
+      .where(order_service_proposal_status_id: [
+        OrderServiceProposalStatus::APROVADA_ID,
+        OrderServiceProposalStatus::AUTORIZADA_ID,
+        OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+        OrderServiceProposalStatus::PAGA_ID
+      ])
+      .group(:order_service_proposal_status_id)
+      .count
+
+    @aprovadas_count = counts[OrderServiceProposalStatus::APROVADA_ID] || 0
+    @autorizadas_count = counts[OrderServiceProposalStatus::AUTORIZADA_ID] || 0
+    @ag_pagamento_count = counts[OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID] || 0
+    @pagas_count = counts[OrderServiceProposalStatus::PAGA_ID] || 0
+    @notas_inseridas_count = 0
+
+    values = base_scope
+      .where(order_service_proposal_status_id: [
+        OrderServiceProposalStatus::APROVADA_ID,
+        OrderServiceProposalStatus::AUTORIZADA_ID,
+        OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+        OrderServiceProposalStatus::PAGA_ID
+      ])
+      .group(:order_service_proposal_status_id)
+      .sum(:total_value)
+
+    @valor_aprovado = values[OrderServiceProposalStatus::APROVADA_ID] || 0
+    @valor_autorizado = values[OrderServiceProposalStatus::AUTORIZADA_ID] || 0
+    @valor_ag_pagamento = values[OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID] || 0
+    @valor_pago = values[OrderServiceProposalStatus::PAGA_ID] || 0
+
+    @os_recentes = OrderService
+      .where(client_id: @current_user.id)
+      .where(order_service_status_id: [
+        OrderServiceStatus::APROVADA_ID,
+        OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID,
+        OrderServiceStatus::AUTORIZADA_ID,
+        OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID,
+        OrderServiceStatus::PAGA_ID
+      ])
+      .includes(:client, :provider, :vehicle, :order_service_status, :cost_center)
+      .order(updated_at: :desc)
+      .limit(20)
   end
 end

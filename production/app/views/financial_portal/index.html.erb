@@ -31,6 +31,12 @@ portal_url = FinancialPortalController::PORTAL_URL
                   você será direcionado para o Portal Financeiro onde poderá ver detalhes de todas as suas 
                   OS aprovadas, autorizadas, em aguardo de pagamento e pagas, incluindo comprovantes.
                 </p>
+              <% elsif @current_user.client? %>
+                <p class="mb-0 opacity-75">
+                  <i class="bi bi-info-circle me-1"></i>
+                  Acompanhe o andamento financeiro das ordens de serviço da sua empresa. 
+                  No portal você encontra o status de pagamentos, faturas e comprovantes de todas as OS aprovadas.
+                </p>
               <% else %>
                 <p class="mb-0 opacity-75">
                   <i class="bi bi-info-circle me-1"></i>
@@ -172,6 +178,9 @@ portal_url = FinancialPortalController::PORTAL_URL
             <% if @current_user.provider? %>
               Você pode acessar o Portal Financeiro com seu login separado ou diretamente pelo botão acima.
               No portal você encontra: detalhes de OS, faturas, comprovantes de pagamento e histórico completo.
+            <% elsif @current_user.client? %>
+              Acesse o Portal Financeiro pelo botão acima com login automático.
+              No portal você encontra: faturas detalhadas, status de pagamentos e comprovantes das OS da sua empresa.
             <% else %>
               Fornecedores possuem login próprio no Portal Financeiro. Administradores podem acessar 
               para verificar os dados de OS e acompanhar o fluxo de pagamentos.
@@ -196,8 +205,8 @@ portal_url = FinancialPortalController::PORTAL_URL
     </div>
   </div>
 
-  <% if @current_user.provider? && @os_recentes.present? %>
-    <!-- Tabela de OS Recentes do Fornecedor -->
+  <% if (@current_user.provider? || @current_user.client?) && @os_recentes.present? %>
+    <!-- Tabela de OS Recentes -->
     <div class="card shadow-sm mb-4">
       <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
         <span><i class="bi bi-clock-history me-2"></i> OS Recentes (últimas 20)</span>
@@ -211,7 +220,7 @@ portal_url = FinancialPortalController::PORTAL_URL
             <thead class="table-light">
               <tr>
                 <th>Código</th>
-                <th>Cliente</th>
+                <th><%= @current_user.client? ? 'Fornecedor' : 'Cliente' %></th>
                 <th>Centro de Custo</th>
                 <th>Veículo</th>
                 <th>Status</th>
@@ -223,7 +232,7 @@ portal_url = FinancialPortalController::PORTAL_URL
               <% @os_recentes.each do |os| %>
                 <tr>
                   <td><strong><%= os.code %></strong></td>
-                  <td><%= os.client&.fantasy_name %></td>
+                  <td><%= @current_user.client? ? os.provider&.fantasy_name : os.client&.fantasy_name %></td>
                   <td><%= os.cost_center&.name %></td>
                   <td><%= os.vehicle&.board %></td>
                   <td>
@@ -259,9 +268,13 @@ portal_url = FinancialPortalController::PORTAL_URL
       <a href="<%= portal_url %>" target="_blank" class="btn btn-outline-primary btn-lg">
         <i class="bi bi-box-arrow-up-right me-1"></i> Abrir Portal Financeiro em nova aba
       </a>
-      <% if @current_user.provider? %>
+      <% if @current_user.provider? || @current_user.client? %>
         <p class="text-muted small mt-2">
-          Acesse o portal para ver detalhes completos, comprovantes de pagamento e faturas detalhadas.
+          <% if @current_user.provider? %>
+            Acesse o portal para ver detalhes completos, comprovantes de pagamento e faturas detalhadas.
+          <% else %>
+            Acesse o portal para acompanhar faturas, pagamentos e comprovantes das OS da sua empresa.
+          <% end %>
         </p>
       <% end %>
     </div>
