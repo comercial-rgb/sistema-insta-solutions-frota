@@ -1062,7 +1062,7 @@ class OrderServiceProposalsController < ApplicationController
       # ✅ OS permanece com status APROVADA - não cria nova OS
       # Atualizar status da OS para APROVADA após aprovar complemento
       # (OS volta para o status anterior ao complemento)
-      @order_service.update!(order_service_status_id: OrderServiceStatus::APROVADA_ID)
+      @order_service.update_columns(order_service_status_id: OrderServiceStatus::APROVADA_ID)
       
       OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, old_status, OrderServiceProposalStatus::APROVADA_ID)
       flash[:success] = "Complemento aprovado e adicionado à OS. OS voltou para status Aprovada."

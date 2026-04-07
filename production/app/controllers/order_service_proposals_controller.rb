@@ -412,48 +412,42 @@ class OrderServiceProposalsController < ApplicationController
   end
 
   def generate_order_service_proposal_items
-    proposal_id = @order_service_proposal.id
-    temps_count = @order_service_proposal.provider_service_temps.count
+    @order_service_proposal.order_service_proposal_items.destroy_all
+    # @order_service_proposal.order_service_proposal_items.each do |order_service_proposal_item|
+    #   order_service_proposal_item.update_columns(
+    #     unity_value: order_service_proposal_item.service.price,
+    #     service_name: order_service_proposal_item.service.name,
+    #     brand: order_service_proposal_item.service.brand,
+    #     warranty_period: order_service_proposal_item.service.warranty_period,
+    #     service_description: order_service_proposal_item.service.description,
+    #     total_value_without_discount: (order_service_proposal_item.quantity * order_service_proposal_item.service.price)
+    #   )
+    # end
 
-    Rails.logger.info "[GENERATE_ITEMS] Proposta #{proposal_id}: Iniciando geração de #{temps_count} itens"
-
-    ActiveRecord::Base.transaction do
-      @order_service_proposal.order_service_proposal_items.destroy_all
-
-      @order_service_proposal.provider_service_temps.reload.each do |provider_service_temp|
-        new_service = provider_service_temp.service
-
-        # Para itens criados manualmente (sem service_id), usa os dados do provider_service_temp
-        if new_service.present?
-          service_id = new_service.id
-          service_name = new_service.name
-        else
-          service_id = nil
-          service_name = provider_service_temp.name
-        end
-
-        item = @order_service_proposal.order_service_proposal_items.create!(
-          service_id: service_id,
-          unity_value: provider_service_temp.price,
-          service_name: service_name,
-          quantity: provider_service_temp.quantity,
-          discount: provider_service_temp.discount,
-          total_value: provider_service_temp.total_value,
-          total_value_without_discount: (provider_service_temp.quantity * provider_service_temp.price),
-          brand: provider_service_temp.brand,
-          warranty_period: provider_service_temp.warranty_period,
-          referencia_catalogo: provider_service_temp.referencia_catalogo
-        )
-        Rails.logger.info "[GENERATE_ITEMS] Proposta #{proposal_id}: Item #{item.id} criado (service_id=#{service_id}, valor=#{provider_service_temp.price}, qty=#{provider_service_temp.quantity})"
+    @order_service_proposal.provider_service_temps.each do |provider_service_temp|
+      new_service = provider_service_temp.service
+      
+      # Para itens criados manualmente (sem service_id), usa os dados do provider_service_temp
+      if new_service.present?
+        service_id = new_service.id
+        service_name = new_service.name
+      else
+        service_id = nil
+        service_name = provider_service_temp.name
       end
-    end
-
-    # Verificação pós-geração
-    items_count = @order_service_proposal.order_service_proposal_items.reload.count
-    if items_count != temps_count
-      Rails.logger.error "[GENERATE_ITEMS] ⚠️ MISMATCH Proposta #{proposal_id}: #{temps_count} temps vs #{items_count} items criados!"
-    else
-      Rails.logger.info "[GENERATE_ITEMS] ✅ Proposta #{proposal_id}: #{items_count} itens gerados com sucesso"
+      
+      @order_service_proposal.order_service_proposal_items.create(
+        service_id: service_id,
+        unity_value: provider_service_temp.price,
+        service_name: service_name,
+        quantity: provider_service_temp.quantity,
+        discount: provider_service_temp.discount,
+        total_value: provider_service_temp.total_value,
+        total_value_without_discount: (provider_service_temp.quantity * provider_service_temp.price),
+        brand: provider_service_temp.brand,
+        warranty_period: provider_service_temp.warranty_period,
+        referencia_catalogo: provider_service_temp.referencia_catalogo
+      )
     end
   end
 
@@ -697,6 +691,9 @@ class OrderServiceProposalsController < ApplicationController
       OrderService.generate_historic(@order_service_proposal.order_service, @current_user, @order_service_proposal.order_service.order_service_status_id, OrderServiceStatus::AUTORIZADA_ID)
       @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID, updated_at: Time.current)
       
+      # 🔄 Sincroniza outras propostas que ficaram para trás
+      @order_service_proposal.order_service.reload.sync_proposals_status!
+      
       # Envia webhook para sistema financeiro (assíncrono com retry)
       SendAuthorizedOsWebhookJob.perform_later(@order_service_proposal.order_service.id)
 
@@ -770,6 +767,9 @@ class OrderServiceProposalsController < ApplicationController
     OrderService.generate_historic(@order_service_proposal.order_service, @current_user, @order_service_proposal.order_service.order_service_status_id, OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID)
     @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID, updated_at: Time.current)
 
+    # 🔄 Sincroniza outras propostas que ficaram para trás
+    @order_service_proposal.order_service.reload.sync_proposals_status!
+
     flash[:success] = OrderServiceProposal.human_attribute_name(:waiting_payment_with_success)
 
     redirect_back(fallback_location: :back)
@@ -784,6 +784,9 @@ class OrderServiceProposalsController < ApplicationController
     # Manually create an audit record
     OrderService.generate_historic(@order_service_proposal.order_service, @current_user, @order_service_proposal.order_service.order_service_status_id, OrderServiceStatus::PAGA_ID)
     @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::PAGA_ID, updated_at: Time.current)
+
+    # 🔄 Sincroniza outras propostas que ficaram para trás
+    @order_service_proposal.order_service.reload.sync_proposals_status!
 
     flash[:success] = OrderServiceProposal.human_attribute_name(:make_payment_with_success)
 
@@ -1059,7 +1062,7 @@ class OrderServiceProposalsController < ApplicationController
       # ✅ OS permanece com status APROVADA - não cria nova OS
       # Atualizar status da OS para APROVADA após aprovar complemento
       # (OS volta para o status anterior ao complemento)
-      @order_service.update!(order_service_status_id: OrderServiceStatus::APROVADA_ID)
+      @order_service.update_columns(order_service_status_id: OrderServiceStatus::APROVADA_ID)
       
       OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, old_status, OrderServiceProposalStatus::APROVADA_ID)
       flash[:success] = "Complemento aprovado e adicionado à OS. OS voltou para status Aprovada."
