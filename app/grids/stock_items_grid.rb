@@ -21,7 +21,7 @@ class StockItemsGrid
   end
 
   # Filters
-  filter(:client_id, :enum, if: :check_admin, select: -> { User.where(profile_id: Profile::CLIENTE_ID).order(:name).map { |u| [u.name, u.id] } },
+  filter(:client_id, :enum, if: :check_admin, select: -> { User.where(profile_id: Profile::CLIENT_ID).order(:name).map { |u| [u.name, u.id] } },
     header: 'Cliente', include_blank: 'Todos') do |value, scope|
     scope.by_client_id(value)
   end
