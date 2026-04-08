@@ -55,6 +55,9 @@
           <% if is_part %>
             <small class="text-muted"><b><%= OrderServiceProposalItem.human_attribute_name(:brand) %>: </b><%= item.brand %></small>
           <% end %>
+          <% if item.observation.present? %>
+            <br><small class="text-muted"><b>Obs: </b><%= item.observation %></small>
+          <% end %>
         </td>
         <td>
           <%= price_comparison_arrow(item, order_service_proposal.order_service) %>
