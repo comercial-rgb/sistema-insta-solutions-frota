@@ -71,6 +71,8 @@ class FinancialPortalController < ApplicationController
       scope = scope.pending
     when 'success'
       scope = scope.success
+    when 'not_synced'
+      scope = scope.not_success
     when 'all'
       # no filter
     else
@@ -83,20 +85,75 @@ class FinancialPortalController < ApplicationController
     @failed_count  = WebhookLog.failed.count
     @pending_count = WebhookLog.pending.count
     @success_count = WebhookLog.success.count
+    @not_synced_count = @failed_count + @pending_count
   end
 
+  # Verificar sincronização: detecta OS em status pós-autorização que não têm webhook SUCCESS
+  def webhook_verify
+    authorize :financial_portal, :webhook_logs?
+
+    valid_statuses = [
+      OrderServiceStatus::AUTORIZADA_ID,
+      OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID,
+      OrderServiceStatus::PAGA_ID,
+      OrderServiceStatus::NEW_AUTORIZADA_ID,
+      8, 9 # Nova numeração: Ag. Pagamento e Paga
+    ].uniq
+
+    # OS em status pós-autorização SEM webhook_log OU com webhook_log não-sucesso
+    os_without_log = OrderService
+      .where(order_service_status_id: valid_statuses)
+      .where.not(id: WebhookLog.success.select(:order_service_id))
+      .where.not(id: WebhookLog.not_success.select(:order_service_id))
+
+    created = 0
+    skipped = 0
+    os_without_log.find_each do |os|
+      unless os.approved_proposal
+        skipped += 1
+        next
+      end
+
+      WebhookLog.create!(
+        order_service_id: os.id,
+        status: WebhookLog::FAILED,
+        attempts: 0,
+        last_error: "Não sincronizada: OS em status #{os.order_service_status&.name} sem registro no Portal Financeiro",
+        last_attempt_at: nil
+      )
+      created += 1
+    end
+
+    msg = "Verificação concluída: #{created} OS não sincronizadas encontradas."
+    msg += " #{skipped} OS ignoradas (sem proposta aprovada)." if skipped > 0
+
+    redirect_to financial_portal_webhook_logs_path(filter: 'failed'), notice: msg
+  end
+
+  # Reenvio síncrono individual — mostra resultado imediato ao admin
   def webhook_resend
     authorize :financial_portal, :webhook_logs?
 
     log = WebhookLog.find(params[:id])
     os = log.order_service
 
-    # Reset para pendente e reenviar (valida status pós-autorização)
-    log.update(status: WebhookLog::PENDING, last_error: nil)
-    SendAuthorizedOsWebhookJob.perform_later(os.id, resend: true)
+    # Envia sincronamente para dar feedback imediato ao admin
+    result = WebhookFinanceService.send_authorized_os(os.id, resend: true)
 
-    redirect_to financial_portal_webhook_logs_path(filter: params[:filter]),
-      notice: "OS #{os.code} reenviada para processamento. Acompanhe o status abaixo."
+    if result[:success]
+      redirect_to financial_portal_webhook_logs_path(filter: params[:filter]),
+        notice: "OS #{os.code} enviada com sucesso ao Portal Financeiro!"
+    else
+      # Atualiza o log com o erro para que fique visível na tabela
+      log.update(
+        status: WebhookLog::FAILED,
+        last_error: result[:error].to_s.truncate(255),
+        last_attempt_at: Time.current,
+        attempts: (log.attempts || 0) + 1
+      )
+      redirect_to financial_portal_webhook_logs_path(filter: params[:filter]),
+        alert: "Falha ao enviar OS #{os.code}: #{result[:error]}"
+    end
   end
 
   def webhook_resend_all

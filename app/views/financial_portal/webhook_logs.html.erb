@@ -2,12 +2,26 @@
 breadcrumbs = [
   {active: false, href: root_path, text: t('menu.initial_page')},
   {active: false, href: financial_portal_path, text: 'Portal Financeiro'},
-  {active: true, href: '#', text: 'Webhook Logs'},
+  {active: true, href: '#', text: 'Sincronização de OS'},
 ]
 %>
 
 <div class="container-fluid">
   <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+
+  <!-- Flash messages com destaque -->
+  <% if flash[:notice] %>
+    <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+      <i class="bi bi-check-circle-fill me-2"></i> <%= flash[:notice] %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% end %>
+  <% if flash[:alert] %>
+    <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+      <i class="bi bi-exclamation-triangle-fill me-2"></i> <%= flash[:alert] %>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  <% end %>
 
   <!-- Header -->
   <div class="row mb-4">
@@ -15,18 +29,23 @@ breadcrumbs = [
       <div class="card border-0 shadow-sm" style="background: linear-gradient(135deg, #b71c1c 0%, #c62828 50%, #e53935 100%);">
         <div class="card-body text-white p-4">
           <div class="row align-items-center">
-            <div class="col-md-8">
+            <div class="col-md-7">
               <h3 class="mb-2">
-                <i class="bi bi-arrow-repeat me-2"></i> Gerenciamento de Webhooks
+                <i class="bi bi-arrow-repeat me-2"></i> Sincronização de OS — Portal Financeiro
               </h3>
               <p class="mb-0 opacity-75">
-                Acompanhe e reprocesse as OS que falharam no envio ao Portal Financeiro.
-                O sistema tenta enviar automaticamente 3 vezes. Aqui você pode reenviar manualmente as que falharam.
+                Verifique quais OS autorizadas/pagas não constam no Portal Financeiro e reenvie.
+                Ao reenviar, o resultado (sucesso ou motivo da falha) é exibido imediatamente.
               </p>
             </div>
-            <div class="col-md-4 text-md-end mt-3 mt-md-0">
+            <div class="col-md-5 text-md-end mt-3 mt-md-0">
+              <%= link_to financial_portal_webhook_verify_path, method: :post,
+                  class: 'btn btn-warning me-2',
+                  data: { confirm: 'Verificar se há OS não sincronizadas com o Portal Financeiro?', disable_with: 'Verificando...' } do %>
+                <i class="bi bi-search me-1"></i> Verificar Sincronização
+              <% end %>
               <a href="<%= financial_portal_path %>" class="btn btn-outline-light">
-                <i class="bi bi-arrow-left me-1"></i> Voltar ao Portal
+                <i class="bi bi-arrow-left me-1"></i> Voltar
               </a>
             </div>
           </div>
@@ -37,7 +56,22 @@ breadcrumbs = [
 
   <!-- Contadores -->
   <div class="row mb-4">
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
+      <a href="<%= financial_portal_webhook_logs_path(filter: 'not_synced') %>" class="text-decoration-none">
+        <div class="card shadow-sm border-dark h-100 <%= @filter == 'not_synced' ? 'bg-dark text-white' : '' %>">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="<%= @filter == 'not_synced' ? 'text-white' : 'text-muted' %> mb-1">Não Sincronizadas</h6>
+                <h3 class="mb-0 <%= @filter == 'not_synced' ? 'text-white' : 'text-dark' %>"><%= @not_synced_count %></h3>
+              </div>
+              <i class="bi bi-exclamation-diamond fs-1 <%= @filter == 'not_synced' ? 'text-white opacity-75' : 'text-dark' %>"></i>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+    <div class="col-md-3 mb-3">
       <a href="<%= financial_portal_webhook_logs_path(filter: 'failed') %>" class="text-decoration-none">
         <div class="card shadow-sm border-danger h-100 <%= @filter == 'failed' ? 'bg-danger text-white' : '' %>">
           <div class="card-body">
@@ -52,7 +86,7 @@ breadcrumbs = [
         </div>
       </a>
     </div>
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
       <a href="<%= financial_portal_webhook_logs_path(filter: 'pending') %>" class="text-decoration-none">
         <div class="card shadow-sm border-warning h-100 <%= @filter == 'pending' ? 'bg-warning' : '' %>">
           <div class="card-body">
@@ -67,7 +101,7 @@ breadcrumbs = [
         </div>
       </a>
     </div>
-    <div class="col-md-4 mb-3">
+    <div class="col-md-3 mb-3">
       <a href="<%= financial_portal_webhook_logs_path(filter: 'success') %>" class="text-decoration-none">
         <div class="card shadow-sm border-success h-100 <%= @filter == 'success' ? 'bg-success text-white' : '' %>">
           <div class="card-body">
@@ -92,10 +126,11 @@ breadcrumbs = [
           <div>
             <i class="bi bi-exclamation-triangle-fill me-2"></i>
             <strong><%= @failed_count %></strong> OS com falha no envio ao Portal Financeiro.
+            <small class="d-block text-muted mt-1">Clique em "Reenviar" em cada OS para ver o resultado, ou reenvie todas de uma vez.</small>
           </div>
           <%= link_to financial_portal_webhook_resend_all_path, method: :post,
               class: 'btn btn-danger btn-sm',
-              data: { confirm: "Tem certeza que deseja reenviar todas as #{@failed_count} OS com falha?" } do %>
+              data: { confirm: "Tem certeza que deseja reenviar todas as #{@failed_count} OS com falha?", disable_with: 'Reenviando...' } do %>
             <i class="bi bi-arrow-repeat me-1"></i> Reenviar Todas
           <% end %>
         </div>
@@ -107,6 +142,10 @@ breadcrumbs = [
   <div class="row mb-3">
     <div class="col-12">
       <div class="btn-group" role="group">
+        <a href="<%= financial_portal_webhook_logs_path(filter: 'not_synced') %>"
+           class="btn btn-sm <%= @filter == 'not_synced' ? 'btn-dark' : 'btn-outline-dark' %>">
+          <i class="bi bi-exclamation-diamond me-1"></i> Não Sincronizadas <span class="badge bg-white text-dark"><%= @not_synced_count %></span>
+        </a>
         <a href="<%= financial_portal_webhook_logs_path(filter: 'failed') %>"
            class="btn btn-sm <%= @filter == 'failed' ? 'btn-danger' : 'btn-outline-danger' %>">
           <i class="bi bi-x-circle me-1"></i> Falhas <span class="badge bg-white text-danger"><%= @failed_count %></span>
@@ -130,7 +169,7 @@ breadcrumbs = [
   <!-- Tabela -->
   <div class="card shadow-sm mb-4">
     <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-      <span><i class="bi bi-table me-2"></i> Webhook Logs</span>
+      <span><i class="bi bi-table me-2"></i> Registros de Sincronização</span>
       <span class="badge bg-light text-dark"><%= @webhook_logs.total_count %> registros</span>
     </div>
     <div class="card-body p-0">
@@ -142,9 +181,9 @@ breadcrumbs = [
               <th>Cliente</th>
               <th>Fornecedor</th>
               <th>Status OS</th>
-              <th>Webhook</th>
+              <th>Sincronização</th>
               <th>Tentativas</th>
-              <th>Último Erro</th>
+              <th>Motivo / Erro</th>
               <th>Última Tentativa</th>
               <th class="text-center">Ações</th>
             </tr>
@@ -179,7 +218,7 @@ breadcrumbs = [
                   <%
                     os_badge = case os.order_service_status_id
                                when 5, 7 then 'bg-primary'
-                               when 6 then 'bg-warning text-dark'
+                               when 6, 8 then 'bg-warning text-dark'
                                when 9 then 'bg-dark'
                                else 'bg-secondary'
                                end
@@ -193,11 +232,26 @@ breadcrumbs = [
                   </span>
                 </td>
                 <td class="text-center"><%= log.attempts %></td>
-                <td>
+                <td style="max-width: 300px;">
                   <% if log.last_error.present? %>
-                    <span class="text-danger small" title="<%= log.last_error %>" data-bs-toggle="tooltip">
-                      <%= truncate(log.last_error, length: 60) %>
-                    </span>
+                    <% error_id = "error-#{log.id}" %>
+                    <div class="text-danger small">
+                      <i class="bi bi-info-circle me-1"></i>
+                      <span><%= truncate(log.last_error, length: 80) %></span>
+                      <% if log.last_error.length > 80 %>
+                        <a href="#" class="text-danger ms-1" data-bs-toggle="collapse" data-bs-target="#<%= error_id %>" style="font-size: 0.75rem;">
+                          ver mais
+                        </a>
+                        <div class="collapse mt-1" id="<%= error_id %>">
+                          <div class="bg-light border rounded p-2 small text-break">
+                            <%= log.last_error %>
+                          </div>
+                        </div>
+                      <% end %>
+                    </div>
+                    <% if log.last_http_code.present? %>
+                      <small class="text-muted">HTTP: <%= log.last_http_code %></small>
+                    <% end %>
                   <% else %>
                     <span class="text-muted">-</span>
                   <% end %>
@@ -206,15 +260,15 @@ breadcrumbs = [
                   <% if log.last_attempt_at %>
                     <small class="text-muted"><%= log.last_attempt_at.strftime('%d/%m/%Y %H:%M') %></small>
                   <% else %>
-                    <span class="text-muted">-</span>
+                    <span class="text-muted small">Nunca enviada</span>
                   <% end %>
                 </td>
                 <td class="text-center">
                   <% unless log.success? %>
                     <%= link_to financial_portal_webhook_resend_path(log, filter: @filter), method: :post,
                         class: 'btn btn-sm btn-outline-primary',
-                        title: 'Reenviar webhook',
-                        data: { confirm: "Reenviar OS #{os.code} ao Portal Financeiro?" } do %>
+                        title: 'Reenviar — o resultado será exibido imediatamente',
+                        data: { confirm: "Reenviar OS #{os.code} ao Portal Financeiro?", disable_with: 'Enviando...' } do %>
                       <i class="bi bi-arrow-repeat"></i> Reenviar
                     <% end %>
                   <% else %>
@@ -238,14 +292,31 @@ breadcrumbs = [
       </div>
     <% end %>
   </div>
-</div>
 
-<script>
-  // Ativa tooltips do Bootstrap
-  document.addEventListener('DOMContentLoaded', function() {
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-    tooltipTriggerList.forEach(function(el) {
-      new bootstrap.Tooltip(el);
-    });
-  });
-</script>
+  <!-- Legenda de erros comuns -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-light">
+      <i class="bi bi-question-circle me-2"></i> <strong>Erros comuns e como resolver</strong>
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <div class="col-md-6">
+          <dl class="mb-0">
+            <dt class="text-danger"><i class="bi bi-x-circle me-1"></i> HTTP 404 — Não encontrado</dt>
+            <dd class="text-muted small mb-3">O fornecedor ou cliente não está cadastrado no Portal Financeiro. Cadastre-o primeiro e depois reenvie.</dd>
+            <dt class="text-danger"><i class="bi bi-x-circle me-1"></i> OS sem proposta aprovada</dt>
+            <dd class="text-muted small mb-3">A OS não possui proposta aprovada. Verifique se a proposta foi aprovada corretamente no sistema de frotas.</dd>
+          </dl>
+        </div>
+        <div class="col-md-6">
+          <dl class="mb-0">
+            <dt class="text-danger"><i class="bi bi-x-circle me-1"></i> Fornecedor sem nome cadastrado</dt>
+            <dd class="text-muted small mb-3">O fornecedor da proposta aprovada está sem Nome Fantasia e Razão Social. Corrija o cadastro e reenvie.</dd>
+            <dt class="text-danger"><i class="bi bi-x-circle me-1"></i> OS não está em status válido</dt>
+            <dd class="text-muted small mb-3">A OS voltou para um status anterior à autorização (ex: Em Aberto, Cancelada). Só é possível enviar OS Autorizadas, Ag. Pagamento ou Pagas.</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
