@@ -32,7 +32,7 @@ class SupportTicketsGrid
     relation.by_title(value)
   end
 
-  filter(:user_id, :enum, if: :check_admin, select: proc { User.where(profile_id: [Profile::ADMIN_ID, Profile::USER_ID, Profile::MANAGER_ID, Profile::ADDITIONAL_ID, Profile::CLIENTE_ID]).order(:name).map { |u| [u.name, u.id] } }, header: "Aberto por", include_blank: "Todos") do |value, relation, grid|
+  filter(:user_id, :enum, if: :check_admin, select: proc { User.where(profile_id: [Profile::ADMIN_ID, Profile::USER_ID, Profile::MANAGER_ID, Profile::ADDITIONAL_ID, Profile::CLIENT_ID]).order(:name).map { |u| [u.name, u.id] } }, header: "Aberto por", include_blank: "Todos") do |value, relation, grid|
     relation.by_user_id(value)
   end
 
