@@ -14,7 +14,9 @@
     "build:ios": "eas build --profile production --platform ios",
     "build:android": "eas build --profile production --platform android",
     "submit:ios": "eas submit --platform ios",
-    "submit:android": "eas submit --platform android"
+    "submit:android": "eas submit --platform android",
+    "update:preview": "eas update --branch preview --message",
+    "update:production": "eas update --branch production --message"
   },
   "dependencies": {
     "@expo/vector-icons": "~14.0.4",
@@ -38,6 +40,7 @@
     "expo-splash-screen": "~0.29.0",
     "expo-status-bar": "~2.0.0",
     "expo-system-ui": "~4.0.9",
+    "expo-updates": "~0.27.5",
     "react": "18.3.1",
     "react-hook-form": "^7.0.0",
     "react-native": "0.76.9",
@@ -63,7 +66,10 @@
   "expo": {
     "doctor": {
       "reactNativeDirectoryCheck": {
-        "exclude": ["react-native-chart-kit", "react-native-nfc-manager"]
+        "exclude": [
+          "react-native-chart-kit",
+          "react-native-nfc-manager"
+        ]
       }
     }
   }
