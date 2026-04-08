@@ -1148,10 +1148,6 @@ class OrderServicesController < ApplicationController
           bank_account: selected_bank
         ).call
         
-        # Marcar OS como faturadas
-        os_ids = os_list.map(&:id)
-        OrderService.where(id: os_ids, invoiced: false).update_all(invoiced: true, invoiced_at: Time.current)
-        
         split_label = case invoice_split
                       when 'parts' then '_pecas'
                       when 'services' then '_servicos'

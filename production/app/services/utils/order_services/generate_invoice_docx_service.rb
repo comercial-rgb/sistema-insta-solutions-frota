@@ -187,6 +187,12 @@ module Utils
             # Substitui placeholders em arquivos XML (com escape de caracteres especiais)
             if entry.name =~ /\.xml$/ || entry.name =~ /\.rels$/
               content = content.force_encoding('UTF-8')
+              
+              # CORREÇÃO: O Word fragmenta texto em múltiplos <w:r> runs.
+              # Ex: "NOSSONUMERO" pode virar <w:r><w:t>NOSSO</w:t></w:r><w:r><w:t>NUMERO</w:t></w:r>
+              # Precisamos juntar os runs antes de substituir, e depois aplicar os replacements.
+              content = merge_split_placeholders(content, replacements.keys)
+              
               replacements.each do |key, value|
                 content = content.gsub(key.to_s, escape_xml(value))
               end
@@ -220,6 +226,59 @@ module Utils
       rescue => e
         # Ignora erros de limpeza para não impactar a geração
         Rails.logger.warn "Erro ao limpar faturas antigas: #{e.message}"
+      end
+
+      # Junta texto fragmentado pelo Word em múltiplos <w:r> runs.
+      # O Word pode quebrar "NOSSONUMERO" em <w:r><w:t>NOSSO</w:t></w:r><w:r><w:t>NUMERO</w:t></w:r>.
+      # Esta função detecta quando um placeholder está fragmentado e junta os runs em um só.
+      def merge_split_placeholders(xml_content, placeholder_keys)
+        # Para cada placeholder, verifica se ele aparece fragmentado no XML
+        placeholder_keys.each do |key|
+          key_str = key.to_s
+          next if key_str.length < 2
+          # Se o placeholder já existe inteiro no XML, não precisa juntar
+          next if xml_content.include?(key_str)
+          
+          # Extrai todo o texto visível (dentro de <w:t ...>...</w:t>) e tenta achar o placeholder
+          # Se encontrar, junta os runs fragmentados
+          
+          # Regex para encontrar sequências de <w:r>...</w:r> que juntas formam o placeholder
+          # Estratégia: encontrar cada caractere do placeholder espalhado nos text nodes
+          
+          # Abordagem simplificada: busca pelo padrão onde o placeholder está dividido
+          # entre tags </w:t></w:r><w:r>...<w:t...> (com possíveis <w:rPr> no meio)
+          # 
+          # Constrói um regex que aceita tags XML entre cada caractere do placeholder
+          xml_noise = '</w:t>\s*</w:r>\s*<w:r>(?:\s*<w:rPr>.*?</w:rPr>)?\s*<w:t[^>]*>'
+          
+          # Para não criar regex enormes, tenta dividir o placeholder em 2, 3, ..., n partes
+          # e procura cada divisão possível
+          found = false
+          (1...[key_str.length, 6].min).each do |num_splits|
+            break if found
+            split_positions = (1...key_str.length).to_a.combination(num_splits).each do |positions|
+              break if found
+              parts = []
+              prev = 0
+              positions.each do |pos|
+                parts << Regexp.escape(key_str[prev...pos])
+                prev = pos
+              end
+              parts << Regexp.escape(key_str[prev..])
+              
+              pattern = parts.join(xml_noise)
+              regex = Regexp.new(pattern, Regexp::MULTILINE)
+              
+              if xml_content.match?(regex)
+                # Substitui o match mantendo apenas o texto junto (sem as tags intermediárias)
+                xml_content = xml_content.gsub(regex, key_str)
+                found = true
+              end
+            end
+          end
+        end
+        
+        xml_content
       end
 
       # Busca a proposta aprovada SEM chamar ensure_total_values (read-only)

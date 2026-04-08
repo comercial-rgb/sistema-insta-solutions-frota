@@ -94,7 +94,6 @@
             <th><%= OrderServiceInvoice.human_attribute_name(:order_service_invoice_type_id) %></th>
             <th><%= OrderServiceInvoice.human_attribute_name(:value) %> <%= OrderServiceInvoice.human_attribute_name(:parts).capitalize %> (R$)</th>
             <th><%= OrderServiceInvoice.human_attribute_name(:value) %> <%= OrderServiceInvoice.human_attribute_name(:services).capitalize %> (R$)</th>
-            <th>Situação</th>
         <% end %>
     </tr>
   </thead>
@@ -152,14 +151,6 @@
                             total_services += current_value
                         %>
                         <%= CustomHelper.to_currency(current_value) %>
-                    </td>
-                    <td rowspan="<%= order_service_invoices.count %>">
-                        <% if order_service.invoiced? %>
-                          <span class="badge bg-info">Faturada</span>
-                          <br><small class="text-muted"><%= order_service.invoiced_at&.strftime('%d/%m/%Y') %></small>
-                        <% else %>
-                          <span class="badge bg-secondary">Pendente</span>
-                        <% end %>
                     </td>
                 <% end %>
             <% end %>
