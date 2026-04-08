@@ -44,6 +44,9 @@
             <div class="col-12 col-md-2 mb-3">
                 <%= f.input :rg %>
             </div>
+            <div class="col-12 col-md-2 mb-3">
+                <%= f.input :government_sphere, as: :select, collection: User::SPHERE_OPTIONS, include_blank: false, label: 'Esfera', hint: 'Municipal, Estadual ou Federal' %>
+            </div>
             <div class="col-12 col-md-3 mb-3">
                 <%= f.input :require_vehicle_photos, as: :boolean, label: 'Exigir fotos do veículo (frontal, lateral, hodômetro) nas OS' %>
             </div>

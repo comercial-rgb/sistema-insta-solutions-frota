@@ -139,6 +139,23 @@ class OrderServicesInvoiceGrid
     relation.by_sub_unit_id(value)
   end
 
+  filter(:commitment_id, :enum, if: :check_not_provider, select: -> { Commitment.where(active: true).order(:commitment_number).map { |c| ["#{c.commitment_number} - #{c.client&.fantasy_name}", c.id] } },
+    header: 'Empenho', include_blank: 'Todos') do |value, relation, grid|
+    relation.where('order_services.commitment_parts_id = ? OR order_services.commitment_services_id = ?', value, value)
+  end
+
+  filter(:invoiced_filter, :enum, if: :check_not_provider, select: [['Não faturadas', 'not_invoiced'], ['Já faturadas', 'invoiced'], ['Todas', 'all']],
+    header: 'Faturamento', include_blank: false, default: 'not_invoiced') do |value, relation, grid|
+    case value
+    when 'not_invoiced'
+      relation.not_invoiced
+    when 'invoiced'
+      relation.invoiced_only
+    else
+      relation
+    end
+  end
+
   filter(:vehicle_id, :enum, if: false, select: :get_vehicles, header: OrderService.human_attribute_name(:vehicle_id), include_blank: I18n.t('model.select_option') ) do |value, relation, grid|
     relation.by_vehicle_id(value)
   end

@@ -1,13 +1,28 @@
 <div class="row py-2">
-    <div class="col-12 d-flex justify-content-end flex-wrap gap-2">
+    <div class="col-12 d-flex justify-content-end flex-wrap gap-2 align-items-center">
         <!-- Baixar em excel -->
         <button id="button-export-table" class="btn btn-success text-white btn-sm">
             <i class="bi bi-file-earmark-excel-fill"></i>
             <%= t('model.export_excel') %>
         </button>
         <% if !params[:order_services_invoice_grid].nil? && !params[:order_services_invoice_grid][:client_id].nil? && !params[:order_services_invoice_grid][:client_id].blank? %>
+            <%
+              current_client_for_bank = User.find_by(id: params[:order_services_invoice_grid][:client_id])
+              client_banks = current_client_for_bank&.data_banks || []
+              grid_params_hash = params[:order_services_invoice_grid].to_enum.to_h
+            %>
+            <% if client_banks.any? %>
+              <select id="bank-account-select" class="form-select form-select-sm" style="width: auto; min-width: 200px;">
+                <option value="">Sem conta bancária</option>
+                <% client_banks.each do |bank| %>
+                  <option value="<%= bank.id %>">
+                    <%= bank.bank&.name %> - Ag: <%= bank.agency %> / CC: <%= bank.account %> <% if bank.pix.present? %>| PIX: <%= bank.pix %><% end %>
+                  </option>
+                <% end %>
+              </select>
+            <% end %>
             <div class="btn-group">
-                <a href="<%= show_invoices_path(format: "text", order_services_invoice_grid: (params[:order_services_invoice_grid].nil? ? "" : params[:order_services_invoice_grid].to_enum.to_h)) %>" class="btn btn-primary text-white btn-sm">
+                <a href="<%= show_invoices_path(format: "text", order_services_invoice_grid: grid_params_hash) %>" class="btn btn-primary text-white btn-sm btn-gerar-fatura" data-base-href="<%= show_invoices_path(format: "text", order_services_invoice_grid: grid_params_hash) %>">
                     <i class="bi bi-filetype-docx"></i>
                     Fatura Completa (Peças + Serviços)
                 </a>
@@ -16,18 +31,18 @@
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end">
                     <li>
-                        <a class="dropdown-item" href="<%= show_invoices_path(format: "text", invoice_split: "parts", order_services_invoice_grid: (params[:order_services_invoice_grid].nil? ? "" : params[:order_services_invoice_grid].to_enum.to_h)) %>">
+                        <a class="dropdown-item btn-gerar-fatura" href="<%= show_invoices_path(format: "text", invoice_split: "parts", order_services_invoice_grid: grid_params_hash) %>" data-base-href="<%= show_invoices_path(format: "text", invoice_split: "parts", order_services_invoice_grid: grid_params_hash) %>">
                             <i class="bi bi-box-seam me-1"></i> Somente Peças
                         </a>
                     </li>
                     <li>
-                        <a class="dropdown-item" href="<%= show_invoices_path(format: "text", invoice_split: "services", order_services_invoice_grid: (params[:order_services_invoice_grid].nil? ? "" : params[:order_services_invoice_grid].to_enum.to_h)) %>">
+                        <a class="dropdown-item btn-gerar-fatura" href="<%= show_invoices_path(format: "text", invoice_split: "services", order_services_invoice_grid: grid_params_hash) %>" data-base-href="<%= show_invoices_path(format: "text", invoice_split: "services", order_services_invoice_grid: grid_params_hash) %>">
                             <i class="bi bi-wrench me-1"></i> Somente Serviços
                         </a>
                     </li>
                     <li><hr class="dropdown-divider"></li>
                     <li>
-                        <a class="dropdown-item" href="<%= show_invoices_path(format: "text", order_services_invoice_grid: (params[:order_services_invoice_grid].nil? ? "" : params[:order_services_invoice_grid].to_enum.to_h)) %>">
+                        <a class="dropdown-item btn-gerar-fatura" href="<%= show_invoices_path(format: "text", order_services_invoice_grid: grid_params_hash) %>" data-base-href="<%= show_invoices_path(format: "text", order_services_invoice_grid: grid_params_hash) %>">
                             <i class="bi bi-files me-1"></i> Peças + Serviços (Juntas)
                         </a>
                     </li>
@@ -36,6 +51,26 @@
         <% end %>
     </div>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var bankSelect = document.getElementById('bank-account-select');
+    if (bankSelect) {
+      function updateFaturaLinks() {
+        var bankId = bankSelect.value;
+        document.querySelectorAll('.btn-gerar-fatura').forEach(function(link) {
+          var baseHref = link.getAttribute('data-base-href');
+          if (bankId) {
+            link.href = baseHref + (baseHref.indexOf('?') >= 0 ? '&' : '?') + 'bank_account_id=' + bankId;
+          } else {
+            link.href = baseHref;
+          }
+        });
+      }
+      bankSelect.addEventListener('change', updateFaturaLinks);
+    }
+  });
+</script>
 
 <table id="table-fatured-invoices" class="table table-bordered table-hover text-center align-middle">
   <thead class="table-dark">
@@ -59,6 +94,7 @@
             <th><%= OrderServiceInvoice.human_attribute_name(:order_service_invoice_type_id) %></th>
             <th><%= OrderServiceInvoice.human_attribute_name(:value) %> <%= OrderServiceInvoice.human_attribute_name(:parts).capitalize %> (R$)</th>
             <th><%= OrderServiceInvoice.human_attribute_name(:value) %> <%= OrderServiceInvoice.human_attribute_name(:services).capitalize %> (R$)</th>
+            <th>Situação</th>
         <% end %>
     </tr>
   </thead>
@@ -116,6 +152,14 @@
                             total_services += current_value
                         %>
                         <%= CustomHelper.to_currency(current_value) %>
+                    </td>
+                    <td rowspan="<%= order_service_invoices.count %>">
+                        <% if order_service.invoiced? %>
+                          <span class="badge bg-info">Faturada</span>
+                          <br><small class="text-muted"><%= order_service.invoiced_at&.strftime('%d/%m/%Y') %></small>
+                        <% else %>
+                          <span class="badge bg-secondary">Pendente</span>
+                        <% end %>
                     </td>
                 <% end %>
             <% end %>

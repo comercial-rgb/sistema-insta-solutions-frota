@@ -6,6 +6,17 @@
 
 	ADMIN_FIRST_ID = 1
 
+	# Esfera governamental do cliente
+	SPHERE_MUNICIPAL = 0
+	SPHERE_ESTADUAL = 1
+	SPHERE_FEDERAL = 2
+
+	SPHERE_OPTIONS = [
+		['Municipal', SPHERE_MUNICIPAL],
+		['Estadual', SPHERE_ESTADUAL],
+		['Federal', SPHERE_FEDERAL]
+	].freeze
+
 	default_scope {
 		includes(:profile, :person_type, :sex, :user_status)
 	}
@@ -41,6 +52,7 @@
 	accepts_nested_attributes_for :person_contacts, :reject_if => proc { |attrs| attrs[:name].blank? }
 
 	has_one :data_bank, as: :ownertable, validate: false, dependent: :destroy
+	has_many :data_banks, as: :ownertable, class_name: 'DataBank', dependent: :destroy
 	accepts_nested_attributes_for :data_bank, :reject_if => :all_blank
 
 	has_many :user_email_settings, dependent: :destroy
@@ -316,6 +328,27 @@
 
 	def os_blocked?
 		os_blocked == true
+	end
+
+	def municipal?
+		government_sphere == SPHERE_MUNICIPAL
+	end
+
+	def estadual?
+		government_sphere == SPHERE_ESTADUAL
+	end
+
+	def federal?
+		government_sphere == SPHERE_FEDERAL
+	end
+
+	def sphere_name
+		case government_sphere
+		when SPHERE_MUNICIPAL then 'Municipal'
+		when SPHERE_ESTADUAL then 'Estadual'
+		when SPHERE_FEDERAL then 'Federal'
+		else 'Não definido'
+		end
 	end
 
 	def discount_percent=(new_discount_percent)

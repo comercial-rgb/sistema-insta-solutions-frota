@@ -7,11 +7,12 @@ require 'fileutils'
 module Utils
   module OrderServices
     class GenerateInvoiceDocxService
-      def initialize(order_services, client, current_month, invoice_split: nil)
+      def initialize(order_services, client, current_month, invoice_split: nil, bank_account: nil)
         @order_services = order_services
         @client = client
         @current_month = current_month
         @invoice_split = invoice_split # nil = all, 'parts' = only parts, 'services' = only services
+        @bank_account = bank_account
         @order_service_invoices = []
       end
 
@@ -68,8 +69,11 @@ module Utils
         replacements['DISCOUNT'] = CustomHelper.to_currency(values[:desconto])
         replacements['VALORDESCONTO'] = CustomHelper.to_currency(values[:valorcomdesconto])
         
+        # Retenções por esfera (municipal/estadual: 5,45% peças, 9,45% serviços para não-simples)
+        replacements['RETENCAOESFERA'] = CustomHelper.to_currency(values[:retencao_esfera])
+        
         # Dados do cliente
-        cost_centers_name = @order_services.map { |os| os.cost_center.name }.uniq.join(' / ')
+        cost_centers_name = @order_services.map { |os| os.cost_center&.name }.compact.uniq.join(' / ')
         replacements['NOMECLIENTE'] = @client.social_name || ''
         replacements['CENTRODECUSTO'] = cost_centers_name
         replacements['CNPJCLIENTE'] = @client.cnpj || ''
@@ -78,6 +82,35 @@ module Utils
         replacements['ESTADOCLIENTE'] = @client.get_state || ''
         replacements['TELEFONECLIENTE'] = @client.phone || ''
         replacements['EMAILCLIENTE'] = @client.email || ''
+        replacements['ESFERACLIENTE'] = @client.sphere_name
+        
+        # Desconto do cliente (percentual real, não fixo)
+        client_discount = @client.discount_percent || 0
+        replacements['PERCENTUALDESCONTO'] = "#{CustomHelper.to_currency(client_discount)} %"
+        
+        # Contrato e Empenho (pega do primeiro OS que tiver)
+        first_os_with_commitment = @order_services.find { |os| os.commitment_parts_id.present? || os.commitment_services_id.present? }
+        commitment = nil
+        if first_os_with_commitment
+          commitment = Commitment.find_by(id: first_os_with_commitment.commitment_parts_id) || 
+                       Commitment.find_by(id: first_os_with_commitment.commitment_services_id)
+        end
+        replacements['NUMEROEMPENHO'] = commitment&.commitment_number || ''
+        replacements['NUMEROCONTRATO'] = commitment&.contract&.number || ''
+        
+        # Nosso número (aleatório)
+        replacements['NOSSONUMERO'] = SecureRandom.random_number(100000000).to_s.rjust(8, '0')
+        
+        # Conta bancária
+        if @bank_account
+          bank_info = "#{@bank_account.bank&.name} | Ag: #{@bank_account.agency} | CC: #{@bank_account.account}"
+          bank_info += " | Op: #{@bank_account.operation}" if @bank_account.operation.present?
+          bank_info += " | PIX: #{@bank_account.pix}" if @bank_account.pix.present?
+          bank_info += " | CPF/CNPJ: #{@bank_account.cpf_cnpj}" if @bank_account.cpf_cnpj.present?
+          replacements['CONTABANCARIA'] = bank_info
+        else
+          replacements['CONTABANCARIA'] = ''
+        end
         
         # Datas
         vencimento = (@current_month.last + 1.month)
@@ -189,45 +222,88 @@ module Utils
         Rails.logger.warn "Erro ao limpar faturas antigas: #{e.message}"
       end
 
+      # Busca a proposta aprovada SEM chamar ensure_total_values (read-only)
+      # Evita efeito colateral de recalcular e gravar totais durante geração de fatura
+      def find_approved_proposal_readonly(order_service)
+        approved_statuses = [
+          OrderServiceProposalStatus::APROVADA_ID,
+          OrderServiceProposalStatus::NOTAS_INSERIDAS_ID,
+          OrderServiceProposalStatus::AUTORIZADA_ID,
+          OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+          OrderServiceProposalStatus::PAGA_ID
+        ]
+
+        result = order_service.order_service_proposals
+          .where(is_complement: [false, nil])
+          .where(order_service_proposal_status_id: approved_statuses)
+          .order(updated_at: :desc)
+          .first
+
+        result || order_service.order_service_proposals
+          .where(order_service_proposal_status_id: approved_statuses)
+          .order(updated_at: :desc)
+          .first
+      end
+
       def getting_values_by_proposals
-        total_value = 0
-        total_discount = 0
-        total_value_without_discount = 0
+        total_parts = 0
+        total_services = 0
         total_discount_ir = 0
-        order_service_invoices = []
+        total_retencao_esfera = 0
+
+        # Desconto do cliente (percentual)
+        client_discount_pct = (@client.discount_percent || 0).to_d / 100
+
+        # Verifica se cliente é municipal ou estadual (para retenção de esfera)
+        is_municipal_or_estadual = @client.municipal? || @client.estadual?
 
         @order_services.each do |order_service|
-          order_service_proposal_approved = order_service.getting_order_service_proposal_approved
-          if order_service_proposal_approved
-            invoices = order_service_proposal_approved.order_service_invoices.sort_by{|item| item.order_service_invoice_type_id}
-            
-            # Filtrar por tipo de fatura quando invoice_split está definido
-            if @invoice_split == 'parts'
-              invoices = invoices.select { |inv| inv.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }
-            elsif @invoice_split == 'services'
-              invoices = invoices.select { |inv| inv.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }
-            end
-            
-            @order_service_invoices.concat(invoices)
-            order_service_invoices_grouped = invoices.group_by(&:order_service_invoice_type_id)
-            total_value += order_service_proposal_approved.total_value
-            total_discount += order_service_proposal_approved.total_discount
-            total_value_without_discount += order_service_proposal_approved.total_value_without_discount
+          proposal = find_approved_proposal_readonly(order_service)
+          next unless proposal
+
+          invoices = proposal.order_service_invoices.sort_by { |item| item.order_service_invoice_type_id }
+
+          # Filtrar por tipo de fatura quando invoice_split está definido
+          if @invoice_split == 'parts'
+            invoices = invoices.select { |inv| inv.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }
+          elsif @invoice_split == 'services'
+            invoices = invoices.select { |inv| inv.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }
           end
-          sum_parts = order_service_invoices_grouped[OrderServiceInvoiceType::PECAS_ID].sum(&:value) if !order_service_invoices_grouped[OrderServiceInvoiceType::PECAS_ID].nil?
-          sum_services = order_service_invoices_grouped[OrderServiceInvoiceType::SERVICOS_ID].sum(&:value) if !order_service_invoices_grouped[OrderServiceInvoiceType::SERVICOS_ID].nil?
-          if order_service_proposal_approved && order_service_proposal_approved.provider.optante_simples
-            total_discount_ir += (sum_parts * 0.012).to_f if !sum_parts.nil?
-            total_discount_ir += (sum_services * 0.048).to_f if !sum_services.nil?
+
+          @order_service_invoices.concat(invoices)
+
+          sum_parts = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }.sum(&:value).to_d
+          sum_services = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }.sum(&:value).to_d
+
+          total_parts += sum_parts
+          total_services += sum_services
+
+          # IR para optante simples
+          if proposal.provider.optante_simples
+            total_discount_ir += (sum_parts * 0.012)
+            total_discount_ir += (sum_services * 0.048)
+          end
+
+          # Retenção por esfera: municipal/estadual + fornecedor NÃO optante simples
+          if is_municipal_or_estadual && !proposal.provider.optante_simples
+            total_retencao_esfera += (sum_parts * 0.0545)   # 5,45% peças
+            total_retencao_esfera += (sum_services * 0.0945) # 9,45% serviços
           end
         end
+
+        # Calcula totais a partir dos valores das NFs (sem depender de totais da proposta)
+        total_value_without_discount = (total_parts + total_services).to_d
+        total_discount = (total_value_without_discount * client_discount_pct).round(2)
+        total_value = (total_value_without_discount - total_discount).to_d
+
         return {
           valortotal: total_value,
           descontoir: total_discount_ir,
           valorbruto: total_value_without_discount,
           desconto: total_discount,
-          valorcomdesconto: (total_value_without_discount - total_discount),
-          retencoes: total_discount_ir
+          valorcomdesconto: total_value,
+          retencoes: total_discount_ir,
+          retencao_esfera: total_retencao_esfera
         }
       end
     end

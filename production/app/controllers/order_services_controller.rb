@@ -1138,7 +1138,20 @@ class OrderServicesController < ApplicationController
       format.text do
         current_client = User.client.where(id: clients.first[1]).first
         invoice_split = params[:invoice_split] # nil = all, 'parts' = only parts, 'services' = only services
-        file_path = Utils::OrderServices::GenerateInvoiceDocxService.new(@order_services_to_export.assets, current_client, current_month, invoice_split: invoice_split).call
+        selected_bank_id = params[:bank_account_id]
+        selected_bank = selected_bank_id.present? ? DataBank.find_by(id: selected_bank_id) : nil
+        
+        os_list = @order_services_to_export.assets.to_a
+        file_path = Utils::OrderServices::GenerateInvoiceDocxService.new(
+          os_list, current_client, current_month,
+          invoice_split: invoice_split,
+          bank_account: selected_bank
+        ).call
+        
+        # Marcar OS como faturadas
+        os_ids = os_list.map(&:id)
+        OrderService.where(id: os_ids, invoiced: false).update_all(invoiced: true, invoiced_at: Time.current)
+        
         split_label = case invoice_split
                       when 'parts' then '_pecas'
                       when 'services' then '_servicos'

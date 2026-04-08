@@ -60,6 +60,10 @@ class OrderService < ApplicationRecord
   scope :cilia_pending, -> { where(cilia_priced_at: nil) }
   scope :cilia_completed, -> { where.not(cilia_priced_at: nil) }
 
+  # Scopes para faturamento
+  scope :not_invoiced, -> { where(invoiced: false) }
+  scope :invoiced_only, -> { where(invoiced: true) }
+
   # Scope para buscar OSs que ENTRARAM no status AUTORIZADA no período (usando histórico do Audited)
   scope :approved_in_period, lambda { |start_date, end_date|
     if start_date.present? && end_date.present?
