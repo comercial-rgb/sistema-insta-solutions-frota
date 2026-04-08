@@ -998,6 +998,13 @@ class OrderServiceProposalsController < ApplicationController
     @order_service = @order_service_proposal.order_service
     authorize @order_service, :approve_complement?
 
+    # Guard: impedir re-aprovação de complemento já aprovado (evita duplicação de itens)
+    if @order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::APROVADA_ID
+      flash[:warning] = "Este complemento já foi aprovado."
+      redirect_back(fallback_location: order_service_path(@order_service))
+      return
+    end
+
     # ✅ Complementos antigos podem ter sido salvos com desconto zerado.
     # Reaplica antes de consumir saldo/mesclar itens.
     apply_client_discount_to_complement_provider_temps(@order_service_proposal)
@@ -1436,6 +1443,13 @@ class OrderServiceProposalsController < ApplicationController
     parent_proposal ||= complement_proposal.parent_proposal
     return unless parent_proposal.present?
     
+    # Guard: não duplicar se itens de complemento já foram mesclados na proposta pai
+    if parent_proposal.order_service_proposal_items.where(is_complement: true).joins(
+      "INNER JOIN order_service_proposal_items src ON src.order_service_proposal_id = #{complement_proposal.id} AND src.service_id = order_service_proposal_items.service_id AND src.quantity = order_service_proposal_items.quantity AND src.unity_value = order_service_proposal_items.unity_value"
+    ).exists?
+      return
+    end
+
     # Copiar order_service_proposal_items do complemento para a proposta original
     # marcando as is_complement = true
     complement_proposal.order_service_proposal_items.each do |item|

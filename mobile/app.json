@@ -1,0 +1,51 @@
+{
+  "expo": {
+    "name": "Insta Solutions",
+    "slug": "insta-solutions-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "scheme": "instasolutions",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1E3A5F"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.instasolutions.mobile",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Necessário para leitura de QR Code",
+        "NFCReaderUsageDescription": "Necessário para leitura de cartão NFC"
+      },
+      "entitlements": {
+        "com.apple.developer.nfc.readersession.formats": ["TAG"]
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#1E3A5F"
+      },
+      "package": "com.instasolutions.mobile",
+      "permissions": ["CAMERA", "NFC"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-camera",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#1E3A5F"
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

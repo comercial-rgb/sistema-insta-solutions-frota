@@ -172,7 +172,7 @@ breadcrumbs = [
                     <%= button_to approve_complement_path(complement), 
                         method: :post, 
                         class: 'btn btn-success btn-sm',
-                        data: { confirm: 'Tem certeza que deseja aprovar este complemento?' } do %>
+                        data: { confirm: 'Tem certeza que deseja aprovar este complemento?', disable_with: 'Aprovando...' } do %>
                       <i class="bi bi-check-circle"></i> Aprovar Complemento
                     <% end %>
                     <%= button_to request_complement_reevaluation_path(complement), 

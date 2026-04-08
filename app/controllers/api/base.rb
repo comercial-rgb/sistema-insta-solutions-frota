@@ -39,5 +39,6 @@ module Api
 		end
 
 		mount Api::V1::Base
+		mount Api::V2::Base
 	end
 end  
