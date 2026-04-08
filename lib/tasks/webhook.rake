@@ -52,7 +52,7 @@ namespace :webhook do
 
     failed.each do |log|
       log.update(status: WebhookLog::PENDING, last_error: nil, attempts: 0)
-      SendAuthorizedOsWebhookJob.perform_later(log.order_service_id, force: true)
+      SendAuthorizedOsWebhookJob.perform_later(log.order_service_id, resend: true)
       print "."
     end
 

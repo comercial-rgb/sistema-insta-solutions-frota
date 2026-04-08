@@ -2,26 +2,39 @@
   "expo": {
     "name": "Insta Solutions",
     "slug": "insta-solutions-mobile",
+    "owner": "winner95",
     "version": "1.0.0",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "scheme": "instasolutions",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#1E3A5F"
     },
-    "assetBundlePatterns": ["**/*"],
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.instasolutions.mobile",
+      "buildNumber": "1",
       "infoPlist": {
-        "NSCameraUsageDescription": "Necessário para leitura de QR Code",
-        "NFCReaderUsageDescription": "Necessário para leitura de cartão NFC"
+        "NSCameraUsageDescription": "Necessário para leitura de QR Code dos veículos",
+        "NFCReaderUsageDescription": "Necessário para leitura de tag NFC dos veículos",
+        "NSPhotoLibraryUsageDescription": "Necessário para anexar fotos de anomalias"
       },
       "entitlements": {
-        "com.apple.developer.nfc.readersession.formats": ["TAG"]
+        "com.apple.developer.nfc.readersession.formats": [
+          "TAG"
+        ]
+      },
+      "config": {
+        "usesNonExemptEncryption": false
       }
     },
     "android": {
@@ -30,12 +43,31 @@
         "backgroundColor": "#1E3A5F"
       },
       "package": "com.instasolutions.mobile",
-      "permissions": ["CAMERA", "NFC"]
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.NFC",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       "expo-router",
-      "expo-camera",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Necessário para leitura de QR Code dos veículos"
+        }
+      ],
       "expo-secure-store",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Necessário para anexar fotos de anomalias"
+        }
+      ],
       [
         "expo-notifications",
         {
@@ -44,8 +76,19 @@
         }
       ]
     ],
+    "updates": {
+      "url": "https://u.expo.dev/insta-solutions-mobile"
+    },
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "2b584ccf-7d41-40dc-9554-060fba283ac3"
+      },
+      "router": {
+        "origin": false
+      }
     }
   }
 }

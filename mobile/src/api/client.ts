@@ -1,10 +1,9 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 import { storage } from '../utils/storage';
 
-// Altere para o endereço do seu servidor Rails
 const BASE_URL = __DEV__
   ? 'http://localhost:3000'
-  : 'https://api.instasolutions.com.br';
+  : 'https://app.frotainstasolutions.com.br';
 
 const api: AxiosInstance = axios.create({
   baseURL: BASE_URL,

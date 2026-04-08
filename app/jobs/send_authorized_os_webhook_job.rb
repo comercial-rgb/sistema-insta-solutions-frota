@@ -10,11 +10,11 @@ class SendAuthorizedOsWebhookJob < ApplicationJob
     notify_admins_webhook_failure(order_service_id, error)
   end
 
-  def perform(order_service_id, force: false)
+  def perform(order_service_id, resend: false)
     # Garante que o WebhookLog existe antes da primeira tentativa
     ensure_webhook_log(order_service_id)
 
-    result = WebhookFinanceService.send_authorized_os(order_service_id, force: force)
+    result = WebhookFinanceService.send_authorized_os(order_service_id, resend: resend)
 
     unless result[:success]
       Rails.logger.warn "[SendAuthorizedOsWebhookJob] Falha ao enviar webhook para OS #{order_service_id}: #{result[:error]}"

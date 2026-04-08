@@ -91,9 +91,9 @@ class FinancialPortalController < ApplicationController
     log = WebhookLog.find(params[:id])
     os = log.order_service
 
-    # Reset para pendente e reenviar com force=true (ignora check de status)
+    # Reset para pendente e reenviar (valida status pós-autorização)
     log.update(status: WebhookLog::PENDING, last_error: nil)
-    SendAuthorizedOsWebhookJob.perform_later(os.id, force: true)
+    SendAuthorizedOsWebhookJob.perform_later(os.id, resend: true)
 
     redirect_to financial_portal_webhook_logs_path(filter: params[:filter]),
       notice: "OS #{os.code} reenviada para processamento. Acompanhe o status abaixo."
@@ -108,7 +108,7 @@ class FinancialPortalController < ApplicationController
 
     logs_to_resend = WebhookLog.pending
     logs_to_resend.each do |log|
-      SendAuthorizedOsWebhookJob.perform_later(log.order_service_id, force: true)
+      SendAuthorizedOsWebhookJob.perform_later(log.order_service_id, resend: true)
     end
 
     redirect_to financial_portal_webhook_logs_path(filter: 'pending'),

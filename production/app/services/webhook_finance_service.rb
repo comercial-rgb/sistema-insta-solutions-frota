@@ -4,12 +4,12 @@ class WebhookFinanceService
   WEBHOOK_TOKEN = '30bfff7ce392036b19d87dd6336c6e326d5312b943e01e3e8926c7aa22136b14'.freeze
   TIMEOUT = 10 # segundos
 
-  def self.send_authorized_os(order_service_id, force: false)
-    new(order_service_id, force: force).send_webhook
+  def self.send_authorized_os(order_service_id, resend: false)
+    new(order_service_id, resend: resend).send_webhook
   end
 
-  def initialize(order_service_id, force: false)
-    @force = force
+  def initialize(order_service_id, resend: false)
+    @resend = resend
     @order_service = OrderService.includes(
       :client,
       :provider,
@@ -23,8 +23,8 @@ class WebhookFinanceService
 
   def send_webhook
     return { success: false, error: 'OS não encontrada' } unless @order_service
-    unless @force || authorized?
-      return { success: false, error: 'OS não está no status Autorizada' }
+    unless authorized? || (@resend && resendable?)
+      return { success: false, error: "OS não está em status válido para envio (status atual: #{@order_service.order_service_status_id})" }
     end
     
     approved_proposal = @order_service.approved_proposal
@@ -56,6 +56,18 @@ class WebhookFinanceService
   def authorized?
     # Suporta AMBOS os IDs para compatibilidade com renumeração: antigo=5, novo=7
     [OrderServiceStatus::AUTORIZADA_ID, OrderServiceStatus::NEW_AUTORIZADA_ID].include?(@order_service.order_service_status_id)
+  end
+
+  # Status válidos para reenvio: OS que já passou por Autorizada e avançou no fluxo
+  # Inclui Autorizada (5/7), Ag. Pagamento (6/8) e Paga (7/9) em ambas numerações
+  def resendable?
+    [
+      OrderServiceStatus::AUTORIZADA_ID,          # 5 (antigo)
+      OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID, # 6 (antigo)
+      OrderServiceStatus::PAGA_ID,                 # 7 (antigo)
+      OrderServiceStatus::NEW_AUTORIZADA_ID,       # 7 (novo)
+      8, 9 # Ag. Pagamento e Paga na nova numeração
+    ].uniq.include?(@order_service.order_service_status_id)
   end
 
   def send_request

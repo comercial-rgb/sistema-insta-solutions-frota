@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "c0e83708-f1ae-4afb-9557-e1c4a59c8b1b"
+      }
+    },
+    "android": {
+      "package": "com.winner95.sistemainstasolutions"
+    },
+    "ios": {
+      "bundleIdentifier": "com.winner95.sistemainstasolutions",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    }
+  }
+}
