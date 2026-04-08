@@ -153,7 +153,7 @@ breadcrumbs = [
                 <h6 class="mb-0"><i class="bi bi-reply me-2"></i>Adicionar Resposta</h6>
             </div>
             <div class="card-body">
-                <%= form_for(@message, url: add_message_support_ticket_path(@support_ticket), method: :post) do |f| %>
+                <%= form_for(@message, url: add_message_support_ticket_path(@support_ticket), method: :post, html: { multipart: true }) do |f| %>
                     <div class="row">
                         <div class="col-12 mb-3">
                             <%= f.text_area :message, class: "form-control", rows: 4, placeholder: "Digite sua resposta...", required: true %>

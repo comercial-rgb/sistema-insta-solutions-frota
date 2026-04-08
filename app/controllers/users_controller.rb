@@ -5,7 +5,7 @@ class UsersController < ApplicationController
     :edit, :update, :destroy, :block,
     :save_data_to_buy, :change_data, :update_access_data,
     :destroy_profile_image, :user_addresses, :new_user_address, :user_cards,
-    :reset_user_password
+    :reset_user_password, :toggle_os_block
   ]
 
   before_action :set_address, only: [:edit_user_address, :update_user_address, :destroy_user_address]
