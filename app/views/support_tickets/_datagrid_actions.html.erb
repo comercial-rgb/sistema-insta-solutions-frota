@@ -1,0 +1,16 @@
+<%
+array_links = [
+  {
+    link_path: support_ticket_path(record),
+    link_method: :get,
+    link_title: 'Visualizar Chamado',
+    confirm: nil,
+    link_image: 'bi bi-eye-fill',
+    text_action: 'Visualizar',
+    link_policy: policy(record).show?,
+    class: 'dropdown-item'
+  }
+]
+%>
+
+<%= render 'common_pages/datagrid_actions', array_links: array_links %>

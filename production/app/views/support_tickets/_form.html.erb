@@ -1,0 +1,38 @@
+<%= simple_form_for(@support_ticket) do |f| %>
+
+    <div class="row">
+        <div class="col-12">
+            <%= f.error_notification %>
+            <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-md-6">
+            <%= f.input :title, label: "Título", placeholder: "Descreva brevemente o chamado" %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :ticket_type, collection: SupportTicket::TICKET_TYPES, label: "Tipo", include_blank: false %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :criticality, collection: SupportTicket::CRITICALITIES, label: "Criticidade", include_blank: false %>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <%= f.input :description, as: :text, label: "Descrição detalhada", input_html: { rows: 6, placeholder: "Descreva o problema, melhoria ou necessidade de suporte com o máximo de detalhes possível..." } %>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12">
+            <label class="form-label">Anexar imagens (opcional)</label>
+            <input type="file" name="support_ticket[images][]" multiple accept="image/*" class="form-control" />
+            <small class="text-muted">Você pode selecionar múltiplas imagens (prints de tela, fotos do erro, etc.)</small>
+        </div>
+    </div>
+
+    <%= render 'common_pages/save', f: f, return_path: support_tickets_path %>
+
+<% end %>

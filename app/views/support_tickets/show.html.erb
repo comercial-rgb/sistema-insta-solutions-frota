@@ -1,0 +1,190 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: support_tickets_path, text: "Chamados"},
+	{active: true, href: '#', text: "##{@support_ticket.id} - #{@support_ticket.title}"},
+]
+%>
+
+<div class="container mt-3">
+    <!-- Breadcrumbs -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <% breadcrumbs.each do |bc| %>
+                <li class="breadcrumb-item <%= 'active' if bc[:active] %>">
+                    <% if bc[:active] %>
+                        <%= bc[:text] %>
+                    <% else %>
+                        <a href="<%= bc[:href] %>"><%= bc[:text] %></a>
+                    <% end %>
+                </li>
+            <% end %>
+        </ol>
+    </nav>
+
+    <!-- Cabeçalho do Chamado -->
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="bi bi-ticket-detailed me-2"></i>
+                Chamado #<%= @support_ticket.id %> - <%= @support_ticket.title %>
+            </h5>
+            <div>
+                <span class="badge <%= @support_ticket.ticket_type_badge_class %> me-1"><%= @support_ticket.ticket_type_name %></span>
+                <span class="badge <%= @support_ticket.criticality_badge_class %> me-1"><%= @support_ticket.criticality_name %></span>
+                <span class="badge <%= @support_ticket.status_badge_class %>"><%= @support_ticket.status_name %></span>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <strong>Aberto por:</strong><br>
+                    <%= @support_ticket.user&.name || '-' %>
+                </div>
+                <div class="col-md-3">
+                    <strong>Data de abertura:</strong><br>
+                    <%= @support_ticket.created_at&.strftime("%d/%m/%Y %H:%M") %>
+                </div>
+                <div class="col-md-3">
+                    <strong>Resolvido por:</strong><br>
+                    <%= @support_ticket.resolved_by_user&.name || '-' %>
+                </div>
+                <div class="col-md-3">
+                    <strong>Resolvido em:</strong><br>
+                    <%= @support_ticket.resolved_at&.strftime("%d/%m/%Y %H:%M") || '-' %>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <strong>Descrição:</strong>
+                <div class="border rounded p-3 bg-light mt-1">
+                    <%= simple_format(@support_ticket.description) %>
+                </div>
+            </div>
+
+            <% if @support_ticket.attachments.any? %>
+                <div class="mb-3">
+                    <strong>Anexos do chamado:</strong>
+                    <div class="d-flex flex-wrap gap-2 mt-1">
+                        <% @support_ticket.attachments.each do |att| %>
+                            <% if att.attachment.attached? %>
+                                <a href="<%= rails_blob_url(att.attachment) %>" target="_blank" class="border rounded p-1">
+                                    <% if att.is_image? %>
+                                        <%= image_tag(att.attachment, style: "max-width: 150px; max-height: 150px;", class: "rounded") %>
+                                    <% else %>
+                                        <i class="bi bi-file-earmark me-1"></i><%= att.attachment.filename %>
+                                    <% end %>
+                                </a>
+                            <% end %>
+                        <% end %>
+                    </div>
+                </div>
+            <% end %>
+
+            <!-- Ações do Admin -->
+            <% if @current_user.admin? %>
+                <div class="mt-3 pt-3 border-top">
+                    <strong>Alterar status:</strong>
+                    <div class="btn-group ms-2">
+                        <% if @support_ticket.status != SupportTicket::STATUS_EM_ANDAMENTO && @support_ticket.open? %>
+                            <%= link_to "Em andamento", update_status_support_ticket_path(@support_ticket, status: SupportTicket::STATUS_EM_ANDAMENTO), method: :patch, class: "btn btn-sm btn-warning", data: { confirm: "Marcar como Em andamento?" } %>
+                        <% end %>
+                        <% if @support_ticket.open? %>
+                            <%= link_to "Resolver", update_status_support_ticket_path(@support_ticket, status: SupportTicket::STATUS_RESOLVIDO), method: :patch, class: "btn btn-sm btn-success", data: { confirm: "Marcar como Resolvido?" } %>
+                        <% end %>
+                        <% if @support_ticket.status == SupportTicket::STATUS_RESOLVIDO %>
+                            <%= link_to "Fechar", update_status_support_ticket_path(@support_ticket, status: SupportTicket::STATUS_FECHADO), method: :patch, class: "btn btn-sm btn-secondary", data: { confirm: "Fechar este chamado?" } %>
+                            <%= link_to "Reabrir", update_status_support_ticket_path(@support_ticket, status: SupportTicket::STATUS_ABERTO), method: :patch, class: "btn btn-sm btn-primary", data: { confirm: "Reabrir este chamado?" } %>
+                        <% end %>
+                        <% if @support_ticket.status == SupportTicket::STATUS_FECHADO %>
+                            <%= link_to "Reabrir", update_status_support_ticket_path(@support_ticket, status: SupportTicket::STATUS_ABERTO), method: :patch, class: "btn btn-sm btn-primary", data: { confirm: "Reabrir este chamado?" } %>
+                        <% end %>
+                    </div>
+                </div>
+            <% end %>
+        </div>
+    </div>
+
+    <!-- Histórico de Mensagens -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h6 class="mb-0"><i class="bi bi-chat-left-text me-2"></i>Histórico de Mensagens (<%= @support_ticket.support_ticket_messages.count %>)</h6>
+        </div>
+        <div class="card-body">
+            <% if @support_ticket.support_ticket_messages.any? %>
+                <% @support_ticket.support_ticket_messages.each do |msg| %>
+                    <div class="d-flex mb-3 <%= msg.user&.admin? ? '' : 'flex-row-reverse' %>">
+                        <div class="card flex-grow-0 <%= msg.user&.admin? ? 'border-primary' : 'border-secondary' %>" style="max-width: 80%; min-width: 40%;">
+                            <div class="card-header py-1 px-3 d-flex justify-content-between <%= msg.user&.admin? ? 'bg-primary text-white' : 'bg-light' %>">
+                                <small><strong><%= msg.user&.name || 'Usuário' %></strong></small>
+                                <small><%= msg.created_at&.strftime("%d/%m/%Y %H:%M") %></small>
+                            </div>
+                            <div class="card-body py-2 px-3">
+                                <%= simple_format(msg.message) %>
+                                <% if msg.attachments.any? %>
+                                    <div class="d-flex flex-wrap gap-2 mt-2">
+                                        <% msg.attachments.each do |att| %>
+                                            <% if att.attachment.attached? %>
+                                                <a href="<%= rails_blob_url(att.attachment) %>" target="_blank">
+                                                    <% if att.is_image? %>
+                                                        <%= image_tag(att.attachment, style: "max-width: 120px; max-height: 120px;", class: "rounded border") %>
+                                                    <% else %>
+                                                        <i class="bi bi-file-earmark me-1"></i><%= att.attachment.filename %>
+                                                    <% end %>
+                                                </a>
+                                            <% end %>
+                                        <% end %>
+                                    </div>
+                                <% end %>
+                            </div>
+                        </div>
+                    </div>
+                <% end %>
+            <% else %>
+                <p class="text-muted text-center">Nenhuma mensagem ainda.</p>
+            <% end %>
+        </div>
+    </div>
+
+    <!-- Formulário de Nova Mensagem -->
+    <% if policy(@support_ticket).add_message? %>
+        <div class="card mb-4">
+            <div class="card-header">
+                <h6 class="mb-0"><i class="bi bi-reply me-2"></i>Adicionar Resposta</h6>
+            </div>
+            <div class="card-body">
+                <%= form_for(@message, url: add_message_support_ticket_path(@support_ticket), method: :post) do |f| %>
+                    <div class="row">
+                        <div class="col-12 mb-3">
+                            <%= f.text_area :message, class: "form-control", rows: 4, placeholder: "Digite sua resposta...", required: true %>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 col-md-6 mb-3">
+                            <label class="form-label">Anexar imagens (opcional)</label>
+                            <input type="file" name="support_ticket_message[images][]" multiple accept="image/*" class="form-control" />
+                        </div>
+                        <div class="col-12 col-md-6 mb-3 d-flex align-items-end justify-content-end">
+                            <%= f.submit "Enviar resposta", class: "btn btn-primary" %>
+                        </div>
+                    </div>
+                <% end %>
+            </div>
+        </div>
+    <% else %>
+        <% if @support_ticket.resolved? %>
+            <div class="alert alert-info text-center">
+                <i class="bi bi-info-circle me-2"></i>Este chamado está <%= @support_ticket.status_name.downcase %> e não aceita novas mensagens.
+            </div>
+        <% end %>
+    <% end %>
+
+    <!-- Botão Voltar -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <a href="<%= support_tickets_path %>" class="btn btn-link text-decoration-none">
+                <i class="bi bi-arrow-left me-1"></i>Voltar para lista de chamados
+            </a>
+        </div>
+    </div>
+</div>

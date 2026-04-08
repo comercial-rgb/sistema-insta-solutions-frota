@@ -1,0 +1,48 @@
+pt-BR:
+  activerecord:
+    models:
+      support_ticket:
+        one: "Chamado"
+        other: "Chamados"
+    attributes:
+      support_ticket:
+        id: "ID"
+        created_at: "Aberto em"
+        updated_at: "Atualizado em"
+        title: "Título"
+        description: "Descrição"
+        ticket_type: "Tipo"
+        criticality: "Criticidade"
+        status: "Status"
+        user_id: "Aberto por"
+        resolved_by_id: "Resolvido por"
+        resolved_at: "Resolvido em"
+        actions: "Ações"
+      support_ticket_message:
+        message: "Mensagem"
+        user_id: "Usuário"
+        created_at: "Enviada em"
+en:
+  activerecord:
+    models:
+      support_ticket:
+        one: "Chamado"
+        other: "Chamados"
+    attributes:
+      support_ticket:
+        id: "ID"
+        created_at: "Aberto em"
+        updated_at: "Atualizado em"
+        title: "Título"
+        description: "Descrição"
+        ticket_type: "Tipo"
+        criticality: "Criticidade"
+        status: "Status"
+        user_id: "Aberto por"
+        resolved_by_id: "Resolvido por"
+        resolved_at: "Resolvido em"
+        actions: "Ações"
+      support_ticket_message:
+        message: "Mensagem"
+        user_id: "Usuário"
+        created_at: "Enviada em"

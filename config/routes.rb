@@ -381,4 +381,13 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
   delete 'delete_stock_order_service_item', to: 'stock_order_service_items#destroy', as: 'delete_stock_order_service_item'
   # ================ FIM ESTOQUE =================
 
+  # ==================== CHAMADOS ====================
+  resources :support_tickets, only: [:index, :new, :create, :show] do
+    member do
+      patch :update_status
+      post :add_message
+    end
+  end
+  # ================ FIM CHAMADOS =================
+
 end

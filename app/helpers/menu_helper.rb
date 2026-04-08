@@ -265,6 +265,16 @@ module MenuHelper
 			})
 		end
 
+		# Chamados (visível para admin, gerentes, adicionais e clientes)
+		if policy(SupportTicket).index?
+			menu_links.push({
+				opened: is_current_controller?("support_tickets"),
+				icon: "bi bi-ticket-detailed",
+				label: "Chamados",
+				href: support_tickets_path
+			})
+		end
+
 		return menu_links
 	end
 

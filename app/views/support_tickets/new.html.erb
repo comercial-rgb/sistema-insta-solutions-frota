@@ -1,0 +1,15 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: support_tickets_path, text: "Chamados"},
+	{active: true, href: '#', text: "Novo chamado"},
+]
+%>
+
+<%= 
+	render 'common_pages/new', 
+	objects_path: support_tickets_path, 
+	page_title: "Chamados", 
+	form_to_render: 'support_tickets/form',
+	breadcrumbs: breadcrumbs
+%>
