@@ -513,6 +513,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
     t.boolean "directed_to_specific_providers", default: false
     t.datetime "cilia_priced_at"
     t.bigint "cilia_priced_by_id"
+    t.boolean "proposals_blocked", default: false, null: false
     t.index ["cilia_priced_at"], name: "index_order_services_on_cilia_priced_at"
     t.index ["cilia_priced_by_id"], name: "index_order_services_on_cilia_priced_by_id"
     t.index ["client_id"], name: "index_order_services_on_client_id"
@@ -524,6 +525,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
     t.index ["order_service_status_id"], name: "index_order_services_on_order_service_status_id"
     t.index ["order_service_type_id"], name: "index_order_services_on_order_service_type_id"
     t.index ["origin_type"], name: "index_order_services_on_origin_type"
+    t.index ["proposals_blocked"], name: "index_order_services_on_proposals_blocked"
     t.index ["provider_id"], name: "index_order_services_on_provider_id"
     t.index ["provider_service_type_id"], name: "index_order_services_on_provider_service_type_id"
     t.index ["reevaluation_requested_by_id"], name: "index_order_services_on_reevaluation_requested_by_id"
@@ -965,6 +967,21 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "webhook_logs", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "order_service_id", null: false
+    t.integer "status", default: 0, null: false
+    t.integer "attempts", default: 0, null: false
+    t.string "last_error"
+    t.string "last_http_code"
+    t.datetime "last_attempt_at"
+    t.datetime "succeeded_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["order_service_id", "status"], name: "idx_webhook_logs_os_status"
+    t.index ["order_service_id"], name: "index_webhook_logs_on_order_service_id"
+    t.index ["status"], name: "index_webhook_logs_on_status"
+  end
+
   create_table "vehicles", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "client_id"
     t.bigint "cost_center_id"
@@ -1112,4 +1129,5 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
   add_foreign_key "vehicles", "users", column: "client_id"
   add_foreign_key "vehicles", "vehicle_models"
   add_foreign_key "vehicles", "vehicle_types"
+  add_foreign_key "webhook_logs", "order_services"
 end

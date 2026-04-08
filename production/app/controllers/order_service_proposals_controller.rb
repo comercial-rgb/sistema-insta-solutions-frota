@@ -194,6 +194,13 @@ class OrderServiceProposalsController < ApplicationController
       flash[:error] = "ID da Ordem de Serviço não informado."
       redirect_to order_services_path and return
     end
+
+    # Verificar se a OS está com propostas bloqueadas
+    os_check = OrderService.unscoped.find_by(id: params[:order_service_id])
+    if os_check&.proposals_blocked?
+      flash[:alert] = 'Esta OS está bloqueada para receber novas propostas. O cliente encontra-se com restrições ativas.'
+      redirect_to order_services_path and return
+    end
     
     @order_service_proposal = OrderServiceProposal
     .where(order_service_id: params[:order_service_id])
@@ -256,6 +263,14 @@ class OrderServiceProposalsController < ApplicationController
 
   def create
     authorize OrderServiceProposal
+
+    # Verificar se a OS está com propostas bloqueadas
+    os_id = order_service_proposal_params[:order_service_id]
+    os_check = OrderService.unscoped.find_by(id: os_id)
+    if os_check&.proposals_blocked?
+      flash[:alert] = 'Esta OS está bloqueada para receber novas propostas. O cliente encontra-se com restrições ativas.'
+      redirect_to order_services_path and return
+    end
     
     # Limpar service_id="novo" antes de criar o objeto
     cleaned_params = clean_provider_service_temps_params(order_service_proposal_params)

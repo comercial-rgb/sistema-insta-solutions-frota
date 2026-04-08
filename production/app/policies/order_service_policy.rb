@@ -109,6 +109,7 @@ class OrderServicePolicy < ApplicationPolicy
   def can_generate_proposal?
     (
       user.provider? &&
+      !record.proposals_blocked? &&
       !user.rejected_order_services.exists?(id: record.id) &&
       (record.order_service_status_id == OrderServiceStatus::EM_ABERTO_ID || record.order_service_status_id == OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID) &&
       !record.order_service_proposals.where(provider_id: user.id, order_service_proposal_status_id: [

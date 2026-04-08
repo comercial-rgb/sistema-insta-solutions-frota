@@ -11,7 +11,7 @@
         <% if defined?(current_return_path) && current_return_path && !current_return_path.nil? %>
             <a href="<%= current_return_path %>" class="btn btn-link text-decoration-none"><%= current_cancel_text %></a>
         <% end %>
-        <%= f.button :submit, value: current_button_text, data: {confirm: current_data_confirm} %>
+        <%= f.button :submit, value: current_button_text, data: {confirm: current_data_confirm, disable_with: "Salvando..."} %>
     </div>
 </div>
 

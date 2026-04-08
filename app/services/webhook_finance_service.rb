@@ -4,11 +4,12 @@ class WebhookFinanceService
   WEBHOOK_TOKEN = '30bfff7ce392036b19d87dd6336c6e326d5312b943e01e3e8926c7aa22136b14'.freeze
   TIMEOUT = 10 # segundos
 
-  def self.send_authorized_os(order_service_id)
-    new(order_service_id).send_webhook
+  def self.send_authorized_os(order_service_id, force: false)
+    new(order_service_id, force: force).send_webhook
   end
 
-  def initialize(order_service_id)
+  def initialize(order_service_id, force: false)
+    @force = force
     @order_service = OrderService.includes(
       :client,
       :provider,
@@ -22,7 +23,9 @@ class WebhookFinanceService
 
   def send_webhook
     return { success: false, error: 'OS não encontrada' } unless @order_service
-    return { success: false, error: 'OS não está no status Autorizada' } unless authorized?
+    unless @force || authorized?
+      return { success: false, error: 'OS não está no status Autorizada' }
+    end
     
     approved_proposal = @order_service.approved_proposal
     return { success: false, error: 'OS sem proposta aprovada' } unless approved_proposal
@@ -37,10 +40,14 @@ class WebhookFinanceService
 
     begin
       response = send_request
-      handle_response(response)
+      result = handle_response(response)
+      update_webhook_log(result, response.code.to_s)
+      result
     rescue StandardError => e
       log_error(e)
-      { success: false, error: e.message }
+      result = { success: false, error: e.message }
+      update_webhook_log(result, nil)
+      result
     end
   end
 
@@ -355,6 +362,26 @@ class WebhookFinanceService
     msg = exception.message.to_s.force_encoding('UTF-8').scrub('?')
     Rails.logger.error "[WebhookFinance] Exceção ao enviar OS #{@order_service.code}: #{exception.class} - #{msg}"
     Rails.logger.error exception.backtrace.join("\n") rescue nil
+  end
+
+  def update_webhook_log(result, http_code)
+    return unless @order_service
+    log = WebhookLog.find_or_initialize_by(order_service_id: @order_service.id)
+    log.attempts = (log.attempts || 0) + 1
+    log.last_attempt_at = Time.current
+    log.last_http_code = http_code
+    if result[:success]
+      log.status = WebhookLog::SUCCESS
+      log.succeeded_at = Time.current
+      log.last_error = nil
+    else
+      log.last_error = result[:error].to_s.truncate(255)
+      # Marca como falha somente se ultrapassou as tentativas do job (3)
+      log.status = WebhookLog::FAILED if log.attempts >= 3
+    end
+    log.save
+  rescue => e
+    Rails.logger.error "[WebhookFinance] Erro ao salvar WebhookLog: #{e.message}"
   end
 
   # Converte valor para string UTF-8 segura

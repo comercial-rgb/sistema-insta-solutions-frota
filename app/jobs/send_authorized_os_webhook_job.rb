@@ -6,11 +6,15 @@ class SendAuthorizedOsWebhookJob < ApplicationJob
   retry_on StandardError, wait: :exponentially_longer, attempts: 3 do |job, error|
     # Executado quando TODAS as tentativas falharam
     order_service_id = job.arguments.first
+    mark_webhook_log_failed(order_service_id, error)
     notify_admins_webhook_failure(order_service_id, error)
   end
 
-  def perform(order_service_id)
-    result = WebhookFinanceService.send_authorized_os(order_service_id)
+  def perform(order_service_id, force: false)
+    # Garante que o WebhookLog existe antes da primeira tentativa
+    ensure_webhook_log(order_service_id)
+
+    result = WebhookFinanceService.send_authorized_os(order_service_id, force: force)
 
     unless result[:success]
       Rails.logger.warn "[SendAuthorizedOsWebhookJob] Falha ao enviar webhook para OS #{order_service_id}: #{result[:error]}"
@@ -20,6 +24,27 @@ class SendAuthorizedOsWebhookJob < ApplicationJob
   end
 
   private
+
+  def ensure_webhook_log(order_service_id)
+    WebhookLog.find_or_create_by(order_service_id: order_service_id) do |log|
+      log.status = WebhookLog::PENDING
+      log.attempts = 0
+    end
+  rescue => e
+    Rails.logger.error "[SendAuthorizedOsWebhookJob] Erro ao criar WebhookLog: #{e.message}"
+  end
+
+  def self.mark_webhook_log_failed(order_service_id, error)
+    log = WebhookLog.find_by(order_service_id: order_service_id)
+    return unless log
+    log.update(
+      status: WebhookLog::FAILED,
+      last_error: error&.message.to_s.truncate(255),
+      last_attempt_at: Time.current
+    )
+  rescue => e
+    Rails.logger.error "[SendAuthorizedOsWebhookJob] Erro ao atualizar WebhookLog: #{e.message}"
+  end
 
   def self.notify_admins_webhook_failure(order_service_id, error)
     os = OrderService.find_by(id: order_service_id)

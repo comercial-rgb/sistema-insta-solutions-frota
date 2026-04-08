@@ -235,6 +235,8 @@ class OrderService < ApplicationRecord
   has_many :order_service_proposals, validate: false, dependent: :destroy
 	accepts_nested_attributes_for :order_service_proposals
 
+  has_one :webhook_log, dependent: :destroy
+
   has_many :part_service_order_services, validate: false, dependent: :destroy
 	accepts_nested_attributes_for :part_service_order_services, 
     reject_if: proc { |attrs| attrs[:service_id].blank? },

@@ -56,6 +56,65 @@ class FinancialPortalController < ApplicationController
     redirect_to "#{PORTAL_URL}/sso-callback?token=#{sso_token}", allow_other_host: true
   end
 
+  # === Admin: Webhook Logs ===
+
+  def webhook_logs
+    authorize :financial_portal, :webhook_logs?
+
+    @filter = params[:filter] || 'failed'
+    scope = WebhookLog.includes(order_service: [:client, :order_service_status, { order_service_proposals: :provider }])
+
+    case @filter
+    when 'failed'
+      scope = scope.failed
+    when 'pending'
+      scope = scope.pending
+    when 'success'
+      scope = scope.success
+    when 'all'
+      # no filter
+    else
+      scope = scope.not_success
+    end
+
+    @webhook_logs = scope.order(last_attempt_at: :desc).page(params[:page]).per(30)
+
+    # Contadores para badges
+    @failed_count  = WebhookLog.failed.count
+    @pending_count = WebhookLog.pending.count
+    @success_count = WebhookLog.success.count
+  end
+
+  def webhook_resend
+    authorize :financial_portal, :webhook_logs?
+
+    log = WebhookLog.find(params[:id])
+    os = log.order_service
+
+    # Reset para pendente e reenviar com force=true (ignora check de status)
+    log.update(status: WebhookLog::PENDING, last_error: nil)
+    SendAuthorizedOsWebhookJob.perform_later(os.id, force: true)
+
+    redirect_to financial_portal_webhook_logs_path(filter: params[:filter]),
+      notice: "OS #{os.code} reenviada para processamento. Acompanhe o status abaixo."
+  end
+
+  def webhook_resend_all
+    authorize :financial_portal, :webhook_logs?
+
+    logs = WebhookLog.failed
+    count = logs.count
+    logs.update_all(status: WebhookLog::PENDING, last_error: nil, updated_at: Time.current)
+
+    logs_to_resend = WebhookLog.pending
+    logs_to_resend.each do |log|
+      SendAuthorizedOsWebhookJob.perform_later(log.order_service_id, force: true)
+    end
+
+    redirect_to financial_portal_webhook_logs_path(filter: 'pending'),
+      notice: "#{count} OS reenviadas para processamento."
+  end
+
   private
 
   def verify_access

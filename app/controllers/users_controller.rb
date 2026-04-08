@@ -250,9 +250,17 @@ class UsersController < ApplicationController
     new_value = !@user.os_blocked
     if @user.update_column(:os_blocked, new_value)
       if new_value
-        flash[:success] = 'Abertura de OS bloqueada com sucesso. Todos os gestores e adicionais deste cliente não poderão abrir novas OS.'
+        # Bloquear propostas em OS abertas sem orçamentos ativos
+        blocked_count = block_open_os_without_proposals(@user)
+        msg = 'Abertura de OS bloqueada com sucesso. Todos os gestores e adicionais deste cliente não poderão abrir novas OS.'
+        msg += " #{blocked_count} OS abertas sem orçamentos foram bloqueadas para receber novas propostas." if blocked_count > 0
+        flash[:success] = msg
       else
-        flash[:success] = 'Abertura de OS liberada com sucesso.'
+        # Desbloquear todas as OS que foram bloqueadas
+        unblocked_count = unblock_client_os(@user)
+        msg = 'Abertura de OS liberada com sucesso.'
+        msg += " #{unblocked_count} OS foram desbloqueadas para receber propostas novamente." if unblocked_count > 0
+        flash[:success] = msg
       end
     else
       flash[:error] = @user.errors.full_messages.join('<br>')
@@ -1088,6 +1096,43 @@ class UsersController < ApplicationController
     return true if @current_user&.admin?
     return false unless @current_user
     current_client_id == record_client_id
+  end
+
+  # Bloqueia propostas em OS abertas do cliente que não possuem orçamentos ativos
+  def block_open_os_without_proposals(client)
+    open_statuses = [
+      OrderServiceStatus::EM_ABERTO_ID,
+      OrderServiceStatus::EM_REAVALIACAO_ID
+    ]
+
+    # OS abertas do cliente
+    open_os = OrderService.unscoped.where(client_id: client.id, order_service_status_id: open_statuses)
+
+    # Filtrar apenas as que NÃO possuem propostas ativas (não canceladas/reprovadas)
+    active_proposal_statuses = [
+      OrderServiceProposalStatus::EM_CADASTRO_ID,
+      OrderServiceProposalStatus::EM_ABERTO_ID,
+      OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID,
+      OrderServiceProposalStatus::APROVADA_ID,
+      OrderServiceProposalStatus::NOTAS_INSERIDAS_ID,
+      OrderServiceProposalStatus::AUTORIZADA_ID,
+      OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+      OrderServiceProposalStatus::PAGA_ID,
+      OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID
+    ]
+
+    os_without_proposals = open_os.where.not(
+      id: OrderServiceProposal.where(order_service_proposal_status_id: active_proposal_statuses).select(:order_service_id)
+    )
+
+    count = os_without_proposals.update_all(proposals_blocked: true)
+    count
+  end
+
+  # Desbloqueia todas as OS do cliente que estavam com propostas bloqueadas
+  def unblock_client_os(client)
+    count = OrderService.unscoped.where(client_id: client.id, proposals_blocked: true).update_all(proposals_blocked: false)
+    count
   end
 
   def set_user

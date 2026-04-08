@@ -238,7 +238,12 @@ class OrderServicesGrid
         pending_badge = '<br><span class="badge bg-danger text-white" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; margin-top: 0.25rem;"><i class="bi bi-plus-square"></i> Aguardando Complemento</span>'.html_safe
       end
     end
-    (render("datagrid_actions", record: record).to_s + pending_badge.to_s).html_safe
+    # Verifica se as propostas estão bloqueadas para esta OS
+    proposals_blocked_badge = ""
+    if record.proposals_blocked?
+      proposals_blocked_badge = '<br><span class="badge bg-danger text-white" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; margin-top: 0.25rem;"><i class="bi bi-lock-fill"></i> Propostas Bloqueadas</span>'.html_safe
+    end
+    (render("datagrid_actions", record: record).to_s + pending_badge.to_s + proposals_blocked_badge.to_s).html_safe
   end
 
   column(:order_service_status_id, html: false, if: :check_show_order_service_status, order: :order_service_status_id, header: OrderService.human_attribute_name(:order_service_status_id) ) do |record, grid|

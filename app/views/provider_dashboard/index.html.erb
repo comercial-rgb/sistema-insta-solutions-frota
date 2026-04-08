@@ -188,8 +188,12 @@ breadcrumbs = [
                     </td>
                     <td><%= l(os.created_at, format: :short) %></td>
                     <td class="text-center">
-                      <%= link_to new_order_service_proposal_path(order_service_id: os.id), class: 'btn btn-sm btn-primary', title: 'Criar proposta para esta OS' do %>
-                        <i class="bi bi-reply-fill"></i> Responder
+                      <% if os.proposals_blocked? %>
+                        <span class="badge bg-danger"><i class="bi bi-lock-fill"></i> Bloqueada</span>
+                      <% else %>
+                        <%= link_to new_order_service_proposal_path(order_service_id: os.id), class: 'btn btn-sm btn-primary', title: 'Criar proposta para esta OS' do %>
+                          <i class="bi bi-reply-fill"></i> Responder
+                        <% end %>
                       <% end %>
                     </td>
                   </tr>
