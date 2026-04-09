@@ -72,13 +72,12 @@ class OrderService < ApplicationRecord
 
       # IMPORTANTE: usar associated_id (novo status) para pegar ENTRADA no status,
       # e não confundir com SAÍDA (onde AUTORIZADA aparece como status antigo no audited_changes).
-      # Suporta AMBOS os IDs para compatibilidade com renumeração:
-      # - ID antigo: AUTORIZADA_ID (5), ID novo: NEW_AUTORIZADA_ID (7)
-      autorizada_ids = [OrderServiceStatus::AUTORIZADA_ID, OrderServiceStatus::NEW_AUTORIZADA_ID].uniq
+      # Usa APENAS AUTORIZADA_ID (5). O NEW_AUTORIZADA_ID (7) NÃO deve ser usado pois
+      # no banco de produção 7 = Paga, e incluí-lo faz aparecer OSs de outros meses.
       
       left_outer_joins(:audits)
         .where(audits: { auditable_type: 'OrderService' })
-        .where(audits: { associated_id: autorizada_ids })
+        .where(audits: { associated_id: OrderServiceStatus::AUTORIZADA_ID })
         .where(audits: { created_at: start_time..end_time })
         .distinct
     end
@@ -148,22 +147,15 @@ class OrderService < ApplicationRecord
       # REGRA DE NEGÓCIO: Pega OSs que foram AUTORIZADAS no período selecionado.
       # Usa o campo associated_id dos audits, que é preenchido pelo generate_historic
       # com o novo status ID quando a OS muda de status.
-      #
-      # Suporta AMBOS os conjuntos de IDs para compatibilidade:
-      # - IDs antigos (antes da renumeração): Autorizada = 5
-      # - IDs novos (depois da renumeração): Autorizada = 7
-      #
-      # IMPORTANTE: Usa beginning_of_day/end_of_day para incluir o dia inteiro nas datas limites.
+      # Usa APENAS AUTORIZADA_ID (5). O NEW_AUTORIZADA_ID (7) NÃO deve ser usado pois
+      # no banco de produção 7 = Paga, e incluí-lo faz aparecer OSs de outros meses.
       
       start_time = current_month.first.to_date.beginning_of_day
       end_time = current_month.last.to_date.end_of_day
       
-      # IDs que representam "Autorizada" (antigo e novo)
-      autorizada_ids = [OrderServiceStatus::AUTORIZADA_ID, OrderServiceStatus::NEW_AUTORIZADA_ID].uniq
-      
       left_outer_joins(:audits)
         .where(audits: { auditable_type: 'OrderService' })
-        .where(audits: { associated_id: autorizada_ids })
+        .where(audits: { associated_id: OrderServiceStatus::AUTORIZADA_ID })
         .where(audits: { created_at: start_time..end_time })
         .distinct
     end

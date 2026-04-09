@@ -104,16 +104,39 @@ class OrderServicesInvoiceGrid
   end
 
   filter(:month, :enum, if: :show_period_filter, select: CustomHelper.get_months_options, header: OrderService.human_attribute_name(:month), include_blank: false, default: Date.today.month ) do |value, relation, grid|
-    # O filtro de ano aplicará o scope approved_in_period
+    # Se houver filtro de período (data início/fim), ele tem prioridade
+    # O filtro de ano aplicará o scope approved_in_period quando não houver período
     relation
   end
 
   filter(:year, :enum, if: :show_period_filter, select: CustomHelper.get_years(2024, Date.today.year), header: OrderService.human_attribute_name(:year), include_blank: false, default: Date.today.year ) do |value, relation, grid|
-    # Aplicar filtro de OSs aprovadas no mês/ano selecionado (apenas aqui para evitar duplicação)
-    if grid.month.present? && value.present?
+    # Se filtro de período (data início/fim) estiver preenchido, não aplicar filtro mês/ano
+    # O filtro de período tem prioridade
+    if grid.start_date.present? || grid.end_date.present?
+      relation
+    elsif grid.month.present? && value.present?
       start_date = Date.new(value.to_i, grid.month.to_i, 1).beginning_of_month.strftime('%Y-%m-%d')
       end_date = Date.new(value.to_i, grid.month.to_i, 1).end_of_month.strftime('%Y-%m-%d')
       relation.approved_in_period(start_date, end_date)
+    else
+      relation
+    end
+  end
+
+  filter(:start_date, :date, if: :show_period_filter, header: 'Data Início') do |value, relation, grid|
+    # A filtragem real é feita no filtro end_date para garantir ambas as datas
+    relation
+  end
+
+  filter(:end_date, :date, if: :show_period_filter, header: 'Data Fim') do |value, relation, grid|
+    s_date = grid.start_date
+    e_date = value
+    if s_date.present? && e_date.present?
+      relation.approved_in_period(s_date.to_s, e_date.to_s)
+    elsif s_date.present?
+      relation.approved_in_period(s_date.to_s, s_date.end_of_month.to_s)
+    elsif e_date.present?
+      relation.approved_in_period(e_date.beginning_of_month.to_s, e_date.to_s)
     else
       relation
     end

@@ -290,7 +290,19 @@ class OrderServicesController < ApplicationController
 
       @order_services = order_services_grid_class.new(grid_params)
       @order_services_to_export = order_services_grid_class.new(grid_params)
-      if order_services_grid[:month] && order_services_grid[:year]
+      
+      # Período por data início/fim tem prioridade sobre mês/ano
+      if order_services_grid[:start_date].present? || order_services_grid[:end_date].present?
+        s_date = order_services_grid[:start_date].present? ? Date.parse(order_services_grid[:start_date]) : nil
+        e_date = order_services_grid[:end_date].present? ? Date.parse(order_services_grid[:end_date]) : nil
+        if s_date && e_date
+          current_month = s_date..e_date
+        elsif s_date
+          current_month = s_date..s_date.end_of_month
+        elsif e_date
+          current_month = e_date.beginning_of_month..e_date
+        end
+      elsif order_services_grid[:month] && order_services_grid[:year]
         month = order_services_grid[:month].to_i
         year = order_services_grid[:year].to_i
         current_month = (Date.new(year, month, 1)).beginning_of_month..Date.new(year, month, 1).end_of_month
