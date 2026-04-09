@@ -231,54 +231,38 @@ module Utils
       # Junta texto fragmentado pelo Word em múltiplos <w:r> runs.
       # O Word pode quebrar "NOSSONUMERO" em <w:r><w:t>NOSSO</w:t></w:r><w:r><w:t>NUMERO</w:t></w:r>.
       # Esta função detecta quando um placeholder está fragmentado e junta os runs em um só.
+      #
+      # OTIMIZAÇÃO: Processa apenas os placeholders globais (não-numéricos) que são
+      # os únicos passíveis de fragmentação pelo Word. Placeholders numéricos (01DATA, 02VALOR, etc.)
+      # ficam em células de tabela e nunca são fragmentados.
       def merge_split_placeholders(xml_content, placeholder_keys)
-        # Para cada placeholder, verifica se ele aparece fragmentado no XML
-        placeholder_keys.each do |key|
-          key_str = key.to_s
-          next if key_str.length < 2
-          # Se o placeholder já existe inteiro no XML, não precisa juntar
-          next if xml_content.include?(key_str)
-          
-          # Extrai todo o texto visível (dentro de <w:t ...>...</w:t>) e tenta achar o placeholder
-          # Se encontrar, junta os runs fragmentados
-          
-          # Regex para encontrar sequências de <w:r>...</w:r> que juntas formam o placeholder
-          # Estratégia: encontrar cada caractere do placeholder espalhado nos text nodes
-          
-          # Abordagem simplificada: busca pelo padrão onde o placeholder está dividido
-          # entre tags </w:t></w:r><w:r>...<w:t...> (com possíveis <w:rPr> no meio)
-          # 
-          # Constrói um regex que aceita tags XML entre cada caractere do placeholder
-          xml_noise = '</w:t>\s*</w:r>\s*<w:r>(?:\s*<w:rPr>.*?</w:rPr>)?\s*<w:t[^>]*>'
-          
-          # Para não criar regex enormes, tenta dividir o placeholder em 2, 3, ..., n partes
-          # e procura cada divisão possível
-          found = false
-          (1...[key_str.length, 6].min).each do |num_splits|
-            break if found
-            split_positions = (1...key_str.length).to_a.combination(num_splits).each do |positions|
-              break if found
-              parts = []
-              prev = 0
-              positions.each do |pos|
-                parts << Regexp.escape(key_str[prev...pos])
-                prev = pos
-              end
-              parts << Regexp.escape(key_str[prev..])
-              
-              pattern = parts.join(xml_noise)
-              regex = Regexp.new(pattern, Regexp::MULTILINE)
-              
-              if xml_content.match?(regex)
-                # Substitui o match mantendo apenas o texto junto (sem as tags intermediárias)
-                xml_content = xml_content.gsub(regex, key_str)
-                found = true
-              end
-            end
+        # Filtra apenas placeholders que: (1) não existem inteiros no XML, (2) não são numéricos de tabela
+        global_keys = placeholder_keys.select do |k|
+          key_str = k.to_s
+          key_str.length >= 4 && !xml_content.include?(key_str) && key_str !~ /\A\d{1,3}(DATA|DESCRICAO|VALOR|NOTA|IR|FORNECEDOR|CNPJ)\z/
+        end
+
+        return xml_content if global_keys.empty?
+
+        # Para cada parágrafo (<w:p>...</w:p>), extrai texto concatenado dos runs.
+        # Se algum placeholder global aparece no texto concatenado, mescla os runs.
+        xml_content.gsub(%r{<w:p[ >].*?</w:p>}m) do |paragraph|
+          # Extrai texto de todos os <w:t> nodes dentro do parágrafo
+          texts = paragraph.scan(%r{<w:t[^>]*>(.*?)</w:t>}m).flatten
+          full_text = texts.join
+
+          # Verifica se algum placeholder global está no texto concatenado
+          needs_merge = global_keys.any? { |k| full_text.include?(k.to_s) }
+
+          if needs_merge
+            # Mescla runs adjacentes: substitui </w:t></w:r><w:r>...<w:t...> por nada
+            # entre as partes de texto, efetivamente juntando o conteúdo dos runs
+            xml_noise = %r{</w:t>\s*</w:r>\s*<w:r>(?:\s*<w:rPr>.*?</w:rPr>)?\s*<w:t[^>]*>}m
+            paragraph.gsub(xml_noise, '')
+          else
+            paragraph
           end
         end
-        
-        xml_content
       end
 
       # Busca a proposta aprovada SEM chamar ensure_total_values (read-only)
