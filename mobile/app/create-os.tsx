@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -15,30 +17,106 @@ import { vehiclesApi } from '../src/api/vehicles';
 import { colors, spacing, borderRadius, fontSize, shadows } from '../src/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
-import { Vehicle, ProviderServiceType } from '../src/types';
+import { Vehicle } from '../src/types';
+import { useAuth } from '../src/contexts/AuthContext';
+
+const OS_TYPE_COTACOES = 1;
+const OS_TYPE_DIAGNOSTICO = 2;
+const OS_TYPE_REQUISICAO = 3;
+
+function SearchablePicker({
+  visible, onClose, onSelect, title, items, searchPlaceholder, renderItem: customRender,
+}: {
+  visible: boolean; onClose: () => void; onSelect: (item: any) => void;
+  title: string; items: any[]; searchPlaceholder?: string;
+  renderItem?: (item: any) => React.ReactNode;
+}) {
+  const [search, setSearch] = useState('');
+  const filtered = items.filter((item) => {
+    const label = item.name || item.board || '';
+    return label.toLowerCase().includes(search.toLowerCase());
+  });
+  return (
+    <Modal visible={visible} animationType="slide" transparent>
+      <View style={pk.overlay}>
+        <View style={pk.container}>
+          <View style={pk.header}>
+            <Text style={pk.title}>{title}</Text>
+            <TouchableOpacity onPress={() => { onClose(); setSearch(''); }}>
+              <Ionicons name="close" size={24} color={colors.text} />
+            </TouchableOpacity>
+          </View>
+          <TextInput
+            style={pk.searchInput} placeholder={searchPlaceholder || 'Buscar...'}
+            value={search} onChangeText={setSearch} placeholderTextColor={colors.placeholder} autoFocus
+          />
+          <FlatList
+            data={filtered} keyExtractor={(item) => String(item.id)}
+            renderItem={({ item }) => (
+              <TouchableOpacity style={pk.item} onPress={() => { onSelect(item); onClose(); setSearch(''); }}>
+                {customRender ? customRender(item) : <Text style={pk.itemText}>{item.name || item.board}</Text>}
+              </TouchableOpacity>
+            )}
+            ListEmptyComponent={<Text style={pk.empty}>Nenhum resultado</Text>}
+          />
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 export default function CreateOSScreen() {
   const queryClient = useQueryClient();
+  const { isAdmin, isGestor, isAdicional } = useAuth();
+
+  const [clientId, setClientId] = useState<number | null>(null);
+  const [clientName, setClientName] = useState('');
   const [vehicleId, setVehicleId] = useState<number | null>(null);
   const [serviceTypeId, setServiceTypeId] = useState<number | null>(null);
+  const [osTypeId, setOsTypeId] = useState<number>(OS_TYPE_COTACOES);
   const [details, setDetails] = useState('');
   const [km, setKm] = useState('');
   const [driver, setDriver] = useState('');
-  const [showVehiclePicker, setShowVehiclePicker] = useState(false);
-  const [vehicleSearch, setVehicleSearch] = useState('');
+  const [maintenancePlanId, setMaintenancePlanId] = useState<number | null>(null);
+  const [maintenancePlanName, setMaintenancePlanName] = useState('');
+  const [commitmentId, setCommitmentId] = useState<number | null>(null);
+  const [commitmentName, setCommitmentName] = useState('');
+  const [commitmentPartsId, setCommitmentPartsId] = useState<number | null>(null);
+  const [commitmentPartsName, setCommitmentPartsName] = useState('');
+  const [commitmentServicesId, setCommitmentServicesId] = useState<number | null>(null);
+  const [commitmentServicesName, setCommitmentServicesName] = useState('');
+  const [managerId, setManagerId] = useState<number | null>(null);
+  const [managerName, setManagerName] = useState('');
+  const [providerId, setProviderId] = useState<number | null>(null);
+  const [providerName, setProviderName] = useState('');
+  const [serviceGroupId, setServiceGroupId] = useState<number | null>(null);
+  const [serviceGroupName, setServiceGroupName] = useState('');
+
+  const [activePicker, setActivePicker] = useState<string | null>(null);
 
   const { data: vehiclesData } = useQuery({
-    queryKey: ['vehicles-picker', vehicleSearch],
-    queryFn: () => vehiclesApi.list({ search: vehicleSearch || undefined, per_page: 50, active: true }),
+    queryKey: ['vehicles-picker'],
+    queryFn: () => vehiclesApi.list({ per_page: 500, active: true }),
   });
+  const { data: serviceTypesData } = useQuery({ queryKey: ['service-types'], queryFn: orderServicesApi.getServiceTypes });
+  const { data: osTypesData } = useQuery({ queryKey: ['os-types'], queryFn: orderServicesApi.getOSTypes });
+  const { data: maintenancePlansData } = useQuery({ queryKey: ['maintenance-plans'], queryFn: orderServicesApi.getMaintenancePlans });
+  const { data: commitmentsData } = useQuery({ queryKey: ['commitments'], queryFn: orderServicesApi.getCommitments });
+  const { data: clientsData } = useQuery({ queryKey: ['clients'], queryFn: orderServicesApi.getClients, enabled: isAdmin });
+  const { data: managersData } = useQuery({ queryKey: ['managers'], queryFn: orderServicesApi.getManagers });
+  const { data: providersData } = useQuery({ queryKey: ['providers'], queryFn: orderServicesApi.getProviders, enabled: osTypeId === OS_TYPE_DIAGNOSTICO });
+  const { data: serviceGroupsData } = useQuery({ queryKey: ['service-groups'], queryFn: orderServicesApi.getServiceGroups, enabled: osTypeId === OS_TYPE_REQUISICAO });
 
-  const { data: serviceTypesData } = useQuery({
-    queryKey: ['service-types'],
-    queryFn: orderServicesApi.getServiceTypes,
-  });
-
-  const selectedVehicle = vehiclesData?.vehicles?.find((v) => v.id === vehicleId);
+  const vehicles = vehiclesData?.vehicles ?? [];
+  const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
   const serviceTypes = serviceTypesData?.service_types ?? [];
+  const osTypes = osTypesData?.os_types ?? [];
+  const maintenancePlans = maintenancePlansData?.maintenance_plans ?? [];
+  const commitments = commitmentsData?.commitments ?? [];
+  const clients = clientsData?.clients ?? [];
+  const managers = managersData?.managers ?? [];
+  const providers = providersData?.providers ?? [];
+  const serviceGroups = serviceGroupsData?.service_groups ?? [];
 
   const createMutation = useMutation({
     mutationFn: orderServicesApi.create,
@@ -49,171 +127,201 @@ export default function CreateOSScreen() {
       router.back();
     },
     onError: (err: any) => {
-      Toast.show({
-        type: 'error',
-        text1: 'Erro ao criar OS',
-        text2: err?.response?.data?.error || 'Tente novamente',
-      });
+      Toast.show({ type: 'error', text1: 'Erro ao criar OS', text2: err?.response?.data?.error || 'Tente novamente' });
     },
   });
 
   const handleSubmit = () => {
-    if (!vehicleId) {
-      Toast.show({ type: 'error', text1: 'Selecione um veículo' });
-      return;
-    }
-    if (!serviceTypeId) {
-      Toast.show({ type: 'error', text1: 'Selecione o tipo de serviço' });
-      return;
-    }
-    if (!details.trim()) {
-      Toast.show({ type: 'error', text1: 'Descreva o serviço necessário' });
-      return;
-    }
+    if (isAdmin && !clientId) return Toast.show({ type: 'error', text1: 'Selecione o cliente' });
+    if (!vehicleId) return Toast.show({ type: 'error', text1: 'Selecione um veículo' });
+    if (!serviceTypeId) return Toast.show({ type: 'error', text1: 'Selecione o tipo de serviço' });
+    if (!details.trim()) return Toast.show({ type: 'error', text1: 'Descreva o serviço necessário' });
+    if (osTypeId === OS_TYPE_DIAGNOSTICO && !providerId) return Toast.show({ type: 'error', text1: 'Selecione o fornecedor' });
 
-    createMutation.mutate({
+    const params: any = {
       vehicle_id: vehicleId,
       provider_service_type_id: serviceTypeId,
+      order_service_type_id: osTypeId,
       details: details.trim(),
       km: km ? parseInt(km, 10) : undefined,
       driver: driver.trim() || undefined,
-    });
+    };
+    if (isAdmin && clientId) params.client_id = clientId;
+    if (managerId) params.manager_id = managerId;
+    if (maintenancePlanId) params.maintenance_plan_id = maintenancePlanId;
+    if (commitmentId) params.commitment_id = commitmentId;
+    if (commitmentPartsId) params.commitment_parts_id = commitmentPartsId;
+    if (commitmentServicesId) params.commitment_services_id = commitmentServicesId;
+    if (providerId) params.provider_id = providerId;
+    if (serviceGroupId) params.service_group_id = serviceGroupId;
+    createMutation.mutate(params);
   };
 
-  return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Nova Ordem de Serviço</Text>
-      </View>
-
-      {/* Veículo */}
-      <Text style={styles.label}>Veículo *</Text>
-      <TouchableOpacity
-        style={styles.picker}
-        onPress={() => setShowVehiclePicker(!showVehiclePicker)}
-      >
-        <Ionicons name="car-outline" size={18} color={colors.textSecondary} />
-        <Text style={[styles.pickerText, !selectedVehicle && { color: colors.placeholder }]}>
-          {selectedVehicle
-            ? `${selectedVehicle.board} - ${selectedVehicle.brand} ${selectedVehicle.model}`
-            : 'Selecione o veículo'}
-        </Text>
-        <Ionicons name={showVehiclePicker ? 'chevron-up' : 'chevron-down'} size={18} color={colors.textLight} />
+  const PF = ({ label, value, placeholder, pickerKey, icon, required }: {
+    label: string; value: string; placeholder: string; pickerKey: string; icon?: string; required?: boolean;
+  }) => (
+    <>
+      <Text style={s.label}>{label} {required && <Text style={s.req}>*</Text>}</Text>
+      <TouchableOpacity style={s.picker} onPress={() => setActivePicker(pickerKey)}>
+        {icon && <Ionicons name={icon as any} size={18} color={colors.textSecondary} />}
+        <Text style={[s.pickerText, !value && { color: colors.placeholder }]}>{value || placeholder}</Text>
+        <Ionicons name="chevron-down" size={18} color={colors.textLight} />
       </TouchableOpacity>
+    </>
+  );
 
-      {showVehiclePicker && (
-        <View style={styles.pickerList}>
-          <TextInput
-            style={styles.pickerSearch}
-            placeholder="Buscar por placa..."
-            value={vehicleSearch}
-            onChangeText={setVehicleSearch}
-            placeholderTextColor={colors.placeholder}
+  const defaultOsTypes = [{ id: 1, name: 'Cotações' }, { id: 2, name: 'Diagnóstico' }, { id: 3, name: 'Requisição' }];
+
+  return (
+    <ScrollView style={s.container} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+      {/* Cliente (Admin) */}
+      {isAdmin && (
+        <>
+          <PF label="Cliente" value={clientName} placeholder="Selecione o cliente" pickerKey="client" icon="business-outline" required />
+          <SearchablePicker visible={activePicker === 'client'} onClose={() => setActivePicker(null)}
+            title="Selecionar Cliente" items={clients} searchPlaceholder="Buscar cliente..."
+            onSelect={(i) => { setClientId(i.id); setClientName(i.name); setVehicleId(null); }}
           />
-          {vehiclesData?.vehicles?.map((v) => (
-            <TouchableOpacity
-              key={v.id}
-              style={[styles.pickerItem, v.id === vehicleId && styles.pickerItemSelected]}
-              onPress={() => {
-                setVehicleId(v.id);
-                setShowVehiclePicker(false);
-              }}
-            >
-              <Text style={styles.pickerItemPlate}>{v.board}</Text>
-              <Text style={styles.pickerItemModel}>
-                {v.brand} {v.model}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        </>
       )}
 
+      {/* Veículo */}
+      <PF label="Veículo" value={selectedVehicle ? `${selectedVehicle.board} - ${selectedVehicle.brand} ${selectedVehicle.model}` : ''} placeholder="Selecione o veículo" pickerKey="vehicle" icon="car-outline" required />
+      <SearchablePicker visible={activePicker === 'vehicle'} onClose={() => setActivePicker(null)}
+        title="Selecionar Veículo" items={vehicles} searchPlaceholder="Buscar placa, marca ou modelo..."
+        onSelect={(i: Vehicle) => setVehicleId(i.id)}
+        renderItem={(i: Vehicle) => (
+          <View>
+            <Text style={s.vpPlate}>{i.board}</Text>
+            <Text style={s.vpModel}>{i.brand} {i.model} {i.year}</Text>
+            {i.cost_center && <Text style={s.vpCC}>{i.cost_center}</Text>}
+          </View>
+        )}
+      />
+
       {/* Tipo de Serviço */}
-      <Text style={styles.label}>Tipo de Serviço *</Text>
-      <View style={styles.chipContainer}>
-        {serviceTypes.map((st: ProviderServiceType) => (
-          <TouchableOpacity
-            key={st.id}
-            style={[styles.chip, st.id === serviceTypeId && styles.chipSelected]}
-            onPress={() => setServiceTypeId(st.id)}
-          >
-            <Text style={[styles.chipText, st.id === serviceTypeId && styles.chipTextSelected]}>
-              {st.name}
-            </Text>
+      <Text style={s.label}>Tipo de Serviço <Text style={s.req}>*</Text></Text>
+      <View style={s.chipRow}>
+        {serviceTypes.map((st) => (
+          <TouchableOpacity key={st.id} style={[s.chip, st.id === serviceTypeId && s.chipSel]} onPress={() => setServiceTypeId(st.id)}>
+            <Text style={[s.chipText, st.id === serviceTypeId && s.chipTextSel]}>{st.name}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
+      {/* Tipo de OS */}
+      <Text style={s.label}>Tipo de OS <Text style={s.req}>*</Text></Text>
+      <View style={s.chipRow}>
+        {(osTypes.length > 0 ? osTypes : defaultOsTypes).map((ot) => (
+          <TouchableOpacity key={ot.id} style={[s.chip, ot.id === osTypeId && s.chipSel]} onPress={() => setOsTypeId(ot.id)}>
+            <Text style={[s.chipText, ot.id === osTypeId && s.chipTextSel]}>{ot.name}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Fornecedor (Diagnóstico) */}
+      {osTypeId === OS_TYPE_DIAGNOSTICO && (
+        <>
+          <PF label="Fornecedor" value={providerName} placeholder="Selecione o fornecedor" pickerKey="provider" icon="storefront-outline" required />
+          <SearchablePicker visible={activePicker === 'provider'} onClose={() => setActivePicker(null)}
+            title="Selecionar Fornecedor" items={providers} searchPlaceholder="Buscar fornecedor..."
+            onSelect={(i) => { setProviderId(i.id); setProviderName(i.name); }}
+          />
+        </>
+      )}
+
+      {/* Grupo de Serviço (Requisição) */}
+      {osTypeId === OS_TYPE_REQUISICAO && serviceGroups.length > 0 && (
+        <>
+          <PF label="Grupo de Serviço" value={serviceGroupName} placeholder="Selecione o grupo" pickerKey="serviceGroup" icon="layers-outline" />
+          <SearchablePicker visible={activePicker === 'serviceGroup'} onClose={() => setActivePicker(null)}
+            title="Grupo de Serviço" items={serviceGroups}
+            onSelect={(i) => { setServiceGroupId(i.id); setServiceGroupName(i.name); }}
+          />
+        </>
+      )}
+
+      {/* Gestor */}
+      {(isAdmin || isGestor || isAdicional) && managers.length > 0 && (
+        <>
+          <PF label="Gestor Responsável" value={managerName} placeholder="Selecione o gestor" pickerKey="manager" icon="person-outline" />
+          <SearchablePicker visible={activePicker === 'manager'} onClose={() => setActivePicker(null)}
+            title="Selecionar Gestor" items={managers} searchPlaceholder="Buscar gestor..."
+            onSelect={(i) => { setManagerId(i.id); setManagerName(i.name); }}
+          />
+        </>
+      )}
+
+      {/* Plano de Manutenção */}
+      {maintenancePlans.length > 0 && (
+        <>
+          <PF label="Plano de Manutenção" value={maintenancePlanName} placeholder="Selecione (opcional)" pickerKey="maintenance" icon="clipboard-outline" />
+          <SearchablePicker visible={activePicker === 'maintenance'} onClose={() => setActivePicker(null)}
+            title="Plano de Manutenção" items={maintenancePlans}
+            onSelect={(i) => { setMaintenancePlanId(i.id); setMaintenancePlanName(i.name); }}
+          />
+        </>
+      )}
+
       {/* KM */}
-      <Text style={styles.label}>Quilometragem Atual</Text>
-      <View style={styles.inputContainer}>
+      <Text style={s.label}>Quilometragem Atual</Text>
+      <View style={s.inputRow}>
         <Ionicons name="speedometer-outline" size={18} color={colors.textSecondary} />
-        <TextInput
-          style={styles.input}
-          placeholder="Ex: 45000"
-          value={km}
-          onChangeText={setKm}
-          keyboardType="numeric"
-          placeholderTextColor={colors.placeholder}
-        />
-        <Text style={styles.inputSuffix}>km</Text>
+        <TextInput style={s.input} placeholder="Ex: 45000" value={km} onChangeText={setKm} keyboardType="numeric" placeholderTextColor={colors.placeholder} />
+        <Text style={s.inputSuffix}>km</Text>
       </View>
 
       {/* Motorista */}
-      <Text style={styles.label}>Motorista</Text>
-      <View style={styles.inputContainer}>
+      <Text style={s.label}>Motorista</Text>
+      <View style={s.inputRow}>
         <Ionicons name="person-outline" size={18} color={colors.textSecondary} />
-        <TextInput
-          style={styles.input}
-          placeholder="Nome do motorista"
-          value={driver}
-          onChangeText={setDriver}
-          placeholderTextColor={colors.placeholder}
-        />
+        <TextInput style={s.input} placeholder="Nome do motorista" value={driver} onChangeText={setDriver} placeholderTextColor={colors.placeholder} />
       </View>
 
-      {/* Detalhes */}
-      <Text style={styles.label}>Descrição do Serviço *</Text>
-      <TextInput
-        style={styles.textArea}
-        placeholder="Descreva o serviço necessário, defeitos observados, etc..."
-        value={details}
-        onChangeText={setDetails}
-        multiline
-        numberOfLines={5}
-        textAlignVertical="top"
-        placeholderTextColor={colors.placeholder}
-      />
+      {/* Descrição */}
+      <Text style={s.label}>Descrição do Serviço <Text style={s.req}>*</Text></Text>
+      <TextInput style={s.textArea} placeholder="Descreva o serviço necessário, defeitos observados, etc..." value={details} onChangeText={setDetails} multiline numberOfLines={5} textAlignVertical="top" placeholderTextColor={colors.placeholder} />
 
-      {/* Botão */}
-      <TouchableOpacity
-        style={[styles.submitBtn, createMutation.isPending && { opacity: 0.7 }]}
-        onPress={handleSubmit}
-        disabled={createMutation.isPending}
-      >
-        {createMutation.isPending ? (
-          <ActivityIndicator color="#fff" />
-        ) : (
-          <>
-            <Ionicons name="checkmark-circle" size={20} color="#fff" />
-            <Text style={styles.submitBtnText}>Criar OS</Text>
-          </>
+      {/* Empenhos */}
+      {commitments.length > 0 && (
+        <View style={s.commitSection}>
+          <Text style={s.sectionTitle}>Empenhos (Orçamento)</Text>
+
+          <PF label="Empenho Geral" value={commitmentName} placeholder="Selecione (opcional)" pickerKey="commit" icon="wallet-outline" />
+          <SearchablePicker visible={activePicker === 'commit'} onClose={() => setActivePicker(null)}
+            title="Empenho Geral" items={commitments}
+            onSelect={(i) => { setCommitmentId(i.id); setCommitmentName(i.name || i.number || `#${i.id}`); }}
+          />
+
+          <PF label="Empenho Peças" value={commitmentPartsName} placeholder="Selecione (opcional)" pickerKey="commitParts" icon="cog-outline" />
+          <SearchablePicker visible={activePicker === 'commitParts'} onClose={() => setActivePicker(null)}
+            title="Empenho de Peças" items={commitments}
+            onSelect={(i) => { setCommitmentPartsId(i.id); setCommitmentPartsName(i.name || i.number || `#${i.id}`); }}
+          />
+
+          <PF label="Empenho Serviços" value={commitmentServicesName} placeholder="Selecione (opcional)" pickerKey="commitServices" icon="construct-outline" />
+          <SearchablePicker visible={activePicker === 'commitServices'} onClose={() => setActivePicker(null)}
+            title="Empenho de Serviços" items={commitments}
+            onSelect={(i) => { setCommitmentServicesId(i.id); setCommitmentServicesName(i.name || i.number || `#${i.id}`); }}
+          />
+        </View>
+      )}
+
+      {/* Submit */}
+      <TouchableOpacity style={[s.submitBtn, createMutation.isPending && { opacity: 0.7 }]} onPress={handleSubmit} disabled={createMutation.isPending}>
+        {createMutation.isPending ? <ActivityIndicator color="#fff" /> : (
+          <><Ionicons name="checkmark-circle" size={20} color="#fff" /><Text style={s.submitText}>Criar OS</Text></>
         )}
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xxl },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
-  backBtn: { marginRight: spacing.sm },
-  headerTitle: { fontSize: fontSize.xl, fontWeight: '700', color: colors.text },
   label: { fontSize: fontSize.sm, fontWeight: '600', color: colors.text, marginBottom: spacing.xs, marginTop: spacing.md },
+  req: { color: colors.danger },
   picker: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -224,32 +332,7 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   pickerText: { flex: 1, fontSize: fontSize.sm, color: colors.text },
-  pickerList: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.md,
-    marginTop: spacing.xs,
-    maxHeight: 250,
-    ...shadows.md,
-  },
-  pickerSearch: {
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-    padding: spacing.sm,
-    fontSize: fontSize.sm,
-    color: colors.text,
-  },
-  pickerItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderLight,
-    gap: spacing.sm,
-  },
-  pickerItemSelected: { backgroundColor: colors.primary + '10' },
-  pickerItemPlate: { fontSize: fontSize.sm, fontWeight: '700', color: colors.primary },
-  pickerItemModel: { fontSize: fontSize.sm, color: colors.textSecondary },
-  chipContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -258,10 +341,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  chipSel: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipText: { fontSize: fontSize.sm, color: colors.textSecondary },
-  chipTextSelected: { color: '#fff', fontWeight: '600' },
-  inputContainer: {
+  chipTextSel: { color: '#fff', fontWeight: '600' },
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
@@ -282,6 +365,11 @@ const styles = StyleSheet.create({
     minHeight: 120,
     ...shadows.sm,
   },
+  commitSection: { marginTop: spacing.lg, borderTopWidth: 1, borderTopColor: colors.borderLight, paddingTop: spacing.md },
+  sectionTitle: { fontSize: fontSize.md, fontWeight: '700', color: colors.text, marginBottom: spacing.xs },
+  vpPlate: { fontSize: fontSize.sm, fontWeight: '700', color: colors.primary },
+  vpModel: { fontSize: fontSize.xs, color: colors.textSecondary },
+  vpCC: { fontSize: fontSize.xs, color: colors.textLight, marginTop: 2 },
   submitBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -292,5 +380,5 @@ const styles = StyleSheet.create({
     height: 52,
     marginTop: spacing.xl,
   },
-  submitBtnText: { color: '#fff', fontSize: fontSize.lg, fontWeight: '700' },
+  submitText: { color: '#fff', fontSize: fontSize.lg, fontWeight: '700' },
 });

@@ -12,7 +12,7 @@ import {
   Modal,
   ScrollView,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminUsersApi } from '../src/api/adminUsers';
 import { colors, spacing, borderRadius, fontSize, shadows } from '../src/theme/colors';
@@ -81,15 +81,15 @@ export default function AdminUsersScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Usuários</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => setShowCreateModal(true)}>
-          <Ionicons name="person-add-outline" size={22} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <TouchableOpacity onPress={() => setShowCreateModal(true)} style={{ marginRight: spacing.sm }}>
+              <Ionicons name="person-add-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+          ),
+        }}
+      />
 
       {/* Search */}
       <View style={styles.searchContainer}>
@@ -288,12 +288,8 @@ function CreateUserModal({ visible, onClose, profiles }: { visible: boolean; onC
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', padding: spacing.md },
-  backBtn: { marginRight: spacing.sm },
-  headerTitle: { fontSize: fontSize.xl, fontWeight: '700', color: colors.text, flex: 1 },
-  addBtn: { padding: spacing.xs },
 
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, marginHorizontal: spacing.md, paddingHorizontal: spacing.md, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.border, marginBottom: spacing.sm },
+  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, marginHorizontal: spacing.md, paddingHorizontal: spacing.md, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.border, marginBottom: spacing.sm, marginTop: spacing.sm },
   searchInput: { flex: 1, paddingVertical: spacing.sm, paddingHorizontal: spacing.xs, fontSize: fontSize.sm, color: colors.text },
 
   filtersRow: { paddingHorizontal: spacing.md, paddingBottom: spacing.sm, gap: spacing.xs },

@@ -14,9 +14,26 @@ module Api
         end
         get do
           user = current_user
-          client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
 
-          scope = Vehicle.where(client_id: client_id)
+          # Role-based scoping
+          if user.admin?
+            scope = Vehicle.all
+          elsif user.provider?
+            # Provider sees vehicles from OS they're assigned to
+            scope = Vehicle.where(id: OrderService.where(provider_id: user.id).select(:vehicle_id))
+          else
+            client_id = user.client? ? user.id : user.client_id
+            scope = Vehicle.where(client_id: client_id)
+
+            # Gestor/Adicional: filter by cost center/sub unit
+            if (user.manager? || user.additional?) && user.respond_to?(:associated_cost_centers)
+              cc_ids = user.associated_cost_centers.pluck(:id)
+              su_ids = user.associated_sub_units.pluck(:id)
+              if cc_ids.present? || su_ids.present?
+                scope = scope.where('cost_center_id IN (?) OR sub_unit_id IN (?)', cc_ids.presence || [0], su_ids.presence || [0])
+              end
+            end
+          end
           scope = scope.where(active: params[:active]) if params[:active] != nil
           scope = scope.where(cost_center_id: params[:cost_center_id]) if params[:cost_center_id].present?
 
@@ -40,8 +57,15 @@ module Api
         desc 'Detalhes de um veículo'
         get ':id' do
           user = current_user
-          client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
-          vehicle = Vehicle.where(client_id: client_id).find(params[:id])
+
+          if user.admin?
+            vehicle = Vehicle.find(params[:id])
+          elsif user.provider?
+            vehicle = Vehicle.where(id: OrderService.where(provider_id: user.id).select(:vehicle_id)).find(params[:id])
+          else
+            client_id = user.client? ? user.id : user.client_id
+            vehicle = Vehicle.where(client_id: client_id).find(params[:id])
+          end
 
           last_km = VehicleKmRecord.where(vehicle_id: vehicle.id).order(created_at: :desc).first
           km_history = VehicleKmRecord.where(vehicle_id: vehicle.id).order(created_at: :desc).limit(10)

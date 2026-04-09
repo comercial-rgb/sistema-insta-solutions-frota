@@ -89,12 +89,7 @@ export default function QrScanScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color="#FFF" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Solicitar Serviço</Text>
-      </View>
+
 
       {/* Mode Tabs */}
       <View style={styles.tabs}>

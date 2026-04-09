@@ -89,14 +89,6 @@ export default function OSDetailScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>OS {os.code}</Text>
-      </View>
-
       {/* Status */}
       <View style={styles.statusCard}>
         <Text style={styles.statusLabel}>Status</Text>

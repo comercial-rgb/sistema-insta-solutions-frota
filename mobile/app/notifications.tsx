@@ -8,7 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { notificationsApi } from '../src/api/notifications';
 import { colors, spacing, borderRadius, fontSize, shadows } from '../src/theme/colors';
@@ -77,21 +77,20 @@ export default function NotificationsScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Notificações</Text>
-        {unreadCount > 0 && (
-          <TouchableOpacity
-            style={styles.markAllBtn}
-            onPress={() => markAllReadMutation.mutate()}
-            disabled={markAllReadMutation.isPending}
-          >
-            <Text style={styles.markAllText}>Marcar todas</Text>
-          </TouchableOpacity>
-        )}
-      </View>
+      <Stack.Screen
+        options={{
+          headerRight: () =>
+            unreadCount > 0 ? (
+              <TouchableOpacity
+                onPress={() => markAllReadMutation.mutate()}
+                disabled={markAllReadMutation.isPending}
+                style={{ marginRight: spacing.sm }}
+              >
+                <Text style={{ color: '#fff', fontSize: fontSize.xs, fontWeight: '600' }}>Marcar todas</Text>
+              </TouchableOpacity>
+            ) : null,
+        }}
+      />
 
       {unreadCount > 0 && (
         <View style={styles.unreadBar}>
@@ -145,11 +144,6 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', padding: spacing.md },
-  backBtn: { marginRight: spacing.sm },
-  headerTitle: { fontSize: fontSize.xl, fontWeight: '700', color: colors.text, flex: 1 },
-  markAllBtn: { paddingHorizontal: spacing.sm },
-  markAllText: { fontSize: fontSize.sm, color: colors.primary, fontWeight: '600' },
 
   unreadBar: { backgroundColor: colors.primary + '10', paddingVertical: spacing.xs, paddingHorizontal: spacing.md },
   unreadText: { fontSize: fontSize.xs, color: colors.primary, fontWeight: '600' },

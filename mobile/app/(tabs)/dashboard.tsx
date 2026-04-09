@@ -14,9 +14,11 @@ import { dashboardApi } from '../../src/api/dashboard';
 import { colors, spacing, borderRadius, fontSize, shadows } from '../../src/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { useResponsiveLayout } from '../../src/hooks/useResponsiveLayout';
 
 export default function DashboardScreen() {
   const { canApproveOS, canManageUsers } = useAuth();
+  const { dashActionWidth, barWidth, isTablet } = useResponsiveLayout();
 
   const { data, isLoading, refetch, isRefetching } = useQuery({
     queryKey: ['dashboard'],
@@ -105,27 +107,32 @@ export default function DashboardScreen() {
           icon="add-circle-outline"
           label="Nova OS"
           onPress={() => router.push('/create-os')}
+          widthPct={dashActionWidth}
         />
         <ActionButton
           icon="speedometer-outline"
           label="Registrar KM"
           onPress={() => router.push('/km-register')}
+          widthPct={dashActionWidth}
         />
         <ActionButton
           icon="alert-circle-outline"
           label="Relatar Anomalia"
           onPress={() => router.push('/report-anomaly')}
+          widthPct={dashActionWidth}
         />
         <ActionButton
           icon="wallet-outline"
           label="Saldos"
           onPress={() => router.push('/balances')}
+          widthPct={dashActionWidth}
         />
         {data?.user?.qr_nfc_enabled && (
           <ActionButton
             icon="qr-code-outline"
             label="QR / NFC"
             onPress={() => router.push('/qr-scan')}
+            widthPct={dashActionWidth}
           />
         )}
         {canApproveOS && (
@@ -133,6 +140,7 @@ export default function DashboardScreen() {
             icon="checkmark-done-outline"
             label="Aprovar OS"
             onPress={() => router.push('/(tabs)/order-services')}
+            widthPct={dashActionWidth}
           />
         )}
         {canManageUsers && (
@@ -140,12 +148,14 @@ export default function DashboardScreen() {
             icon="people-outline"
             label="Usuários"
             onPress={() => router.push('/admin-users')}
+            widthPct={dashActionWidth}
           />
         )}
         <ActionButton
           icon="chatbubble-outline"
           label="Contato"
           onPress={() => router.push('/contact')}
+          widthPct={dashActionWidth}
         />
       </View>
 
@@ -160,7 +170,7 @@ export default function DashboardScreen() {
               return (
                 <View key={item.month} style={styles.barContainer}>
                   <Text style={styles.barValue}>{item.count}</Text>
-                  <View style={[styles.bar, { height: Math.max(height, 4) }]} />
+                  <View style={[styles.bar, { height: Math.max(height, 4), width: barWidth }]} />
                   <Text style={styles.barLabel}>{item.month.slice(5)}</Text>
                 </View>
               );
@@ -210,13 +220,15 @@ function ActionButton({
   icon,
   label,
   onPress,
+  widthPct,
 }: {
   icon: string;
   label: string;
   onPress: () => void;
+  widthPct: string;
 }) {
   return (
-    <TouchableOpacity style={styles.actionButton} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity style={[styles.actionButton, { width: widthPct as any }]} onPress={onPress} activeOpacity={0.7}>
       <Ionicons name={icon as any} size={24} color={colors.primary} />
       <Text style={styles.actionLabel}>{label}</Text>
     </TouchableOpacity>
@@ -278,7 +290,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   actionButton: {
-    width: '31%',
     backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
     padding: spacing.md,
@@ -309,7 +320,6 @@ const styles = StyleSheet.create({
   },
   barContainer: { alignItems: 'center', flex: 1 },
   bar: {
-    width: 28,
     backgroundColor: colors.primary,
     borderRadius: borderRadius.sm,
     minHeight: 4,

@@ -15,9 +15,11 @@ import { vehiclesApi } from '../../src/api/vehicles';
 import { colors, spacing, borderRadius, fontSize, shadows } from '../../src/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { Vehicle } from '../../src/types';
+import { useResponsiveLayout } from '../../src/hooks/useResponsiveLayout';
 
 export default function VehiclesScreen() {
   const [search, setSearch] = useState('');
+  const { listColumns } = useResponsiveLayout();
 
   const { data, fetchNextPage, hasNextPage, isLoading, refetch, isRefetching, isFetchingNextPage } =
     useInfiniteQuery({
@@ -109,9 +111,12 @@ export default function VehiclesScreen() {
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xxl }} />
       ) : (
         <FlatList
+          key={`vehicles-${listColumns}`}
           data={allVehicles}
           renderItem={renderItem}
           keyExtractor={(item) => item.id.toString()}
+          numColumns={listColumns}
+          columnWrapperStyle={listColumns > 1 ? { gap: spacing.sm } : undefined}
           contentContainerStyle={styles.listContent}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
           onEndReached={() => hasNextPage && fetchNextPage()}
@@ -148,6 +153,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, marginLeft: spacing.sm, fontSize: fontSize.sm, color: colors.text },
   listContent: { paddingHorizontal: spacing.md, paddingBottom: spacing.xxl },
   card: {
+    flex: 1,
     backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
     padding: spacing.md,

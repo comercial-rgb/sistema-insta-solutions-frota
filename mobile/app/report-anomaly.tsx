@@ -91,12 +91,6 @@ export default function ReportAnomalyScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Relatar Anomalia</Text>
-      </View>
 
       {/* Vehicle Picker */}
       <Text style={styles.label}>Veículo *</Text>

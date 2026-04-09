@@ -16,6 +16,7 @@ import { colors, spacing, borderRadius, fontSize, shadows } from '../../src/them
 import { Ionicons } from '@expo/vector-icons';
 import { OrderServiceSummary } from '../../src/types';
 import { useAuth } from '../../src/contexts/AuthContext';
+import { useResponsiveLayout } from '../../src/hooks/useResponsiveLayout';
 
 const STATUS_COLORS: Record<string, string> = {
   'Em Cadastro': colors.textLight,
@@ -32,6 +33,7 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function OrderServicesScreen() {
   const { canApproveOS } = useAuth();
+  const { listColumns } = useResponsiveLayout();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<number | undefined>();
 
@@ -146,9 +148,12 @@ export default function OrderServicesScreen() {
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xxl }} />
       ) : (
         <FlatList
+          key={`os-${listColumns}`}
           data={allOS}
           renderItem={renderItem}
           keyExtractor={(item) => item.id.toString()}
+          numColumns={listColumns}
+          columnWrapperStyle={listColumns > 1 ? { gap: spacing.sm } : undefined}
           contentContainerStyle={styles.listContent}
           refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
           onEndReached={() => hasNextPage && fetchNextPage()}
@@ -185,6 +190,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, marginLeft: spacing.sm, fontSize: fontSize.sm, color: colors.text },
   listContent: { paddingHorizontal: spacing.md, paddingBottom: 100 },
   card: {
+    flex: 1,
     backgroundColor: colors.surface,
     borderRadius: borderRadius.md,
     padding: spacing.md,

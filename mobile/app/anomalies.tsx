@@ -8,7 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { anomaliesApi } from '../src/api/anomalies';
 import { colors, spacing, borderRadius, fontSize, shadows } from '../src/theme/colors';
@@ -43,15 +43,15 @@ export default function AnomaliesScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={24} color={colors.primary} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Anomalias</Text>
-        <TouchableOpacity style={styles.addBtn} onPress={() => router.push('/report-anomaly')}>
-          <Ionicons name="add" size={24} color={colors.primary} />
-        </TouchableOpacity>
-      </View>
+      <Stack.Screen
+        options={{
+          headerRight: () => (
+            <TouchableOpacity onPress={() => router.push('/report-anomaly')} style={{ marginRight: spacing.sm }}>
+              <Ionicons name="add-circle-outline" size={26} color="#fff" />
+            </TouchableOpacity>
+          ),
+        }}
+      />
 
       {isLoading ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xxl }} />
@@ -104,11 +104,7 @@ function AnomalyCard({ item }: { item: Anomaly }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', padding: spacing.md },
-  backBtn: { marginRight: spacing.sm },
-  headerTitle: { fontSize: fontSize.xl, fontWeight: '700', color: colors.text, flex: 1 },
-  addBtn: { padding: spacing.xs },
-  listContent: { paddingHorizontal: spacing.md, paddingBottom: spacing.xxl },
+  listContent: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xxl },
   card: { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.sm, ...shadows.sm },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm },
   severityBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
