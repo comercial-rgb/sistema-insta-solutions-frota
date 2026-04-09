@@ -72,6 +72,10 @@ module Utils
         # Retenções por esfera (municipal/estadual: 5,45% peças, 9,45% serviços para não-simples)
         replacements['RETENCAOESFERA'] = CustomHelper.to_currency(values[:retencao_esfera])
         
+        # Retenções totais e valor devido
+        replacements['RETENCOES'] = CustomHelper.to_currency(values[:retencoes])
+        replacements['VALORDEVIDO'] = CustomHelper.to_currency(values[:valordevido])
+        
         # Dados do cliente
         cost_centers_name = @order_services.map { |os| os.cost_center&.name }.compact.uniq.join(' / ')
         replacements['NOMECLIENTE'] = @client.social_name || ''
@@ -133,6 +137,8 @@ module Utils
       private
 
       def add_expense_table_replacements(replacements)
+        is_federal = @client.federal?
+
         @order_service_invoices.each_with_index do |e, index|
           index_str = index < 9 ? "0#{index+1}" : (index+1).to_s
           
@@ -142,6 +148,13 @@ module Utils
               irvalue = e.value * 0.012
             else
               irvalue = e.value * 0.048
+            end
+          elsif is_federal
+            # IR/retenção para órgão federal + fornecedor NÃO optante simples
+            if e.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID
+              irvalue = e.value * 0.0585   # 5,85% peças
+            else
+              irvalue = e.value * 0.0945   # 9,45% serviços
             end
           end
           
@@ -297,8 +310,9 @@ module Utils
         # Desconto do cliente (percentual)
         client_discount_pct = (@client.discount_percent || 0).to_d / 100
 
-        # Verifica se cliente é municipal ou estadual (para retenção de esfera)
+        # Verifica esfera do cliente para retenções
         is_municipal_or_estadual = @client.municipal? || @client.estadual?
+        is_federal = @client.federal?
 
         @order_services.each do |order_service|
           proposal = find_approved_proposal_readonly(order_service)
@@ -332,21 +346,30 @@ module Utils
             total_retencao_esfera += (sum_parts * 0.0545)   # 5,45% peças
             total_retencao_esfera += (sum_services * 0.0945) # 9,45% serviços
           end
+
+          # Retenção para órgão federal + fornecedor NÃO optante simples
+          if is_federal && !proposal.provider.optante_simples
+            total_discount_ir += (sum_parts * 0.0585)    # 5,85% peças
+            total_discount_ir += (sum_services * 0.0945)  # 9,45% serviços
+          end
         end
 
         # Calcula totais a partir dos valores das NFs (sem depender de totais da proposta)
         total_value_without_discount = (total_parts + total_services).to_d
         total_discount = (total_value_without_discount * client_discount_pct).round(2)
         total_value = (total_value_without_discount - total_discount).to_d
+        total_retencoes = (total_discount_ir + total_retencao_esfera).round(2)
+        valor_devido = (total_value - total_retencoes).round(2)
 
         return {
-          valortotal: total_value,
+          valortotal: total_value_without_discount,
           descontoir: total_discount_ir,
           valorbruto: total_value_without_discount,
           desconto: total_discount,
           valorcomdesconto: total_value,
-          retencoes: total_discount_ir,
-          retencao_esfera: total_retencao_esfera
+          retencoes: total_retencoes,
+          retencao_esfera: total_retencao_esfera,
+          valordevido: valor_devido
         }
       end
     end

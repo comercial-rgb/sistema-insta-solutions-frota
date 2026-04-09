@@ -49,11 +49,6 @@ portal_url = FinancialPortalController::PORTAL_URL
               <a href="<%= financial_portal_sso_path %>" class="btn btn-light btn-lg shadow-sm">
                 <i class="bi bi-box-arrow-up-right me-1"></i> Acessar Portal Financeiro
               </a>
-              <% if @current_user.admin? %>
-                <a href="<%= financial_portal_webhook_logs_path %>" class="btn btn-outline-light btn-sm mt-2 d-block">
-                  <i class="bi bi-arrow-repeat me-1"></i> Gerenciar Webhooks
-                </a>
-              <% end %>
               <p class="mt-2 mb-0 small opacity-75">
                 <i class="bi bi-shield-check me-1"></i> Login automático com sua conta do sistema de frotas
               </p>
@@ -63,6 +58,19 @@ portal_url = FinancialPortalController::PORTAL_URL
       </div>
     </div>
   </div>
+
+  <% if @current_user.admin? %>
+    <div class="row mb-4">
+      <div class="col-12">
+        <a href="<%= financial_portal_sso_path %>" class="btn btn-primary me-2" target="_blank">
+          <i class="bi bi-box-arrow-up-right me-1"></i> Abrir Portal Financeiro em nova aba
+        </a>
+        <a href="<%= financial_portal_webhook_logs_path %>" class="btn btn-outline-secondary">
+          <i class="bi bi-arrow-repeat me-1"></i> Gerenciar Webhooks
+        </a>
+      </div>
+    </div>
+  <% end %>
 
   <!-- Aviso de Divergência para dados antigos -->
   <div class="row mb-3">
