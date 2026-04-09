@@ -13,13 +13,17 @@ import { vehiclesApi } from '../../src/api/vehicles';
 import { colors, spacing, borderRadius, fontSize, shadows } from '../../src/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 
+const formatCurrency = (v: number) =>
+  v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
 export default function VehicleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['vehicle-detail', id],
     queryFn: () => vehiclesApi.getDetail(Number(id)),
     enabled: !!id,
+    retry: 1,
   });
 
   if (isLoading) {
@@ -31,12 +35,28 @@ export default function VehicleDetailScreen() {
   }
 
   const v = data?.vehicle;
-  if (!v) return null;
+  if (!v) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Ionicons name="alert-circle-outline" size={48} color={colors.textLight} />
+        <Text style={{ color: colors.textLight, marginTop: spacing.sm, fontSize: fontSize.md }}>
+          {isError ? 'Erro ao carregar veículo' : 'Veículo não encontrado'}
+        </Text>
+        <TouchableOpacity
+          style={{ marginTop: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, backgroundColor: colors.primary, borderRadius: borderRadius.md }}
+          onPress={() => refetch()}
+        >
+          <Text style={{ color: '#fff', fontWeight: '600' }}>Tentar novamente</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const maintenanceValues = data?.consumed_values?.maintenance;
+  const fuelValues = data?.consumed_values?.fuel;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-
-
       {/* Placa destaque */}
       <View style={styles.plateCard}>
         <Text style={styles.plateBig}>{v.board}</Text>
@@ -74,6 +94,35 @@ export default function VehicleDetailScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* Valores consumidos */}
+      <View style={styles.valuesRow}>
+        <View style={[styles.valueCard, { borderLeftColor: colors.primary }]}>
+          <View style={styles.valueCardHeader}>
+            <Ionicons name="construct" size={18} color={colors.primary} />
+            <Text style={styles.valueCardTitle}>Manutenção</Text>
+          </View>
+          <Text style={styles.valueCardAmount}>
+            {formatCurrency(maintenanceValues?.total ?? 0)}
+          </Text>
+          <Text style={styles.valueCardCount}>
+            {maintenanceValues?.count ?? 0} OS
+          </Text>
+        </View>
+
+        <View style={[styles.valueCard, { borderLeftColor: colors.secondary }]}>
+          <View style={styles.valueCardHeader}>
+            <Ionicons name="flame" size={18} color={colors.secondary} />
+            <Text style={styles.valueCardTitle}>Combustível</Text>
+          </View>
+          <Text style={styles.valueCardAmount}>
+            {formatCurrency(fuelValues?.total ?? 0)}
+          </Text>
+          <Text style={styles.valueCardCount}>
+            {fuelValues?.count ?? 0} abastecimento{(fuelValues?.count ?? 0) !== 1 ? 's' : ''}
+          </Text>
+        </View>
+      </View>
+
       {/* Info do veículo */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Informações</Text>
@@ -85,8 +134,8 @@ export default function VehicleDetailScreen() {
           <InfoRow label="Tipo" value={v.vehicle_type} />
           <InfoRow label="Renavam" value={v.renavam} />
           <InfoRow label="Chassi" value={v.chassi} />
-          <InfoRow label="Centro de Custo" value={v.cost_center} />
-          <InfoRow label="Sub-Unidade" value={v.sub_unit} />
+          <InfoRow label="Centro de Custo" value={v.cost_center} wrap />
+          <InfoRow label="Sub-Unidade" value={v.sub_unit} wrap />
           {v.market_value && (
             <InfoRow
               label="Valor Mercado"
@@ -151,12 +200,14 @@ export default function VehicleDetailScreen() {
   );
 }
 
-function InfoRow({ label, value }: { label: string; value?: string | null }) {
+function InfoRow({ label, value, wrap }: { label: string; value?: string | null; wrap?: boolean }) {
   if (!value) return null;
   return (
-    <View style={styles.infoRow}>
+    <View style={[styles.infoRow, wrap && { flexDirection: 'column', alignItems: 'flex-start' }]}>
       <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={styles.infoValue}>{value}</Text>
+      <Text style={[styles.infoValue, wrap && { marginTop: 2 }]} numberOfLines={wrap ? 3 : 1}>
+        {value}
+      </Text>
     </View>
   );
 }
@@ -165,9 +216,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xxl },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.md },
-  backBtn: { marginRight: spacing.sm },
-  headerTitle: { fontSize: fontSize.xl, fontWeight: '700', color: colors.text },
   plateCard: {
     backgroundColor: colors.primary,
     borderRadius: borderRadius.lg,
@@ -191,6 +239,19 @@ const styles = StyleSheet.create({
     ...shadows.sm,
   },
   quickBtnText: { fontSize: fontSize.xs, color: colors.textSecondary, marginTop: 4, textAlign: 'center' },
+  valuesRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  valueCard: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.md,
+    padding: spacing.md,
+    borderLeftWidth: 3,
+    ...shadows.sm,
+  },
+  valueCardHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginBottom: spacing.sm },
+  valueCardTitle: { fontSize: fontSize.xs, fontWeight: '600', color: colors.textSecondary },
+  valueCardAmount: { fontSize: fontSize.lg, fontWeight: '700', color: colors.text },
+  valueCardCount: { fontSize: fontSize.xs, color: colors.textLight, marginTop: 2 },
   section: { marginBottom: spacing.md },
   sectionTitle: { fontSize: fontSize.md, fontWeight: '600', color: colors.text, marginBottom: spacing.sm },
   infoCard: { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.md, ...shadows.sm },
@@ -201,8 +262,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.borderLight,
   },
-  infoLabel: { fontSize: fontSize.sm, color: colors.textSecondary },
-  infoValue: { fontSize: fontSize.sm, color: colors.text, fontWeight: '500' },
+  infoLabel: { fontSize: fontSize.sm, color: colors.textSecondary, minWidth: 100 },
+  infoValue: { fontSize: fontSize.sm, color: colors.text, fontWeight: '500', flex: 1, textAlign: 'right' },
   kmRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: spacing.sm },
   kmDot: {
     width: 10,

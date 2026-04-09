@@ -8,10 +8,15 @@ module Api
         params do
           optional :cost_center_id, type: Integer
           optional :contract_id, type: Integer
+          optional :client_id, type: Integer
         end
         get do
           user = current_user
-          client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
+          if user.admin? && params[:client_id].present?
+            client_id = params[:client_id]
+          else
+            client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
+          end
 
           # Saldos por centro de custo
           cost_centers = CostCenter.where(client_id: client_id)

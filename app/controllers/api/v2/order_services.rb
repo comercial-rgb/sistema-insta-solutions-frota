@@ -10,6 +10,7 @@ module Api
           optional :per_page, type: Integer, default: 20
           optional :status_id, type: Integer
           optional :vehicle_id, type: Integer
+          optional :client_id, type: Integer
           optional :search, type: String
         end
         get do
@@ -18,6 +19,7 @@ module Api
           # Role-based scoping
           if user.admin?
             scope = OrderService.all
+            scope = scope.where(client_id: params[:client_id]) if params[:client_id].present?
           elsif user.provider?
             scope = OrderService.where(provider_id: user.id)
               .or(OrderService.where(id: OrderServiceProposal.where(provider_id: user.id).select(:order_service_id)))

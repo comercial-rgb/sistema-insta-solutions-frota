@@ -65,6 +65,10 @@ export interface VehicleDetail {
   km_history: KmRecord[];
   pending_alerts: MaintenanceAlertSummary[];
   recent_os: OrderServiceSummary[];
+  consumed_values?: {
+    maintenance: { total: number; count: number };
+    fuel: { total: number; count: number };
+  };
 }
 
 // ===== KM =====
@@ -91,7 +95,10 @@ export interface OrderServiceSummary {
   driver?: string;
   km?: number;
   type?: string;
+  type_id?: number;
   provider?: string;
+  client_name?: string;
+  cost_center?: string;
   created_at: string;
   updated_at: string;
 }

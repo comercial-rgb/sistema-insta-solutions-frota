@@ -8,6 +8,7 @@ import {
   TextInput,
   RefreshControl,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -15,17 +16,33 @@ import { vehiclesApi } from '../../src/api/vehicles';
 import { colors, spacing, borderRadius, fontSize, shadows } from '../../src/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { Vehicle } from '../../src/types';
+import { useClientFilter } from '../../src/contexts/ClientContext';
+import ClientSelector from '../../src/components/ClientSelector';
 import { useResponsiveLayout } from '../../src/hooks/useResponsiveLayout';
+
+const ACTIVE_FILTERS = [
+  { value: undefined as boolean | undefined, label: 'Todos' },
+  { value: true, label: 'Ativos' },
+  { value: false, label: 'Inativos' },
+];
 
 export default function VehiclesScreen() {
   const [search, setSearch] = useState('');
+  const [activeFilter, setActiveFilter] = useState<boolean | undefined>(true);
+  const { selectedClientId } = useClientFilter();
   const { listColumns } = useResponsiveLayout();
 
   const { data, fetchNextPage, hasNextPage, isLoading, refetch, isRefetching, isFetchingNextPage } =
     useInfiniteQuery({
-      queryKey: ['vehicles', search],
+      queryKey: ['vehicles', search, activeFilter, selectedClientId],
       queryFn: ({ pageParam = 1 }) =>
-        vehiclesApi.list({ page: pageParam, per_page: 20, search: search || undefined }),
+        vehiclesApi.list({
+          page: pageParam,
+          per_page: 20,
+          search: search || undefined,
+          active: activeFilter,
+          client_id: selectedClientId ?? undefined,
+        }),
       getNextPageParam: (lastPage) => {
         if (lastPage.meta.current_page < lastPage.meta.total_pages) {
           return lastPage.meta.current_page + 1;
@@ -36,6 +53,7 @@ export default function VehiclesScreen() {
     });
 
   const allVehicles = data?.pages.flatMap((p) => p.vehicles) ?? [];
+  const totalCount = data?.pages[0]?.meta?.total_count ?? 0;
 
   const renderItem = useCallback(
     ({ item }: { item: Vehicle }) => (
@@ -79,9 +97,15 @@ export default function VehiclesScreen() {
         </View>
 
         {item.cost_center && (
-          <Text style={styles.costCenter}>
+          <Text style={styles.costCenter} numberOfLines={2}>
             <Ionicons name="business-outline" size={12} color={colors.textLight} />{' '}
             {item.cost_center}
+          </Text>
+        )}
+        {item.sub_unit && (
+          <Text style={styles.subUnit} numberOfLines={1}>
+            <Ionicons name="layers-outline" size={11} color={colors.textLight} />{' '}
+            {item.sub_unit}
           </Text>
         )}
       </TouchableOpacity>
@@ -91,11 +115,15 @@ export default function VehiclesScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Client selector for admin */}
+      <ClientSelector />
+
+      {/* Search bar */}
       <View style={styles.searchBar}>
         <Ionicons name="search-outline" size={18} color={colors.textLight} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Buscar por placa, marca ou modelo..."
+          placeholder="Buscar placa, marca ou modelo..."
           placeholderTextColor={colors.placeholder}
           value={search}
           onChangeText={setSearch}
@@ -106,6 +134,33 @@ export default function VehiclesScreen() {
           </TouchableOpacity>
         )}
       </View>
+
+      {/* Active/Inactive filter chips */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.filterRow}
+      >
+        {ACTIVE_FILTERS.map((f) => {
+          const active = activeFilter === f.value;
+          return (
+            <TouchableOpacity
+              key={f.label}
+              style={[styles.filterChip, active && styles.filterChipActive]}
+              onPress={() => setActiveFilter(f.value)}
+            >
+              <Text style={[styles.filterChipText, active && styles.filterChipTextActive]}>
+                {f.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+
+      {/* Result count */}
+      {!isLoading && (
+        <Text style={styles.countText}>{totalCount} veículo{totalCount !== 1 ? 's' : ''}</Text>
+      )}
 
       {isLoading ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xxl }} />
@@ -144,13 +199,39 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.surface,
-    margin: spacing.md,
+    marginHorizontal: spacing.md,
+    marginTop: spacing.sm,
     paddingHorizontal: spacing.md,
     height: 44,
     borderRadius: borderRadius.md,
     ...shadows.sm,
   },
   searchInput: { flex: 1, marginLeft: spacing.sm, fontSize: fontSize.sm, color: colors.text },
+  filterRow: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    gap: spacing.sm,
+  },
+  filterChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  filterChipActive: {
+    backgroundColor: colors.primary + '15',
+    borderColor: colors.primary,
+  },
+  filterChipText: { fontSize: fontSize.xs, color: colors.textLight },
+  filterChipTextActive: { color: colors.primary, fontWeight: '600' },
+  countText: {
+    fontSize: fontSize.xs,
+    color: colors.textLight,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.xs,
+  },
   listContent: { paddingHorizontal: spacing.md, paddingBottom: spacing.xxl },
   card: {
     flex: 1,
@@ -185,6 +266,7 @@ const styles = StyleSheet.create({
   },
   detailText: { fontSize: fontSize.xs, color: colors.textSecondary },
   costCenter: { fontSize: fontSize.xs, color: colors.textLight, marginTop: spacing.xs },
+  subUnit: { fontSize: fontSize.xs, color: colors.textLight, marginTop: 2 },
   emptyContainer: { alignItems: 'center', paddingTop: spacing.xxl },
   emptyText: { fontSize: fontSize.md, color: colors.textLight, marginTop: spacing.sm },
 });

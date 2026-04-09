@@ -5,15 +5,26 @@ module Api
         before { authenticate! }
 
         desc 'Retorna dados do dashboard para o usuário mobile'
+        params do
+          optional :client_id, type: Integer
+        end
         get do
           user = current_user
 
           # Role-based scoping
           if user.admin?
-            os_scope = OrderService.all
-            vehicles_scope = Vehicle.where(active: true)
-            anomalies_scope = Anomaly.all
-            alerts_scope = MaintenanceAlert.all
+            if params[:client_id].present?
+              client_id = params[:client_id]
+              os_scope = OrderService.where(client_id: client_id)
+              vehicles_scope = Vehicle.where(client_id: client_id, active: true)
+              anomalies_scope = Anomaly.where(client_id: client_id)
+              alerts_scope = MaintenanceAlert.where(client_id: client_id)
+            else
+              os_scope = OrderService.all
+              vehicles_scope = Vehicle.where(active: true)
+              anomalies_scope = Anomaly.all
+              alerts_scope = MaintenanceAlert.all
+            end
           elsif user.provider?
             os_scope = OrderService.where(provider_id: user.id)
             vehicles_scope = Vehicle.none

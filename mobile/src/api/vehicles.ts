@@ -8,6 +8,7 @@ export const vehiclesApi = {
     search?: string;
     active?: boolean;
     cost_center_id?: number;
+    client_id?: number;
   }): Promise<{ vehicles: Vehicle[]; meta: PaginationMeta }> => {
     const { data } = await api.get('/api/v2/vehicles', { params });
     return data;

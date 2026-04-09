@@ -8,29 +8,36 @@ import {
   RefreshControl,
   ActivityIndicator,
 } from 'react-native';
-import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { balancesApi } from '../src/api/balances';
 import { colors, spacing, borderRadius, fontSize, shadows } from '../src/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
-import { Balance } from '../src/types';
+import { Balance, Commitment } from '../src/types';
+import ClientSelector from '../src/components/ClientSelector';
+import { useClientFilter } from '../src/contexts/ClientContext';
 
 export default function BalancesScreen() {
+  const { selectedClientId } = useClientFilter();
+
   const { data, isLoading, refetch, isRefetching } = useQuery({
-    queryKey: ['balances'],
-    queryFn: () => balancesApi.getBalances(),
+    queryKey: ['balances', selectedClientId],
+    queryFn: () =>
+      balancesApi.getBalances(selectedClientId ? { client_id: selectedClientId } : undefined),
   });
 
   const { data: contractsData } = useQuery({
-    queryKey: ['contracts'],
-    queryFn: () => balancesApi.getContracts(),
+    queryKey: ['contracts', selectedClientId],
+    queryFn: () =>
+      balancesApi.getContracts(selectedClientId ? { client_id: selectedClientId } : undefined),
   });
 
   const balances: Balance[] = data?.balances ?? [];
-  const totalBudget = balances.reduce((acc, b) => acc + (b.total_budget ?? 0), 0);
-  const totalUsed = balances.reduce((acc, b) => acc + (b.total_used ?? 0), 0);
-  const totalAvailable = totalBudget - totalUsed;
-  const usagePercent = totalBudget > 0 ? (totalUsed / totalBudget) * 100 : 0;
+  const summary = data?.summary;
+  const totalBudget = summary?.total_budget ?? 0;
+  const totalCommitted = summary?.total_committed ?? 0;
+  const totalConsumed = summary?.total_consumed ?? 0;
+  const totalAvailable = summary?.total_available ?? 0;
+  const usagePercent = totalCommitted > 0 ? (totalConsumed / totalCommitted) * 100 : 0;
 
   const formatCurrency = (v: number) =>
     v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -41,6 +48,8 @@ export default function BalancesScreen() {
       contentContainerStyle={styles.content}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
     >
+      <ClientSelector />
+
       {isLoading ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xxl }} />
       ) : (
@@ -50,16 +59,16 @@ export default function BalancesScreen() {
             <Text style={styles.summaryTitle}>Resumo Geral</Text>
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Orçamento</Text>
-                <Text style={styles.summaryValue}>{formatCurrency(totalBudget)}</Text>
+                <Text style={styles.summaryLabel}>Empenhado</Text>
+                <Text style={styles.summaryValue}>{formatCurrency(totalCommitted)}</Text>
               </View>
               <View style={styles.summaryItem}>
-                <Text style={styles.summaryLabel}>Utilizado</Text>
-                <Text style={[styles.summaryValue, { color: colors.danger }]}>{formatCurrency(totalUsed)}</Text>
+                <Text style={styles.summaryLabel}>Consumido</Text>
+                <Text style={[styles.summaryValue, { color: '#FF6B6B' }]}>{formatCurrency(totalConsumed)}</Text>
               </View>
               <View style={styles.summaryItem}>
                 <Text style={styles.summaryLabel}>Disponível</Text>
-                <Text style={[styles.summaryValue, { color: colors.success }]}>{formatCurrency(totalAvailable)}</Text>
+                <Text style={[styles.summaryValue, { color: '#51CF66' }]}>{formatCurrency(totalAvailable)}</Text>
               </View>
             </View>
 
@@ -71,12 +80,12 @@ export default function BalancesScreen() {
                     styles.progressFill,
                     {
                       width: `${Math.min(usagePercent, 100)}%`,
-                      backgroundColor: usagePercent > 80 ? colors.danger : usagePercent > 60 ? colors.warning : colors.success,
+                      backgroundColor: usagePercent > 80 ? '#FF6B6B' : usagePercent > 60 ? colors.warning : '#51CF66',
                     },
                   ]}
                 />
               </View>
-              <Text style={styles.progressText}>{usagePercent.toFixed(1)}% utilizado</Text>
+              <Text style={styles.progressText}>{usagePercent.toFixed(1)}% consumido</Text>
             </View>
           </View>
 
@@ -88,11 +97,25 @@ export default function BalancesScreen() {
                 <View key={c.id} style={styles.contractCard}>
                   <View style={styles.contractHeader}>
                     <Ionicons name="document-text-outline" size={18} color={colors.primary} />
-                    <Text style={styles.contractName}>{c.name || `Contrato #${c.id}`}</Text>
+                    <Text style={styles.contractName} numberOfLines={1}>
+                      {c.name || c.number || `Contrato #${c.id}`}
+                    </Text>
+                    {c.active !== undefined && (
+                      <View style={[styles.contractBadge, { backgroundColor: c.active ? '#E8F5E9' : '#FFEBEE' }]}>
+                        <Text style={{ fontSize: fontSize.xs, color: c.active ? colors.success : colors.danger }}>
+                          {c.active ? 'Ativo' : 'Inativo'}
+                        </Text>
+                      </View>
+                    )}
                   </View>
-                  {c.value && (
-                    <Text style={styles.contractValue}>{formatCurrency(c.value)}</Text>
-                  )}
+                  <View style={styles.contractDetails}>
+                    {c.total_value != null && (
+                      <Text style={styles.contractValue}>Valor: {formatCurrency(c.total_value)}</Text>
+                    )}
+                    {c.commitments_count != null && (
+                      <Text style={styles.contractMeta}>{c.commitments_count} empenho{c.commitments_count !== 1 ? 's' : ''}</Text>
+                    )}
+                  </View>
                 </View>
               ))}
             </View>
@@ -100,11 +123,22 @@ export default function BalancesScreen() {
 
           {/* Cost Centers */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Centros de Custo</Text>
+            <Text style={styles.sectionTitle}>
+              Centros de Custo ({balances.length})
+            </Text>
             {balances.length === 0 ? (
-              <Text style={styles.emptyText}>Nenhum centro de custo encontrado</Text>
+              <View style={styles.emptyContainer}>
+                <Ionicons name="wallet-outline" size={40} color={colors.textLight} />
+                <Text style={styles.emptyText}>Nenhum centro de custo encontrado</Text>
+              </View>
             ) : (
-              balances.map((b) => <BalanceCard key={b.id} balance={b} formatCurrency={formatCurrency} />)
+              balances.map((b) => (
+                <BalanceCard
+                  key={b.cost_center.id}
+                  balance={b}
+                  formatCurrency={formatCurrency}
+                />
+              ))
             )}
           </View>
         </>
@@ -115,16 +149,16 @@ export default function BalancesScreen() {
 
 function BalanceCard({ balance, formatCurrency }: { balance: Balance; formatCurrency: (v: number) => string }) {
   const [expanded, setExpanded] = React.useState(false);
-  const budget = balance.total_budget ?? 0;
-  const used = balance.total_used ?? 0;
-  const available = budget - used;
-  const pct = budget > 0 ? (used / budget) * 100 : 0;
+  const committed = balance.total_committed ?? 0;
+  const consumed = balance.total_consumed ?? 0;
+  const available = balance.available ?? 0;
+  const pct = committed > 0 ? (consumed / committed) * 100 : 0;
 
   return (
     <View style={styles.balanceCard}>
       <TouchableOpacity style={styles.balanceHeader} onPress={() => setExpanded(!expanded)}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.balanceName}>{balance.name}</Text>
+          <Text style={styles.balanceName}>{balance.cost_center.name}</Text>
           <Text style={styles.balanceAvailable}>
             Disponível: <Text style={{ color: colors.success, fontWeight: '700' }}>{formatCurrency(available)}</Text>
           </Text>
@@ -140,12 +174,16 @@ function BalanceCard({ balance, formatCurrency }: { balance: Balance; formatCurr
       {expanded && (
         <View style={styles.balanceDetails}>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Orçamento</Text>
-            <Text style={styles.detailValue}>{formatCurrency(budget)}</Text>
+            <Text style={styles.detailLabel}>Empenhado</Text>
+            <Text style={styles.detailValue}>{formatCurrency(committed)}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Utilizado</Text>
-            <Text style={[styles.detailValue, { color: colors.danger }]}>{formatCurrency(used)}</Text>
+            <Text style={styles.detailLabel}>Cancelado</Text>
+            <Text style={[styles.detailValue, { color: colors.textLight }]}>{formatCurrency(balance.total_cancelled ?? 0)}</Text>
+          </View>
+          <View style={styles.detailRow}>
+            <Text style={styles.detailLabel}>Consumido</Text>
+            <Text style={[styles.detailValue, { color: colors.danger }]}>{formatCurrency(consumed)}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>Disponível</Text>
@@ -154,11 +192,25 @@ function BalanceCard({ balance, formatCurrency }: { balance: Balance; formatCurr
 
           {balance.commitments && balance.commitments.length > 0 && (
             <>
-              <Text style={styles.commitmentsTitle}>Compromissos</Text>
-              {balance.commitments.map((c, i) => (
-                <View key={i} style={styles.commitmentRow}>
-                  <Text style={styles.commitmentDesc}>{c.description}</Text>
-                  <Text style={styles.commitmentValue}>{formatCurrency(c.value)}</Text>
+              <Text style={styles.commitmentsTitle}>Empenhos</Text>
+              {balance.commitments.map((c: Commitment) => (
+                <View key={c.id} style={styles.commitmentRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.commitmentDesc}>
+                      {c.number || `Empenho #${c.id}`}
+                    </Text>
+                    {c.contract && (
+                      <Text style={styles.commitmentContract}>
+                        {c.contract.name || c.contract.number}
+                      </Text>
+                    )}
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={styles.commitmentValue}>{formatCurrency(c.value ?? 0)}</Text>
+                    {(c.cancelled ?? 0) > 0 && (
+                      <Text style={styles.commitmentCancelled}>-{formatCurrency(c.cancelled)}</Text>
+                    )}
+                  </View>
                 </View>
               ))}
             </>
@@ -172,9 +224,6 @@ function BalanceCard({ balance, formatCurrency }: { balance: Balance; formatCurr
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xxl },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
-  backBtn: { marginRight: spacing.sm },
-  headerTitle: { fontSize: fontSize.xl, fontWeight: '700', color: colors.text },
 
   summaryCard: { backgroundColor: colors.primary, borderRadius: borderRadius.lg, padding: spacing.lg, marginBottom: spacing.lg },
   summaryTitle: { fontSize: fontSize.md, fontWeight: '600', color: '#FFF', marginBottom: spacing.md },
@@ -189,12 +238,16 @@ const styles = StyleSheet.create({
 
   section: { marginBottom: spacing.lg },
   sectionTitle: { fontSize: fontSize.lg, fontWeight: '600', color: colors.text, marginBottom: spacing.sm },
-  emptyText: { fontSize: fontSize.sm, color: colors.textLight, textAlign: 'center', padding: spacing.lg },
+  emptyContainer: { alignItems: 'center', padding: spacing.xl },
+  emptyText: { fontSize: fontSize.sm, color: colors.textLight, textAlign: 'center', marginTop: spacing.sm },
 
   contractCard: { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.xs, ...shadows.sm },
   contractHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs },
-  contractName: { fontSize: fontSize.md, fontWeight: '600', color: colors.text },
-  contractValue: { fontSize: fontSize.sm, color: colors.primary, fontWeight: '600', marginTop: 4, marginLeft: 26 },
+  contractName: { fontSize: fontSize.md, fontWeight: '600', color: colors.text, flex: 1 },
+  contractBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: borderRadius.sm },
+  contractDetails: { marginTop: spacing.xs, marginLeft: 26 },
+  contractValue: { fontSize: fontSize.sm, color: colors.primary, fontWeight: '600' },
+  contractMeta: { fontSize: fontSize.xs, color: colors.textLight, marginTop: 2 },
 
   balanceCard: { backgroundColor: colors.surface, borderRadius: borderRadius.md, marginBottom: spacing.sm, ...shadows.sm, overflow: 'hidden' },
   balanceHeader: { flexDirection: 'row', alignItems: 'center', padding: spacing.md },
@@ -202,12 +255,14 @@ const styles = StyleSheet.create({
   balanceAvailable: { fontSize: fontSize.sm, color: colors.textSecondary, marginTop: 2 },
   balancePctCircle: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginRight: spacing.xs },
   balancePctText: { fontSize: fontSize.xs, fontWeight: '700' },
-  balanceDetails: { padding: spacing.md, paddingTop: 0, borderTopWidth: 1, borderTopColor: colors.border },
+  balanceDetails: { padding: spacing.md, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border },
   detailRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
   detailLabel: { fontSize: fontSize.sm, color: colors.textSecondary },
   detailValue: { fontSize: fontSize.sm, fontWeight: '600', color: colors.text },
   commitmentsTitle: { fontSize: fontSize.sm, fontWeight: '600', color: colors.text, marginTop: spacing.sm, marginBottom: spacing.xs },
-  commitmentRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 3 },
-  commitmentDesc: { fontSize: fontSize.xs, color: colors.textSecondary, flex: 1 },
-  commitmentValue: { fontSize: fontSize.xs, fontWeight: '600', color: colors.text },
+  commitmentRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
+  commitmentDesc: { fontSize: fontSize.sm, color: colors.text, fontWeight: '500' },
+  commitmentContract: { fontSize: fontSize.xs, color: colors.textLight, marginTop: 1 },
+  commitmentValue: { fontSize: fontSize.sm, fontWeight: '600', color: colors.primary },
+  commitmentCancelled: { fontSize: fontSize.xs, color: colors.danger, marginTop: 1 },
 });

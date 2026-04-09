@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider } from '../src/contexts/AuthContext';
+import { ClientProvider } from '../src/contexts/ClientContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 import { colors } from '../src/theme/colors';
@@ -26,6 +27,7 @@ export default function RootLayout() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <ClientProvider>
         <StatusBar style="light" />
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="(auth)" />
@@ -44,6 +46,7 @@ export default function RootLayout() {
           <Stack.Screen name="qr-scan" options={{ ...stackHeaderOptions, title: 'QR Code / NFC' }} />
         </Stack>
         <Toast />
+        </ClientProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

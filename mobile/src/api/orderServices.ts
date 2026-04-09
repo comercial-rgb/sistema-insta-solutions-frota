@@ -20,6 +20,7 @@ export const orderServicesApi = {
     per_page?: number;
     status_id?: number;
     vehicle_id?: number;
+    client_id?: number;
     search?: string;
   }): Promise<{ order_services: OrderServiceSummary[]; meta: PaginationMeta }> => {
     const { data } = await api.get('/api/v2/order_services', { params });

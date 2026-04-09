@@ -22,10 +22,11 @@ export default function OSDetailScreen() {
   const { canApproveOS } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['os-detail', id],
     queryFn: () => orderServicesApi.getDetail(Number(id)),
     enabled: !!id,
+    retry: 1,
   });
 
   const approveMutation = useMutation({
@@ -83,7 +84,22 @@ export default function OSDetailScreen() {
   const os = data?.order_service;
   const proposals = data?.proposals ?? [];
 
-  if (!os) return null;
+  if (!os) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Ionicons name="alert-circle-outline" size={48} color={colors.textLight} />
+        <Text style={{ color: colors.textLight, marginTop: spacing.sm, fontSize: fontSize.md }}>
+          {isError ? 'Erro ao carregar OS' : 'OS não encontrada'}
+        </Text>
+        <TouchableOpacity
+          style={{ marginTop: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, backgroundColor: colors.primary, borderRadius: borderRadius.md }}
+          onPress={() => refetch()}
+        >
+          <Text style={{ color: '#fff', fontWeight: '600' }}>Tentar novamente</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const isAwaitingApproval = os.status === 'Aguardando Avaliação de Proposta';
 

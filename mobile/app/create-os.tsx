@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Modal,
   FlatList,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -19,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { Vehicle } from '../src/types';
 import { useAuth } from '../src/contexts/AuthContext';
+import { useClientFilter } from '../src/contexts/ClientContext';
 
 const OS_TYPE_COTACOES = 1;
 const OS_TYPE_DIAGNOSTICO = 2;
@@ -32,10 +34,15 @@ function SearchablePicker({
   renderItem?: (item: any) => React.ReactNode;
 }) {
   const [search, setSearch] = useState('');
-  const filtered = items.filter((item) => {
-    const label = item.name || item.board || '';
-    return label.toLowerCase().includes(search.toLowerCase());
-  });
+  const filtered = useMemo(() => {
+    if (!search) return items.slice(0, 100);
+    const q = search.toLowerCase();
+    return items.filter((item) => {
+      const label = item.name || item.board || '';
+      const extra = item.brand ? `${item.brand} ${item.model}` : '';
+      return label.toLowerCase().includes(q) || extra.toLowerCase().includes(q);
+    }).slice(0, 100);
+  }, [items, search]);
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={pk.overlay}>
@@ -68,9 +75,10 @@ function SearchablePicker({
 export default function CreateOSScreen() {
   const queryClient = useQueryClient();
   const { isAdmin, isGestor, isAdicional } = useAuth();
+  const { selectedClientId, selectedClientName } = useClientFilter();
 
-  const [clientId, setClientId] = useState<number | null>(null);
-  const [clientName, setClientName] = useState('');
+  const [clientId, setClientId] = useState<number | null>(selectedClientId);
+  const [clientName, setClientName] = useState(selectedClientName);
   const [vehicleId, setVehicleId] = useState<number | null>(null);
   const [serviceTypeId, setServiceTypeId] = useState<number | null>(null);
   const [osTypeId, setOsTypeId] = useState<number>(OS_TYPE_COTACOES);
@@ -94,9 +102,9 @@ export default function CreateOSScreen() {
 
   const [activePicker, setActivePicker] = useState<string | null>(null);
 
-  const { data: vehiclesData } = useQuery({
-    queryKey: ['vehicles-picker'],
-    queryFn: () => vehiclesApi.list({ per_page: 500, active: true }),
+  const { data: vehiclesData, isLoading: vehiclesLoading } = useQuery({
+    queryKey: ['vehicles-picker', clientId],
+    queryFn: () => vehiclesApi.list({ per_page: 500, active: true, client_id: clientId ?? undefined }),
   });
   const { data: serviceTypesData } = useQuery({ queryKey: ['service-types'], queryFn: orderServicesApi.getServiceTypes });
   const { data: osTypesData } = useQuery({ queryKey: ['os-types'], queryFn: orderServicesApi.getOSTypes });

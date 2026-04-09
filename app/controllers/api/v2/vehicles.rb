@@ -11,6 +11,7 @@ module Api
           optional :search, type: String
           optional :active, type: Boolean
           optional :cost_center_id, type: Integer
+          optional :client_id, type: Integer
         end
         get do
           user = current_user
@@ -18,6 +19,7 @@ module Api
           # Role-based scoping
           if user.admin?
             scope = Vehicle.all
+            scope = scope.where(client_id: params[:client_id]) if params[:client_id].present?
           elsif user.provider?
             # Provider sees vehicles from OS they're assigned to
             scope = Vehicle.where(id: OrderService.where(provider_id: user.id).select(:vehicle_id))
@@ -72,12 +74,33 @@ module Api
           pending_alerts = MaintenanceAlert.where(vehicle_id: vehicle.id).pending
           recent_os = vehicle.order_services.order(created_at: :desc).limit(5)
 
+          # Maintenance consumed values
+          maintenance_os = vehicle.order_services
+            .where.not(order_service_status_id: OrderServiceStatus::CANCELADA_ID)
+          maintenance_total = maintenance_os
+            .joins(order_service_proposals: :order_service_proposal_items)
+            .sum('order_service_proposal_items.total_value').to_f
+          maintenance_count = maintenance_os.count
+
+          # Fuel consumed values (if client has fuel solution)
+          fuel_total = 0.0
+          fuel_count = 0
+          if defined?(FuelRecord) && vehicle.respond_to?(:fuel_records)
+            fuel_records = vehicle.fuel_records
+            fuel_total = fuel_records.sum(:total_value).to_f rescue 0.0
+            fuel_count = fuel_records.count rescue 0
+          end
+
           {
             vehicle: serialize_vehicle(vehicle),
             current_km: last_km&.km,
             km_history: km_history.map { |r| { id: r.id, km: r.km, origin: r.origin, date: r.created_at, user: r.user&.name } },
             pending_alerts: pending_alerts.map { |a| { id: a.id, message: a.message, alert_type: a.alert_type, target_km: a.target_km, target_date: a.target_date } },
-            recent_os: recent_os.map { |os| { id: os.id, code: os.code, status: os.order_service_status&.name, km: os.km, created_at: os.created_at } }
+            recent_os: recent_os.map { |os| { id: os.id, code: os.code, status: os.order_service_status&.name, km: os.km, created_at: os.created_at } },
+            consumed_values: {
+              maintenance: { total: maintenance_total, count: maintenance_count },
+              fuel: { total: fuel_total, count: fuel_count }
+            }
           }
         end
       end
