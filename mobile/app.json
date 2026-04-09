@@ -73,7 +73,8 @@
           "icon": "./assets/notification-icon.png",
           "color": "#1E3A5F"
         }
-      ]
+      ],
+      "expo-asset"
     ],
     "updates": {
       "url": "https://u.expo.dev/2b584ccf-7d41-40dc-9554-060fba283ac3",
