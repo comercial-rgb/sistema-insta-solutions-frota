@@ -325,6 +325,17 @@ export default function CreateOSScreen() {
   );
 }
 
+const pk = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  container: { backgroundColor: colors.surface, borderTopLeftRadius: borderRadius.lg, borderTopRightRadius: borderRadius.lg, maxHeight: '80%', padding: spacing.md },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
+  title: { fontSize: fontSize.lg, fontWeight: '700', color: colors.text },
+  searchInput: { backgroundColor: colors.background, borderRadius: borderRadius.md, padding: spacing.sm, fontSize: fontSize.sm, color: colors.text, marginBottom: spacing.sm },
+  item: { paddingVertical: spacing.md, borderBottomWidth: 1, borderBottomColor: colors.borderLight },
+  itemText: { fontSize: fontSize.sm, color: colors.text },
+  empty: { textAlign: 'center', color: colors.textLight, padding: spacing.lg },
+});
+
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.md, paddingBottom: spacing.xxl },
