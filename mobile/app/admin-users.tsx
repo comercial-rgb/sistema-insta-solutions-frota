@@ -292,8 +292,8 @@ const styles = StyleSheet.create({
   searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.surface, marginHorizontal: spacing.md, paddingHorizontal: spacing.md, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.border, marginBottom: spacing.sm, marginTop: spacing.sm },
   searchInput: { flex: 1, paddingVertical: spacing.sm, paddingHorizontal: spacing.xs, fontSize: fontSize.sm, color: colors.text },
 
-  filtersRow: { paddingHorizontal: spacing.md, paddingBottom: spacing.sm, gap: spacing.xs },
-  filterChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
+  filtersRow: { paddingHorizontal: spacing.md, paddingBottom: spacing.sm, gap: spacing.xs, alignItems: 'center' },
+  filterChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, alignSelf: 'flex-start' },
   filterChipActive: { backgroundColor: colors.primary + '15', borderColor: colors.primary },
   filterChipText: { fontSize: fontSize.xs, color: colors.textSecondary },
   filterChipTextActive: { color: colors.primary, fontWeight: '600' },
