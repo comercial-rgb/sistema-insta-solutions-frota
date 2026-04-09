@@ -1,6 +1,7 @@
 module Api
   module V2
     class Base < Grape::API
+      prefix 'api'
       version 'v2', using: :path
       format :json
 
