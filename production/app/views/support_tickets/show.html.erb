@@ -87,17 +87,17 @@ breadcrumbs = [
                     <strong>Alterar status:</strong>
                     <div class="btn-group ms-2">
                         <% if @support_ticket.status != SupportTicket::STATUS_EM_ANDAMENTO && @support_ticket.open? %>
-                            <%= link_to "Em andamento", update_status_support_ticket_path(@support_ticket, status: SupportTicket::STATUS_EM_ANDAMENTO), method: :patch, class: "btn btn-sm btn-warning", data: { confirm: "Marcar como Em andamento?" } %>
+                            <%= button_to "Em andamento", update_status_support_ticket_path(@support_ticket, status: SupportTicket::STATUS_EM_ANDAMENTO), method: :patch, class: "btn btn-sm btn-warning", form: { style: "display:inline" }, data: { confirm: "Marcar como Em andamento?" } %>
                         <% end %>
                         <% if @support_ticket.open? %>
-                            <%= link_to "Resolver", update_status_support_ticket_path(@support_ticket, status: SupportTicket::STATUS_RESOLVIDO), method: :patch, class: "btn btn-sm btn-success", data: { confirm: "Marcar como Resolvido?" } %>
+                            <%= button_to "Resolver", update_status_support_ticket_path(@support_ticket, status: SupportTicket::STATUS_RESOLVIDO), method: :patch, class: "btn btn-sm btn-success", form: { style: "display:inline" }, data: { confirm: "Marcar como Resolvido?" } %>
                         <% end %>
                         <% if @support_ticket.status == SupportTicket::STATUS_RESOLVIDO %>
-                            <%= link_to "Fechar", update_status_support_ticket_path(@support_ticket, status: SupportTicket::STATUS_FECHADO), method: :patch, class: "btn btn-sm btn-secondary", data: { confirm: "Fechar este chamado?" } %>
-                            <%= link_to "Reabrir", update_status_support_ticket_path(@support_ticket, status: SupportTicket::STATUS_ABERTO), method: :patch, class: "btn btn-sm btn-primary", data: { confirm: "Reabrir este chamado?" } %>
+                            <%= button_to "Fechar", update_status_support_ticket_path(@support_ticket, status: SupportTicket::STATUS_FECHADO), method: :patch, class: "btn btn-sm btn-secondary", form: { style: "display:inline" }, data: { confirm: "Fechar este chamado?" } %>
+                            <%= button_to "Reabrir", update_status_support_ticket_path(@support_ticket, status: SupportTicket::STATUS_ABERTO), method: :patch, class: "btn btn-sm btn-primary", form: { style: "display:inline" }, data: { confirm: "Reabrir este chamado?" } %>
                         <% end %>
                         <% if @support_ticket.status == SupportTicket::STATUS_FECHADO %>
-                            <%= link_to "Reabrir", update_status_support_ticket_path(@support_ticket, status: SupportTicket::STATUS_ABERTO), method: :patch, class: "btn btn-sm btn-primary", data: { confirm: "Reabrir este chamado?" } %>
+                            <%= button_to "Reabrir", update_status_support_ticket_path(@support_ticket, status: SupportTicket::STATUS_ABERTO), method: :patch, class: "btn btn-sm btn-primary", form: { style: "display:inline" }, data: { confirm: "Reabrir este chamado?" } %>
                         <% end %>
                     </div>
                 </div>
@@ -188,3 +188,24 @@ breadcrumbs = [
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('form[data-confirm]').forEach(function(form) {
+        form.addEventListener('submit', function(e) {
+            var msg = this.getAttribute('data-confirm');
+            if (msg && !confirm(msg)) {
+                e.preventDefault();
+            }
+        });
+    });
+    document.querySelectorAll('button[data-confirm]').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            var msg = this.getAttribute('data-confirm');
+            if (msg && !confirm(msg)) {
+                e.preventDefault();
+            }
+        });
+    });
+});
+</script>
