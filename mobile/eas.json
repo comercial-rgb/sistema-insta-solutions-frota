@@ -41,17 +41,5 @@
         "image": "latest"
       }
     }
-  },
-  "submit": {
-    "production": {
-      "ios": {
-        "appleId": "",
-        "ascAppId": "",
-        "appleTeamId": ""
-      },
-      "android": {
-        "track": "internal"
-      }
-    }
   }
 }
