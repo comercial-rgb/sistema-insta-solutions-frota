@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
   searchInput: { flex: 1, paddingVertical: spacing.sm, paddingHorizontal: spacing.xs, fontSize: fontSize.sm, color: colors.text },
 
   filtersRow: { paddingHorizontal: spacing.md, paddingBottom: spacing.sm, gap: spacing.xs, alignItems: 'center' },
-  filterChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, alignSelf: 'flex-start' },
+  filterChip: { paddingHorizontal: spacing.md, paddingVertical: spacing.xs, borderRadius: borderRadius.full, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface },
   filterChipActive: { backgroundColor: colors.primary + '15', borderColor: colors.primary },
   filterChipText: { fontSize: fontSize.xs, color: colors.textSecondary },
   filterChipTextActive: { color: colors.primary, fontWeight: '600' },

@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -96,7 +98,7 @@ export default function ReportAnomalyScreen() {
       <Text style={styles.label}>Veículo *</Text>
       <TouchableOpacity
         style={styles.pickerBtn}
-        onPress={() => setShowVehiclePicker(!showVehiclePicker)}
+        onPress={() => setShowVehiclePicker(true)}
       >
         <Text style={selectedVehicle ? styles.pickerText : styles.pickerPlaceholder}>
           {selectedVehicle ? `${selectedVehicle.board} - ${selectedVehicle.model}` : 'Selecione o veículo'}
@@ -104,25 +106,39 @@ export default function ReportAnomalyScreen() {
         <Ionicons name="chevron-down" size={20} color={colors.textLight} />
       </TouchableOpacity>
 
-      {showVehiclePicker && (
-        <View style={styles.pickerDropdown}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Buscar placa ou modelo..."
-            value={vehicleSearch}
-            onChangeText={setVehicleSearch}
-          />
-          {filteredVehicles.slice(0, 10).map((v) => (
-            <TouchableOpacity
-              key={v.id}
-              style={[styles.pickerOption, v.id === vehicleId && styles.pickerOptionActive]}
-              onPress={() => { setVehicleId(v.id); setShowVehiclePicker(false); }}
-            >
-              <Text style={styles.pickerOptionText}>{v.board} - {v.model}</Text>
-            </TouchableOpacity>
-          ))}
+      <Modal visible={showVehiclePicker} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecionar Veículo</Text>
+              <TouchableOpacity onPress={() => setShowVehiclePicker(false)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar placa ou modelo..."
+              value={vehicleSearch}
+              onChangeText={setVehicleSearch}
+              placeholderTextColor={colors.placeholder}
+              autoFocus
+            />
+            <FlatList
+              data={filteredVehicles.slice(0, 100)}
+              keyExtractor={(v) => v.id.toString()}
+              renderItem={({ item: v }) => (
+                <TouchableOpacity
+                  style={[styles.pickerOption, v.id === vehicleId && styles.pickerOptionActive]}
+                  onPress={() => { setVehicleId(v.id); setShowVehiclePicker(false); setVehicleSearch(''); }}
+                >
+                  <Text style={styles.pickerOptionText}>{v.board} - {v.model}</Text>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={<Text style={styles.pickerEmpty}>Nenhum veículo encontrado</Text>}
+            />
+          </View>
         </View>
-      )}
+      </Modal>
 
       {/* Title */}
       <Text style={styles.label}>Título *</Text>
@@ -221,8 +237,12 @@ const styles = StyleSheet.create({
   pickerBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.md, borderWidth: 1, borderColor: colors.border },
   pickerText: { fontSize: fontSize.md, color: colors.text },
   pickerPlaceholder: { fontSize: fontSize.md, color: colors.textLight },
-  pickerDropdown: { backgroundColor: colors.surface, borderRadius: borderRadius.md, marginTop: 4, borderWidth: 1, borderColor: colors.border, maxHeight: 250 },
-  searchInput: { padding: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.border, fontSize: fontSize.sm },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContainer: { backgroundColor: colors.surface, borderTopLeftRadius: borderRadius.lg, borderTopRightRadius: borderRadius.lg, maxHeight: '70%', padding: spacing.md },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
+  modalTitle: { fontSize: fontSize.lg, fontWeight: '700', color: colors.text },
+  searchInput: { backgroundColor: colors.background, borderRadius: borderRadius.md, padding: spacing.sm, fontSize: fontSize.sm, color: colors.text, marginBottom: spacing.sm },
+  pickerEmpty: { textAlign: 'center', color: colors.textLight, padding: spacing.lg },
   pickerOption: { padding: spacing.sm, borderBottomWidth: 0.5, borderBottomColor: colors.border },
   pickerOptionActive: { backgroundColor: colors.primary + '10' },
   pickerOptionText: { fontSize: fontSize.sm, color: colors.text },
