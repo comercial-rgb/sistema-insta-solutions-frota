@@ -11,7 +11,7 @@ module Api
         end
         get do
           user = current_user
-          client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+          client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
 
           # Saldos por centro de custo
           cost_centers = CostCenter.where(client_id: client_id)
@@ -25,9 +25,9 @@ module Api
             # Valor consumido (OS pagas)
             consumed = OrderService.where(commitment_id: commitments.pluck(:id))
                                     .where(order_service_status_id: [
-                                      OrderServiceStatus::PAGA,
-                                      OrderServiceStatus::AGUARDANDO_PAGAMENTO,
-                                      OrderServiceStatus::AUTORIZADA
+                                      OrderServiceStatus::PAGA_ID,
+                                      OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID,
+                                      OrderServiceStatus::AUTORIZADA_ID
                                     ])
                                     .joins(order_service_proposals: :order_service_proposal_items)
                                     .sum('order_service_proposal_items.total_value')
@@ -71,7 +71,7 @@ module Api
         desc 'Contratos do cliente'
         get 'contracts' do
           user = current_user
-          client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+          client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
 
           contracts = Contract.where(client_id: client_id).order(created_at: :desc)
 

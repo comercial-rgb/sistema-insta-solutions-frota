@@ -13,7 +13,7 @@ module Api
         end
         post do
           user = current_user
-          client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+          client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
           vehicle = Vehicle.where(client_id: client_id).find(params[:vehicle_id])
 
           record = VehicleKmRecord.new(
@@ -39,7 +39,7 @@ module Api
         end
         get do
           user = current_user
-          client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+          client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
           vehicle = Vehicle.where(client_id: client_id).find(params[:vehicle_id])
 
           records = VehicleKmRecord.where(vehicle_id: vehicle.id)

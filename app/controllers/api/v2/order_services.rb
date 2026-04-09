@@ -138,7 +138,7 @@ module Api
             vehicle_id: params[:vehicle_id],
             provider_service_type_id: params[:provider_service_type_id],
             order_service_type_id: params[:order_service_type_id] || OrderServiceType::COTACOES_ID,
-            order_service_status_id: OrderServiceStatus::EM_ABERTO,
+            order_service_status_id: OrderServiceStatus::EM_ABERTO_ID,
             km: params[:km],
             driver: params[:driver],
             details: params[:details],
@@ -180,7 +180,7 @@ module Api
         desc 'Aprovar OS (gestor/adicional)'
         put ':id/approve' do
           user = current_user
-          unless user.profile_id.in?([Profile::GESTOR, Profile::ADICIONAL, Profile::ADMINISTRADOR])
+          unless user.profile_id.in?([Profile::MANAGER_ID, Profile::ADDITIONAL_ID, Profile::ADMIN_ID])
             error!('Sem permissão para aprovar OS', 403)
           end
 
@@ -191,9 +191,9 @@ module Api
             os = OrderService.where(client_id: client_id).find(params[:id])
           end
 
-          if os.order_service_status_id == OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA
+          if os.order_service_status_id == OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID
             os.update!(
-              order_service_status_id: OrderServiceStatus::APROVADA,
+              order_service_status_id: OrderServiceStatus::APROVADA_ID,
               manager_id: user.id
             )
 
@@ -204,7 +204,7 @@ module Api
             if pending_proposal
               pending_proposal.update!(
                 pending_manager_approval: false,
-                order_service_proposal_status_id: OrderServiceProposalStatus::APROVADA
+                order_service_proposal_status_id: OrderServiceProposalStatus::APROVADA_ID
               )
             end
 
@@ -220,7 +220,7 @@ module Api
         end
         put ':id/reject' do
           user = current_user
-          unless user.profile_id.in?([Profile::GESTOR, Profile::ADICIONAL, Profile::ADMINISTRADOR])
+          unless user.profile_id.in?([Profile::MANAGER_ID, Profile::ADDITIONAL_ID, Profile::ADMIN_ID])
             error!('Sem permissão para rejeitar OS', 403)
           end
 
@@ -232,7 +232,7 @@ module Api
           end
 
           os.update!(
-            order_service_status_id: OrderServiceStatus::CANCELADA,
+            order_service_status_id: OrderServiceStatus::CANCELADA_ID,
             cancel_justification: params[:justification]
           )
 

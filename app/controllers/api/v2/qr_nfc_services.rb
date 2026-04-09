@@ -14,7 +14,7 @@ module Api
         end
         post 'request_service' do
           user = current_user
-          client = user.profile_id == Profile::CLIENTE ? user : User.find(user.client_id)
+          client = user.profile_id == Profile::CLIENT_ID ? user : User.find(user.client_id)
 
           unless client.qr_nfc_enabled
             error!('Funcionalidade QR/NFC não habilitada para este cliente', 403)
@@ -45,7 +45,7 @@ module Api
             vehicle_id: vehicle.id,
             provider_service_type_id: params[:provider_service_type_id],
             order_service_type_id: OrderServiceType::COTACOES_ID,
-            order_service_status_id: OrderServiceStatus::EM_CADASTRO,
+            order_service_status_id: OrderServiceStatus::EM_CADASTRO_ID,
             km: params[:km],
             driver: params[:driver] || user.name,
             details: params[:details],
@@ -79,11 +79,11 @@ module Api
         end
         post 'generate_token' do
           user = current_user
-          unless user.profile_id.in?([Profile::ADMINISTRADOR, Profile::GESTOR, Profile::CLIENTE])
+          unless user.profile_id.in?([Profile::ADMIN_ID, Profile::MANAGER_ID, Profile::CLIENT_ID])
             error!('Sem permissão', 403)
           end
 
-          client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+          client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
           vehicle = Vehicle.where(client_id: client_id).find(params[:vehicle_id])
 
           hash = Digest::SHA256.hexdigest("#{vehicle.id}-#{vehicle.board}-#{client_id}")[0..7]
@@ -95,7 +95,7 @@ module Api
         desc 'Verificar se QR/NFC está habilitado'
         get 'status' do
           user = current_user
-          client = user.profile_id == Profile::CLIENTE ? user : User.find(user.client_id)
+          client = user.profile_id == Profile::CLIENT_ID ? user : User.find(user.client_id)
 
           { enabled: client.qr_nfc_enabled }
         end

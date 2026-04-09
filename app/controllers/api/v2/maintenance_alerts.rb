@@ -13,7 +13,7 @@ module Api
         end
         get do
           user = current_user
-          client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+          client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
 
           scope = MaintenanceAlert.where(client_id: client_id)
           scope = scope.where(status: params[:status]) if params[:status].present?
@@ -37,7 +37,7 @@ module Api
         desc 'Reconhecer alerta'
         put ':id/acknowledge' do
           user = current_user
-          client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+          client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
           alert = MaintenanceAlert.where(client_id: client_id).find(params[:id])
 
           alert.acknowledge!(user)
@@ -47,7 +47,7 @@ module Api
         desc 'Dispensar alerta'
         put ':id/dismiss' do
           user = current_user
-          client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+          client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
           alert = MaintenanceAlert.where(client_id: client_id).find(params[:id])
 
           alert.dismiss!
@@ -57,7 +57,7 @@ module Api
         desc 'Forçar verificação de alertas'
         post 'check' do
           user = current_user
-          client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+          client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
 
           MaintenanceAlertService.check_all_vehicles(client_id)
           { message: 'Verificação de alertas concluída' }

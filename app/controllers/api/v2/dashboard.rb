@@ -41,16 +41,16 @@ module Api
 
           total_os = os_scope.count
           os_open = os_scope.where(order_service_status_id: [
-            OrderServiceStatus::EM_ABERTO,
-            OrderServiceStatus::EM_CADASTRO
+            OrderServiceStatus::EM_ABERTO_ID,
+            OrderServiceStatus::EM_CADASTRO_ID
           ]).count
-          os_approved = os_scope.where(order_service_status_id: OrderServiceStatus::APROVADA).count
+          os_approved = os_scope.where(order_service_status_id: OrderServiceStatus::APROVADA_ID).count
           os_awaiting = os_scope.where(order_service_status_id: [
-            OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA,
-            OrderServiceStatus::AGUARDANDO_APROVACAO_COMPLEMENTO
+            OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID,
+            OrderServiceStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID
           ]).count
-          os_paid = os_scope.where(order_service_status_id: OrderServiceStatus::PAGA).count
-          os_cancelled = os_scope.where(order_service_status_id: OrderServiceStatus::CANCELADA).count
+          os_paid = os_scope.where(order_service_status_id: OrderServiceStatus::PAGA_ID).count
+          os_cancelled = os_scope.where(order_service_status_id: OrderServiceStatus::CANCELADA_ID).count
 
           vehicles_count = vehicles_scope.count
           anomalies_open = anomalies_scope.respond_to?(:open_anomalies) ? anomalies_scope.open_anomalies.count : 0
@@ -67,9 +67,9 @@ module Api
           os_values_by_type = os_scope
             .joins(:order_service_type)
             .where(order_service_status_id: [
-              OrderServiceStatus::APROVADA,
-              OrderServiceStatus::AUTORIZADA,
-              OrderServiceStatus::PAGA
+              OrderServiceStatus::APROVADA_ID,
+              OrderServiceStatus::AUTORIZADA_ID,
+              OrderServiceStatus::PAGA_ID
             ])
             .joins(order_service_proposals: :order_service_proposal_items)
             .group('order_service_types.name')

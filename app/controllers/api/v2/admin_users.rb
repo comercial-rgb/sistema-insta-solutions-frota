@@ -14,11 +14,11 @@ module Api
           end
           get do
             user = current_user
-            unless user.profile_id.in?([Profile::ADMINISTRADOR, Profile::GESTOR, Profile::CLIENTE])
+            unless user.profile_id.in?([Profile::ADMIN_ID, Profile::MANAGER_ID, Profile::CLIENT_ID])
               error!('Sem permissão para gerenciar usuários', 403)
             end
 
-            client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+            client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
 
             scope = User.where(client_id: client_id)
             scope = scope.where(profile_id: params[:profile_id]) if params[:profile_id].present?
@@ -43,7 +43,7 @@ module Api
           desc 'Detalhes de um usuário'
           get ':id' do
             user = current_user
-            client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+            client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
             target = User.where(client_id: client_id).find(params[:id])
 
             { user: serialize_user_detail(target) }
@@ -65,14 +65,14 @@ module Api
           end
           post do
             user = current_user
-            unless user.profile_id.in?([Profile::ADMINISTRADOR, Profile::GESTOR, Profile::CLIENTE])
+            unless user.profile_id.in?([Profile::ADMIN_ID, Profile::MANAGER_ID, Profile::CLIENT_ID])
               error!('Sem permissão para criar usuários', 403)
             end
 
-            client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+            client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
 
             # Apenas permite criar perfis subordinados
-            allowed_profiles = [Profile::USUARIO, Profile::GESTOR, Profile::ADICIONAL, Profile::FORNECEDOR]
+            allowed_profiles = [Profile::USER_ID, Profile::MANAGER_ID, Profile::ADDITIONAL_ID, Profile::PROVIDER_ID]
             unless params[:profile_id].in?(allowed_profiles)
               error!('Perfil não permitido', 422)
             end
@@ -113,11 +113,11 @@ module Api
           end
           put ':id' do
             user = current_user
-            unless user.profile_id.in?([Profile::ADMINISTRADOR, Profile::GESTOR, Profile::CLIENTE])
+            unless user.profile_id.in?([Profile::ADMIN_ID, Profile::MANAGER_ID, Profile::CLIENT_ID])
               error!('Sem permissão', 403)
             end
 
-            client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+            client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
             target = User.where(client_id: client_id).find(params[:id])
 
             updates = declared(params, include_missing: false).except(:id)
@@ -129,11 +129,11 @@ module Api
           desc 'Bloquear/desbloquear usuário'
           put ':id/toggle_block' do
             user = current_user
-            unless user.profile_id.in?([Profile::ADMINISTRADOR, Profile::GESTOR, Profile::CLIENTE])
+            unless user.profile_id.in?([Profile::ADMIN_ID, Profile::MANAGER_ID, Profile::CLIENT_ID])
               error!('Sem permissão', 403)
             end
 
-            client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+            client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
             target = User.where(client_id: client_id).find(params[:id])
 
             target.update!(is_blocked: !target.is_blocked)
@@ -145,7 +145,7 @@ module Api
 
         desc 'Perfis disponíveis para criação'
         get 'profiles' do
-          profiles = Profile.where(id: [Profile::USUARIO, Profile::GESTOR, Profile::ADICIONAL, Profile::FORNECEDOR])
+          profiles = Profile.where(id: [Profile::USER_ID, Profile::MANAGER_ID, Profile::ADDITIONAL_ID, Profile::PROVIDER_ID])
           { profiles: profiles.map { |p| { id: p.id, name: p.name } } }
         end
       end

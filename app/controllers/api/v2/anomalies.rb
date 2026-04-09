@@ -14,7 +14,7 @@ module Api
         end
         get do
           user = current_user
-          client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+          client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
 
           scope = Anomaly.where(client_id: client_id)
           scope = scope.by_status(params[:status]) if params[:status].present?
@@ -36,7 +36,7 @@ module Api
         desc 'Detalhes de uma anomalia'
         get ':id' do
           user = current_user
-          client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+          client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
           anomaly = Anomaly.where(client_id: client_id).find(params[:id])
 
           { anomaly: serialize_anomaly_detail(anomaly) }
@@ -53,7 +53,7 @@ module Api
         end
         post do
           user = current_user
-          client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+          client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
           vehicle = Vehicle.where(client_id: client_id).find(params[:vehicle_id])
 
           anomaly = Anomaly.new(
@@ -87,7 +87,7 @@ module Api
         end
         put ':id' do
           user = current_user
-          client_id = user.profile_id == Profile::CLIENTE ? user.id : user.client_id
+          client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
           anomaly = Anomaly.where(client_id: client_id).find(params[:id])
 
           updates = {}
