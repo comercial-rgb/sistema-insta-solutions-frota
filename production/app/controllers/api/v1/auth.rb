@@ -11,7 +11,7 @@ module Api
           requires :password
         end
         post :login do
-          user = User.active.user.find_by_email(params[:email].strip.downcase)
+          user = User.active.find_by_email(params[:email].strip.downcase)
           if user && (user.authenticate(params[:password]) || Rails.env.development?)
             key = ApiKey.create(user_id: user.id, access_token: SecureRandom.hex)
             {
@@ -43,7 +43,7 @@ module Api
           requires :email
         end
         post :recover_pass do
-          @user = User.user.active.find_by_email(params[:email].strip)
+          @user = User.active.find_by_email(params[:email].strip)
           if @user
             @user.update_column(:recovery_token, SecureRandom.urlsafe_base64)
             NotificationMailer.forgot_password(@user, SystemConfiguration.first).deliver_later
@@ -54,12 +54,9 @@ module Api
         end
 
         # Ping
-        params do
-          requires :token
-        end
         get :ping do
           authenticate!
-          {status: 'sucesss', message: "pong"}
+          {status: 'success', message: "pong"}
         end
 
       end  

@@ -13,7 +13,7 @@
     "scheme": "instasolutions",
     "splash": {
       "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
+      "resizeMode": "cover",
       "backgroundColor": "#1E3A5F"
     },
     "assetBundlePatterns": [
@@ -74,7 +74,16 @@
           "color": "#1E3A5F"
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35
+          }
+        }
+      ]
     ],
     "updates": {
       "url": "https://u.expo.dev/2b584ccf-7d41-40dc-9554-060fba283ac3",

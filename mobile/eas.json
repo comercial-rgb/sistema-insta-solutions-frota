@@ -41,5 +41,19 @@
         "image": "latest"
       }
     }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "winer_1995@hotmail.com",
+        "appleTeamId": "WT9XT48S5L",
+        "ascAppId": "6761920098"
+      },
+      "android": {
+        "serviceAccountKeyPath": "./google-service-account.json",
+        "track": "internal",
+        "releaseStatus": "draft"
+      }
+    }
   }
 }

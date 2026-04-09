@@ -10,3 +10,4 @@ ios/
 *.mobileprovision
 *.orig.*
 web-build/
+google-service-account.json

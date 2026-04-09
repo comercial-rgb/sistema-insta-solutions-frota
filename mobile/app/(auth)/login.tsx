@@ -48,10 +48,11 @@ export default function LoginScreen() {
     >
       <View style={styles.content}>
         <View style={styles.logoContainer}>
-          <View style={styles.logoCircle}>
-            <Ionicons name="car-sport" size={48} color={colors.primary} />
-          </View>
-          <Text style={styles.title}>Insta Solutions</Text>
+          <Image
+            source={require('../../assets/images/logo-vertical-branco.png')}
+            style={styles.logoImage}
+            resizeMode="contain"
+          />
           <Text style={styles.subtitle}>Gestão de Frotas Inteligente</Text>
         </View>
 
@@ -129,20 +130,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.xxl,
   },
-  logoCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: colors.textInverse,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
-  title: {
-    fontSize: fontSize.xxxl,
-    fontWeight: '700',
-    color: colors.textInverse,
-    marginBottom: spacing.xs,
+  logoImage: {
+    width: 200,
+    height: 160,
+    marginBottom: spacing.sm,
   },
   subtitle: {
     fontSize: fontSize.md,
