@@ -174,6 +174,7 @@ export default function OrderServicesScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
         contentContainerStyle={styles.statusRow}
       >
         {STATUS_FILTERS.map((sf) => {
@@ -263,11 +264,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: spacing.md,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: borderRadius.full,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+    minHeight: 34,
   },
   statusChipText: { fontSize: fontSize.xs, color: colors.textLight },
   countText: {

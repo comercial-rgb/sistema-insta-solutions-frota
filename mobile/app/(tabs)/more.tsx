@@ -21,13 +21,15 @@ interface MenuItem {
 }
 
 export default function MoreScreen() {
-  const { canManageUsers, logout } = useAuth();
+  const { canManageUsers, isMotorista, logout } = useAuth();
 
   const menuItems: MenuItem[] = [
     { icon: 'wallet-outline', label: 'Saldos', description: 'Consultar saldos e empenhos', route: '/balances' },
     { icon: 'speedometer-outline', label: 'Registrar KM', description: 'Informar quilometragem', route: '/km-register' },
     { icon: 'alert-circle-outline', label: 'Anomalias', description: 'Relatar problemas', route: '/anomalies' },
+    { icon: 'clipboard-outline', label: 'Checklist Veicular', description: 'Realizar checklist do veículo', route: '/vehicle-checklist' },
     { icon: 'construct-outline', label: 'Alertas Manutenção', description: 'Plano de manutenção', route: '/maintenance-alerts' },
+    { icon: 'clipboard-outline', label: 'Planos de Manutenção', description: 'Criar e gerenciar planos', route: '/maintenance-plans' },
     { icon: 'qr-code-outline', label: 'QR Code / NFC', description: 'Solicitar serviço via QR/NFC', route: '/qr-scan' },
     { icon: 'notifications-outline', label: 'Notificações', description: 'Central de notificações', route: '/notifications' },
     { icon: 'chatbubble-ellipses-outline', label: 'Contato', description: 'Fale conosco', route: '/contact' },

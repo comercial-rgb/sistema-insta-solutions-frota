@@ -22,11 +22,11 @@ export default function OSDetailScreen() {
   const { canApproveOS } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isError, refetch } = useQuery({
+  const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['os-detail', id],
     queryFn: () => orderServicesApi.getDetail(Number(id)),
-    enabled: !!id,
-    retry: 1,
+    enabled: !!id && Number(id) > 0,
+    retry: 2,
   });
 
   const approveMutation = useMutation({
@@ -88,15 +88,28 @@ export default function OSDetailScreen() {
     return (
       <View style={styles.loadingContainer}>
         <Ionicons name="alert-circle-outline" size={48} color={colors.textLight} />
-        <Text style={{ color: colors.textLight, marginTop: spacing.sm, fontSize: fontSize.md }}>
-          {isError ? 'Erro ao carregar OS' : 'OS não encontrada'}
+        <Text style={{ color: colors.textLight, marginTop: spacing.sm, fontSize: fontSize.md, textAlign: 'center', paddingHorizontal: spacing.lg }}>
+          {isError ? `Erro ao carregar OS #${id}` : 'OS não encontrada'}
         </Text>
-        <TouchableOpacity
-          style={{ marginTop: spacing.md, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, backgroundColor: colors.primary, borderRadius: borderRadius.md }}
-          onPress={() => refetch()}
-        >
-          <Text style={{ color: '#fff', fontWeight: '600' }}>Tentar novamente</Text>
-        </TouchableOpacity>
+        {isError && error && (
+          <Text style={{ color: colors.textLight, marginTop: spacing.xs, fontSize: fontSize.xs, textAlign: 'center' }}>
+            {(error as any)?.response?.status === 401 ? 'Sessão expirada. Faça login novamente.' : 'Verifique sua conexão e tente novamente.'}
+          </Text>
+        )}
+        <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
+          <TouchableOpacity
+            style={{ paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, backgroundColor: colors.primary, borderRadius: borderRadius.md }}
+            onPress={() => refetch()}
+          >
+            <Text style={{ color: '#fff', fontWeight: '600' }}>Tentar novamente</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={{ paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, backgroundColor: colors.border, borderRadius: borderRadius.md }}
+            onPress={() => router.back()}
+          >
+            <Text style={{ color: colors.text, fontWeight: '600' }}>Voltar</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }

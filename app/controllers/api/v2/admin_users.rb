@@ -53,7 +53,7 @@ module Api
           params do
             requires :name, type: String
             requires :email, type: String
-            requires :profile_id, type: Integer, desc: '2=Usuário, 4=Gestor, 5=Adicional, 6=Fornecedor'
+            requires :profile_id, type: Integer, desc: '2=Usuário, 4=Gestor, 5=Adicional, 6=Fornecedor, 7=Motorista'
             requires :password, type: String
             optional :cpf, type: String
             optional :cnpj, type: String
@@ -62,6 +62,10 @@ module Api
             optional :fantasy_name, type: String
             optional :department, type: String
             optional :registration, type: String
+            optional :cnh_number, type: String
+            optional :cnh_category, type: String
+            optional :cnh_expiration, type: Date
+            optional :cnh_issued_at, type: Date
           end
           post do
             user = current_user
@@ -72,7 +76,7 @@ module Api
             client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
 
             # Apenas permite criar perfis subordinados
-            allowed_profiles = [Profile::USER_ID, Profile::MANAGER_ID, Profile::ADDITIONAL_ID, Profile::PROVIDER_ID]
+            allowed_profiles = [Profile::USER_ID, Profile::MANAGER_ID, Profile::ADDITIONAL_ID, Profile::PROVIDER_ID, Profile::DRIVER_ID]
             unless params[:profile_id].in?(allowed_profiles)
               error!('Perfil não permitido', 422)
             end
@@ -91,6 +95,10 @@ module Api
               fantasy_name: params[:fantasy_name],
               department: params[:department],
               registration: params[:registration],
+              cnh_number: params[:cnh_number],
+              cnh_category: params[:cnh_category],
+              cnh_expiration: params[:cnh_expiration],
+              cnh_issued_at: params[:cnh_issued_at],
               user_status_id: 1
             )
 
@@ -145,14 +153,14 @@ module Api
 
         desc 'Perfis disponíveis para criação'
         get 'profiles' do
-          profiles = Profile.where(id: [Profile::USER_ID, Profile::MANAGER_ID, Profile::ADDITIONAL_ID, Profile::PROVIDER_ID])
+          profiles = Profile.where(id: [Profile::USER_ID, Profile::MANAGER_ID, Profile::ADDITIONAL_ID, Profile::PROVIDER_ID, Profile::DRIVER_ID])
           { profiles: profiles.map { |p| { id: p.id, name: p.name } } }
         end
       end
 
       helpers do
         def serialize_user(u)
-          {
+          data = {
             id: u.id,
             name: u.name,
             email: u.email,
@@ -166,6 +174,16 @@ module Api
             department: u.department,
             created_at: u.created_at
           }
+          # Campos de motorista
+          if u.driver?
+            data.merge!(
+              cnh_number: u.cnh_number,
+              cnh_category: u.cnh_category,
+              cnh_expiration: u.cnh_expiration,
+              cnh_issued_at: u.cnh_issued_at
+            )
+          end
+          data
         end
 
         def serialize_user_detail(u)
@@ -177,7 +195,11 @@ module Api
             city: u.city&.name,
             needs_km: u.needs_km,
             require_vehicle_photos: u.require_vehicle_photos,
-            updated_at: u.updated_at
+            updated_at: u.updated_at,
+            cnh_number: u.cnh_number,
+            cnh_category: u.cnh_category,
+            cnh_expiration: u.cnh_expiration,
+            cnh_issued_at: u.cnh_issued_at
           )
         end
       end

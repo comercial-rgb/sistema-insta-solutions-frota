@@ -11,6 +11,8 @@ import {
   Image,
   Modal,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -107,8 +109,12 @@ export default function ReportAnomalyScreen() {
       </TouchableOpacity>
 
       <Modal visible={showVehiclePicker} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContainer}>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Selecionar Veículo</Text>
               <TouchableOpacity onPress={() => setShowVehiclePicker(false)}>
@@ -135,9 +141,11 @@ export default function ReportAnomalyScreen() {
                 </TouchableOpacity>
               )}
               ListEmptyComponent={<Text style={styles.pickerEmpty}>Nenhum veículo encontrado</Text>}
+              keyboardShouldPersistTaps="handled"
             />
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Title */}

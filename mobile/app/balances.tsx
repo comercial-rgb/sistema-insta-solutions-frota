@@ -55,7 +55,7 @@ export default function BalancesScreen() {
       ) : (
         <>
           {/* Summary Card */}
-          <View style={styles.summaryCard}>
+          <View style={[styles.summaryCard, { marginTop: spacing.md }]}>
             <Text style={styles.summaryTitle}>Resumo Geral</Text>
             <View style={styles.summaryRow}>
               <View style={styles.summaryItem}>

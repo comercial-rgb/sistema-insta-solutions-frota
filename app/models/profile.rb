@@ -5,6 +5,7 @@ class Profile < ActiveRecord::Base
 	MANAGER = "Gestor"
 	ADDITIONAL = "Adicional"
 	PROVIDER = "Fornecedor"
+	DRIVER = "Motorista"
 
 	ADMIN_ID = 1
 	USER_ID = 2
@@ -12,6 +13,7 @@ class Profile < ActiveRecord::Base
 	MANAGER_ID = 4
 	ADDITIONAL_ID = 5
 	PROVIDER_ID = 6
+	DRIVER_ID = 7
 
 	has_many :users
 
@@ -52,6 +54,10 @@ class Profile < ActiveRecord::Base
 
 	def provider?
 		self.id == Profile::PROVIDER_ID
+	end
+
+	def driver?
+		self.id == Profile::DRIVER_ID
 	end
 
 	def to_s

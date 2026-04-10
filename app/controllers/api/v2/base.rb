@@ -12,10 +12,13 @@ module Api
       mount Api::V2::Anomalies
       mount Api::V2::Balances
       mount Api::V2::MaintenanceAlerts
+      mount Api::V2::MaintenancePlans
       mount Api::V2::MobileNotifications
       mount Api::V2::QrNfcServices
       mount Api::V2::AdminUsers
       mount Api::V2::Contact
+      mount Api::V2::VehicleChecklists
+      mount Api::V2::TrafficViolationsEndpoint
     end
   end
 end

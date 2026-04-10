@@ -73,6 +73,7 @@ Rails.application.routes.draw do
 	get 'users_manager', :to => 'users#users_manager', :as => 'users_manager'
 	get 'users_additional', :to => 'users#users_additional', :as => 'users_additional'
 	get 'users_provider', :to => 'users#users_provider', :as => 'users_provider'
+	get 'users_driver', :to => 'users#users_driver', :as => 'users_driver'
 
 	get 'validate_users', :to => 'users#validate_users', :as => 'validate_users'
 
@@ -238,8 +239,26 @@ Rails.application.routes.draw do
 	resources :vehicles do
 		member do
 			get :order_services
+			get :checklists
+		end
 	end
-end
+
+	resources :vehicle_checklists, only: [:show] do
+		member do
+			put :acknowledge
+			post :create_os
+		end
+	end
+
+	resources :traffic_violations
+
+	resources :maintenance_plans do
+		member do
+			post :add_vehicles
+			delete :remove_vehicle
+			get :available_vehicles
+		end
+	end
 
 resources :vehicle_models do
 	member do

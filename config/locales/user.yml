@@ -42,6 +42,8 @@ pt-BR:
         additional_users: 'Adicionais'
         provider_user: 'Fornecedor'
         provider_users: 'Fornecedores'
+        driver_user: 'Motorista'
+        driver_users: 'Motoristas'
         client: "Cliente"
         client_id: "Cliente"
         reactived: 'Reativado'
@@ -178,6 +180,8 @@ en:
         additional_users: 'Adicionais'
         provider_user: 'Fornecedor'
         provider_users: 'Fornecedores'
+        driver_user: 'Motorista'
+        driver_users: 'Motoristas'
         client: "Cliente"
         client_id: "Cliente"
         reactived: 'Reativado'

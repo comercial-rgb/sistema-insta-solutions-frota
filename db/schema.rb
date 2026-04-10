@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_08_140000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_10_130000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -374,6 +374,19 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_08_140000) do
     t.index ["ownertable_type", "ownertable_id"], name: "index_data_banks_on_ownertable"
   end
 
+  create_table "driver_vehicle_assignments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "user_id", null: false, comment: "Motorista"
+    t.bigint "vehicle_id", null: false
+    t.boolean "active", default: true
+    t.date "assigned_at"
+    t.date "unassigned_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "vehicle_id", "active"], name: "idx_driver_vehicle_active", unique: true
+    t.index ["user_id"], name: "index_driver_vehicle_assignments_on_user_id"
+    t.index ["vehicle_id"], name: "index_driver_vehicle_assignments_on_vehicle_id"
+  end
+
   create_table "fuel_types", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name"
     t.datetime "created_at", null: false
@@ -422,10 +435,25 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_08_140000) do
     t.index ["plan_type"], name: "index_maintenance_plan_items_on_plan_type"
   end
 
+  create_table "maintenance_plan_vehicles", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "maintenance_plan_id", null: false
+    t.bigint "vehicle_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["maintenance_plan_id", "vehicle_id"], name: "idx_mp_vehicles_unique", unique: true
+    t.index ["maintenance_plan_id"], name: "index_maintenance_plan_vehicles_on_maintenance_plan_id"
+    t.index ["vehicle_id"], name: "index_maintenance_plan_vehicles_on_vehicle_id"
+  end
+
   create_table "maintenance_plans", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "client_id"
+    t.text "description"
+    t.boolean "active", default: true
+    t.index ["active"], name: "index_maintenance_plans_on_active"
+    t.index ["client_id"], name: "index_maintenance_plans_on_client_id"
   end
 
   create_table "notification_acknowledgments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -990,6 +1018,30 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_08_140000) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "traffic_violations", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "user_id", null: false, comment: "Motorista infrator"
+    t.bigint "vehicle_id", null: false
+    t.bigint "client_id", null: false
+    t.string "auto_number", comment: "Número do auto de infração"
+    t.date "violation_date", null: false
+    t.string "violation_type", comment: "Tipo da infração (leve/media/grave/gravissima)"
+    t.text "description"
+    t.decimal "fine_value", precision: 10, scale: 2
+    t.integer "points", default: 0
+    t.string "status", default: "pending", comment: "pending/paid/appealed/cancelled"
+    t.date "due_date"
+    t.date "paid_at"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["auto_number"], name: "index_traffic_violations_on_auto_number"
+    t.index ["client_id"], name: "index_traffic_violations_on_client_id"
+    t.index ["status"], name: "index_traffic_violations_on_status"
+    t.index ["user_id"], name: "index_traffic_violations_on_user_id"
+    t.index ["vehicle_id"], name: "index_traffic_violations_on_vehicle_id"
+    t.index ["violation_date"], name: "index_traffic_violations_on_violation_date"
+  end
+
   create_table "user_email_settings", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "email", null: false
@@ -1056,14 +1108,57 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_08_140000) do
     t.boolean "qr_nfc_enabled", default: false, null: false
     t.string "qr_code_token"
     t.integer "government_sphere", default: 2, null: false
+    t.string "cnh_number"
+    t.string "cnh_category"
+    t.date "cnh_expiration"
+    t.date "cnh_issued_at"
     t.index ["city_id"], name: "index_users_on_city_id"
     t.index ["client_id"], name: "index_users_on_client_id"
+    t.index ["cnh_number"], name: "index_users_on_cnh_number", unique: true
     t.index ["person_type_id"], name: "index_users_on_person_type_id"
     t.index ["profile_id"], name: "index_users_on_profile_id"
     t.index ["qr_code_token"], name: "index_users_on_qr_code_token", unique: true
     t.index ["sex_id"], name: "index_users_on_sex_id"
     t.index ["state_id"], name: "index_users_on_state_id"
     t.index ["user_status_id"], name: "index_users_on_user_status_id"
+  end
+
+  create_table "vehicle_checklist_items", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "vehicle_checklist_id", null: false
+    t.string "category", null: false, comment: "motor/freios/pneus/eletrica/carroceria/interior/luzes/fluidos/documentacao/outros"
+    t.string "item_name", null: false, comment: "Nome do item verificado"
+    t.string "condition", null: false, comment: "ok/attention/critical/na"
+    t.text "observation"
+    t.boolean "has_anomaly", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category"], name: "index_vehicle_checklist_items_on_category"
+    t.index ["condition"], name: "index_vehicle_checklist_items_on_condition"
+    t.index ["has_anomaly"], name: "index_vehicle_checklist_items_on_has_anomaly"
+    t.index ["vehicle_checklist_id"], name: "index_vehicle_checklist_items_on_vehicle_checklist_id"
+  end
+
+  create_table "vehicle_checklists", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "vehicle_id", null: false
+    t.bigint "user_id", null: false, comment: "Quem realizou o checklist"
+    t.bigint "client_id", null: false
+    t.bigint "cost_center_id"
+    t.integer "current_km"
+    t.string "status", default: "pending", null: false, comment: "pending/acknowledged/os_created/closed"
+    t.text "general_notes"
+    t.datetime "acknowledged_at"
+    t.bigint "acknowledged_by_id"
+    t.bigint "order_service_id", comment: "OS gerada a partir deste checklist"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["acknowledged_by_id"], name: "index_vehicle_checklists_on_acknowledged_by_id"
+    t.index ["client_id"], name: "index_vehicle_checklists_on_client_id"
+    t.index ["cost_center_id"], name: "index_vehicle_checklists_on_cost_center_id"
+    t.index ["created_at"], name: "index_vehicle_checklists_on_created_at"
+    t.index ["order_service_id"], name: "index_vehicle_checklists_on_order_service_id"
+    t.index ["status"], name: "index_vehicle_checklists_on_status"
+    t.index ["user_id"], name: "index_vehicle_checklists_on_user_id"
+    t.index ["vehicle_id"], name: "index_vehicle_checklists_on_vehicle_id"
   end
 
   create_table "vehicle_km_records", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -1196,12 +1291,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_08_140000) do
   add_foreign_key "cost_centers", "users", column: "client_id"
   add_foreign_key "data_banks", "banks"
   add_foreign_key "data_banks", "data_bank_types"
+  add_foreign_key "driver_vehicle_assignments", "users"
+  add_foreign_key "driver_vehicle_assignments", "vehicles"
   add_foreign_key "maintenance_alerts", "maintenance_plan_items"
   add_foreign_key "maintenance_alerts", "users", column: "acknowledged_by_id"
   add_foreign_key "maintenance_alerts", "users", column: "client_id"
   add_foreign_key "maintenance_alerts", "vehicles"
   add_foreign_key "maintenance_plan_items", "maintenance_plans"
   add_foreign_key "maintenance_plan_items", "users", column: "client_id"
+  add_foreign_key "maintenance_plan_vehicles", "maintenance_plans"
+  add_foreign_key "maintenance_plan_vehicles", "vehicles"
+  add_foreign_key "maintenance_plans", "users", column: "client_id"
   add_foreign_key "notification_acknowledgments", "notifications"
   add_foreign_key "notification_acknowledgments", "users"
   add_foreign_key "notifications", "cities"
@@ -1267,6 +1367,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_08_140000) do
   add_foreign_key "support_ticket_messages", "users"
   add_foreign_key "support_tickets", "users"
   add_foreign_key "support_tickets", "users", column: "resolved_by_id"
+  add_foreign_key "traffic_violations", "users"
+  add_foreign_key "traffic_violations", "users", column: "client_id"
+  add_foreign_key "traffic_violations", "vehicles"
   add_foreign_key "user_email_settings", "users"
   add_foreign_key "users", "cities"
   add_foreign_key "users", "person_types"
@@ -1275,6 +1378,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_08_140000) do
   add_foreign_key "users", "states"
   add_foreign_key "users", "user_statuses"
   add_foreign_key "users", "users", column: "client_id"
+  add_foreign_key "vehicle_checklist_items", "vehicle_checklists"
+  add_foreign_key "vehicle_checklists", "cost_centers"
+  add_foreign_key "vehicle_checklists", "order_services"
+  add_foreign_key "vehicle_checklists", "users"
+  add_foreign_key "vehicle_checklists", "users", column: "acknowledged_by_id"
+  add_foreign_key "vehicle_checklists", "users", column: "client_id"
+  add_foreign_key "vehicle_checklists", "vehicles"
   add_foreign_key "vehicle_km_records", "order_services"
   add_foreign_key "vehicle_km_records", "users"
   add_foreign_key "vehicle_km_records", "vehicles"

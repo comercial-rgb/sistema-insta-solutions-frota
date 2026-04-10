@@ -19,6 +19,7 @@ interface AuthContextType extends AuthState {
   isCliente: boolean;
   isAdicional: boolean;
   isFornecedor: boolean;
+  isMotorista: boolean;
   canApproveOS: boolean;
   canManageUsers: boolean;
 }
@@ -114,6 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isCliente = state.profileId === ProfileId.CLIENTE;
   const isAdicional = state.profileId === ProfileId.ADICIONAL;
   const isFornecedor = state.profileId === ProfileId.FORNECEDOR;
+  const isMotorista = state.profileId === ProfileId.MOTORISTA;
   const canApproveOS = [ProfileId.ADMINISTRADOR, ProfileId.GESTOR, ProfileId.ADICIONAL].includes(
     state.profileId as ProfileId
   );
@@ -132,6 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isCliente,
         isAdicional,
         isFornecedor,
+        isMotorista,
         canApproveOS,
         canManageUsers,
       }}

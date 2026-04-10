@@ -139,6 +139,7 @@ export default function VehiclesScreen() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
         contentContainerStyle={styles.filterRow}
       >
         {ACTIVE_FILTERS.map((f) => {
@@ -215,11 +216,13 @@ const styles = StyleSheet.create({
   },
   filterChip: {
     paddingHorizontal: spacing.md,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: borderRadius.full,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.border,
+    minHeight: 34,
+    justifyContent: 'center',
   },
   filterChipActive: {
     backgroundColor: colors.primary + '15',
@@ -266,8 +269,8 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.full,
   },
   detailText: { fontSize: fontSize.xs, color: colors.textSecondary },
-  costCenter: { fontSize: fontSize.xs, color: colors.textLight, marginTop: spacing.xs },
-  subUnit: { fontSize: fontSize.xs, color: colors.textLight, marginTop: 2 },
+  costCenter: { fontSize: fontSize.xs, color: colors.textLight, marginTop: spacing.xs, textAlign: 'right' },
+  subUnit: { fontSize: fontSize.xs, color: colors.textLight, marginTop: 2, textAlign: 'right' },
   emptyContainer: { alignItems: 'center', paddingTop: spacing.xxl },
   emptyText: { fontSize: fontSize.md, color: colors.textLight, marginTop: spacing.sm },
 });

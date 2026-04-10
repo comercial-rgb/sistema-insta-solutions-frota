@@ -1,0 +1,20 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: maintenance_plans_path, text: "Planos de Manutenção"},
+	{active: true, href: '#', text: t('model.list')},
+]
+%>
+
+<%= 
+	render 'common_pages/index',
+	attributes: {
+		page_title: "Planos de Manutenção",
+		url_new_path: new_maintenance_plan_path,
+		policy_true: policy(MaintenancePlan).new?,
+		objects: @maintenance_plans,
+		objects_path: maintenance_plans_path,
+		object_name: "Plano de Manutenção",
+		breadcrumbs: breadcrumbs
+	}
+%>

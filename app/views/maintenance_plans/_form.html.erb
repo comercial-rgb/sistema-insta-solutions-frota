@@ -1,0 +1,170 @@
+<%= simple_form_for(@maintenance_plan) do |f| %>
+
+    <div class="row">
+        <div class="col-12">
+            <%= f.error_notification %>
+            <%= f.error_notification message: f.object.errors[:base].to_sentence if f.object.errors[:base].present? %>
+        </div>
+    </div>
+
+    <% if @current_user.admin? %>
+    <div class="row">
+        <div class="col-12 col-md-4">
+            <%= f.association :client, collection: User.client.order(:fantasy_name), label_method: :fantasy_name, value_method: :id, label: "Cliente", include_blank: t('model.select_option') %>
+        </div>
+    </div>
+    <% end %>
+
+    <div class="row">
+        <div class="col-12 col-md-4">
+            <%= f.input :name, label: "Nome do Plano", placeholder: "Ex: Plano de Revisão Preventiva" %>
+        </div>
+        <div class="col-12 col-md-6">
+            <%= f.input :description, label: "Descrição", placeholder: "Descrição do plano de manutenção" %>
+        </div>
+        <div class="col-12 col-md-2">
+            <%= f.input :active, as: :boolean, label: "Ativo" %>
+        </div>
+    </div>
+
+    <hr>
+    <h5><i class="bi bi-list-check"></i> Itens do Plano de Manutenção</h5>
+    <p class="text-muted small">Defina os itens de manutenção e seus intervalos para disparo de alertas (por KM ou por dias).</p>
+
+    <div id="maintenance-plan-items">
+        <%= f.simple_fields_for :maintenance_plan_items do |item_form| %>
+            <%= render 'maintenance_plans/item_fields', f: item_form %>
+        <% end %>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-12">
+            <button type="button" class="btn btn-outline-primary btn-sm" id="add-maintenance-item">
+                <i class="bi bi-plus-circle"></i> Adicionar Item
+            </button>
+        </div>
+    </div>
+
+    <% if f.object.persisted? %>
+    <hr>
+    <h5><i class="bi bi-truck"></i> Veículos Vinculados</h5>
+    <p class="text-muted small">Selecione os veículos que serão monitorados por este plano de manutenção.</p>
+
+    <div class="row mb-3">
+        <div class="col-12">
+            <% if @maintenance_plan.vehicles.any? %>
+                <table class="table table-sm table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Placa</th>
+                            <th>Modelo</th>
+                            <th>Centro de Custo</th>
+                            <th style="width: 100px;">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% @maintenance_plan.vehicles.includes(:cost_center).each do |vehicle| %>
+                        <tr>
+                            <td><%= vehicle.board %></td>
+                            <td><%= vehicle.model %></td>
+                            <td><%= vehicle.cost_center&.name %></td>
+                            <td>
+                                <%= link_to remove_vehicle_maintenance_plan_path(@maintenance_plan, vehicle_id: vehicle.id), method: :delete, class: 'btn btn-outline-danger btn-sm', data: { confirm: 'Tem certeza que deseja remover este veículo do plano?' } do %>
+                                    <i class="bi bi-trash"></i>
+                                <% end %>
+                            </td>
+                        </tr>
+                        <% end %>
+                    </tbody>
+                </table>
+            <% else %>
+                <p class="text-muted">Nenhum veículo vinculado a este plano ainda.</p>
+            <% end %>
+        </div>
+    </div>
+
+    <div class="row mb-3">
+        <div class="col-12 col-md-8">
+            <%= form_tag add_vehicles_maintenance_plan_path(@maintenance_plan), method: :post, class: 'd-flex gap-2 align-items-end' do %>
+                <div class="flex-grow-1">
+                    <label class="form-label">Adicionar Veículos</label>
+                    <%
+                        client_id = @maintenance_plan.client_id
+                        if client_id.present?
+                            available = Vehicle.where(client_id: client_id).where.not(id: @maintenance_plan.vehicle_ids).order(:board)
+                        elsif @current_user.admin?
+                            available = Vehicle.where.not(id: @maintenance_plan.vehicle_ids).order(:board)
+                        else
+                            c_id = @current_user.client_id.present? ? @current_user.client_id : @current_user.id
+                            available = Vehicle.where(client_id: c_id).where.not(id: @maintenance_plan.vehicle_ids).order(:board)
+                        end
+                    %>
+                    <%= select_tag 'vehicle_ids[]', options_for_select(available.map { |v| ["#{v.board} - #{v.model}", v.id] }), multiple: true, class: 'form-select', size: [available.count, 6].min + 1 %>
+                </div>
+                <div>
+                    <%= submit_tag 'Vincular Veículos', class: 'btn btn-primary btn-sm' %>
+                </div>
+            <% end %>
+        </div>
+    </div>
+    <% end %>
+
+    <div class="row">
+        <div class="col-12">
+            <%= f.button :submit, class: 'btn btn-primary' %>
+            <%= link_to t('model.cancel'), maintenance_plans_path, class: 'btn btn-secondary ms-2' %>
+        </div>
+    </div>
+
+<% end %>
+
+<script>
+function markForDestroy(btn) {
+    var container = btn.closest('.nested-fields');
+    container.querySelector('.destroy-field').value = '1';
+    container.style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var addBtn = document.getElementById('add-maintenance-item');
+    if (addBtn) {
+        addBtn.addEventListener('click', function() {
+            var container = document.getElementById('maintenance-plan-items');
+            var timestamp = new Date().getTime();
+            var template = `
+                <div class="nested-fields card card-body mb-2 bg-light">
+                    <div class="row">
+                        <div class="col-12 col-md-3">
+                            <div class="mb-3"><label class="form-label">Nome do Item</label><input class="form-control" type="text" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][name]" placeholder="Ex: Troca de óleo"></div>
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <div class="mb-3"><label class="form-label">Tipo</label><select class="form-select" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][plan_type]"><option value="km">Por KM</option><option value="days">Por Dias</option><option value="both">Ambos</option></select></div>
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <div class="mb-3"><label class="form-label">Intervalo KM</label><input class="form-control" type="number" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][km_interval]" placeholder="Ex: 10000" min="0"></div>
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <div class="mb-3"><label class="form-label">Intervalo Dias</label><input class="form-control" type="number" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][days_interval]" placeholder="Ex: 180" min="0"></div>
+                        </div>
+                        <div class="col-12 col-md-2">
+                            <div class="mb-3"><label class="form-label">Ativo</label><div><input type="hidden" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][active]" value="0"><input type="checkbox" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][active]" value="1" checked></div></div>
+                        </div>
+                        <div class="col-12 col-md-1 d-flex align-items-center">
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('.nested-fields').remove()"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-12 col-md-3">
+                            <div class="mb-3"><label class="form-label">Alerta KM antes (km)</label><input class="form-control" type="number" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][km_alert_threshold]" placeholder="Ex: 1000" min="0"></div>
+                        </div>
+                        <div class="col-12 col-md-3">
+                            <div class="mb-3"><label class="form-label">Alerta dias antes</label><input class="form-control" type="number" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][days_alert_threshold]" placeholder="Ex: 15" min="0"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', template);
+        });
+    }
+});
+</script>

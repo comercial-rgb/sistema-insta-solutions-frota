@@ -43,6 +43,7 @@ export default function RootLayout() {
           <Stack.Screen name="maintenance-alerts" options={{ ...stackHeaderOptions, title: 'Alertas de Manutenção' }} />
           <Stack.Screen name="contact" options={{ ...stackHeaderOptions, title: 'Contato' }} />
           <Stack.Screen name="admin-users" options={{ ...stackHeaderOptions, title: 'Gerenciar Usuários' }} />
+          <Stack.Screen name="vehicle-checklist" options={{ ...stackHeaderOptions, title: 'Checklist Veicular' }} />
           <Stack.Screen name="qr-scan" options={{ ...stackHeaderOptions, title: 'QR Code / NFC' }} />
         </Stack>
         <Toast />

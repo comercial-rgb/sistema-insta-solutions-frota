@@ -37,6 +37,7 @@ export enum ProfileId {
   GESTOR = 4,
   ADICIONAL = 5,
   FORNECEDOR = 6,
+  MOTORISTA = 7,
 }
 
 // ===== VEHICLE =====
@@ -266,6 +267,39 @@ export interface MaintenanceAlertSummary {
   target_date?: string;
 }
 
+// ===== MAINTENANCE PLAN =====
+export interface MaintenancePlanItem {
+  id?: number;
+  name: string;
+  plan_type: 'km' | 'days' | 'both';
+  km_interval?: number | null;
+  days_interval?: number | null;
+  km_alert_threshold?: number | null;
+  days_alert_threshold?: number | null;
+  active: boolean;
+  _destroy?: boolean;
+}
+
+export interface MaintenancePlanVehicle {
+  id: number;
+  board: string;
+  model: string;
+  cost_center?: string;
+}
+
+export interface MaintenancePlan {
+  id: number;
+  name: string;
+  description?: string;
+  active: boolean;
+  client_id?: number;
+  items_count: number;
+  vehicles_count: number;
+  created_at: string;
+  items: MaintenancePlanItem[];
+  vehicles: MaintenancePlanVehicle[];
+}
+
 // ===== NOTIFICATION =====
 export interface AppNotification {
   id: number;
@@ -296,4 +330,47 @@ export interface ContactInfo {
   whatsapp: string;
   address: string;
   hours: string;
+}
+
+// ===== VEHICLE CHECKLIST =====
+export type ChecklistCondition = 'ok' | 'attention' | 'critical' | 'na';
+export type ChecklistCategory =
+  | 'motor'
+  | 'freios'
+  | 'pneus'
+  | 'eletrica'
+  | 'carroceria'
+  | 'interior'
+  | 'luzes'
+  | 'fluidos'
+  | 'documentacao'
+  | 'outros';
+
+export interface VehicleChecklistItem {
+  id?: number;
+  category: ChecklistCategory;
+  item_name: string;
+  condition: ChecklistCondition;
+  observation?: string;
+  has_anomaly: boolean;
+}
+
+export interface VehicleChecklist {
+  id: number;
+  vehicle_id: number;
+  vehicle_board?: string;
+  vehicle_model?: string;
+  user_name?: string;
+  client_name?: string;
+  cost_center_name?: string;
+  current_km?: number;
+  status: 'pending' | 'acknowledged' | 'os_created' | 'closed';
+  general_notes?: string;
+  acknowledged_at?: string;
+  acknowledged_by_name?: string;
+  order_service_code?: string;
+  items: VehicleChecklistItem[];
+  photos?: string[];
+  anomaly_count: number;
+  created_at: string;
 }

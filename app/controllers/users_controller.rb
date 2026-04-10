@@ -176,6 +176,38 @@ class UsersController < ApplicationController
     end
   end
 
+  def users_driver
+    authorize User
+
+    if params[:drivers_grid].nil? || params[:drivers_grid].blank?
+      @users = DriversGrid.new(:current_user => @current_user)
+      @users_to_export = DriversGrid.new(:current_user => @current_user)
+    else
+      @users = DriversGrid.new(params[:drivers_grid].merge(current_user: @current_user))
+      @users_to_export = DriversGrid.new(params[:drivers_grid].merge(current_user: @current_user))
+    end
+
+    if @current_user.admin?
+      @users.scope {|scope| scope.page(params[:page]) }
+    elsif @current_user.client?
+      @users.scope {|scope| scope.by_client_id(@current_user.id).page(params[:page]) }
+      @users_to_export.scope {|scope| scope.by_client_id(@current_user.id) }
+    elsif @current_user.manager?
+      @users.scope {|scope| scope.by_client_id(@current_user.client_id).page(params[:page]) }
+      @users_to_export.scope {|scope| scope.by_client_id(@current_user.client_id) }
+    end
+
+    respond_to do |format|
+      format.html
+      format.csv do
+        send_data @users_to_export.to_csv(col_sep: ";").encode("ISO-8859-1"),
+        type: "text/csv",
+        disposition: 'inline',
+        filename: User.human_attribute_name(:driver_users)+" - #{Time.now.to_s}.csv"
+      end
+    end
+  end
+
   def validate_users
     authorize User
 
@@ -338,6 +370,8 @@ class UsersController < ApplicationController
       redirect_to users_additional_path
     elsif @user.provider?
       redirect_to users_provider_path
+    elsif @user.driver?
+      redirect_to users_driver_path
     end
   end
 
@@ -1158,6 +1192,7 @@ class UsersController < ApplicationController
       :municipal_inscription, :state_inscription, :discount_percent, :department, :state_id, :city_id, :client_id,
       :registration, :optante_simples, :needs_km,
         :require_vehicle_photos, :os_blocked, :government_sphere,
+        :cnh_number, :cnh_category, :cnh_expiration, :cnh_issued_at,
       phones_attributes: [:id, :is_whatsapp, :phone_code, :phone, :phone_type_id, :responsible],
       emails_attributes: [:id, :email, :email_type_id],
       attachment_attributes: [:id, :attachment, :attachment_type],

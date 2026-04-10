@@ -55,6 +55,10 @@
   belongs_to :fuel_type, optional: true
 
   has_many :order_services, validate: false, dependent: :destroy
+  has_many :vehicle_checklists, dependent: :destroy
+  has_many :driver_vehicle_assignments, dependent: :destroy
+  has_many :assigned_drivers, through: :driver_vehicle_assignments, source: :user
+  has_many :traffic_violations, dependent: :destroy
 
   validates_presence_of :client_id, :cost_center_id, :fuel_type_id
 

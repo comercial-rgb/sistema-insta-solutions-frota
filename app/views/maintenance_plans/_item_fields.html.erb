@@ -1,0 +1,39 @@
+<div class="nested-fields card card-body mb-2 bg-light">
+    <div class="row">
+        <div class="col-12 col-md-3">
+            <%= f.input :name, label: "Nome do Item", placeholder: "Ex: Troca de óleo" %>
+        </div>
+        <div class="col-12 col-md-2">
+            <%= f.input :plan_type, as: :select, collection: [['Por KM', 'km'], ['Por Dias', 'days'], ['Ambos', 'both']], label: "Tipo", include_blank: false %>
+        </div>
+        <div class="col-12 col-md-2">
+            <%= f.input :km_interval, label: "Intervalo KM", placeholder: "Ex: 10000", input_html: { min: 0 } %>
+        </div>
+        <div class="col-12 col-md-2">
+            <%= f.input :days_interval, label: "Intervalo Dias", placeholder: "Ex: 180", input_html: { min: 0 } %>
+        </div>
+        <div class="col-12 col-md-2">
+            <%= f.input :active, as: :boolean, label: "Ativo" %>
+        </div>
+        <div class="col-12 col-md-1 d-flex align-items-center">
+            <% if f.object.persisted? %>
+                <%= f.hidden_field :_destroy, class: 'destroy-field' %>
+                <button type="button" class="btn btn-outline-danger btn-sm remove-item" onclick="markForDestroy(this)">
+                    <i class="bi bi-trash"></i>
+                </button>
+            <% else %>
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('.nested-fields').remove()">
+                    <i class="bi bi-trash"></i>
+                </button>
+            <% end %>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-12 col-md-3">
+            <%= f.input :km_alert_threshold, label: "Alerta KM antes (km)", placeholder: "Ex: 1000", input_html: { min: 0 } %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :days_alert_threshold, label: "Alerta dias antes", placeholder: "Ex: 15", input_html: { min: 0 } %>
+        </div>
+    </div>
+</div>

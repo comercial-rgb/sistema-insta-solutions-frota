@@ -1,0 +1,32 @@
+pt-BR:
+  activerecord:
+    models:
+      maintenance_plan:
+        one: "Plano de Manutenção"
+        other: "Planos de Manutenção"
+      maintenance_plan_item:
+        one: "Item do Plano"
+        other: "Itens do Plano"
+      maintenance_plan_vehicle:
+        one: "Veículo do Plano"
+        other: "Veículos do Plano"
+    attributes:
+      maintenance_plan:
+        id: "ID"
+        name: "Nome"
+        description: "Descrição"
+        active: "Ativo"
+        client_id: "Cliente"
+        client: "Cliente"
+        created_at: "Criado em"
+        updated_at: "Atualizado em"
+        actions: "Ações"
+      maintenance_plan_item:
+        id: "ID"
+        name: "Nome"
+        plan_type: "Tipo"
+        km_interval: "Intervalo KM"
+        days_interval: "Intervalo Dias"
+        km_alert_threshold: "Alerta KM antes"
+        days_alert_threshold: "Alerta dias antes"
+        active: "Ativo"

@@ -233,6 +233,10 @@
 		where(profile_id: Profile::PROVIDER_ID)
 	end
 
+	scope :driver, -> do
+		where(profile_id: Profile::DRIVER_ID)
+	end
+
 	scope :waiting_validation, -> do
 		by_profiles_id([Profile::USER_ID])
     	.by_user_statuses_id([UserStatus::AGUARDANDO_AVALIACAO_ID, UserStatus::REPROVADO_ID])
@@ -325,6 +329,17 @@
 	def provider?
 		!profile.nil? && profile.provider?
 	end
+
+	# Usuário é motorista?
+	def driver?
+		!profile.nil? && profile.driver?
+	end
+
+	# Associações de motorista
+	has_many :driver_vehicle_assignments, dependent: :destroy
+	has_many :assigned_vehicles, through: :driver_vehicle_assignments, source: :vehicle
+	has_many :traffic_violations, dependent: :destroy
+	has_many :vehicle_checklists, dependent: :destroy
 
 	def os_blocked?
 		os_blocked == true

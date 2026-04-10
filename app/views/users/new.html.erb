@@ -23,6 +23,10 @@ elsif @user.profile_id == Profile::PROVIDER_ID
   objects_path = users_provider_path
   page_title = User.human_attribute_name(:provider_users)
   form_to_render = 'users/provider_form'
+elsif @user.profile_id == Profile::DRIVER_ID
+  objects_path = users_driver_path
+  page_title = User.human_attribute_name(:driver_users)
+  form_to_render = 'users/driver_form'
 end 
 
 breadcrumbs = [

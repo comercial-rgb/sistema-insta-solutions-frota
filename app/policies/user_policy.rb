@@ -24,6 +24,10 @@ class UserPolicy < ApplicationPolicy
     user.admin? || user.manager? || user.additional?
   end
 
+  def users_driver?
+    user.admin? || user.manager?
+  end
+
   def validate_users?
     user.admin? && user.id == 1
   end
