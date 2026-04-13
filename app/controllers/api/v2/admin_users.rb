@@ -14,7 +14,7 @@ module Api
           end
           get do
             user = current_user
-            unless user.profile_id.in?([Profile::ADMIN_ID, Profile::MANAGER_ID, Profile::CLIENT_ID])
+            unless user.profile_id.in?([Profile::ADMIN_ID, Profile::MANAGER_ID, Profile::CLIENT_ID, Profile::ADDITIONAL_ID])
               error!('Sem permissão para gerenciar usuários', 403)
             end
 
@@ -54,7 +54,7 @@ module Api
             requires :name, type: String
             requires :email, type: String
             requires :profile_id, type: Integer, desc: '2=Usuário, 4=Gestor, 5=Adicional, 6=Fornecedor, 7=Motorista'
-            requires :password, type: String
+            optional :password, type: String
             optional :cpf, type: String
             optional :cnpj, type: String
             optional :phone, type: String
@@ -69,7 +69,7 @@ module Api
           end
           post do
             user = current_user
-            unless user.profile_id.in?([Profile::ADMIN_ID, Profile::MANAGER_ID, Profile::CLIENT_ID])
+            unless user.profile_id.in?([Profile::ADMIN_ID, Profile::MANAGER_ID, Profile::CLIENT_ID, Profile::ADDITIONAL_ID])
               error!('Sem permissão para criar usuários', 403)
             end
 
@@ -81,12 +81,14 @@ module Api
               error!('Perfil não permitido', 422)
             end
 
+            generated_password = params[:password].presence || SecureRandom.hex(8)
+
             new_user = User.new(
               name: params[:name],
               email: params[:email],
               profile_id: params[:profile_id],
-              password: params[:password],
-              password_confirmation: params[:password],
+              password: generated_password,
+              password_confirmation: generated_password,
               client_id: client_id,
               cpf: params[:cpf],
               cnpj: params[:cnpj],

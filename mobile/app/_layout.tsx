@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider } from '../src/contexts/AuthContext';
@@ -5,6 +6,8 @@ import { ClientProvider } from '../src/contexts/ClientContext';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Toast from 'react-native-toast-message';
 import { colors } from '../src/theme/colors';
+import * as Updates from 'expo-updates';
+import { AppState, Platform } from 'react-native';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -23,7 +26,35 @@ const stackHeaderOptions = {
   headerBackTitleVisible: false,
 };
 
+async function checkForOTAUpdate() {
+  try {
+    if (__DEV__) return;
+    const update = await Updates.checkForUpdateAsync();
+    if (update.isAvailable) {
+      await Updates.fetchUpdateAsync();
+      await Updates.reloadAsync();
+    }
+  } catch (e) {
+    // Silently fail - update will be tried again next time
+    console.log('OTA update check failed:', e);
+  }
+}
+
 export default function RootLayout() {
+  useEffect(() => {
+    // Check on app start
+    checkForOTAUpdate();
+
+    // Also check when app comes back to foreground
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        checkForOTAUpdate();
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -41,6 +72,8 @@ export default function RootLayout() {
           <Stack.Screen name="balances" options={{ ...stackHeaderOptions, title: 'Saldos' }} />
           <Stack.Screen name="notifications" options={{ ...stackHeaderOptions, title: 'Notificações' }} />
           <Stack.Screen name="maintenance-alerts" options={{ ...stackHeaderOptions, title: 'Alertas de Manutenção' }} />
+          <Stack.Screen name="maintenance-plans" options={{ ...stackHeaderOptions, title: 'Planos de Manutenção' }} />
+          <Stack.Screen name="maintenance-plan-detail/[id]" options={{ ...stackHeaderOptions, title: 'Plano de Manutenção' }} />
           <Stack.Screen name="contact" options={{ ...stackHeaderOptions, title: 'Contato' }} />
           <Stack.Screen name="admin-users" options={{ ...stackHeaderOptions, title: 'Gerenciar Usuários' }} />
           <Stack.Screen name="vehicle-checklist" options={{ ...stackHeaderOptions, title: 'Checklist Veicular' }} />

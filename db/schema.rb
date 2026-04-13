@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_10_130000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_10_140000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -414,6 +414,18 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_10_130000) do
     t.index ["status"], name: "index_maintenance_alerts_on_status"
     t.index ["vehicle_id", "status"], name: "index_maintenance_alerts_on_vehicle_id_and_status"
     t.index ["vehicle_id"], name: "index_maintenance_alerts_on_vehicle_id"
+  end
+
+  create_table "maintenance_plan_item_services", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "maintenance_plan_item_id", null: false
+    t.bigint "service_id", null: false
+    t.decimal "quantity", precision: 10, scale: 2, default: "1.0"
+    t.text "observation"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["maintenance_plan_item_id", "service_id"], name: "idx_plan_item_services_unique", unique: true
+    t.index ["maintenance_plan_item_id"], name: "index_maintenance_plan_item_services_on_maintenance_plan_item_id"
+    t.index ["service_id"], name: "index_maintenance_plan_item_services_on_service_id"
   end
 
   create_table "maintenance_plan_items", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -1297,6 +1309,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_10_130000) do
   add_foreign_key "maintenance_alerts", "users", column: "acknowledged_by_id"
   add_foreign_key "maintenance_alerts", "users", column: "client_id"
   add_foreign_key "maintenance_alerts", "vehicles"
+  add_foreign_key "maintenance_plan_item_services", "maintenance_plan_items"
+  add_foreign_key "maintenance_plan_item_services", "services"
   add_foreign_key "maintenance_plan_items", "maintenance_plans"
   add_foreign_key "maintenance_plan_items", "users", column: "client_id"
   add_foreign_key "maintenance_plan_vehicles", "maintenance_plans"

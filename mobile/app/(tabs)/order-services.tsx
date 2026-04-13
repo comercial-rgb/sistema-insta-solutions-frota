@@ -9,6 +9,8 @@ import {
   RefreshControl,
   ActivityIndicator,
   ScrollView,
+  Platform,
+  Modal,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -54,10 +56,15 @@ export default function OrderServicesScreen() {
   const { listColumns } = useResponsiveLayout();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<number | undefined>();
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [showPeriodFilter, setShowPeriodFilter] = useState(false);
+  const [tempStartDate, setTempStartDate] = useState('');
+  const [tempEndDate, setTempEndDate] = useState('');
 
   const { data, fetchNextPage, hasNextPage, isLoading, refetch, isRefetching, isFetchingNextPage } =
     useInfiniteQuery({
-      queryKey: ['orderServices', search, statusFilter, selectedClientId],
+      queryKey: ['orderServices', search, statusFilter, selectedClientId, startDate, endDate],
       queryFn: ({ pageParam = 1 }) =>
         orderServicesApi.list({
           page: pageParam,
@@ -65,6 +72,8 @@ export default function OrderServicesScreen() {
           search: search || undefined,
           status_id: statusFilter,
           client_id: selectedClientId ?? undefined,
+          start_date: startDate || undefined,
+          end_date: endDate || undefined,
         }),
       getNextPageParam: (lastPage) => {
         if (lastPage.meta.current_page < lastPage.meta.total_pages) {
@@ -192,7 +201,87 @@ export default function OrderServicesScreen() {
             </TouchableOpacity>
           );
         })}
+        {/* Period filter toggle */}
+        <TouchableOpacity
+          style={[styles.statusChip, (startDate || endDate) ? { backgroundColor: colors.primary + '20', borderColor: colors.primary } : {}]}
+          onPress={() => { setTempStartDate(startDate); setTempEndDate(endDate); setShowPeriodFilter(true); }}
+        >
+          <Ionicons name="calendar-outline" size={14} color={(startDate || endDate) ? colors.primary : colors.textLight} />
+          <Text style={[styles.statusChipText, (startDate || endDate) && { color: colors.primary, fontWeight: '600' }]}>
+            {startDate && endDate ? `${startDate.split('-').reverse().join('/')} - ${endDate.split('-').reverse().join('/')}` : 'Período'}
+          </Text>
+          {(startDate || endDate) ? (
+            <TouchableOpacity onPress={() => { setStartDate(''); setEndDate(''); }} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close-circle" size={14} color={colors.primary} />
+            </TouchableOpacity>
+          ) : null}
+        </TouchableOpacity>
       </ScrollView>
+
+      {/* Period filter modal */}
+      <Modal visible={showPeriodFilter} transparent animationType="fade">
+        <View style={styles.periodOverlay}>
+          <View style={styles.periodContainer}>
+            <View style={styles.periodHeader}>
+              <Text style={styles.periodTitle}>Filtrar por Período</Text>
+              <TouchableOpacity onPress={() => setShowPeriodFilter(false)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.periodLabel}>Data Início</Text>
+            <TextInput
+              style={styles.periodInput}
+              placeholder="DD/MM/AAAA"
+              placeholderTextColor={colors.placeholder}
+              value={tempStartDate.split('-').reverse().join('/')}
+              onChangeText={(text) => {
+                const clean = text.replace(/\D/g, '');
+                let formatted = clean;
+                if (clean.length >= 2) formatted = clean.slice(0, 2) + '/' + clean.slice(2);
+                if (clean.length >= 4) formatted = clean.slice(0, 2) + '/' + clean.slice(2, 4) + '/' + clean.slice(4, 8);
+                if (clean.length === 8) {
+                  setTempStartDate(`${clean.slice(4, 8)}-${clean.slice(2, 4)}-${clean.slice(0, 2)}`);
+                } else {
+                  setTempStartDate('');
+                }
+              }}
+              keyboardType="numeric"
+              maxLength={10}
+            />
+            <Text style={styles.periodLabel}>Data Fim</Text>
+            <TextInput
+              style={styles.periodInput}
+              placeholder="DD/MM/AAAA"
+              placeholderTextColor={colors.placeholder}
+              value={tempEndDate.split('-').reverse().join('/')}
+              onChangeText={(text) => {
+                const clean = text.replace(/\D/g, '');
+                let formatted = clean;
+                if (clean.length >= 2) formatted = clean.slice(0, 2) + '/' + clean.slice(2);
+                if (clean.length >= 4) formatted = clean.slice(0, 2) + '/' + clean.slice(2, 4) + '/' + clean.slice(4, 8);
+                if (clean.length === 8) {
+                  setTempEndDate(`${clean.slice(4, 8)}-${clean.slice(2, 4)}-${clean.slice(0, 2)}`);
+                } else {
+                  setTempEndDate('');
+                }
+              }}
+              keyboardType="numeric"
+              maxLength={10}
+            />
+            <View style={styles.periodActions}>
+              <TouchableOpacity style={styles.periodBtnClear} onPress={() => { setTempStartDate(''); setTempEndDate(''); }}>
+                <Text style={styles.periodBtnClearText}>Limpar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.periodBtnApply}
+                onPress={() => { setStartDate(tempStartDate); setEndDate(tempEndDate); setShowPeriodFilter(false); }}
+              >
+                <Text style={styles.periodBtnApplyText}>Aplicar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Result count */}
       {!isLoading && (
@@ -278,7 +367,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     marginBottom: spacing.xs,
   },
-  listContent: { paddingHorizontal: spacing.md, paddingBottom: 100 },
+  listContent: { paddingHorizontal: spacing.md, paddingBottom: Platform.OS === 'android' ? 140 : 100 },
   card: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -301,7 +390,7 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: spacing.md,
-    bottom: spacing.lg,
+    bottom: Platform.OS === 'android' ? 80 : spacing.lg,
     width: 56,
     height: 56,
     borderRadius: 28,
@@ -313,4 +402,15 @@ const styles = StyleSheet.create({
   },
   emptyContainer: { alignItems: 'center', paddingTop: spacing.xxl },
   emptyText: { fontSize: fontSize.md, color: colors.textLight, marginTop: spacing.sm },
+  periodOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  periodContainer: { backgroundColor: colors.surface, borderRadius: borderRadius.lg, padding: spacing.lg, width: '85%', ...shadows.lg },
+  periodHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.md },
+  periodTitle: { fontSize: fontSize.lg, fontWeight: '700', color: colors.text },
+  periodLabel: { fontSize: fontSize.sm, color: colors.textSecondary, fontWeight: '600', marginTop: spacing.sm, marginBottom: 4 },
+  periodInput: { backgroundColor: colors.background, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.border, paddingHorizontal: spacing.md, paddingVertical: spacing.sm, fontSize: fontSize.sm, color: colors.text },
+  periodActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm, marginTop: spacing.lg },
+  periodBtnClear: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: borderRadius.md, borderWidth: 1, borderColor: colors.border },
+  periodBtnClearText: { color: colors.textSecondary, fontSize: fontSize.sm, fontWeight: '600' },
+  periodBtnApply: { paddingHorizontal: spacing.lg, paddingVertical: spacing.sm, borderRadius: borderRadius.md, backgroundColor: colors.primary },
+  periodBtnApplyText: { color: '#fff', fontSize: fontSize.sm, fontWeight: '600' },
 });

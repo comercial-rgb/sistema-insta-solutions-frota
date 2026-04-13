@@ -30,7 +30,7 @@ export default function MoreScreen() {
     { icon: 'clipboard-outline', label: 'Checklist Veicular', description: 'Realizar checklist do veículo', route: '/vehicle-checklist' },
     { icon: 'construct-outline', label: 'Alertas Manutenção', description: 'Plano de manutenção', route: '/maintenance-alerts' },
     { icon: 'clipboard-outline', label: 'Planos de Manutenção', description: 'Criar e gerenciar planos', route: '/maintenance-plans' },
-    { icon: 'qr-code-outline', label: 'QR Code / NFC', description: 'Solicitar serviço via QR/NFC', route: '/qr-scan' },
+    { icon: 'qr-code-outline', label: 'QR Code / NFC', description: 'Solicitar serviço via QR/NFC', route: '/qr-scan', requiresQrNfc: true },
     { icon: 'notifications-outline', label: 'Notificações', description: 'Central de notificações', route: '/notifications' },
     { icon: 'chatbubble-ellipses-outline', label: 'Contato', description: 'Fale conosco', route: '/contact' },
     { icon: 'people-outline', label: 'Gerenciar Usuários', description: 'Adicionar e gerenciar acessos', route: '/admin-users', requiresAdmin: true },
@@ -38,6 +38,7 @@ export default function MoreScreen() {
 
   const filteredItems = menuItems.filter((item) => {
     if (item.requiresAdmin && !canManageUsers) return false;
+    if (item.requiresQrNfc && isMotorista) return false;
     return true;
   });
 

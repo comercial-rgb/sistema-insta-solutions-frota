@@ -66,7 +66,7 @@ export default function AdminUsersScreen() {
   const allUsers = data?.pages.flatMap((p) => p.users) ?? [];
 
   const handleToggleBlock = (user: any) => {
-    const action = user.blocked ? 'desbloquear' : 'bloquear';
+    const action = user.is_blocked ? 'desbloquear' : 'bloquear';
     Alert.alert(
       'Confirmar',
       `Deseja ${action} o usuário ${user.name}?`,
@@ -145,7 +145,7 @@ export default function AdminUsersScreen() {
                       {PROFILE_LABELS[item.profile_id] ?? `Perfil ${item.profile_id}`}
                     </Text>
                   </View>
-                  {item.blocked && (
+                  {item.is_blocked && (
                     <View style={styles.blockedBadge}>
                       <Ionicons name="lock-closed" size={10} color={colors.danger} />
                       <Text style={styles.blockedText}>Bloqueado</Text>
@@ -158,9 +158,9 @@ export default function AdminUsersScreen() {
                 onPress={() => handleToggleBlock(item)}
               >
                 <Ionicons
-                  name={item.blocked ? 'lock-open-outline' : 'lock-closed-outline'}
+                  name={item.is_blocked ? 'lock-open-outline' : 'lock-closed-outline'}
                   size={20}
-                  color={item.blocked ? colors.success : colors.danger}
+                  color={item.is_blocked ? colors.success : colors.danger}
                 />
               </TouchableOpacity>
             </View>
@@ -192,7 +192,7 @@ function CreateUserModal({ visible, onClose, profiles }: { visible: boolean; onC
   const queryClient = useQueryClient();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [profileId, setProfileId] = useState<number>(3);
+  const [profileId, setProfileId] = useState<number>(7);
 
   const mutation = useMutation({
     mutationFn: adminUsersApi.create,

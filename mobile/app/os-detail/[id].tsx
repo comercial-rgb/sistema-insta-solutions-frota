@@ -93,7 +93,9 @@ export default function OSDetailScreen() {
         </Text>
         {isError && error && (
           <Text style={{ color: colors.textLight, marginTop: spacing.xs, fontSize: fontSize.xs, textAlign: 'center' }}>
-            {(error as any)?.response?.status === 401 ? 'Sessão expirada. Faça login novamente.' : 'Verifique sua conexão e tente novamente.'}
+            {(error as any)?.response?.status === 401
+              ? 'Sessão expirada. Faça login novamente.'
+              : (error as any)?.response?.data?.error || 'Verifique sua conexão e tente novamente.'}
           </Text>
         )}
         <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>

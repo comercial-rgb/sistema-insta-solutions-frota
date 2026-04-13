@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   Alert,
   Switch,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -46,6 +48,53 @@ export default function MaintenancePlanDetailScreen() {
     queryFn: () => maintenancePlansApi.availableVehicles(Number(id)),
     enabled: !isNew && !!id,
   });
+
+  // Service picker state
+  const [servicePickerVisible, setServicePickerVisible] = useState(false);
+  const [servicePickerItemId, setServicePickerItemId] = useState<number | null>(null);
+  const [serviceSearch, setServiceSearch] = useState('');
+  const [expandedItem, setExpandedItem] = useState<number | null>(null);
+
+  const { data: servicesData } = useQuery({
+    queryKey: ['available-services', serviceSearch],
+    queryFn: () => maintenancePlansApi.availableServices({ search: serviceSearch || undefined }),
+    enabled: servicePickerVisible,
+  });
+
+  const addServiceMutation = useMutation({
+    mutationFn: (args: { itemId: number; serviceId: number }) =>
+      maintenancePlansApi.addServiceToItem(Number(id), args.itemId, {
+        service_id: args.serviceId,
+        quantity: 1,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maintenance-plan', id] });
+      Toast.show({ type: 'success', text1: 'Peça/serviço adicionado' });
+    },
+    onError: () => Toast.show({ type: 'error', text1: 'Erro ao adicionar peça/serviço' }),
+  });
+
+  const removeServiceMutation = useMutation({
+    mutationFn: (args: { itemId: number; serviceId: number }) =>
+      maintenancePlansApi.removeServiceFromItem(Number(id), args.itemId, args.serviceId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['maintenance-plan', id] });
+      Toast.show({ type: 'success', text1: 'Removido' });
+    },
+  });
+
+  const openServicePicker = (itemId: number) => {
+    setServicePickerItemId(itemId);
+    setServiceSearch('');
+    setServicePickerVisible(true);
+  };
+
+  const handleSelectService = (serviceId: number) => {
+    if (servicePickerItemId) {
+      addServiceMutation.mutate({ itemId: servicePickerItemId, serviceId });
+    }
+    setServicePickerVisible(false);
+  };
 
   useEffect(() => {
     if (data?.plan) {
@@ -192,7 +241,7 @@ export default function MaintenancePlanDetailScreen() {
 
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Itens do Plano</Text>
+          <Text style={styles.sectionTitle}>Serviços do Plano</Text>
           <TouchableOpacity style={styles.addItemBtn} onPress={addItem}>
             <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
             <Text style={styles.addItemText}>Adicionar</Text>
@@ -200,88 +249,173 @@ export default function MaintenancePlanDetailScreen() {
         </View>
 
         {items.filter((i) => !i._destroy).length === 0 && (
-          <Text style={styles.emptyItems}>Nenhum item adicionado</Text>
+          <Text style={styles.emptyItems}>Nenhum serviço adicionado</Text>
         )}
 
         {items.map((item, index) => {
           if (item._destroy) return null;
+          const isExpanded = expandedItem === index;
           return (
             <View key={index} style={styles.itemCard}>
-              <View style={styles.itemHeader}>
-                <TextInput
-                  style={[styles.input, { flex: 1 }]}
-                  value={item.name}
-                  onChangeText={(v) => updateItem(index, 'name', v)}
-                  placeholder="Nome do item"
-                  placeholderTextColor={colors.placeholder}
-                />
-                <TouchableOpacity onPress={() => removeItem(index)} style={styles.removeBtn}>
-                  <Ionicons name="trash-outline" size={18} color={colors.danger} />
-                </TouchableOpacity>
-              </View>
-
-              <TouchableOpacity style={styles.typeBtn} onPress={() => cyclePlanType(index)}>
-                <Text style={styles.typeBtnText}>Tipo: {PLAN_TYPE_LABELS[item.plan_type]}</Text>
-                <Ionicons name="swap-horizontal-outline" size={14} color={colors.primary} />
+              <TouchableOpacity
+                style={styles.itemCardHeader}
+                onPress={() => setExpandedItem(isExpanded ? null : index)}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.itemCardName} numberOfLines={1}>
+                    {item.name || 'Novo serviço'}
+                  </Text>
+                  <Text style={styles.itemCardMeta}>
+                    {item.plan_type === 'km' ? `A cada ${item.km_interval || '?'} km` :
+                     item.plan_type === 'days' ? `A cada ${item.days_interval || '?'} dias` :
+                     `${item.km_interval || '?'} km / ${item.days_interval || '?'} dias`}
+                    {item.services_count ? ` · ${item.services_count} peças/serviços` : ''}
+                  </Text>
+                </View>
+                <Ionicons name={isExpanded ? 'chevron-up' : 'chevron-down'} size={20} color={colors.textSecondary} />
               </TouchableOpacity>
 
-              <View style={styles.itemRow}>
-                {(item.plan_type === 'km' || item.plan_type === 'both') && (
-                  <View style={styles.itemField}>
-                    <Text style={styles.itemLabel}>Intervalo KM</Text>
+              {isExpanded && (
+                <View style={styles.itemCardBody}>
+                  <View style={styles.itemHeader}>
                     <TextInput
-                      style={styles.itemInput}
-                      value={item.km_interval?.toString() || ''}
-                      onChangeText={(v) => updateItem(index, 'km_interval', v ? parseInt(v) : null)}
-                      keyboardType="numeric"
-                      placeholder="10000"
+                      style={[styles.input, { flex: 1 }]}
+                      value={item.name}
+                      onChangeText={(v) => updateItem(index, 'name', v)}
+                      placeholder="Nome do serviço"
                       placeholderTextColor={colors.placeholder}
                     />
+                    <TouchableOpacity onPress={() => removeItem(index)} style={styles.removeBtn}>
+                      <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                    </TouchableOpacity>
                   </View>
-                )}
-                {(item.plan_type === 'days' || item.plan_type === 'both') && (
-                  <View style={styles.itemField}>
-                    <Text style={styles.itemLabel}>Intervalo Dias</Text>
-                    <TextInput
-                      style={styles.itemInput}
-                      value={item.days_interval?.toString() || ''}
-                      onChangeText={(v) => updateItem(index, 'days_interval', v ? parseInt(v) : null)}
-                      keyboardType="numeric"
-                      placeholder="180"
-                      placeholderTextColor={colors.placeholder}
-                    />
-                  </View>
-                )}
-              </View>
 
-              <View style={styles.itemRow}>
-                {(item.plan_type === 'km' || item.plan_type === 'both') && (
-                  <View style={styles.itemField}>
-                    <Text style={styles.itemLabel}>Alerta KM antes</Text>
-                    <TextInput
-                      style={styles.itemInput}
-                      value={item.km_alert_threshold?.toString() || ''}
-                      onChangeText={(v) => updateItem(index, 'km_alert_threshold', v ? parseInt(v) : null)}
-                      keyboardType="numeric"
-                      placeholder="1000"
-                      placeholderTextColor={colors.placeholder}
-                    />
+                  <TouchableOpacity style={styles.typeBtn} onPress={() => cyclePlanType(index)}>
+                    <Text style={styles.typeBtnText}>Tipo: {PLAN_TYPE_LABELS[item.plan_type]}</Text>
+                    <Ionicons name="swap-horizontal-outline" size={14} color={colors.primary} />
+                  </TouchableOpacity>
+
+                  <View style={styles.itemRow}>
+                    {(item.plan_type === 'km' || item.plan_type === 'both') && (
+                      <View style={styles.itemField}>
+                        <Text style={styles.itemLabel}>Intervalo KM</Text>
+                        <TextInput
+                          style={styles.itemInput}
+                          value={item.km_interval?.toString() || ''}
+                          onChangeText={(v) => updateItem(index, 'km_interval', v ? parseInt(v) : null)}
+                          keyboardType="numeric"
+                          placeholder="10000"
+                          placeholderTextColor={colors.placeholder}
+                        />
+                      </View>
+                    )}
+                    {(item.plan_type === 'days' || item.plan_type === 'both') && (
+                      <View style={styles.itemField}>
+                        <Text style={styles.itemLabel}>Intervalo Dias</Text>
+                        <TextInput
+                          style={styles.itemInput}
+                          value={item.days_interval?.toString() || ''}
+                          onChangeText={(v) => updateItem(index, 'days_interval', v ? parseInt(v) : null)}
+                          keyboardType="numeric"
+                          placeholder="180"
+                          placeholderTextColor={colors.placeholder}
+                        />
+                      </View>
+                    )}
                   </View>
-                )}
-                {(item.plan_type === 'days' || item.plan_type === 'both') && (
-                  <View style={styles.itemField}>
-                    <Text style={styles.itemLabel}>Alerta dias antes</Text>
-                    <TextInput
-                      style={styles.itemInput}
-                      value={item.days_alert_threshold?.toString() || ''}
-                      onChangeText={(v) => updateItem(index, 'days_alert_threshold', v ? parseInt(v) : null)}
-                      keyboardType="numeric"
-                      placeholder="15"
-                      placeholderTextColor={colors.placeholder}
-                    />
+
+                  <View style={styles.itemRow}>
+                    {(item.plan_type === 'km' || item.plan_type === 'both') && (
+                      <View style={styles.itemField}>
+                        <Text style={styles.itemLabel}>Alerta KM antes</Text>
+                        <TextInput
+                          style={styles.itemInput}
+                          value={item.km_alert_threshold?.toString() || ''}
+                          onChangeText={(v) => updateItem(index, 'km_alert_threshold', v ? parseInt(v) : null)}
+                          keyboardType="numeric"
+                          placeholder="1000"
+                          placeholderTextColor={colors.placeholder}
+                        />
+                      </View>
+                    )}
+                    {(item.plan_type === 'days' || item.plan_type === 'both') && (
+                      <View style={styles.itemField}>
+                        <Text style={styles.itemLabel}>Alerta dias antes</Text>
+                        <TextInput
+                          style={styles.itemInput}
+                          value={item.days_alert_threshold?.toString() || ''}
+                          onChangeText={(v) => updateItem(index, 'days_alert_threshold', v ? parseInt(v) : null)}
+                          keyboardType="numeric"
+                          placeholder="15"
+                          placeholderTextColor={colors.placeholder}
+                        />
+                      </View>
+                    )}
                   </View>
-                )}
-              </View>
+
+                  {/* Pre-configured Peças e Serviços */}
+                  {item.id ? (
+                    <View style={styles.servicesSection}>
+                      <View style={styles.servicesSectionHeader}>
+                        <Text style={styles.servicesTitle}>Peças e Serviços</Text>
+                        <TouchableOpacity
+                          style={styles.addServiceBtn}
+                          onPress={() => openServicePicker(item.id!)}
+                        >
+                          <Ionicons name="add" size={16} color={colors.primary} />
+                          <Text style={styles.addServiceBtnText}>Incluir</Text>
+                        </TouchableOpacity>
+                      </View>
+
+                      {item.services && item.services.length > 0 ? (
+                        item.services.map((svc) => (
+                          <View key={svc.id} style={styles.serviceRow}>
+                            <View style={[
+                              styles.serviceBadge,
+                              { backgroundColor: svc.service_type === 'peca' ? colors.info + '20' : colors.warning + '20' }
+                            ]}>
+                              <Text style={[
+                                styles.serviceBadgeText,
+                                { color: svc.service_type === 'peca' ? colors.info : colors.warning }
+                              ]}>
+                                {svc.service_type === 'peca' ? 'Peça' : 'Serviço'}
+                              </Text>
+                            </View>
+                            <View style={{ flex: 1 }}>
+                              <Text style={styles.serviceName}>{svc.service_name}</Text>
+                              <Text style={styles.serviceQty}>Qtd: {svc.quantity}</Text>
+                            </View>
+                            <TouchableOpacity
+                              onPress={() =>
+                                Alert.alert('Remover', `Remover "${svc.service_name}"?`, [
+                                  { text: 'Cancelar', style: 'cancel' },
+                                  {
+                                    text: 'Remover',
+                                    style: 'destructive',
+                                    onPress: () =>
+                                      removeServiceMutation.mutate({
+                                        itemId: item.id!,
+                                        serviceId: svc.service_id,
+                                      }),
+                                  },
+                                ])
+                              }
+                            >
+                              <Ionicons name="close-circle" size={20} color={colors.danger} />
+                            </TouchableOpacity>
+                          </View>
+                        ))
+                      ) : (
+                        <Text style={styles.noServicesList}>Nenhuma peça/serviço adicionado</Text>
+                      )}
+                    </View>
+                  ) : (
+                    <Text style={styles.saveHint}>
+                      Salve o plano para adicionar peças e serviços a este item.
+                    </Text>
+                  )}
+                </View>
+              )}
             </View>
           );
         })}
@@ -347,6 +481,52 @@ export default function MaintenancePlanDetailScreen() {
       <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
         <Text style={styles.backBtnText}>Voltar</Text>
       </TouchableOpacity>
+
+      {/* Service Picker Modal */}
+      <Modal visible={servicePickerVisible} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Selecionar Peça/Serviço</Text>
+              <TouchableOpacity onPress={() => setServicePickerVisible(false)}>
+                <Ionicons name="close" size={24} color={colors.text} />
+              </TouchableOpacity>
+            </View>
+            <TextInput
+              style={styles.modalSearch}
+              placeholder="Buscar..."
+              value={serviceSearch}
+              onChangeText={setServiceSearch}
+              placeholderTextColor={colors.placeholder}
+              autoFocus
+            />
+            <FlatList
+              data={servicesData?.services ?? []}
+              keyExtractor={(s) => s.id.toString()}
+              renderItem={({ item: svc }) => (
+                <TouchableOpacity
+                  style={styles.modalItem}
+                  onPress={() => handleSelectService(svc.id)}
+                >
+                  <View style={[
+                    styles.serviceBadge,
+                    { backgroundColor: svc.type === 'peca' ? colors.info + '20' : colors.warning + '20' }
+                  ]}>
+                    <Text style={[
+                      styles.serviceBadgeText,
+                      { color: svc.type === 'peca' ? colors.info : colors.warning }
+                    ]}>
+                      {svc.type === 'peca' ? 'Peça' : 'Serviço'}
+                    </Text>
+                  </View>
+                  <Text style={styles.modalItemText}>{svc.name}</Text>
+                </TouchableOpacity>
+              )}
+              ListEmptyComponent={<Text style={styles.noServicesList}>Nenhum resultado</Text>}
+            />
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
   );
 }
@@ -414,12 +594,11 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
   },
   itemCard: {
-    backgroundColor: colors.background,
     borderRadius: borderRadius.sm,
-    padding: spacing.sm,
     marginBottom: spacing.sm,
     borderWidth: 1,
-    borderColor: colors.borderLight,
+    borderColor: colors.primary + '40',
+    overflow: 'hidden',
   },
   itemHeader: {
     flexDirection: 'row',
@@ -541,5 +720,136 @@ const styles = StyleSheet.create({
   backBtnText: {
     color: colors.textSecondary,
     fontSize: fontSize.md,
+  },
+  itemCardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: spacing.sm,
+    backgroundColor: colors.primary + '08',
+  },
+  itemCardName: {
+    fontSize: fontSize.md,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  itemCardMeta: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+    marginTop: 2,
+  },
+  itemCardBody: {
+    padding: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+  },
+  servicesSection: {
+    marginTop: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderLight,
+  },
+  servicesSectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+  },
+  servicesTitle: {
+    fontSize: fontSize.sm,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  addServiceBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  addServiceBtnText: {
+    color: colors.primary,
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+  },
+  serviceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingVertical: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  serviceBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  serviceBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  serviceName: {
+    fontSize: fontSize.sm,
+    color: colors.text,
+  },
+  serviceQty: {
+    fontSize: fontSize.xs,
+    color: colors.textSecondary,
+  },
+  noServicesList: {
+    color: colors.textLight,
+    fontSize: fontSize.xs,
+    textAlign: 'center',
+    paddingVertical: spacing.sm,
+  },
+  saveHint: {
+    color: colors.textLight,
+    fontSize: fontSize.xs,
+    fontStyle: 'italic',
+    marginTop: spacing.xs,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContainer: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: borderRadius.lg,
+    borderTopRightRadius: borderRadius.lg,
+    maxHeight: '70%',
+    padding: spacing.md,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.sm,
+  },
+  modalTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  modalSearch: {
+    borderWidth: 1,
+    borderColor: colors.borderLight,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+    fontSize: fontSize.md,
+    marginBottom: spacing.sm,
+    color: colors.text,
+  },
+  modalItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.borderLight,
+  },
+  modalItemText: {
+    fontSize: fontSize.md,
+    color: colors.text,
+    flex: 1,
   },
 });

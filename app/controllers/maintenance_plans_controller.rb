@@ -119,7 +119,10 @@ class MaintenancePlansController < ApplicationController
       :name, :description, :active, :client_id,
       maintenance_plan_items_attributes: [
         :id, :name, :plan_type, :km_interval, :days_interval,
-        :km_alert_threshold, :days_alert_threshold, :active, :_destroy
+        :km_alert_threshold, :days_alert_threshold, :active, :_destroy,
+        maintenance_plan_item_services_attributes: [
+          :id, :service_id, :quantity, :observation, :_destroy
+        ]
       ]
     )
   end

@@ -119,7 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const canApproveOS = [ProfileId.ADMINISTRADOR, ProfileId.GESTOR, ProfileId.ADICIONAL].includes(
     state.profileId as ProfileId
   );
-  const canManageUsers = [ProfileId.ADMINISTRADOR, ProfileId.GESTOR, ProfileId.CLIENTE].includes(
+  const canManageUsers = [ProfileId.ADMINISTRADOR, ProfileId.GESTOR, ProfileId.CLIENTE, ProfileId.ADICIONAL].includes(
     state.profileId as ProfileId
   );
 

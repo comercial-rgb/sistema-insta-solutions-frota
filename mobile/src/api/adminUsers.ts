@@ -21,7 +21,7 @@ export const adminUsersApi = {
     name: string;
     email: string;
     profile_id: number;
-    password: string;
+    password?: string;
     cpf?: string;
     cnpj?: string;
     phone?: string;

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
@@ -42,6 +43,15 @@ export default function DashboardScreen() {
       contentContainerStyle={styles.contentContainer}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
     >
+      {/* Header com logo */}
+      <View style={styles.headerBanner}>
+        <Image
+          source={require('../../assets/images/logo-horizontal-branco.png')}
+          style={styles.headerLogo}
+          resizeMode="contain"
+        />
+      </View>
+
       {/* Header de boas-vindas */}
       <View style={styles.welcomeSection}>
         <Text style={styles.greeting}>Olá, {userName}!</Text>
@@ -254,12 +264,25 @@ function SummaryItem({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  contentContainer: { padding: spacing.md, paddingBottom: spacing.xxl },
+  contentContainer: { paddingBottom: spacing.xxl },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  welcomeSection: { marginBottom: spacing.lg },
+  headerBanner: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.md,
+    alignItems: 'center',
+    borderBottomLeftRadius: borderRadius.lg,
+    borderBottomRightRadius: borderRadius.lg,
+    marginBottom: spacing.sm,
+  },
+  headerLogo: {
+    width: 200,
+    height: 40,
+  },
+  welcomeSection: { marginBottom: spacing.lg, paddingHorizontal: spacing.md },
   greeting: { fontSize: fontSize.xxl, fontWeight: '700', color: colors.text },
   greetingSub: { fontSize: fontSize.md, color: colors.textSecondary, marginTop: 2 },
-  cardsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm },
+  cardsRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm, paddingHorizontal: spacing.md },
   dashCard: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -283,11 +306,13 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginTop: spacing.lg,
     marginBottom: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
   actionsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
+    paddingHorizontal: spacing.md,
   },
   actionButton: {
     backgroundColor: colors.surface,
@@ -309,6 +334,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.md,
     marginTop: spacing.lg,
+    marginHorizontal: spacing.md,
     ...shadows.sm,
   },
   chartTitle: { fontSize: fontSize.md, fontWeight: '600', color: colors.text, marginBottom: spacing.md },
@@ -331,6 +357,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     padding: spacing.md,
     marginTop: spacing.md,
+    marginHorizontal: spacing.md,
     ...shadows.sm,
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-around' },

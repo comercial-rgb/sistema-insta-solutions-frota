@@ -203,9 +203,9 @@ export default function VehicleDetailScreen() {
 function InfoRow({ label, value, wrap }: { label: string; value?: string | null; wrap?: boolean }) {
   if (!value) return null;
   return (
-    <View style={[styles.infoRow, wrap && { flexDirection: 'column', alignItems: 'flex-start' }]}>
+    <View style={styles.infoRow}>
       <Text style={styles.infoLabel}>{label}</Text>
-      <Text style={[styles.infoValue, wrap && { marginTop: 2 }]} numberOfLines={wrap ? 3 : 1}>
+      <Text style={[styles.infoValue, wrap && { flexShrink: 1 }]} numberOfLines={wrap ? 3 : 1}>
         {value}
       </Text>
     </View>

@@ -90,7 +90,10 @@ class OrderService < ApplicationRecord
 
   scope :by_proposal_provider_id, lambda { |value|
     left_outer_joins(:order_service_proposals)
-      .where("order_service_proposals.provider_id = ? OR order_services.provider_id = ?", value, value)
+      .where(
+        "(order_service_proposals.provider_id = ? AND order_service_proposals.order_service_proposal_status_id IN (?)) OR order_services.provider_id = ?",
+        value, OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES, value
+      )
       .distinct
   }
 

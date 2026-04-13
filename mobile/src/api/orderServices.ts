@@ -22,6 +22,8 @@ export const orderServicesApi = {
     vehicle_id?: number;
     client_id?: number;
     search?: string;
+    start_date?: string;
+    end_date?: string;
   }): Promise<{ order_services: OrderServiceSummary[]; meta: PaginationMeta }> => {
     const { data } = await api.get('/api/v2/order_services', { params });
     return data;

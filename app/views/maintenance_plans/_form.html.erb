@@ -28,8 +28,8 @@
     </div>
 
     <hr>
-    <h5><i class="bi bi-list-check"></i> Itens do Plano de Manutenção</h5>
-    <p class="text-muted small">Defina os itens de manutenção e seus intervalos para disparo de alertas (por KM ou por dias).</p>
+    <h5><i class="bi bi-list-check"></i> Serviços do Plano de Manutenção</h5>
+    <p class="text-muted small">Crie serviços pré-montados com peças e serviços. Ao gerar o alerta, a OS será criada com estes itens já incluídos.</p>
 
     <div id="maintenance-plan-items">
         <%= f.simple_fields_for :maintenance_plan_items do |item_form| %>
@@ -40,7 +40,7 @@
     <div class="row mb-3">
         <div class="col-12">
             <button type="button" class="btn btn-outline-primary btn-sm" id="add-maintenance-item">
-                <i class="bi bi-plus-circle"></i> Adicionar Item
+                <i class="bi bi-plus-circle"></i> Adicionar Serviço
             </button>
         </div>
     </div>
@@ -125,6 +125,54 @@ function markForDestroy(btn) {
     container.style.display = 'none';
 }
 
+function addServiceToItem(itemId, objectName) {
+    var select = document.getElementById('new-service-select-' + itemId);
+    var qtyInput = document.getElementById('new-service-qty-' + itemId);
+    var obsInput = document.getElementById('new-service-obs-' + itemId);
+
+    var serviceId = select.value;
+    if (!serviceId) { alert('Selecione uma peça ou serviço.'); return; }
+
+    var option = select.options[select.selectedIndex];
+    var serviceName = option.dataset.name;
+    var serviceType = option.dataset.type;
+    var badgeClass = option.dataset.badge;
+    var qty = qtyInput.value || '1';
+    var obs = obsInput.value || '';
+    var timestamp = new Date().getTime();
+
+    var baseName = objectName + '[maintenance_plan_item_services_attributes][' + timestamp + ']';
+
+    var container = document.getElementById('item-services-' + itemId);
+    var table = container.querySelector('table');
+    if (!table) {
+        table = document.createElement('table');
+        table.className = 'table table-sm table-bordered mb-2';
+        table.innerHTML = '<thead class="table-light"><tr><th>Tipo</th><th>Peça/Serviço</th><th>Qtd</th><th>Observação</th><th style="width:60px;"></th></tr></thead><tbody></tbody>';
+        container.prepend(table);
+    }
+    var tbody = table.querySelector('tbody');
+
+    var row = document.createElement('tr');
+    row.className = 'item-service-row';
+    row.innerHTML = `
+        <td><span class="badge ${badgeClass}">${serviceType}</span></td>
+        <td>${serviceName}<input type="hidden" name="${baseName}[service_id]" value="${serviceId}"></td>
+        <td><input type="number" class="form-control form-control-sm" name="${baseName}[quantity]" value="${qty}" min="0.01" step="0.01" style="width:80px"></td>
+        <td><input type="text" class="form-control form-control-sm" name="${baseName}[observation]" value="${obs}" placeholder="Obs..."></td>
+        <td>
+            <input type="hidden" name="${baseName}[_destroy]" value="0" class="destroy-service-field">
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('tr').remove()"><i class="bi bi-x"></i></button>
+        </td>
+    `;
+    tbody.appendChild(row);
+
+    // Reset
+    select.value = '';
+    qtyInput.value = '1';
+    obsInput.value = '';
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     var addBtn = document.getElementById('add-maintenance-item');
     if (addBtn) {
@@ -132,34 +180,39 @@ document.addEventListener('DOMContentLoaded', function() {
             var container = document.getElementById('maintenance-plan-items');
             var timestamp = new Date().getTime();
             var template = `
-                <div class="nested-fields card card-body mb-2 bg-light">
-                    <div class="row">
-                        <div class="col-12 col-md-3">
-                            <div class="mb-3"><label class="form-label">Nome do Item</label><input class="form-control" type="text" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][name]" placeholder="Ex: Troca de óleo"></div>
-                        </div>
-                        <div class="col-12 col-md-2">
-                            <div class="mb-3"><label class="form-label">Tipo</label><select class="form-select" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][plan_type]"><option value="km">Por KM</option><option value="days">Por Dias</option><option value="both">Ambos</option></select></div>
-                        </div>
-                        <div class="col-12 col-md-2">
-                            <div class="mb-3"><label class="form-label">Intervalo KM</label><input class="form-control" type="number" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][km_interval]" placeholder="Ex: 10000" min="0"></div>
-                        </div>
-                        <div class="col-12 col-md-2">
-                            <div class="mb-3"><label class="form-label">Intervalo Dias</label><input class="form-control" type="number" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][days_interval]" placeholder="Ex: 180" min="0"></div>
-                        </div>
-                        <div class="col-12 col-md-2">
-                            <div class="mb-3"><label class="form-label">Ativo</label><div><input type="hidden" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][active]" value="0"><input type="checkbox" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][active]" value="1" checked></div></div>
-                        </div>
-                        <div class="col-12 col-md-1 d-flex align-items-center">
-                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('.nested-fields').remove()"><i class="bi bi-trash"></i></button>
-                        </div>
+                <div class="nested-fields card mb-3 border-primary">
+                    <div class="card-header bg-primary bg-opacity-10 d-flex justify-content-between align-items-center">
+                        <strong><i class="bi bi-gear"></i> Serviço do Plano</strong>
+                        <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('.nested-fields').remove()"><i class="bi bi-trash"></i> Remover</button>
                     </div>
-                    <div class="row">
-                        <div class="col-12 col-md-3">
-                            <div class="mb-3"><label class="form-label">Alerta KM antes (km)</label><input class="form-control" type="number" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][km_alert_threshold]" placeholder="Ex: 1000" min="0"></div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-12 col-md-4">
+                                <div class="mb-3"><label class="form-label">Nome do Serviço</label><input class="form-control" type="text" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][name]" placeholder="Ex: Troca de óleo linha leve"></div>
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <div class="mb-3"><label class="form-label">Tipo de Alerta</label><select class="form-select" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][plan_type]"><option value="km">Por KM</option><option value="days">Por Dias</option><option value="both">Ambos</option></select></div>
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <div class="mb-3"><label class="form-label">Intervalo KM</label><input class="form-control" type="number" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][km_interval]" placeholder="Ex: 10000" min="0"></div>
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <div class="mb-3"><label class="form-label">Intervalo Dias</label><input class="form-control" type="number" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][days_interval]" placeholder="Ex: 180" min="0"></div>
+                            </div>
+                            <div class="col-12 col-md-2">
+                                <div class="mb-3"><label class="form-label">Ativo</label><div><input type="hidden" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][active]" value="0"><input type="checkbox" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][active]" value="1" checked></div></div>
+                            </div>
                         </div>
-                        <div class="col-12 col-md-3">
-                            <div class="mb-3"><label class="form-label">Alerta dias antes</label><input class="form-control" type="number" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][days_alert_threshold]" placeholder="Ex: 15" min="0"></div>
+                        <div class="row">
+                            <div class="col-12 col-md-3">
+                                <div class="mb-3"><label class="form-label">Alerta KM antes</label><input class="form-control" type="number" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][km_alert_threshold]" placeholder="Ex: 1000" min="0"></div>
+                            </div>
+                            <div class="col-12 col-md-3">
+                                <div class="mb-3"><label class="form-label">Alerta dias antes</label><input class="form-control" type="number" name="maintenance_plan[maintenance_plan_items_attributes][${timestamp}][days_alert_threshold]" placeholder="Ex: 15" min="0"></div>
+                            </div>
                         </div>
+                        <hr>
+                        <p class="text-muted small mb-0"><i class="bi bi-info-circle"></i> Salve o plano primeiro para adicionar peças e serviços a este item.</p>
                     </div>
                 </div>
             `;

@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -52,6 +53,15 @@ export default function AnomaliesScreen() {
           ),
         }}
       />
+
+      {/* FAB + centralizado */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push('/report-anomaly')}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="add" size={28} color="#fff" />
+      </TouchableOpacity>
 
       {isLoading ? (
         <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: spacing.xxl }} />
@@ -104,7 +114,20 @@ function AnomalyCard({ item }: { item: Anomaly }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.background },
-  listContent: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: spacing.xxl },
+  listContent: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: 100 },
+  fab: {
+    position: 'absolute',
+    right: spacing.md,
+    bottom: Platform.OS === 'android' ? 24 : spacing.lg,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+    ...shadows.lg,
+  },
   card: { backgroundColor: colors.surface, borderRadius: borderRadius.md, padding: spacing.md, marginBottom: spacing.sm, ...shadows.sm },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: spacing.sm },
   severityBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },

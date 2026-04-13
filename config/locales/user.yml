@@ -124,7 +124,7 @@ pt-BR:
         state_city: "Estado/Cidade"
         states: "Estados para recebimento de propostas"
         registration: "Matrícula"
-        optante_simples: "Optante pelo SIMPLES"
+        optante_simples: "Não optante pelo SIMPLES"
         needs_km: "Necessita controle de KM"
       user/cards:
         id: 'ID'
@@ -263,7 +263,7 @@ en:
         state_city: "Estado/Cidade"
         states: "Estados para recebimento de propostas"
         registration: "Matrícula"
-        optante_simples: "Optante pelo SIMPLES"
+        optante_simples: "Não optante pelo SIMPLES"
         needs_km: "Necessita controle de KM"
       user/cards:
         id: 'ID'

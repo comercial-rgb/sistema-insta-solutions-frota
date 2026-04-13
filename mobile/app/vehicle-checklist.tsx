@@ -251,7 +251,19 @@ export default function VehicleChecklistScreen() {
               style={styles.itemHeader}
               onPress={() => setExpandedItem(expandedItem === item.originalIndex ? null : item.originalIndex)}
             >
-              <Text style={styles.itemName}>{item.item_name}</Text>
+              <View style={styles.itemNameRow}>
+                <Text style={styles.itemName}>{item.item_name}</Text>
+                <View style={styles.itemHint}>
+                  <Ionicons
+                    name={expandedItem === item.originalIndex ? 'chevron-up' : 'create-outline'}
+                    size={14}
+                    color={colors.primary}
+                  />
+                  <Text style={styles.itemHintText}>
+                    {expandedItem === item.originalIndex ? 'Fechar' : 'Toque para detalhar'}
+                  </Text>
+                </View>
+              </View>
               <View style={styles.itemConditionRow}>
                 {CONDITIONS.map((cond) => (
                   <TouchableOpacity
@@ -463,7 +475,10 @@ const styles = StyleSheet.create({
   },
   itemCardAnomaly: { borderColor: colors.danger, borderWidth: 1.5 },
   itemHeader: { padding: spacing.md },
-  itemName: { fontSize: fontSize.md, fontWeight: '600', color: colors.text, marginBottom: spacing.sm },
+  itemNameRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
+  itemName: { fontSize: fontSize.md, fontWeight: '600', color: colors.text, flex: 1 },
+  itemHint: { flexDirection: 'row', alignItems: 'center', gap: 3 },
+  itemHintText: { fontSize: fontSize.xs, color: colors.primary },
   itemConditionRow: { flexDirection: 'row', gap: spacing.xs, flexWrap: 'wrap' },
   conditionChip: {
     flexDirection: 'row',

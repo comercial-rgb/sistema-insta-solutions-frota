@@ -1,5 +1,13 @@
 import api from './client';
-import { MaintenancePlan, MaintenancePlanItem, MaintenancePlanVehicle, PaginationMeta } from '../types';
+import { MaintenancePlan, MaintenancePlanItem, MaintenancePlanVehicle, MaintenancePlanItemService, PaginationMeta } from '../types';
+
+interface AvailableService {
+  id: number;
+  name: string;
+  category_id: number;
+  type: 'peca' | 'servico';
+  price: number | null;
+}
 
 export const maintenancePlansApi = {
   list: async (params?: {
@@ -66,6 +74,37 @@ export const maintenancePlansApi = {
     id: number
   ): Promise<{ vehicles: MaintenancePlanVehicle[] }> => {
     const { data } = await api.get(`/api/v2/maintenance_plans/${id}/available_vehicles`);
+    return data;
+  },
+
+  addServiceToItem: async (
+    planId: number,
+    itemId: number,
+    params: { service_id: number; quantity?: number; observation?: string }
+  ): Promise<{ plan: MaintenancePlan; message: string }> => {
+    const { data } = await api.post(
+      `/api/v2/maintenance_plans/${planId}/items/${itemId}/services`,
+      params
+    );
+    return data;
+  },
+
+  removeServiceFromItem: async (
+    planId: number,
+    itemId: number,
+    serviceId: number
+  ): Promise<{ plan: MaintenancePlan; message: string }> => {
+    const { data } = await api.delete(
+      `/api/v2/maintenance_plans/${planId}/items/${itemId}/services/${serviceId}`
+    );
+    return data;
+  },
+
+  availableServices: async (params?: {
+    search?: string;
+    category?: 'pecas' | 'servicos';
+  }): Promise<{ services: AvailableService[] }> => {
+    const { data } = await api.get('/api/v2/maintenance_plans/available_services', { params });
     return data;
   },
 };

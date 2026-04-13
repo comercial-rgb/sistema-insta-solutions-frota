@@ -12,6 +12,8 @@ module Api
           optional :vehicle_id, type: Integer
           optional :client_id, type: Integer
           optional :search, type: String
+          optional :start_date, type: String
+          optional :end_date, type: String
         end
         get do
           user = current_user
@@ -39,6 +41,13 @@ module Api
           end
           scope = scope.where(order_service_status_id: params[:status_id]) if params[:status_id].present?
           scope = scope.where(vehicle_id: params[:vehicle_id]) if params[:vehicle_id].present?
+
+          if params[:start_date].present?
+            scope = scope.where('order_services.created_at >= ?', Date.parse(params[:start_date]).beginning_of_day)
+          end
+          if params[:end_date].present?
+            scope = scope.where('order_services.created_at <= ?', Date.parse(params[:end_date]).end_of_day)
+          end
 
           if params[:search].present?
             search = "%#{params[:search]}%"
@@ -74,7 +83,19 @@ module Api
               .find(params[:id])
           else
             client_id = user.client? ? user.id : user.client_id
-            os = OrderService.where(client_id: client_id).find(params[:id])
+            scope = OrderService.where(client_id: client_id)
+
+            if (user.manager? || user.additional?) && user.respond_to?(:associated_cost_centers)
+              cc_ids = user.associated_cost_centers.pluck(:id)
+              su_ids = user.associated_sub_units.pluck(:id)
+              if cc_ids.present? || su_ids.present?
+                vehicle_ids = Vehicle.where(client_id: client_id)
+                  .where('cost_center_id IN (?) OR sub_unit_id IN (?)', cc_ids.presence || [0], su_ids.presence || [0])
+                scope = scope.where(vehicle_id: vehicle_ids.select(:id))
+              end
+            end
+
+            os = scope.find(params[:id])
           end
 
           proposals = os.order_service_proposals.includes(:provider, order_service_proposal_items: :service)
@@ -83,6 +104,11 @@ module Api
             order_service: serialize_os_detail(os),
             proposals: proposals.map { |p| serialize_proposal(p) }
           }
+        rescue ActiveRecord::RecordNotFound
+          error!('OS não encontrada ou sem permissão de acesso', 404)
+        rescue => e
+          Rails.logger.error "OS Detail Error [id=#{params[:id]}, user=#{current_user&.id}]: #{e.class} - #{e.message}"
+          error!("Erro ao carregar OS: #{e.message}", 500)
         end
 
         desc 'Criar nova OS'

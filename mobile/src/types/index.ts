@@ -268,6 +268,15 @@ export interface MaintenanceAlertSummary {
 }
 
 // ===== MAINTENANCE PLAN =====
+export interface MaintenancePlanItemService {
+  id: number;
+  service_id: number;
+  service_name: string;
+  service_type: 'peca' | 'servico';
+  quantity: number;
+  observation?: string;
+}
+
 export interface MaintenancePlanItem {
   id?: number;
   name: string;
@@ -277,6 +286,8 @@ export interface MaintenancePlanItem {
   km_alert_threshold?: number | null;
   days_alert_threshold?: number | null;
   active: boolean;
+  services_count?: number;
+  services?: MaintenancePlanItemService[];
   _destroy?: boolean;
 }
 

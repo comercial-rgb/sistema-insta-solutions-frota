@@ -81,6 +81,7 @@ export default function CreateOSScreen() {
   const [clientName, setClientName] = useState(selectedClientName);
   const [vehicleId, setVehicleId] = useState<number | null>(null);
   const [serviceTypeId, setServiceTypeId] = useState<number | null>(null);
+  const [serviceTypeName, setServiceTypeName] = useState('');
   const [osTypeId, setOsTypeId] = useState<number>(OS_TYPE_COTACOES);
   const [details, setDetails] = useState('');
   const [km, setKm] = useState('');
@@ -208,14 +209,11 @@ export default function CreateOSScreen() {
       />
 
       {/* Tipo de Serviço */}
-      <Text style={s.label}>Tipo de Serviço <Text style={s.req}>*</Text></Text>
-      <View style={s.chipRow}>
-        {serviceTypes.map((st) => (
-          <TouchableOpacity key={st.id} style={[s.chip, st.id === serviceTypeId && s.chipSel]} onPress={() => setServiceTypeId(st.id)}>
-            <Text style={[s.chipText, st.id === serviceTypeId && s.chipTextSel]}>{st.name}</Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      <PF label="Tipo de Serviço" value={serviceTypeName} placeholder="Selecione o tipo de serviço" pickerKey="serviceType" icon="construct-outline" required />
+      <SearchablePicker visible={activePicker === 'serviceType'} onClose={() => setActivePicker(null)}
+        title="Tipo de Serviço" items={serviceTypes} searchPlaceholder="Buscar tipo de serviço..."
+        onSelect={(i) => { setServiceTypeId(i.id); setServiceTypeName(i.name); }}
+      />
 
       {/* Tipo de OS */}
       <Text style={s.label}>Tipo de OS <Text style={s.req}>*</Text></Text>

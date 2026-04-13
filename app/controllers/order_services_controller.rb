@@ -1178,11 +1178,24 @@ class OrderServicesController < ApplicationController
         filename: OrderService.model_name.human(count: 2)+" - #{Time.now.to_s}.csv"
       end
       format.pdf do
-        pdf = Utils::DatagridPdfExporter.new(@order_services_to_export, title: OrderService.model_name.human(count: 2)).call
-        send_data pdf,
-          type: 'application/pdf',
-          disposition: 'inline',
-          filename: OrderService.model_name.human(count: 2)+" - #{Time.now.to_s}.pdf"
+        if params[:report_type] == 'demonstrativo'
+          os_list = @order_services_to_export.assets.to_a
+          current_client = nil
+          if params[:order_services_invoice_grid].present? && params[:order_services_invoice_grid][:client_id].present?
+            current_client = User.client.find_by(id: params[:order_services_invoice_grid][:client_id])
+          end
+          pdf = generate_demonstrativo_pdf(os_list, current_client)
+          send_data pdf.render,
+            type: 'application/pdf',
+            disposition: 'inline',
+            filename: "demonstrativo_faturamento_#{Date.current.strftime('%Y%m%d')}.pdf"
+        else
+          pdf = Utils::DatagridPdfExporter.new(@order_services_to_export, title: OrderService.model_name.human(count: 2)).call
+          send_data pdf,
+            type: 'application/pdf',
+            disposition: 'inline',
+            filename: OrderService.model_name.human(count: 2)+" - #{Time.now.to_s}.pdf"
+        end
       end
     end
   end
@@ -1654,6 +1667,133 @@ class OrderServicesController < ApplicationController
   end
 
   private
+
+  def generate_demonstrativo_pdf(order_services, current_client)
+    tempfiles_to_cleanup = []
+
+    pdf = Prawn::Document.new(page_size: 'A4', page_layout: :landscape) do |pdf|
+      pdf.font_size 10
+
+      # --- Logo ---
+      logo_path = Rails.root.join('app', 'assets', 'images', 'logos', 'logo.png')
+      logo_drawn = false
+      if File.exist?(logo_path)
+        begin
+          pdf.image logo_path.to_s, fit: [160, 50], position: :left
+          logo_drawn = true
+        rescue Prawn::Errors::UnsupportedImageType, Prawn::Errors::UnsupportedImageFormat
+          begin
+            require 'mini_magick'
+            tmp = Tempfile.new(['instasolutions-logo', '.png'])
+            tmp.binmode
+            image = MiniMagick::Image.open(logo_path.to_s)
+            begin; image.interlace 'none'; rescue StandardError; end
+            image.format 'png'
+            image.write tmp.path
+            tempfiles_to_cleanup << tmp
+            pdf.image tmp.path, fit: [160, 50], position: :left
+            logo_drawn = true
+          rescue StandardError
+            logo_drawn = false
+          end
+        end
+      end
+      pdf.text 'InstaSolutions', size: 16, style: :bold unless logo_drawn
+
+      pdf.move_down 10
+      pdf.text 'DEMONSTRATIVO DE FATURAMENTO', size: 16, style: :bold, align: :center
+      pdf.move_down 5
+
+      if current_client.present?
+        client_name = current_client.fantasy_name.presence || current_client.name
+        pdf.text "Cliente: #{client_name}", size: 11
+      end
+      pdf.text "Data de emissão: #{Date.current.strftime('%d/%m/%Y')}", size: 10
+      pdf.move_down 10
+
+      # --- Tabela ---
+      header = ['ID', 'Placa', 'Modelo', 'Subunidades', 'Orgão solicitante',
+                'Fornecedor Aprovado', 'Nota Fiscal peça', 'Valor',
+                'Nota Fiscal serviço', 'Valor', 'Total R$']
+      rows = []
+      total_parts = 0.0
+      total_services = 0.0
+      total_geral = 0.0
+
+      order_services.each do |os|
+        approved_proposal = os.getting_order_service_proposal_approved
+        provider = approved_proposal&.provider || os.provider
+        provider_name = provider&.fantasy_name.presence || provider&.name || '-'
+
+        nf_peca = ''
+        nf_servico = ''
+        if approved_proposal.present?
+          invoices = approved_proposal.order_service_invoices
+          nf_peca_rec = invoices.find { |inv| inv.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }
+          nf_servico_rec = invoices.find { |inv| inv.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }
+          nf_peca = nf_peca_rec&.number.to_s
+          nf_servico = nf_servico_rec&.number.to_s
+        end
+
+        sub_unit_name = os.vehicle&.sub_unit&.name || ''
+        client_name = os.client&.fantasy_name.presence || os.client&.name || '-'
+        modelo = "#{os.vehicle&.brand} #{os.vehicle&.model}".strip
+
+        parts = os.total_parts_value.to_f
+        services = os.total_services_value.to_f
+        total = os.total_value.to_f
+
+        total_parts += parts
+        total_services += services
+        total_geral += total
+
+        rows << [
+          os.code,
+          os.vehicle&.board || '-',
+          modelo.truncate(28),
+          sub_unit_name.truncate(20),
+          client_name.truncate(30),
+          provider_name.truncate(30),
+          nf_peca,
+          CustomHelper.to_currency(parts),
+          nf_servico,
+          CustomHelper.to_currency(services),
+          CustomHelper.to_currency(total)
+        ]
+      end
+
+      # Linha de totais
+      rows << [
+        { content: 'Total: R$', colspan: 7, font_style: :bold, align: :right },
+        { content: CustomHelper.to_currency(total_parts), font_style: :bold },
+        { content: '', font_style: :bold },
+        { content: CustomHelper.to_currency(total_services), font_style: :bold },
+        { content: CustomHelper.to_currency(total_geral), font_style: :bold }
+      ]
+
+      table_data = [header] + rows
+
+      pdf.table(table_data, header: true, width: pdf.bounds.width,
+                cell_style: { size: 8, padding: [3, 4, 3, 4] },
+                row_colors: ['FFFFFF', 'F5F5F5']) do
+        row(0).font_style = :bold
+        row(0).background_color = 'E0E0E0'
+        row(0).align = :center
+        columns(7).align = :right
+        columns(9).align = :right
+        columns(10).align = :right
+      end
+
+      pdf.move_down 15
+      pdf.text "Total de OS: #{order_services.size}", size: 10
+
+      # --- Rodapé com número de página ---
+      pdf.number_pages 'Página <page> de <total>', at: [pdf.bounds.right - 100, -5], size: 8
+    end
+
+    tempfiles_to_cleanup.each { |tmp| tmp.close! rescue nil }
+    pdf
+  end
 
   def load_warranty_panel_data
     # Permite carregar itens de garantia tanto na criação (new) quanto na edição (edit)
