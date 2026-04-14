@@ -61,6 +61,8 @@ export default function OrderServicesScreen() {
   const [showPeriodFilter, setShowPeriodFilter] = useState(false);
   const [tempStartDate, setTempStartDate] = useState('');
   const [tempEndDate, setTempEndDate] = useState('');
+  const [tempStartDisplay, setTempStartDisplay] = useState('');
+  const [tempEndDisplay, setTempEndDisplay] = useState('');
 
   const { data, fetchNextPage, hasNextPage, isLoading, refetch, isRefetching, isFetchingNextPage } =
     useInfiniteQuery({
@@ -74,6 +76,8 @@ export default function OrderServicesScreen() {
           client_id: selectedClientId ?? undefined,
           start_date: startDate || undefined,
           end_date: endDate || undefined,
+          sort_by: 'created_at',
+          sort_direction: 'desc',
         }),
       getNextPageParam: (lastPage) => {
         if (lastPage.meta.current_page < lastPage.meta.total_pages) {
@@ -204,7 +208,7 @@ export default function OrderServicesScreen() {
         {/* Period filter toggle */}
         <TouchableOpacity
           style={[styles.statusChip, (startDate || endDate) ? { backgroundColor: colors.primary + '20', borderColor: colors.primary } : {}]}
-          onPress={() => { setTempStartDate(startDate); setTempEndDate(endDate); setShowPeriodFilter(true); }}
+          onPress={() => { setTempStartDate(startDate); setTempEndDate(endDate); setTempStartDisplay(startDate ? startDate.split('-').reverse().join('/') : ''); setTempEndDisplay(endDate ? endDate.split('-').reverse().join('/') : ''); setShowPeriodFilter(true); }}
         >
           <Ionicons name="calendar-outline" size={14} color={(startDate || endDate) ? colors.primary : colors.textLight} />
           <Text style={[styles.statusChipText, (startDate || endDate) && { color: colors.primary, fontWeight: '600' }]}>
@@ -233,12 +237,13 @@ export default function OrderServicesScreen() {
               style={styles.periodInput}
               placeholder="DD/MM/AAAA"
               placeholderTextColor={colors.placeholder}
-              value={tempStartDate.split('-').reverse().join('/')}
+              value={tempStartDisplay}
               onChangeText={(text) => {
                 const clean = text.replace(/\D/g, '');
                 let formatted = clean;
                 if (clean.length >= 2) formatted = clean.slice(0, 2) + '/' + clean.slice(2);
                 if (clean.length >= 4) formatted = clean.slice(0, 2) + '/' + clean.slice(2, 4) + '/' + clean.slice(4, 8);
+                setTempStartDisplay(formatted);
                 if (clean.length === 8) {
                   setTempStartDate(`${clean.slice(4, 8)}-${clean.slice(2, 4)}-${clean.slice(0, 2)}`);
                 } else {
@@ -253,12 +258,13 @@ export default function OrderServicesScreen() {
               style={styles.periodInput}
               placeholder="DD/MM/AAAA"
               placeholderTextColor={colors.placeholder}
-              value={tempEndDate.split('-').reverse().join('/')}
+              value={tempEndDisplay}
               onChangeText={(text) => {
                 const clean = text.replace(/\D/g, '');
                 let formatted = clean;
                 if (clean.length >= 2) formatted = clean.slice(0, 2) + '/' + clean.slice(2);
                 if (clean.length >= 4) formatted = clean.slice(0, 2) + '/' + clean.slice(2, 4) + '/' + clean.slice(4, 8);
+                setTempEndDisplay(formatted);
                 if (clean.length === 8) {
                   setTempEndDate(`${clean.slice(4, 8)}-${clean.slice(2, 4)}-${clean.slice(0, 2)}`);
                 } else {
@@ -269,7 +275,7 @@ export default function OrderServicesScreen() {
               maxLength={10}
             />
             <View style={styles.periodActions}>
-              <TouchableOpacity style={styles.periodBtnClear} onPress={() => { setTempStartDate(''); setTempEndDate(''); }}>
+              <TouchableOpacity style={styles.periodBtnClear} onPress={() => { setTempStartDate(''); setTempEndDate(''); setTempStartDisplay(''); setTempEndDisplay(''); }}>
                 <Text style={styles.periodBtnClearText}>Limpar</Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -367,7 +373,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     marginBottom: spacing.xs,
   },
-  listContent: { paddingHorizontal: spacing.md, paddingBottom: Platform.OS === 'android' ? 140 : 100 },
+  listContent: { paddingHorizontal: spacing.md, paddingBottom: Platform.OS === 'android' ? 100 : 100 },
   card: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -390,7 +396,7 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: spacing.md,
-    bottom: Platform.OS === 'android' ? 80 : spacing.lg,
+    bottom: Platform.OS === 'android' ? 24 : spacing.lg,
     width: 56,
     height: 56,
     borderRadius: 28,

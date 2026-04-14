@@ -83,8 +83,8 @@ export default function KmRegisterScreen() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
-    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" keyboardDismissMode="interactive">
 
 
       {/* Veículo */}
@@ -117,6 +117,7 @@ export default function KmRegisterScreen() {
             <FlatList
               data={vehiclesData?.vehicles?.slice(0, 100)}
               keyExtractor={(v) => v.id.toString()}
+              keyboardShouldPersistTaps="handled"
               renderItem={({ item: v }) => (
                 <TouchableOpacity
                   style={[styles.pickerItem, v.id === selectedVehicleId && styles.pickerItemSelected]}

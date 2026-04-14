@@ -174,7 +174,9 @@ export default function CreateOSScreen() {
       <TouchableOpacity style={s.picker} onPress={() => setActivePicker(pickerKey)}>
         {icon && <Ionicons name={icon as any} size={18} color={colors.textSecondary} />}
         <Text style={[s.pickerText, !value && { color: colors.placeholder }]}>{value || placeholder}</Text>
-        <Ionicons name="chevron-down" size={18} color={colors.textLight} />
+        <View style={s.pickerBtn}>
+          <Ionicons name="search-outline" size={16} color={colors.primary} />
+        </View>
       </TouchableOpacity>
     </>
   );
@@ -349,6 +351,14 @@ const s = StyleSheet.create({
     ...shadows.sm,
   },
   pickerText: { flex: 1, fontSize: fontSize.sm, color: colors.text },
+  pickerBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.primary + '12',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: {
     paddingHorizontal: spacing.md,

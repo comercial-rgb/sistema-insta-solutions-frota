@@ -8,6 +8,7 @@ import {
   RefreshControl,
   ActivityIndicator,
   Platform,
+  Dimensions,
 } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -117,8 +118,8 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: spacing.md, paddingTop: spacing.sm, paddingBottom: 100 },
   fab: {
     position: 'absolute',
-    right: spacing.md,
     bottom: Platform.OS === 'android' ? 24 : spacing.lg,
+    left: (Dimensions.get('window').width / 2) - 28,
     width: 56,
     height: 56,
     borderRadius: 28,

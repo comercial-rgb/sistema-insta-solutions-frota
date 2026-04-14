@@ -12,10 +12,12 @@ import {
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { dashboardApi } from '../../src/api/dashboard';
+import { mobileBannersApi } from '../../src/api/mobileBanners';
 import { colors, spacing, borderRadius, fontSize, shadows } from '../../src/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/contexts/AuthContext';
 import { useResponsiveLayout } from '../../src/hooks/useResponsiveLayout';
+import BannerCarousel from '../../src/components/BannerCarousel';
 
 export default function DashboardScreen() {
   const { canApproveOS, canManageUsers } = useAuth();
@@ -25,6 +27,14 @@ export default function DashboardScreen() {
     queryKey: ['dashboard'],
     queryFn: dashboardApi.getData,
   });
+
+  const { data: bannersData } = useQuery({
+    queryKey: ['mobile-banners'],
+    queryFn: mobileBannersApi.list,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const banners = bannersData?.banners ?? [];
 
   if (isLoading) {
     return (
@@ -57,6 +67,9 @@ export default function DashboardScreen() {
         <Text style={styles.greeting}>Olá, {userName}!</Text>
         <Text style={styles.greetingSub}>Resumo da sua frota</Text>
       </View>
+
+      {/* Carrossel de Publicidade / Dicas */}
+      {banners.length > 0 && <BannerCarousel banners={banners} />}
 
       {/* Cards de resumo */}
       <View style={styles.cardsRow}>

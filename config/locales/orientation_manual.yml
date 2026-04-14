@@ -15,6 +15,12 @@ pt-BR:
         document: "Documento"
         profile_id: "Perfil de usuário"
         profiles: "Perfis de usuário"
+        mobile_banner_enabled: "Exibir no App Mobile"
+        mobile_banner_type: "Tipo do Card"
+        mobile_banner_title: "Título no App"
+        mobile_banner_text: "Texto do Card"
+        mobile_banner_order: "Ordem de Exibição"
+        mobile_banner_image: "Imagem do Banner Mobile"
 en:
   activerecord:
     models:
@@ -32,3 +38,9 @@ en:
         document: "Documento"
         profile_id: "Perfil de usuário"
         profiles: "Perfis de usuário"
+        mobile_banner_enabled: "Show on Mobile App"
+        mobile_banner_type: "Card Type"
+        mobile_banner_title: "App Title"
+        mobile_banner_text: "Card Text"
+        mobile_banner_order: "Display Order"
+        mobile_banner_image: "Mobile Banner Image"

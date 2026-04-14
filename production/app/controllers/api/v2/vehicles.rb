@@ -1,0 +1,132 @@
+module Api
+  module V2
+    class Vehicles < Grape::API
+      resource :vehicles do
+        before { authenticate! }
+
+        desc 'Lista veículos do cliente'
+        params do
+          optional :page, type: Integer, default: 1
+          optional :per_page, type: Integer, default: 20
+          optional :search, type: String
+          optional :active, type: Boolean
+          optional :cost_center_id, type: Integer
+          optional :client_id, type: Integer
+        end
+        get do
+          user = current_user
+
+          # Role-based scoping
+          if user.admin?
+            scope = Vehicle.all
+            scope = scope.where(client_id: params[:client_id]) if params[:client_id].present?
+          elsif user.provider?
+            # Provider sees vehicles from OS they're assigned to
+            scope = Vehicle.where(id: OrderService.where(provider_id: user.id).select(:vehicle_id))
+          else
+            client_id = user.client? ? user.id : user.client_id
+            scope = Vehicle.where(client_id: client_id)
+
+            # Gestor/Adicional: filter by cost center/sub unit
+            if (user.manager? || user.additional?) && user.respond_to?(:associated_cost_centers)
+              cc_ids = user.associated_cost_centers.pluck(:id)
+              su_ids = user.associated_sub_units.pluck(:id)
+              if cc_ids.present? || su_ids.present?
+                scope = scope.where('cost_center_id IN (?) OR sub_unit_id IN (?)', cc_ids.presence || [0], su_ids.presence || [0])
+              end
+            end
+          end
+          scope = scope.where(active: params[:active]) if params[:active] != nil
+          scope = scope.where(cost_center_id: params[:cost_center_id]) if params[:cost_center_id].present?
+
+          if params[:search].present?
+            search = "%#{params[:search]}%"
+            scope = scope.where('vehicles.board LIKE ? OR vehicles.brand LIKE ? OR vehicles.model LIKE ?', search, search, search)
+          end
+
+          vehicles = scope.order(:board).page(params[:page]).per(params[:per_page])
+
+          {
+            vehicles: vehicles.map { |v| serialize_vehicle(v) },
+            meta: {
+              current_page: vehicles.current_page,
+              total_pages: vehicles.total_pages,
+              total_count: vehicles.total_count
+            }
+          }
+        end
+
+        desc 'Detalhes de um veículo'
+        get ':id' do
+          user = current_user
+
+          if user.admin?
+            vehicle = Vehicle.find(params[:id])
+          elsif user.provider?
+            vehicle = Vehicle.where(id: OrderService.where(provider_id: user.id).select(:vehicle_id)).find(params[:id])
+          else
+            client_id = user.client? ? user.id : user.client_id
+            vehicle = Vehicle.where(client_id: client_id).find(params[:id])
+          end
+
+          last_km = VehicleKmRecord.where(vehicle_id: vehicle.id).order(created_at: :desc).first
+          km_history = VehicleKmRecord.where(vehicle_id: vehicle.id).order(created_at: :desc).limit(10)
+          pending_alerts = MaintenanceAlert.where(vehicle_id: vehicle.id).pending
+          recent_os = vehicle.order_services.order(created_at: :desc).limit(5)
+
+          # Maintenance consumed values
+          maintenance_os = vehicle.order_services
+            .where.not(order_service_status_id: OrderServiceStatus::CANCELADA_ID)
+          maintenance_total = maintenance_os
+            .joins(order_service_proposals: :order_service_proposal_items)
+            .sum('order_service_proposal_items.total_value').to_f
+          maintenance_count = maintenance_os.count
+
+          # Fuel consumed values (if client has fuel solution)
+          fuel_total = 0.0
+          fuel_count = 0
+          if defined?(FuelRecord) && vehicle.respond_to?(:fuel_records)
+            fuel_records = vehicle.fuel_records
+            fuel_total = fuel_records.sum(:total_value).to_f rescue 0.0
+            fuel_count = fuel_records.count rescue 0
+          end
+
+          {
+            vehicle: serialize_vehicle(vehicle),
+            current_km: last_km&.km,
+            km_history: km_history.map { |r| { id: r.id, km: r.km, origin: r.origin, date: r.created_at, user: r.user&.name } },
+            pending_alerts: pending_alerts.map { |a| { id: a.id, message: a.message, alert_type: a.alert_type, target_km: a.target_km, target_date: a.target_date } },
+            recent_os: recent_os.map { |os| { id: os.id, code: os.code, status: os.order_service_status&.name, km: os.km, created_at: os.created_at } },
+            consumed_values: {
+              maintenance: { total: maintenance_total, count: maintenance_count },
+              fuel: { total: fuel_total, count: fuel_count }
+            }
+          }
+        end
+      end
+
+      helpers do
+        def serialize_vehicle(v)
+          {
+            id: v.id,
+            board: v.board,
+            brand: v.brand,
+            model: v.model,
+            year: v.year,
+            color: v.color,
+            renavam: v.renavam,
+            chassi: v.chassi,
+            market_value: v.market_value&.to_f,
+            acquisition_date: v.acquisition_date,
+            active: v.active,
+            fuel_type: v.fuel_type&.name,
+            vehicle_type: v.vehicle_type&.name,
+            cost_center: v.cost_center&.name,
+            sub_unit: v.sub_unit&.name,
+            model_year: v.model_year
+          }
+        end
+      end
+    end
+  end
+end

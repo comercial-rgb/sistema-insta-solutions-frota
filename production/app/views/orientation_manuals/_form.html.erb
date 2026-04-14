@@ -35,6 +35,40 @@
         </div>
     </div>
 
+    <hr class="my-4">
+    <h5 class="mb-3"><i class="bi bi-phone"></i> Configuração para App Mobile (Dashboard)</h5>
+    <p class="text-muted small mb-3">Configure este manual para aparecer como card no carrossel do dashboard do aplicativo mobile.</p>
+
+    <div class="row">
+        <div class="col-12 col-md-3">
+            <%= f.input :mobile_banner_enabled, as: :boolean, label: 'Exibir no App Mobile' %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :mobile_banner_type, as: :select, collection: [['Dica de Conservação', 'tip'], ['Publicidade', 'ad'], ['Instrução', 'instruction'], ['Novidade', 'news']], label: 'Tipo do Card', include_blank: false %>
+        </div>
+        <div class="col-12 col-md-3">
+            <%= f.input :mobile_banner_order, as: :integer, label: 'Ordem de Exibição', hint: 'Menor número aparece primeiro' %>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-md-6">
+            <%= f.input :mobile_banner_title, label: 'Título no App', hint: 'Se vazio, usa o nome do manual', placeholder: 'Ex: Cuidados com a frota no verão' %>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 col-md-8">
+            <%= f.input :mobile_banner_text, as: :text, label: 'Texto do Card no App', hint: 'Se vazio, usa a descrição do manual. Recomendado: até 120 caracteres.', input_html: { rows: 3 }, placeholder: 'Texto resumido para exibição no card do carrossel' %>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-12 mb-3 col-md-4">
+            <%= render "common_pages/image_input", image: f.object.mobile_banner_image, form: f, label: 'Imagem do Banner Mobile', attribute: :mobile_banner_image %>
+        </div>
+    </div>
+
     <%= render 'common_pages/save', f: f, return_path: orientation_manuals_path %>
 
 <% end %>

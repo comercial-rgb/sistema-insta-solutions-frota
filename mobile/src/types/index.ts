@@ -190,6 +190,17 @@ export interface DashboardData {
   };
 }
 
+// ===== MOBILE BANNERS =====
+export interface MobileBanner {
+  id: number;
+  type: 'tip' | 'ad' | 'instruction' | 'news';
+  title: string;
+  text: string;
+  image_url: string | null;
+  document_url: string | null;
+  order: number;
+}
+
 // ===== ANOMALY =====
 export interface Anomaly {
   id: number;

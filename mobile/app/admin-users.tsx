@@ -20,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 const PROFILE_LABELS: Record<number, string> = {
   1: 'Administrador',
+  3: 'Cliente',
   4: 'Gestor',
   5: 'Adicional',
   6: 'Fornecedor',
@@ -28,6 +29,7 @@ const PROFILE_LABELS: Record<number, string> = {
 
 const PROFILE_COLORS: Record<number, string> = {
   1: colors.danger,
+  3: colors.info,
   4: colors.success,
   5: colors.warning,
   6: '#9C27B0',
@@ -113,7 +115,7 @@ export default function AdminUsersScreen() {
         >
           <Text style={[styles.filterChipText, !filterProfile && styles.filterChipTextActive]}>Todos</Text>
         </TouchableOpacity>
-        {[1, 4, 5, 6, 7].map((pid) => (
+        {[1, 3, 4, 5, 6, 7].map((pid) => (
           <TouchableOpacity
             key={pid}
             style={[styles.filterChip, filterProfile === pid && { backgroundColor: PROFILE_COLORS[pid] + '18', borderColor: PROFILE_COLORS[pid] }]}
@@ -251,7 +253,7 @@ function CreateUserModal({ visible, onClose, profiles }: { visible: boolean; onC
 
           <Text style={modalStyles.label}>Perfil</Text>
           <View style={modalStyles.chipRow}>
-            {[1, 4, 5, 6, 7].map((pid) => (
+            {[1, 3, 4, 5, 6, 7].map((pid) => (
               <TouchableOpacity
                 key={pid}
                 style={[

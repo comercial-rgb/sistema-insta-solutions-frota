@@ -18,6 +18,9 @@ class OrientationManual < ApplicationRecord
   validates_presence_of :name, :description
 
   has_one_attached :document
+  has_one_attached :mobile_banner_image
+
+  scope :mobile_banners, -> { where(mobile_banner_enabled: true).order(:mobile_banner_order, :name) }
 
   def get_text_name
     self.name.to_s

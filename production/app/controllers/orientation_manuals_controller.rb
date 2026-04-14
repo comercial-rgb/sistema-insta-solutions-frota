@@ -106,6 +106,12 @@ class OrientationManualsController < ApplicationController
     :name,
     :description,
     :document,
+    :mobile_banner_enabled,
+    :mobile_banner_type,
+    :mobile_banner_title,
+    :mobile_banner_text,
+    :mobile_banner_order,
+    :mobile_banner_image,
     profile_ids: []
     )
   end
