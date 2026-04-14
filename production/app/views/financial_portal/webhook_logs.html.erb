@@ -303,7 +303,21 @@ breadcrumbs = [
                   <% end %>
                 </td>
                 <td class="text-center">
-                  <% unless log.success? || log.skipped? %>
+                  <% if log.skipped? %>
+                    <span class="text-secondary small">
+                      <i class="bi bi-slash-circle"></i> Desconsiderada
+                      <% if log.skipped_at %>
+                        <br><small><%= log.skipped_at.strftime('%d/%m/%Y') %></small>
+                      <% end %>
+                    </span>
+                  <% elsif log.success? %>
+                    <span class="text-success small">
+                      <i class="bi bi-check-lg"></i> OK
+                      <% if log.succeeded_at %>
+                        <br><small><%= log.succeeded_at.strftime('%d/%m/%Y') %></small>
+                      <% end %>
+                    </span>
+                  <% else %>
                     <div class="d-flex gap-1 justify-content-center">
                       <%= link_to financial_portal_webhook_resend_path(log, filter: @filter), method: :post,
                           class: 'btn btn-sm btn-outline-primary',
@@ -318,20 +332,6 @@ breadcrumbs = [
                         <i class="bi bi-slash-circle"></i>
                       <% end %>
                     </div>
-                  <% elsif log.skipped? %>
-                    <span class="text-secondary small">
-                      <i class="bi bi-slash-circle"></i> Desconsiderada
-                      <% if log.skipped_at %>
-                        <br><small><%= log.skipped_at.strftime('%d/%m/%Y') %></small>
-                      <% end %>
-                    </span>
-                  <% else %>
-                    <span class="text-success small">
-                      <i class="bi bi-check-lg"></i> OK
-                      <% if log.succeeded_at %>
-                        <br><small><%= log.succeeded_at.strftime('%d/%m/%Y') %></small>
-                      <% end %>
-                    </span>
                   <% end %>
                 </td>
               </tr>
