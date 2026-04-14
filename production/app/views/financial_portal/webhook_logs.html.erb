@@ -158,10 +158,49 @@ breadcrumbs = [
            class="btn btn-sm <%= @filter == 'success' ? 'btn-success' : 'btn-outline-success' %>">
           <i class="bi bi-check-circle me-1"></i> Enviadas <span class="badge bg-white text-success"><%= @success_count %></span>
         </a>
+        <a href="<%= financial_portal_webhook_logs_path(filter: 'skipped') %>"
+           class="btn btn-sm <%= @filter == 'skipped' ? 'btn-secondary' : 'btn-outline-secondary' %>">
+          <i class="bi bi-slash-circle me-1"></i> Desconsideradas <span class="badge bg-white text-secondary"><%= @skipped_count %></span>
+        </a>
         <a href="<%= financial_portal_webhook_logs_path(filter: 'all') %>"
            class="btn btn-sm <%= @filter == 'all' ? 'btn-secondary' : 'btn-outline-secondary' %>">
           <i class="bi bi-list me-1"></i> Todas
         </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Busca por OS, Cliente, Fornecedor -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-body py-2">
+          <%= form_tag financial_portal_webhook_logs_path, method: :get, class: 'row g-2 align-items-end' do %>
+            <%= hidden_field_tag :filter, @filter %>
+            <div class="col-md-3">
+              <label class="form-label mb-0 small text-muted">Nº da OS</label>
+              <%= text_field_tag :search_os, params[:search_os], class: 'form-control form-control-sm', placeholder: 'Ex: OS-001234' %>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label mb-0 small text-muted">Cliente</label>
+              <%= text_field_tag :search_client, params[:search_client], class: 'form-control form-control-sm', placeholder: 'Nome do cliente...' %>
+            </div>
+            <div class="col-md-3">
+              <label class="form-label mb-0 small text-muted">Fornecedor</label>
+              <%= text_field_tag :search_provider, params[:search_provider], class: 'form-control form-control-sm', placeholder: 'Nome do fornecedor...' %>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+              <button type="submit" class="btn btn-sm btn-primary">
+                <i class="bi bi-search me-1"></i> Buscar
+              </button>
+              <% if params[:search_os].present? || params[:search_client].present? || params[:search_provider].present? %>
+                <a href="<%= financial_portal_webhook_logs_path(filter: @filter) %>" class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-x-lg me-1"></i> Limpar
+                </a>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
       </div>
     </div>
   </div>
@@ -264,13 +303,28 @@ breadcrumbs = [
                   <% end %>
                 </td>
                 <td class="text-center">
-                  <% unless log.success? %>
-                    <%= link_to financial_portal_webhook_resend_path(log, filter: @filter), method: :post,
-                        class: 'btn btn-sm btn-outline-primary',
-                        title: 'Reenviar — o resultado será exibido imediatamente',
-                        data: { confirm: "Reenviar OS #{os.code} ao Portal Financeiro?", disable_with: 'Enviando...' } do %>
-                      <i class="bi bi-arrow-repeat"></i> Reenviar
-                    <% end %>
+                  <% unless log.success? || log.skipped? %>
+                    <div class="d-flex gap-1 justify-content-center">
+                      <%= link_to financial_portal_webhook_resend_path(log, filter: @filter), method: :post,
+                          class: 'btn btn-sm btn-outline-primary',
+                          title: 'Reenviar — o resultado será exibido imediatamente',
+                          data: { confirm: "Reenviar OS #{os.code} ao Portal Financeiro?", disable_with: 'Enviando...' } do %>
+                        <i class="bi bi-arrow-repeat"></i>
+                      <% end %>
+                      <%= link_to financial_portal_webhook_skip_path(log, filter: @filter), method: :post,
+                          class: 'btn btn-sm btn-outline-secondary',
+                          title: 'Desconsiderar — não reenviar esta OS ao portal',
+                          data: { confirm: "Desconsiderar o envio da OS #{os.code}? (OS antiga/já paga que não precisa ir ao Portal)", disable_with: 'Processando...' } do %>
+                        <i class="bi bi-slash-circle"></i>
+                      <% end %>
+                    </div>
+                  <% elsif log.skipped? %>
+                    <span class="text-secondary small">
+                      <i class="bi bi-slash-circle"></i> Desconsiderada
+                      <% if log.skipped_at %>
+                        <br><small><%= log.skipped_at.strftime('%d/%m/%Y') %></small>
+                      <% end %>
+                    </span>
                   <% else %>
                     <span class="text-success small">
                       <i class="bi bi-check-lg"></i> OK

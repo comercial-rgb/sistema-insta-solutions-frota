@@ -71,6 +71,8 @@ class FinancialPortalController < ApplicationController
       scope = scope.pending
     when 'success'
       scope = scope.success
+    when 'skipped'
+      scope = scope.skipped
     when 'not_synced'
       scope = scope.not_success
     when 'all'
@@ -79,12 +81,31 @@ class FinancialPortalController < ApplicationController
       scope = scope.not_success
     end
 
+    # Search filters
+    if params[:search_os].present?
+      os_ids = OrderService.where("code LIKE ?", "%#{params[:search_os]}%").pluck(:id)
+      scope = scope.where(order_service_id: os_ids)
+    end
+    if params[:search_client].present?
+      client_ids = User.where("fantasy_name LIKE :q OR social_name LIKE :q", q: "%#{params[:search_client]}%").pluck(:id)
+      os_ids = OrderService.where(client_id: client_ids).pluck(:id)
+      scope = scope.where(order_service_id: os_ids)
+    end
+    if params[:search_provider].present?
+      provider_ids = User.where("fantasy_name LIKE :q OR social_name LIKE :q", q: "%#{params[:search_provider]}%").pluck(:id)
+      os_ids = OrderService.joins(order_service_proposals: :provider)
+                           .where(order_service_proposals: { provider_id: provider_ids })
+                           .pluck(:id).uniq
+      scope = scope.where(order_service_id: os_ids)
+    end
+
     @webhook_logs = scope.order(last_attempt_at: :desc).page(params[:page]).per(30)
 
-    # Contadores para badges
+    # Contadores para badges (sem filtros de busca para manter totais globais)
     @failed_count  = WebhookLog.failed.count
     @pending_count = WebhookLog.pending.count
     @success_count = WebhookLog.success.count
+    @skipped_count = WebhookLog.skipped.count
     @not_synced_count = @failed_count + @pending_count
   end
 
@@ -170,6 +191,22 @@ class FinancialPortalController < ApplicationController
 
     redirect_to financial_portal_webhook_logs_path(filter: 'pending'),
       notice: "#{count} OS reenviadas para processamento."
+  end
+
+  def webhook_skip
+    authorize :financial_portal, :webhook_logs?
+
+    log = WebhookLog.find(params[:id])
+    os = log.order_service
+
+    log.update!(
+      status: WebhookLog::SKIPPED,
+      skipped_at: Time.current,
+      skipped_reason: params[:reason].presence || "Desconsiderada manualmente"
+    )
+
+    redirect_to financial_portal_webhook_logs_path(filter: params[:filter]),
+      notice: "OS #{os.code} desconsiderada do envio ao Portal Financeiro."
   end
 
   private

@@ -375,6 +375,7 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
 	post 'financial_portal/webhook_verify', :to => 'financial_portal#webhook_verify', :as => 'financial_portal_webhook_verify'
 	post 'financial_portal/webhook_resend/:id', :to => 'financial_portal#webhook_resend', :as => 'financial_portal_webhook_resend'
 	post 'financial_portal/webhook_resend_all', :to => 'financial_portal#webhook_resend_all', :as => 'financial_portal_webhook_resend_all'
+	post 'financial_portal/webhook_skip/:id', :to => 'financial_portal#webhook_skip', :as => 'financial_portal_webhook_skip'
 
   resources :orientation_manuals
 

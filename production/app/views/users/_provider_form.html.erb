@@ -31,6 +31,41 @@
         %>
     </div>
 
+    <!-- Treinamento -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <h5><i class="bi bi-mortarboard me-2"></i>TREINAMENTO</h5>
+            <hr class="mt-0">
+        </div>
+
+        <div class="col-12 col-md-3 mb-3 checkbox-input-center">
+            <%= f.input :training_completed, label: 'Treinamento Realizado' %>
+        </div>
+
+        <div class="col-12 col-md-3 mb-3 checkbox-input-center">
+            <%= f.input :training_declined, label: 'Declinou do Treinamento' %>
+        </div>
+
+        <div class="col-12 col-md-3 mb-3">
+            <%= f.input :training_date, as: :string, label: 'Data do Treinamento',
+                input_html: { class: 'datepicker', value: CustomHelper.get_text_date(f.object.training_date, 'date', :default), autocomplete: :off, type: "tel" } %>
+        </div>
+
+        <div class="col-12 col-md-3 mb-3">
+            <%= f.input :training_location, label: 'Local do Treinamento', placeholder: 'Ex: Sede da empresa, Online...' %>
+        </div>
+
+        <div class="col-12 col-md-6 mb-3">
+            <%= f.input :training_participants, as: :text, label: 'Participantes',
+                input_html: { rows: 3, placeholder: 'Nomes dos participantes, separados por vírgula ou em linhas' } %>
+        </div>
+
+        <div class="col-12 col-md-6 mb-3">
+            <%= f.input :training_notes, as: :text, label: 'Observações do Treinamento',
+                input_html: { rows: 3, placeholder: 'Informações adicionais sobre o treinamento...' } %>
+        </div>
+    </div>
+
 	<%= render 'common_pages/save', f: f, return_path: (@current_user.id != @user.id) ? users_provider_path : nil %>
 
 <% end %>

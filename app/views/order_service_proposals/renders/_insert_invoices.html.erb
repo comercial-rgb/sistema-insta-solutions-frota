@@ -10,7 +10,11 @@
                 <div id="collapseOrderServiceInvoices<%= order_service_proposal.id.to_s %>" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#collapseOrderServiceInvoices<%= order_service_proposal.id.to_s %>">
                     <div class="accordion-body">
                         <%= render 'order_service_proposals/renders/invoice_information', order_service_proposal: order_service_proposal %>
-                        <% if order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::APROVADA_ID || @current_user.admin? %>
+                        <% if order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::APROVADA_ID || 
+                               (order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::NOTAS_INSERIDAS_ID && 
+                                @current_user.provider? && 
+                                order_service_proposal.order_service.order_service_status_id == OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID) ||
+                               @current_user.admin? %>
                             <%= render 'order_service_proposals/renders/form_insert_invoices', order_service_proposal: order_service_proposal %>
                         <% else %>
                             <%= render 'order_service_proposals/renders/table_invoices', order_service_proposal: order_service_proposal %>

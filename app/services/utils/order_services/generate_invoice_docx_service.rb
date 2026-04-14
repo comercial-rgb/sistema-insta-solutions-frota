@@ -138,6 +138,7 @@ module Utils
 
       def add_expense_table_replacements(replacements)
         is_federal = @client.federal?
+        is_municipal_or_estadual = @client.municipal? || @client.estadual?
 
         @order_service_invoices.each_with_index do |e, index|
           index_str = index < 9 ? "0#{index+1}" : (index+1).to_s
@@ -153,6 +154,13 @@ module Utils
             # IR/retenção para órgão federal + fornecedor NÃO optante simples
             if e.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID
               irvalue = e.value * 0.0585   # 5,85% peças
+            else
+              irvalue = e.value * 0.0945   # 9,45% serviços
+            end
+          elsif is_municipal_or_estadual
+            # Retenção por esfera: municipal/estadual + fornecedor NÃO optante simples
+            if e.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID
+              irvalue = e.value * 0.0545   # 5,45% peças
             else
               irvalue = e.value * 0.0945   # 9,45% serviços
             end
