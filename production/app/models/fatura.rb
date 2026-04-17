@@ -5,7 +5,7 @@ class Fatura < ApplicationRecord
   belongs_to :sub_unit, optional: true
   belongs_to :pago_por, class_name: 'User', foreign_key: 'pago_por_id', optional: true
 
-  has_many :fatura_itens, dependent: :destroy
+  has_many :fatura_itens, class_name: 'FaturaItem', dependent: :destroy
 
   STATUSES = %w[aberta enviada paga cancelada].freeze
 

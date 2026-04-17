@@ -45,14 +45,9 @@ class FaturamentoController < ApplicationController
     client = User.find(params[:client_id])
     os_ids = Array(params[:order_service_ids]).map(&:to_i).uniq
 
-    # OS não faturadas do cliente (mesmos status aceitos que os_abertos_json)
-    post_autorizada_statuses = [
-      OrderServiceStatus::AUTORIZADA_ID,
-      OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID,
-      OrderServiceStatus::PAGA_ID
-    ]
+    # Somente OS em status Autorizada e não faturadas
     order_services = OrderService.where(id: os_ids, client_id: client.id, invoiced: false)
-                                 .where(order_service_status_id: post_autorizada_statuses)
+                                 .where(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID)
 
     if order_services.empty?
       respond_to do |format|
@@ -317,16 +312,10 @@ class FaturamentoController < ApplicationController
       return
     end
 
-    # OS não faturadas que já passaram por Autorizada (status atual >= Autorizada, exceto Cancelada)
-    # Inclui: Autorizada (5), Ag. Pagamento (6), Paga (7)
-    post_autorizada_statuses = [
-      OrderServiceStatus::AUTORIZADA_ID,
-      OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID,
-      OrderServiceStatus::PAGA_ID
-    ]
+    # Somente OS em status Autorizada e não faturadas
     os_scope = OrderService.not_invoiced
                            .where(client_id: client_id)
-                           .where(order_service_status_id: post_autorizada_statuses)
+                           .where(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID)
                            .includes(:vehicle, :order_service_proposals, :cost_center, :sub_unit)
 
     # Filtro por período: busca OS que foram AUTORIZADAS naquele período (via audits)
