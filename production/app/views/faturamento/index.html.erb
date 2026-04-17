@@ -1,0 +1,136 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: true, href: '#', text: 'Faturamento'},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+
+  <!-- Page Header -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <h3 class="mb-0"><i class="bi bi-receipt me-2"></i> Faturamento</h3>
+    </div>
+  </div>
+
+  <!-- Tabs Navigation -->
+  <ul class="nav nav-tabs faturamento-tabs mb-4" id="faturamentoTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="resumo-tab" data-bs-toggle="tab" data-bs-target="#panelResumo"
+              type="button" role="tab" aria-controls="panelResumo" aria-selected="true">
+        <i class="bi bi-speedometer2 me-1"></i> Resumo
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="faturas-tab" data-bs-toggle="tab" data-bs-target="#panelFaturas"
+              type="button" role="tab" aria-controls="panelFaturas" aria-selected="false">
+        <i class="bi bi-file-text me-1"></i> Faturas
+      </button>
+    </li>
+    <% if policy(:faturamento).abertos? %>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="abertos-tab" data-bs-toggle="tab" data-bs-target="#panelAbertos"
+                type="button" role="tab" aria-controls="panelAbertos" aria-selected="false">
+          <i class="bi bi-clock-history me-1"></i> OS em Aberto
+        </button>
+      </li>
+    <% end %>
+    <% if policy(:faturamento).config_impostos? %>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="impostos-tab" data-bs-toggle="tab" data-bs-target="#panelImpostos"
+                type="button" role="tab" aria-controls="panelImpostos" aria-selected="false">
+          <i class="bi bi-percent me-1"></i> Config. Impostos
+        </button>
+      </li>
+    <% end %>
+  </ul>
+
+  <!-- Tab Content -->
+  <div class="tab-content" id="faturamentoTabContent">
+    <!-- ========== RESUMO ========== -->
+    <div class="tab-pane fade show active" id="panelResumo" role="tabpanel" aria-labelledby="resumo-tab">
+      <%= render 'faturamento/tabs/resumo', resumo: @resumo, ultimas_faturas: @ultimas_faturas %>
+    </div>
+
+    <!-- ========== FATURAS ========== -->
+    <div class="tab-pane fade" id="panelFaturas" role="tabpanel" aria-labelledby="faturas-tab">
+      <%= render 'faturamento/tabs/faturas', faturas: @faturas, providers: @providers, cost_centers: @cost_centers %>
+    </div>
+
+    <!-- ========== OS EM ABERTO ========== -->
+    <% if policy(:faturamento).abertos? %>
+      <div class="tab-pane fade" id="panelAbertos" role="tabpanel" aria-labelledby="abertos-tab">
+        <%= render 'faturamento/tabs/abertos' %>
+      </div>
+    <% end %>
+
+    <!-- ========== CONFIG IMPOSTOS ========== -->
+    <% if policy(:faturamento).config_impostos? %>
+      <div class="tab-pane fade" id="panelImpostos" role="tabpanel" aria-labelledby="impostos-tab">
+        <%= render 'faturamento/tabs/impostos' %>
+      </div>
+    <% end %>
+  </div>
+
+  <!-- ========== DETALHE (hidden, shown on click) ========== -->
+  <div id="panelDetalhe" style="display:none">
+    <button class="btn btn-outline-secondary btn-sm mb-3" onclick="Faturamento.voltarFaturas()">
+      <i class="bi bi-arrow-left"></i> Voltar às faturas
+    </button>
+    <div id="detalheContent"></div>
+  </div>
+</div>
+
+<!-- Modal: Gerenciar Fatura -->
+<div class="modal fade" id="modalEditFatura" tabindex="-1" aria-labelledby="modalEditFaturaLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalEditFaturaLabel">
+          <i class="bi bi-pencil-square me-1"></i> Gerenciar Fatura
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+      <div class="modal-body">
+        <form id="formEditFatura">
+          <input type="hidden" id="editFaturaId">
+          <div class="mb-3">
+            <label for="editStatus" class="form-label">Status</label>
+            <select id="editStatus" class="form-select">
+              <option value="aberta">Aberta</option>
+              <option value="enviada">Enviada</option>
+              <option value="paga">Paga</option>
+              <option value="cancelada">Cancelada</option>
+            </select>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="editDtEnvio" class="form-label">Data Envio à Empresa</label>
+              <input type="date" class="form-control" id="editDtEnvio">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="editDtReceb" class="form-label">Data Recebimento</label>
+              <input type="date" class="form-control" id="editDtReceb">
+            </div>
+          </div>
+          <div class="mb-3">
+            <label for="editDtVenc" class="form-label">Data de Vencimento</label>
+            <input type="date" class="form-control" id="editDtVenc">
+          </div>
+          <div class="mb-3">
+            <label for="editObs" class="form-label">Observações Admin</label>
+            <textarea class="form-control" id="editObs" rows="3" placeholder="Observações internas..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="Faturamento.salvarEdicao()">
+          <i class="bi bi-check-lg"></i> Salvar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,150 @@
+<!-- Info Banners -->
+<div class="alert alert-info border-0 shadow-sm d-flex align-items-start" role="alert">
+  <i class="bi bi-shield-check fs-5 me-3 mt-1"></i>
+  <div>
+    <strong>Retenções na Fonte — Serviços e Peças:</strong>
+    As alíquotas abaixo são padrões do sistema, definidas por OS e podem ser ajustadas por contrato.
+    Quando aplicável, respeitam a IN RFB nº 1.234/2012.
+  </div>
+</div>
+
+<div class="alert alert-warning border-0 shadow-sm d-flex align-items-start" role="alert">
+  <i class="bi bi-currency-dollar fs-5 me-3 mt-1"></i>
+  <div>
+    <strong>Taxa de Administração:</strong> Quando definida, é aplicada automaticamente nas faturas.
+    O valor pode ser configurado por contrato.
+  </div>
+</div>
+
+<!-- Tabela de Alíquotas Padrão -->
+<div class="card border-0 shadow-sm mt-3">
+  <div class="card-header bg-white border-bottom">
+    <h6 class="mb-0 fw-bold"><i class="bi bi-table me-1"></i> Alíquotas Padrão — Serviços (Ordem de Serviço)</h6>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="text-uppercase small text-muted">Tipo</th>
+          <th class="text-uppercase small text-muted">IR %</th>
+          <th class="text-uppercase small text-muted">PIS %</th>
+          <th class="text-uppercase small text-muted">COFINS %</th>
+          <th class="text-uppercase small text-muted">CSLL %</th>
+          <th class="text-uppercase small text-muted">Total</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <span class="badge rounded-pill bg-primary">Serviços</span>
+          </td>
+          <td>4,80%</td>
+          <td>0,65%</td>
+          <td>3,00%</td>
+          <td>1,00%</td>
+          <td><strong>9,45%</strong></td>
+        </tr>
+        <tr>
+          <td>
+            <span class="badge rounded-pill bg-success">Peças</span>
+          </td>
+          <td>1,20%</td>
+          <td>0,65%</td>
+          <td>3,00%</td>
+          <td>1,00%</td>
+          <td><strong>5,85%</strong></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="card-footer bg-white">
+    <small class="text-muted">
+      Valores padrão por OS. Podem ser ajustados individualmente em cada ordem de serviço.
+    </small>
+  </div>
+</div>
+
+<!-- Fornecedores e Configuração Fiscal -->
+<div class="card border-0 shadow-sm mt-3">
+  <div class="card-header bg-white border-bottom">
+    <h6 class="mb-0 fw-bold"><i class="bi bi-building me-1"></i> Fornecedores — Configuração Fiscal</h6>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="text-uppercase small text-muted">Fornecedor</th>
+          <th class="text-uppercase small text-muted">CNPJ</th>
+          <th class="text-uppercase small text-muted">IR Peças %</th>
+          <th class="text-uppercase small text-muted">IR Serv. %</th>
+          <th class="text-uppercase small text-muted">PIS %</th>
+          <th class="text-uppercase small text-muted">COFINS %</th>
+          <th class="text-uppercase small text-muted">CSLL %</th>
+        </tr>
+      </thead>
+      <tbody id="taxConfigBody">
+        <tr>
+          <td colspan="7" class="text-center text-muted py-4">
+            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+            Carregando configuração fiscal...
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Informações Legais -->
+<div class="card border-0 shadow-sm mt-3">
+  <div class="card-header bg-white border-bottom">
+    <h6 class="mb-0 fw-bold"><i class="bi bi-info-circle me-1"></i> Informações — Retenção na Fonte</h6>
+  </div>
+  <div class="card-body">
+    <div class="accordion" id="accordionImpostos">
+      <div class="accordion-item border-0">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#collapseCliente" aria-expanded="false" aria-controls="collapseCliente">
+            <i class="bi bi-building me-2"></i> Para o Cliente (empresa contratante)
+          </button>
+        </h2>
+        <div id="collapseCliente" class="accordion-collapse collapse" data-bs-parent="#accordionImpostos">
+          <div class="accordion-body small text-muted" style="line-height:1.8">
+            <p>A retenção na fonte ocorre quando a legislação determina que o contratante (pagador)
+            deve reter parte dos tributos no momento do pagamento ao fornecedor. No âmbito de serviços
+            e aquisição de peças, a base legal principal é o art. 64 da Lei nº 9.430/1996 e a IN RFB
+            nº 1.234/2012.</p>
+            <p>Os percentuais de retenção padrão são definidos no contrato e podem variar conforme a
+            natureza do serviço (manutenção, peças, serviços técnicos, etc.) e a esfera governamental
+            do contratante.</p>
+            <p>O cliente deve observar as alíquotas corretas ao emitir o pagamento e registrar as
+            retenções no respectivo DARF.</p>
+          </div>
+        </div>
+      </div>
+      <div class="accordion-item border-0">
+        <h2 class="accordion-header">
+          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                  data-bs-target="#collapseFornecedor" aria-expanded="false" aria-controls="collapseFornecedor">
+            <i class="bi bi-truck me-2"></i> Para o Fornecedor e Contador
+          </button>
+        </h2>
+        <div id="collapseFornecedor" class="accordion-collapse collapse" data-bs-parent="#accordionImpostos">
+          <div class="accordion-body small text-muted" style="line-height:1.8">
+            <p>Quando o fornecedor emite a nota fiscal de serviço ou peças, a receita do fornecedor
+            é o valor bruto integral da nota fiscal. Se o contratante efetuar retenção tributária,
+            esse valor é tratado como antecipação de tributo, passível de compensação.</p>
+            <p>Na escrituração, o contador do fornecedor deve registrar: a nota fiscal pelo valor
+            bruto, o valor recebido líquido, e a diferença como tributos retidos a compensar,
+            segregando IR, PIS, COFINS e CSLL.</p>
+            <p>A fórmula de liquidação:<br>
+            <strong>Valor bruto da NF</strong><br>
+            (−) retenções tributárias<br>
+            (−) taxa de administração (se aplicável)<br>
+            <strong>(=) valor líquido creditado ao fornecedor</strong></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

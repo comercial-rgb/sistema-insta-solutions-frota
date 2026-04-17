@@ -53,13 +53,13 @@ module MenuHelper
 			})
 		end
 
-		if policy(OrderService).show_invoices?
-			# Faturas
+		if policy(:faturamento).index?
+			# Faturas (Faturamento)
 			menu_links.push({
-				opened: action?('show_invoices'),
+				opened: is_current_controller?("faturamento"),
 				icon: "bi bi-receipt",
-				label: OrderService.human_attribute_name(:show_invoices),
-				href: show_invoices_path
+				label: "Faturas",
+				href: faturamento_index_path
 			})
 		end
 

@@ -377,6 +377,17 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
 	post 'financial_portal/webhook_resend_all', :to => 'financial_portal#webhook_resend_all', :as => 'financial_portal_webhook_resend_all'
 	post 'financial_portal/webhook_skip/:id', :to => 'financial_portal#webhook_skip', :as => 'financial_portal_webhook_skip'
 
+  # Faturamento
+  resources :faturamento, controller: 'faturamento', only: [:index, :show, :create, :update] do
+    member do
+      post :cobrar
+    end
+    collection do
+      get :resumo_json
+      get :faturas_json, action: :faturas_json_endpoint
+    end
+  end
+
   resources :orientation_manuals
 
   # Manual de Tributação e Precificação

@@ -1,0 +1,11 @@
+<% 
+  colors = {
+    'aberta'    => 'warning',
+    'enviada'   => 'primary',
+    'paga'      => 'success',
+    'cancelada' => 'secondary'
+  }
+  color = colors[status] || 'secondary'
+  label = status&.capitalize || '-'
+%>
+<span class="badge bg-<%= color %>"><%= label %></span>

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_10_140000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_17_120000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -387,6 +387,59 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_10_140000) do
     t.index ["vehicle_id"], name: "index_driver_vehicle_assignments_on_vehicle_id"
   end
 
+  create_table "fatura_itens", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "fatura_id", null: false
+    t.bigint "order_service_id"
+    t.bigint "order_service_proposal_id"
+    t.string "descricao"
+    t.string "tipo", default: "servico"
+    t.decimal "valor", precision: 15, scale: 2, default: "0.0"
+    t.decimal "quantidade", precision: 10, scale: 3, default: "1.0"
+    t.string "veiculo_placa"
+    t.string "centro_custo_nome"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["fatura_id"], name: "index_fatura_itens_on_fatura_id"
+    t.index ["order_service_id"], name: "index_fatura_itens_on_order_service_id"
+    t.index ["order_service_proposal_id"], name: "index_fatura_itens_on_order_service_proposal_id"
+    t.index ["tipo"], name: "index_fatura_itens_on_tipo"
+  end
+
+  create_table "faturas", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.string "numero", null: false
+    t.bigint "provider_id"
+    t.bigint "cost_center_id"
+    t.bigint "contract_id"
+    t.date "data_emissao", null: false
+    t.date "data_envio_empresa"
+    t.date "data_recebimento"
+    t.date "data_vencimento"
+    t.integer "prazo_recebimento", default: 30
+    t.string "status", default: "aberta", null: false
+    t.decimal "valor_bruto", precision: 15, scale: 2, default: "0.0"
+    t.decimal "valor_liquido", precision: 15, scale: 2, default: "0.0"
+    t.decimal "total_retencoes", precision: 15, scale: 2, default: "0.0"
+    t.decimal "taxa_administracao", precision: 15, scale: 2, default: "0.0"
+    t.decimal "valor_final", precision: 15, scale: 2, default: "0.0"
+    t.integer "total_itens", default: 0
+    t.decimal "ir_percentual", precision: 5, scale: 2, default: "0.0"
+    t.decimal "pis_percentual", precision: 5, scale: 2, default: "0.0"
+    t.decimal "cofins_percentual", precision: 5, scale: 2, default: "0.0"
+    t.decimal "csll_percentual", precision: 5, scale: 2, default: "0.0"
+    t.string "nota_fiscal_numero"
+    t.string "nota_fiscal_serie"
+    t.text "observacoes"
+    t.text "admin_observacoes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["contract_id"], name: "index_faturas_on_contract_id"
+    t.index ["cost_center_id"], name: "index_faturas_on_cost_center_id"
+    t.index ["data_emissao"], name: "index_faturas_on_data_emissao"
+    t.index ["numero"], name: "index_faturas_on_numero", unique: true
+    t.index ["provider_id"], name: "index_faturas_on_provider_id"
+    t.index ["status"], name: "index_faturas_on_status"
+  end
+
   create_table "fuel_types", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name"
     t.datetime "created_at", null: false
@@ -669,6 +722,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_10_140000) do
     t.text "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "mobile_banner_enabled", default: false, null: false
+    t.string "mobile_banner_type", default: "tip"
+    t.string "mobile_banner_title"
+    t.text "mobile_banner_text"
+    t.integer "mobile_banner_order", default: 0
   end
 
   create_table "orientation_manuals_profiles", id: false, charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -1124,6 +1182,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_10_140000) do
     t.string "cnh_category"
     t.date "cnh_expiration"
     t.date "cnh_issued_at"
+    t.boolean "training_completed", default: false, null: false
+    t.date "training_date"
+    t.text "training_participants"
+    t.string "training_location"
+    t.text "training_notes"
+    t.boolean "training_declined", default: false, null: false
+    t.datetime "training_declined_at", precision: nil
     t.index ["city_id"], name: "index_users_on_city_id"
     t.index ["client_id"], name: "index_users_on_client_id"
     t.index ["cnh_number"], name: "index_users_on_cnh_number", unique: true
@@ -1266,6 +1331,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_10_140000) do
     t.datetime "succeeded_at", precision: nil
     t.datetime "created_at", precision: nil, null: false
     t.datetime "updated_at", precision: nil, null: false
+    t.datetime "skipped_at", precision: nil
+    t.string "skipped_reason"
     t.index ["order_service_id", "status"], name: "idx_webhook_logs_os_status"
     t.index ["order_service_id"], name: "index_webhook_logs_on_order_service_id"
     t.index ["status"], name: "index_webhook_logs_on_status"
@@ -1305,6 +1372,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_10_140000) do
   add_foreign_key "data_banks", "data_bank_types"
   add_foreign_key "driver_vehicle_assignments", "users"
   add_foreign_key "driver_vehicle_assignments", "vehicles"
+  add_foreign_key "fatura_itens", "faturas"
+  add_foreign_key "fatura_itens", "order_service_proposals"
+  add_foreign_key "fatura_itens", "order_services"
+  add_foreign_key "faturas", "contracts"
+  add_foreign_key "faturas", "cost_centers"
+  add_foreign_key "faturas", "users", column: "provider_id"
   add_foreign_key "maintenance_alerts", "maintenance_plan_items"
   add_foreign_key "maintenance_alerts", "users", column: "acknowledged_by_id"
   add_foreign_key "maintenance_alerts", "users", column: "client_id"

@@ -1,0 +1,86 @@
+<!-- KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-md-4 col-xl">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Total Faturas</div>
+      <div class="fs-4 fw-bold text-primary"><%= resumo[:total_faturas] %></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Abertas</div>
+      <div class="fs-4 fw-bold" style="color:#e67e22"><%= resumo[:total_abertas] %></div>
+      <div class="text-muted small"><%= number_to_currency(resumo[:valor_abertas], unit: 'R$ ') %></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Enviadas</div>
+      <div class="fs-4 fw-bold text-primary"><%= resumo[:total_enviadas] %></div>
+      <div class="text-muted small"><%= number_to_currency(resumo[:valor_enviadas], unit: 'R$ ') %></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Pagas</div>
+      <div class="fs-4 fw-bold text-success"><%= resumo[:total_pagas] %></div>
+      <div class="text-muted small"><%= number_to_currency(resumo[:valor_pagas], unit: 'R$ ') %></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">Vencidas</div>
+      <div class="fs-4 fw-bold text-danger"><%= resumo[:total_vencidas] %></div>
+      <div class="text-muted small"><%= number_to_currency(resumo[:valor_vencidas], unit: 'R$ ') %></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">V. Bruto Total</div>
+      <div class="fs-5 fw-bold text-dark"><%= number_to_currency(resumo[:valor_total_bruto], unit: 'R$ ') %></div>
+    </div>
+  </div>
+  <div class="col-6 col-md-4 col-xl">
+    <div class="card border-0 shadow-sm text-center p-3">
+      <div class="text-muted small mb-1">V. Líquido Total</div>
+      <div class="fs-5 fw-bold text-success"><%= number_to_currency(resumo[:valor_total_liquido], unit: 'R$ ') %></div>
+    </div>
+  </div>
+</div>
+
+<!-- Últimas Faturas -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white border-bottom">
+    <h6 class="mb-0 fw-bold"><i class="bi bi-clock-history me-1"></i> Últimas Faturas</h6>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="text-uppercase small text-muted">Nº</th>
+          <th class="text-uppercase small text-muted">Emissão</th>
+          <th class="text-uppercase small text-muted">V.Bruto</th>
+          <th class="text-uppercase small text-muted">Líquido</th>
+          <th class="text-uppercase small text-muted">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if ultimas_faturas.any? %>
+          <% ultimas_faturas.each do |f| %>
+            <tr>
+              <td><strong><%= f.numero %></strong></td>
+              <td><%= f.data_emissao&.strftime('%d/%m/%Y') %></td>
+              <td><%= number_to_currency(f.valor_bruto, unit: 'R$ ') %></td>
+              <td><%= number_to_currency(f.valor_liquido, unit: 'R$ ') %></td>
+              <td><%= render 'faturamento/shared/status_badge', status: f.status %></td>
+            </tr>
+          <% end %>
+        <% else %>
+          <tr>
+            <td colspan="5" class="text-center text-muted py-4">Nenhuma fatura cadastrada</td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>
