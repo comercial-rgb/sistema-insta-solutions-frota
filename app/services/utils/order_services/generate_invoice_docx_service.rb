@@ -152,7 +152,7 @@ module Utils
           index_str = index < 9 ? "0#{index+1}" : (index+1).to_s
           
           irvalue = 0
-          unless e.order_service_proposal.provider.optante_simples
+          if !e.order_service_proposal.provider.optante_simples
             # optante_simples=false → IS Simples Nacional → ISENTO de retenção
             irvalue = 0
           elsif is_federal
