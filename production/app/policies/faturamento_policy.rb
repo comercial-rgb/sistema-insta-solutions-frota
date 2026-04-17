@@ -31,6 +31,22 @@ class FaturamentoPolicy < ApplicationPolicy
     user.admin? || user.manager?
   end
 
+  def os_abertos_json?
+    abertos?
+  end
+
+  def sub_units_json?
+    abertos?
+  end
+
+  def marcar_pago?
+    user.admin?
+  end
+
+  def gerar_docx?
+    user.admin? || user.manager?
+  end
+
   def config_impostos?
     user.admin?
   end

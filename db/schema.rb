@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_17_140000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_17_150000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -432,12 +432,19 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_17_140000) do
     t.text "admin_observacoes"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.decimal "desconto", precision: 15, scale: 2, default: "0.0"
+    t.date "data_pagamento"
+    t.bigint "pago_por_id"
+    t.bigint "sub_unit_id"
     t.index ["client_id"], name: "index_faturas_on_client_id"
     t.index ["contract_id"], name: "index_faturas_on_contract_id"
     t.index ["cost_center_id"], name: "index_faturas_on_cost_center_id"
     t.index ["data_emissao"], name: "index_faturas_on_data_emissao"
+    t.index ["data_vencimento"], name: "index_faturas_on_data_vencimento"
     t.index ["numero"], name: "index_faturas_on_numero", unique: true
+    t.index ["pago_por_id"], name: "index_faturas_on_pago_por_id"
     t.index ["status"], name: "index_faturas_on_status"
+    t.index ["sub_unit_id"], name: "index_faturas_on_sub_unit_id"
   end
 
   create_table "fuel_types", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|

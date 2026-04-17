@@ -20,6 +20,9 @@ class FaturamentoController < ApplicationController
     @clients = User.client.active.name_ordered
     @cost_centers = CostCenter.order(:name)
 
+    # Alertas de faturas vencidas (para admin/manager)
+    @faturas_vencidas = Fatura.vencidas.includes(:client).order(:data_vencimento) if @current_user.admin? || @current_user.manager?
+
     respond_to do |format|
       format.html
       format.json { render json: faturas_json }
@@ -38,15 +41,93 @@ class FaturamentoController < ApplicationController
 
   def create
     authorize :faturamento, :create?
-    @fatura = Fatura.new(fatura_params)
-    @fatura.numero = Fatura.gerar_numero
-    @fatura.data_emissao ||= Date.current
+
+    client = User.find(params[:client_id])
+    os_ids = Array(params[:order_service_ids]).map(&:to_i).uniq
+    order_services = OrderService.where(id: os_ids, client_id: client.id, invoiced: false)
+
+    if order_services.empty?
+      respond_to do |format|
+        format.html { redirect_to faturamento_index_path, alert: 'Nenhuma OS válida selecionada.' }
+        format.json { render json: { error: 'Nenhuma OS válida selecionada.' }, status: :unprocessable_entity }
+      end
+      return
+    end
+
+    cost_center = order_services.first.cost_center
+    sub_unit = order_services.first.sub_unit
+
+    # Calculate totals from OS proposals
+    total_bruto = 0
+    items_data = []
+
+    order_services.each do |os|
+      proposal = find_approved_proposal(os)
+      next unless proposal
+
+      os_value = proposal.total_value.to_f
+      total_bruto += os_value
+
+      items_data << {
+        order_service_id: os.id,
+        order_service_proposal_id: proposal.id,
+        descricao: "OS ##{os.code} - #{os.vehicle&.board}",
+        tipo: 'servico',
+        valor: os_value,
+        quantidade: 1,
+        veiculo_placa: os.vehicle&.board,
+        centro_custo_nome: os.cost_center&.name
+      }
+    end
+
+    # Build fatura
+    @fatura = Fatura.new(
+      numero: Fatura.gerar_numero,
+      client_id: client.id,
+      cost_center_id: cost_center&.id,
+      sub_unit_id: sub_unit&.id,
+      data_emissao: Date.current,
+      data_vencimento: Date.current + 30.days,
+      status: 'aberta',
+      valor_bruto: total_bruto,
+      desconto: 0,
+      total_itens: items_data.size,
+      observacoes: params[:observacoes]
+    )
     @fatura.calcular_retencoes!
 
-    if @fatura.save
-      redirect_to faturamento_path(@fatura), notice: "Fatura #{@fatura.numero} criada com sucesso!"
-    else
-      redirect_to faturamento_index_path, alert: @fatura.errors.full_messages.join(', ')
+    ActiveRecord::Base.transaction do
+      @fatura.save!
+
+      items_data.each { |item| @fatura.fatura_itens.create!(item) }
+
+      # Mark OS as invoiced
+      order_services.update_all(invoiced: true, invoiced_at: Time.current)
+    end
+
+    # Generate DOCX
+    docx_path = nil
+    begin
+      current_month = Date.current.beginning_of_month..Date.current.end_of_month
+      service = Utils::OrderServices::GenerateInvoiceDocxService.new(
+        order_services.to_a, client, current_month
+      )
+      docx_path = service.call
+      docx_filename = File.basename(docx_path) if docx_path
+    rescue => e
+      Rails.logger.error "Erro ao gerar DOCX: #{e.message}"
+      docx_filename = nil
+    end
+
+    respond_to do |format|
+      format.html { redirect_to faturamento_path(@fatura), notice: "Fatura #{@fatura.numero} criada com sucesso!" }
+      format.json { render json: { success: true, fatura_id: @fatura.id, numero: @fatura.numero, docx_url: docx_filename ? "/#{docx_filename}" : nil } }
+    end
+
+  rescue ActiveRecord::RecordInvalid => e
+    respond_to do |format|
+      format.html { redirect_to faturamento_index_path, alert: e.message }
+      format.json { render json: { error: e.message }, status: :unprocessable_entity }
     end
   end
 
@@ -55,6 +136,8 @@ class FaturamentoController < ApplicationController
     @fatura = Fatura.find(params[:id])
 
     if @fatura.update(fatura_update_params)
+      @fatura.calcular_retencoes!
+      @fatura.save!
       respond_to do |format|
         format.html { redirect_to faturamento_path(@fatura), notice: 'Fatura atualizada com sucesso!' }
         format.json { render json: { success: true, fatura: @fatura } }
@@ -87,6 +170,105 @@ class FaturamentoController < ApplicationController
     end
   end
 
+  def marcar_pago
+    authorize :faturamento, :update?
+    @fatura = Fatura.find(params[:id])
+
+    unless %w[aberta enviada].include?(@fatura.status)
+      respond_to do |format|
+        format.json { render json: { error: "Fatura está #{@fatura.status}, não pode ser marcada como paga." }, status: :bad_request }
+      end
+      return
+    end
+
+    @fatura.update!(
+      status: 'paga',
+      data_pagamento: params[:data_pagamento].presence || Date.current,
+      pago_por_id: @current_user.id
+    )
+
+    respond_to do |format|
+      format.html { redirect_to faturamento_path(@fatura), notice: 'Fatura marcada como paga!' }
+      format.json { render json: { success: true } }
+    end
+  end
+
+  def gerar_docx
+    authorize :faturamento, :show?
+    @fatura = Fatura.includes(:fatura_itens, :client).find(params[:id])
+    os_ids = @fatura.fatura_itens.where.not(order_service_id: nil).pluck(:order_service_id)
+    order_services = OrderService.where(id: os_ids)
+
+    current_month = (@fatura.data_emissao || Date.current).beginning_of_month..(@fatura.data_emissao || Date.current).end_of_month
+    service = Utils::OrderServices::GenerateInvoiceDocxService.new(
+      order_services.to_a, @fatura.client, current_month
+    )
+    docx_path = service.call
+
+    send_file docx_path, filename: "fatura_#{@fatura.numero}.docx",
+              type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+              disposition: 'attachment'
+  rescue => e
+    redirect_to faturamento_path(@fatura), alert: "Erro ao gerar documento: #{e.message}"
+  end
+
+  # JSON: OS em aberto para um cliente
+  def os_abertos_json
+    authorize :faturamento, :abertos?
+    client_id = params[:client_id]
+
+    unless client_id.present?
+      render json: { results: [] }
+      return
+    end
+
+    os_scope = OrderService.not_invoiced
+                           .where(client_id: client_id)
+                           .where(order_service_status_id: OrderServiceStatus::REQUIRED_ORDER_SERVICE_STATUSES)
+                           .includes(:vehicle, :order_service_proposals, :cost_center, :sub_unit)
+
+    os_scope = os_scope.by_cost_center_id(params[:cost_center_id]) if params[:cost_center_id].present?
+
+    if params[:sub_unit_id].present?
+      os_scope = os_scope.joins(:vehicle).where(vehicles: { sub_unit_id: params[:sub_unit_id] })
+    end
+
+    results = os_scope.order(:code).map do |os|
+      proposal = find_approved_proposal(os)
+      next nil unless proposal
+
+      {
+        id: os.id,
+        code: os.code,
+        vehicle_plate: os.vehicle&.board,
+        vehicle_model: os.vehicle&.model,
+        cost_center: os.cost_center&.name,
+        sub_unit: os.sub_unit&.name,
+        provider: proposal.provider&.fantasy_name.presence || proposal.provider&.name,
+        total_parts: os.total_parts_value.to_f,
+        total_services: os.total_services_value.to_f,
+        total_value: proposal.total_value.to_f,
+        status: os.order_service_status&.name,
+        created_at: os.created_at&.strftime('%d/%m/%Y')
+      }
+    end.compact
+
+    # Cost centers and sub_units for this client
+    client_cost_centers = CostCenter.where(client_id: client_id).order(:name).map { |cc| { id: cc.id, name: cc.name } }
+
+    render json: { results: results, cost_centers: client_cost_centers }
+  end
+
+  # JSON: Sub units for a cost center
+  def sub_units_json
+    authorize :faturamento, :abertos?
+    cost_center_id = params[:cost_center_id]
+
+    sub_units = cost_center_id.present? ? SubUnit.where(cost_center_id: cost_center_id).order(:name) : SubUnit.none
+
+    render json: { sub_units: sub_units.map { |su| { id: su.id, name: su.name } } }
+  end
+
   # JSON endpoints for AJAX tab loading
   def resumo_json
     authorize :faturamento, :resumo?
@@ -109,6 +291,15 @@ class FaturamentoController < ApplicationController
   end
 
   private
+
+  def find_approved_proposal(order_service)
+    approved_statuses = OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES
+    order_service.order_service_proposals
+      .where(is_complement: [false, nil])
+      .where(order_service_proposal_status_id: approved_statuses)
+      .order(updated_at: :desc)
+      .first
+  end
 
   def calcular_resumo
     faturas = Fatura.all
@@ -144,7 +335,7 @@ class FaturamentoController < ApplicationController
     {
       id: f.id,
       numero: f.numero,
-      cliente: f.client&.name || '-',
+      cliente: f.client&.fantasy_name.presence || f.client&.social_name.presence || f.client&.name || '-',
       client_id: f.client_id,
       centro_custo: f.cost_center&.name || '-',
       cost_center_id: f.cost_center_id,
@@ -154,12 +345,16 @@ class FaturamentoController < ApplicationController
       data_envio_fmt: f.data_envio_empresa&.strftime('%d/%m/%Y'),
       data_vencimento: f.data_vencimento,
       data_vencimento_fmt: f.data_vencimento&.strftime('%d/%m/%Y'),
+      data_pagamento: f.data_pagamento,
+      data_pagamento_fmt: f.data_pagamento&.strftime('%d/%m/%Y'),
       status: f.status,
       valor_bruto: f.valor_bruto.to_f,
+      desconto: f.desconto.to_f,
       valor_liquido: f.valor_liquido.to_f,
       total_retencoes: f.total_retencoes.to_f,
       taxa_administracao: f.taxa_administracao.to_f,
       nota_fiscal_numero: f.nota_fiscal_numero,
+      nota_fiscal_serie: f.nota_fiscal_serie,
       total_itens: f.total_itens
     }
   end
@@ -172,7 +367,6 @@ class FaturamentoController < ApplicationController
       pis_percentual: f.pis_percentual.to_f,
       cofins_percentual: f.cofins_percentual.to_f,
       csll_percentual: f.csll_percentual.to_f,
-      nota_fiscal_serie: f.nota_fiscal_serie,
       observacoes: f.observacoes,
       admin_observacoes: f.admin_observacoes,
       prazo_recebimento: f.prazo_recebimento,
@@ -196,7 +390,7 @@ class FaturamentoController < ApplicationController
     params.require(:fatura).permit(
       :client_id, :cost_center_id, :contract_id,
       :data_emissao, :data_vencimento, :prazo_recebimento,
-      :valor_bruto, :ir_percentual, :pis_percentual, :cofins_percentual, :csll_percentual,
+      :valor_bruto, :desconto, :ir_percentual, :pis_percentual, :cofins_percentual, :csll_percentual,
       :taxa_administracao, :nota_fiscal_numero, :nota_fiscal_serie,
       :observacoes
     )
@@ -205,7 +399,8 @@ class FaturamentoController < ApplicationController
   def fatura_update_params
     params.require(:fatura).permit(
       :status, :data_envio_empresa, :data_recebimento, :data_vencimento,
-      :admin_observacoes, :nota_fiscal_numero, :nota_fiscal_serie
+      :admin_observacoes, :nota_fiscal_numero, :nota_fiscal_serie,
+      :desconto, :valor_bruto
     )
   end
 

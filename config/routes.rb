@@ -381,10 +381,14 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
   resources :faturamento, controller: 'faturamento', only: [:index, :show, :create, :update] do
     member do
       post :cobrar
+      post :marcar_pago
+      get :gerar_docx
     end
     collection do
       get :resumo_json
       get :faturas_json, action: :faturas_json_endpoint
+      get :os_abertos_json
+      get :sub_units_json
     end
   end
 

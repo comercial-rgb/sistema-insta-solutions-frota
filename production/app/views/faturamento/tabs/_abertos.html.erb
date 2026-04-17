@@ -15,8 +15,8 @@
   </div>
 </div>
 
-<!-- Client Selector -->
-<div class="row mb-3">
+<!-- Filters -->
+<div class="row mb-3 g-2">
   <div class="col-md-4">
     <label class="form-label small text-muted">Selecionar Cliente</label>
     <select class="form-select" id="fAbertoCliente" onchange="Faturamento.carregarOSAbertos()">
@@ -25,6 +25,23 @@
         <option value="<%= c.id %>"><%= c.fantasy_name.presence || c.social_name.presence || c.name %></option>
       <% end %>
     </select>
+  </div>
+  <div class="col-md-3">
+    <label class="form-label small text-muted">Centro de Custo</label>
+    <select class="form-select" id="fAbertoCentroCusto" onchange="Faturamento.filtrarOSAbertos()" disabled>
+      <option value="">Todos</option>
+    </select>
+  </div>
+  <div class="col-md-3">
+    <label class="form-label small text-muted">Subunidade</label>
+    <select class="form-select" id="fAbertoSubUnidade" onchange="Faturamento.filtrarOSAbertos()" disabled>
+      <option value="">Todas</option>
+    </select>
+  </div>
+  <div class="col-md-2 d-flex align-items-end">
+    <button class="btn btn-outline-secondary w-100" onclick="Faturamento.limparFiltrosAbertos()" disabled id="btnLimparAbertos">
+      <i class="bi bi-x-circle"></i> Limpar
+    </button>
   </div>
 </div>
 
@@ -49,8 +66,6 @@
   <div class="card border-0 shadow-sm text-center py-5">
     <i class="bi bi-check-circle text-success" style="font-size:3rem"></i>
     <div id="successMsg" class="mt-3 fs-5"></div>
-    <button class="btn btn-primary mt-4" onclick="Faturamento.resetFatura()">
-      <i class="bi bi-plus-circle"></i> Nova Fatura
-    </button>
+    <div id="successActions" class="mt-4"></div>
   </div>
 </div>

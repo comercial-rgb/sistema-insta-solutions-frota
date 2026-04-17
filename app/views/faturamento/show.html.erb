@@ -27,12 +27,25 @@ breadcrumbs = [
             <p class="mb-0 <%= @fatura.vencida? ? 'text-danger fw-bold' : 'text-muted' %>">
               <i class="bi bi-calendar-event"></i>
               Vencimento: <%= @fatura.data_vencimento.strftime('%d/%m/%Y') %>
-              <%= ' — VENCIDA!' if @fatura.vencida? %>
+              <%= " — VENCIDA há #{@fatura.dias_vencida} dia(s)!" if @fatura.vencida? %>
             </p>
+          <% end %>
+          <% if @fatura.data_pagamento.present? %>
+            <p class="mb-0 text-success"><i class="bi bi-check-circle-fill"></i> Pago em: <%= @fatura.data_pagamento.strftime('%d/%m/%Y') %></p>
           <% end %>
         </div>
         <div class="col-md-4 text-md-end mt-3 mt-md-0">
           <%= render 'faturamento/shared/status_badge', status: @fatura.status %>
+          <div class="mt-2">
+            <a href="<%= gerar_docx_faturamento_path(@fatura) %>" class="btn btn-sm btn-outline-success">
+              <i class="bi bi-file-earmark-word"></i> Baixar DOCX
+            </a>
+            <% if @current_user.admin? && %w[aberta enviada].include?(@fatura.status) %>
+              <button class="btn btn-sm btn-success" onclick="Faturamento.marcarPago(<%= @fatura.id %>)">
+                <i class="bi bi-check-circle-fill"></i> Marcar como Pago
+              </button>
+            <% end %>
+          </div>
         </div>
       </div>
     </div>
@@ -48,7 +61,7 @@ breadcrumbs = [
             <i class="bi bi-building"></i> Cliente
           </h6>
           <div style="line-height:1.8">
-            <strong><%= @fatura.client&.name || '-' %></strong><br>
+            <strong><%= @fatura.client&.fantasy_name.presence || @fatura.client&.social_name.presence || @fatura.client&.name || '-' %></strong><br>
             <% if @fatura.client&.cnpj.present? %>
               CNPJ: <%= @fatura.client.cnpj %>
             <% end %>
@@ -80,6 +93,11 @@ breadcrumbs = [
           </h6>
           <div style="line-height:1.8">
             <strong class="text-success">Valor Bruto: <%= number_to_currency(@fatura.valor_bruto, unit: 'R$ ') %></strong><br>
+            <% if @fatura.desconto.to_f > 0 %>
+              <span class="text-info">
+                Desconto: -<%= number_to_currency(@fatura.desconto, unit: 'R$ ') %>
+              </span><br>
+            <% end %>
             <span class="text-warning">
               Retenções: -<%= number_to_currency(@fatura.total_retencoes, unit: 'R$ ') %>
             </span><br>
@@ -88,7 +106,7 @@ breadcrumbs = [
             </span><br>
             <hr class="my-1">
             <strong class="text-primary">
-              Valor Final: <%= number_to_currency(@fatura.valor_final, unit: 'R$ ') %>
+              Valor Líquido: <%= number_to_currency(@fatura.valor_liquido, unit: 'R$ ') %>
             </strong>
           </div>
         </div>
@@ -98,12 +116,54 @@ breadcrumbs = [
 
   <!-- NF Info -->
   <% if @fatura.nota_fiscal_numero.present? %>
-    <div class="alert alert-info border-0 shadow-sm">
-      <i class="bi bi-file-earmark-text me-2"></i>
-      NF Nº: <strong><%= @fatura.nota_fiscal_numero %></strong>
-      <% if @fatura.nota_fiscal_serie.present? %>
-        | Série: <%= @fatura.nota_fiscal_serie %>
-      <% end %>
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white border-bottom">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-file-earmark-text me-1"></i> Dados da Nota Fiscal</h6>
+      </div>
+      <div class="card-body">
+        <div class="row">
+          <div class="col-md-3">
+            <small class="text-muted d-block">N° Nota Fiscal</small>
+            <strong><%= @fatura.nota_fiscal_numero %></strong>
+          </div>
+          <div class="col-md-2">
+            <small class="text-muted d-block">Série</small>
+            <strong><%= @fatura.nota_fiscal_serie.presence || '-' %></strong>
+          </div>
+          <div class="col-md-2">
+            <small class="text-muted d-block">Emissão</small>
+            <strong><%= @fatura.data_emissao&.strftime('%d/%m/%Y') || '-' %></strong>
+          </div>
+          <div class="col-md-2">
+            <small class="text-muted d-block">Valor Bruto</small>
+            <strong><%= number_to_currency(@fatura.valor_bruto, unit: 'R$ ') %></strong>
+          </div>
+          <div class="col-md-3">
+            <small class="text-muted d-block">Valor Líquido</small>
+            <strong class="text-primary"><%= number_to_currency(@fatura.valor_liquido, unit: 'R$ ') %></strong>
+          </div>
+        </div>
+        <div class="row mt-3">
+          <div class="col-md-3">
+            <small class="text-muted d-block">Desconto</small>
+            <strong><%= number_to_currency(@fatura.desconto || 0, unit: 'R$ ') %></strong>
+          </div>
+          <div class="col-md-3">
+            <small class="text-muted d-block">Retenções</small>
+            <strong class="text-warning"><%= number_to_currency(@fatura.total_retencoes, unit: 'R$ ') %></strong>
+          </div>
+          <div class="col-md-3">
+            <small class="text-muted d-block">Data de Vencimento</small>
+            <strong class="<%= @fatura.vencida? ? 'text-danger' : '' %>">
+              <%= @fatura.data_vencimento&.strftime('%d/%m/%Y') || '-' %>
+            </strong>
+          </div>
+          <div class="col-md-3">
+            <small class="text-muted d-block">Status</small>
+            <%= render 'faturamento/shared/status_badge', status: @fatura.status %>
+          </div>
+        </div>
+      </div>
     </div>
   <% end %>
 

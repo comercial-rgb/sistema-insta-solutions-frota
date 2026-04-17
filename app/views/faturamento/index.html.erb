@@ -15,6 +15,32 @@ breadcrumbs = [
     </div>
   </div>
 
+  <!-- Alertas de Faturas Vencidas -->
+  <% if @faturas_vencidas.present? && @faturas_vencidas.any? %>
+    <div class="alert alert-danger border-0 shadow-sm mb-4" role="alert">
+      <div class="d-flex align-items-start">
+        <i class="bi bi-exclamation-triangle-fill fs-4 me-3 mt-1"></i>
+        <div class="flex-grow-1">
+          <strong><%= @faturas_vencidas.count %> fatura(s) vencida(s)!</strong>
+          <div class="mt-2">
+            <% @faturas_vencidas.limit(5).each do |fv| %>
+              <div class="d-flex justify-content-between align-items-center py-1 border-bottom border-danger border-opacity-25">
+                <span>
+                  <a href="<%= faturamento_path(fv) %>" class="text-decoration-none text-danger fw-bold"><%= fv.numero %></a>
+                  — <%= fv.client&.fantasy_name.presence || fv.client&.name || '-' %>
+                </span>
+                <span class="badge bg-danger">Vencida há <%= fv.dias_vencida %> dia(s) — Vcto: <%= fv.data_vencimento&.strftime('%d/%m/%Y') %></span>
+              </div>
+            <% end %>
+            <% if @faturas_vencidas.count > 5 %>
+              <small class="text-muted mt-1 d-block">e mais <%= @faturas_vencidas.count - 5 %> fatura(s)...</small>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
   <!-- Tabs Navigation -->
   <ul class="nav nav-tabs faturamento-tabs mb-4" id="faturamentoTabs" role="tablist">
     <li class="nav-item" role="presentation">
@@ -105,6 +131,31 @@ breadcrumbs = [
               <option value="cancelada">Cancelada</option>
             </select>
           </div>
+
+          <!-- Nota Fiscal Fields -->
+          <h6 class="text-muted border-bottom pb-2 mb-3"><i class="bi bi-file-earmark-text me-1"></i> Dados da Nota Fiscal</h6>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="editNfNumero" class="form-label">N° Nota Fiscal</label>
+              <input type="text" class="form-control" id="editNfNumero" placeholder="Número da NF">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="editNfSerie" class="form-label">Série</label>
+              <input type="text" class="form-control" id="editNfSerie" placeholder="Série da NF">
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label for="editDesconto" class="form-label">Desconto (R$)</label>
+              <input type="number" class="form-control" id="editDesconto" step="0.01" min="0" value="0">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="editDtVenc" class="form-label">Data de Vencimento</label>
+              <input type="date" class="form-control" id="editDtVenc">
+            </div>
+          </div>
+
+          <h6 class="text-muted border-bottom pb-2 mb-3"><i class="bi bi-calendar-check me-1"></i> Datas</h6>
           <div class="row">
             <div class="col-md-6 mb-3">
               <label for="editDtEnvio" class="form-label">Data Envio à Empresa</label>
@@ -114,10 +165,6 @@ breadcrumbs = [
               <label for="editDtReceb" class="form-label">Data Recebimento</label>
               <input type="date" class="form-control" id="editDtReceb">
             </div>
-          </div>
-          <div class="mb-3">
-            <label for="editDtVenc" class="form-label">Data de Vencimento</label>
-            <input type="date" class="form-control" id="editDtVenc">
           </div>
           <div class="mb-3">
             <label for="editObs" class="form-label">Observações Admin</label>

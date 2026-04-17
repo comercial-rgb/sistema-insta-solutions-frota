@@ -2,6 +2,8 @@ class Fatura < ApplicationRecord
   belongs_to :client, class_name: 'User', foreign_key: 'client_id', optional: true
   belongs_to :cost_center, optional: true
   belongs_to :contract, optional: true
+  belongs_to :sub_unit, optional: true
+  belongs_to :pago_por, class_name: 'User', foreign_key: 'pago_por_id', optional: true
 
   has_many :fatura_itens, dependent: :destroy
 
@@ -21,14 +23,21 @@ class Fatura < ApplicationRecord
     %w[aberta enviada].include?(status) && data_vencimento.present? && data_vencimento < Date.current
   end
 
+  def dias_vencida
+    return 0 unless vencida?
+    (Date.current - data_vencimento).to_i
+  end
+
   def calcular_retencoes!
     base = valor_bruto || 0
-    ir   = base * (ir_percentual || 0) / 100
-    pis  = base * (pis_percentual || 0) / 100
-    cof  = base * (cofins_percentual || 0) / 100
-    csll = base * (csll_percentual || 0) / 100
+    desc = desconto || 0
+    base_liquida = base - desc
+    ir   = base_liquida * (ir_percentual || 0) / 100
+    pis  = base_liquida * (pis_percentual || 0) / 100
+    cof  = base_liquida * (cofins_percentual || 0) / 100
+    csll = base_liquida * (csll_percentual || 0) / 100
     self.total_retencoes = ir + pis + cof + csll
-    self.valor_liquido   = base - total_retencoes
+    self.valor_liquido   = base_liquida - total_retencoes
     self.valor_final     = valor_liquido - (taxa_administracao || 0)
   end
 
