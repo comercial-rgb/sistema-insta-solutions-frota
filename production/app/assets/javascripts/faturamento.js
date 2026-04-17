@@ -540,6 +540,20 @@ var Faturamento = (function() {
     html += '<td class="fw-bold">' + money(totalBruto) + '</td></tr>';
     html += '</tbody></table></div>';
 
+    // Tipo de valor (bruto ou líquido)
+    html += '<div class="row mb-3 mt-3">';
+    html += '<div class="col-md-4">';
+    html += '<label class="form-label fw-bold">Tipo de Valor da Fatura</label>';
+    html += '<select class="form-select" id="previaTipoValor">';
+    html += '<option value="bruto" selected>Valor Bruto (antes do desconto)</option>';
+    html += '<option value="liquido">Valor Líquido (após desconto)</option>';
+    html += '</select>';
+    html += '</div>';
+    html += '<div class="col-md-8 d-flex align-items-end">';
+    html += '<small class="text-muted"><i class="bi bi-info-circle me-1"></i>Bruto: valor total sem descontos. Líquido: valor após desconto do cliente.</small>';
+    html += '</div>';
+    html += '</div>';
+
     // Observations input
     html += '<div class="mb-3"><label class="form-label">Observações (opcional)</label>';
     html += '<textarea class="form-control" id="previaObs" rows="2" placeholder="Observações para a fatura..."></textarea></div>';
@@ -561,6 +575,7 @@ var Faturamento = (function() {
     var ids = Object.keys(_selectedOS).map(Number);
     var clienteId = document.getElementById('fAbertoCliente').value;
     var obs = document.getElementById('previaObs') ? document.getElementById('previaObs').value : '';
+    var tipoValor = document.getElementById('previaTipoValor') ? document.getElementById('previaTipoValor').value : 'bruto';
 
     if (ids.length === 0 || !clienteId) return;
 
@@ -574,7 +589,8 @@ var Faturamento = (function() {
       data: JSON.stringify({
         client_id: clienteId,
         order_service_ids: ids,
-        observacoes: obs
+        observacoes: obs,
+        tipo_valor: tipoValor
       }),
       contentType: 'application/json',
       headers: { 'X-CSRF-Token': csrfToken() },

@@ -45,10 +45,9 @@ class FaturamentoController < ApplicationController
     client = User.find(params[:client_id])
     os_ids = Array(params[:order_service_ids]).map(&:to_i).uniq
 
-    # Somente OS Autorizadas e não faturadas
-    autorizada_ids = [OrderServiceStatus::AUTORIZADA_ID, OrderServiceStatus::NEW_AUTORIZADA_ID].uniq
+    # Somente OS que estão ATUALMENTE no status Autorizada (ID 5) e não faturadas
     order_services = OrderService.where(id: os_ids, client_id: client.id, invoiced: false)
-                                 .where(order_service_status_id: autorizada_ids)
+                                 .where(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID)
 
     if order_services.empty?
       respond_to do |format|
@@ -84,6 +83,9 @@ class FaturamentoController < ApplicationController
       }
     end
 
+    # Tipo de valor: bruto (antes do desconto) ou liquido (após desconto)
+    tipo_valor = params[:tipo_valor].presence || 'bruto'
+
     # Build fatura
     @fatura = Fatura.new(
       numero: Fatura.gerar_numero,
@@ -95,6 +97,7 @@ class FaturamentoController < ApplicationController
       status: 'aberta',
       valor_bruto: total_bruto,
       desconto: 0,
+      tipo_valor: tipo_valor,
       total_itens: items_data.size,
       observacoes: params[:observacoes]
     )
@@ -232,15 +235,10 @@ class FaturamentoController < ApplicationController
       return
     end
 
-    # Somente OS com status Autorizada (IDs antigo=5, novo=7) e não faturadas
-    autorizada_ids = [
-      OrderServiceStatus::AUTORIZADA_ID,
-      OrderServiceStatus::NEW_AUTORIZADA_ID
-    ].uniq
-
+    # Somente OS que estão ATUALMENTE no status Autorizada (ID 5)
     os_scope = OrderService.not_invoiced
                            .where(client_id: client_id)
-                           .where(order_service_status_id: autorizada_ids)
+                           .where(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID)
                            .includes(:vehicle, :order_service_proposals, :cost_center, :sub_unit)
 
     # Filtro por período de apuração (data de criação da OS)

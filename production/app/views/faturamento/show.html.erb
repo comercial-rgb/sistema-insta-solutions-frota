@@ -90,6 +90,11 @@ breadcrumbs = [
         <div class="card-body">
           <h6 class="text-uppercase small text-muted mb-2">
             <i class="bi bi-cash-stack"></i> Resumo Financeiro
+            <% if @fatura.respond_to?(:tipo_valor) && @fatura.tipo_valor.present? %>
+              <span class="badge bg-<%= @fatura.tipo_valor == 'liquido' ? 'info' : 'success' %> ms-1">
+                <%= @fatura.tipo_valor == 'liquido' ? 'Valor Líquido' : 'Valor Bruto' %>
+              </span>
+            <% end %>
           </h6>
           <div style="line-height:1.8">
             <strong class="text-success">Valor Bruto: <%= number_to_currency(@fatura.valor_bruto, unit: 'R$ ') %></strong><br>
