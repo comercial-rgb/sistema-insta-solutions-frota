@@ -502,40 +502,49 @@ var Faturamento = (function() {
     var ids = Object.keys(_selectedOS).map(Number);
     if (ids.length === 0) return;
 
+    // Preservar estado do checkbox antes de reconstruir o HTML
+    var chkEl = document.getElementById('previaAplicarRetencao');
+    var aplicarRetencao = chkEl ? chkEl.checked : true; // default true na primeira vez
+
     var selectedOSData = _osAbertosData.filter(function(os) { return ids.indexOf(os.id) >= 0; });
     var totalParts = 0, totalServices = 0, totalBruto = 0;
 
-    // Calcular retenções reais por OS (baseado em optante_simples e esfera)
-    var totalIRRF = 0, totalPIS = 0, totalCOFINS = 0, totalCSLL = 0;
+    // Alíquotas conforme DOCX (por esfera e tipo):
+    //   Optante Simples:           Peças 1,2%   | Serviços 4,8%
+    //   Não-simples + Federal:     Peças 5,85%  | Serviços 9,45%
+    //   Não-simples + Mun/Est:     Peças 5,45%  | Serviços 9,45%
     var sphereNames = { 0: 'Municipal', 1: 'Estadual', 2: 'Federal' };
     var sphereName = sphereNames[_clientSphere] || 'Municipal';
     var isFederal = (_clientSphere === 2);
-    var isMunicipalEstadual = (_clientSphere === 0 || _clientSphere === 1);
+
+    var retPecasSimples = 0, retServicosSimples = 0;
+    var retPecasNaoSimples = 0, retServicosNaoSimples = 0;
 
     selectedOSData.forEach(function(os) {
       totalParts += os.total_parts;
       totalServices += os.total_services;
       totalBruto += os.total_value;
 
-      // Retenções só para fornecedores NÃO optante simples COM serviços
-      if (!os.provider_optante_simples && os.total_services > 0) {
+      if (os.provider_optante_simples) {
+        // Optante Simples: IR 1,2% peças, IR 4,8% serviços
+        retPecasSimples += os.total_parts * 0.012;
+        retServicosSimples += os.total_services * 0.048;
+      } else {
+        // Não optante simples: alíquotas variam por esfera
         if (isFederal) {
-          // Federal: IRRF 1.5%, PIS 0.65%, COFINS 3%, CSLL 1% = 6.15% sobre serviços
-          totalIRRF += os.total_services * 0.015;
-          totalPIS += os.total_services * 0.0065;
-          totalCOFINS += os.total_services * 0.03;
-          totalCSLL += os.total_services * 0.01;
-        } else if (isMunicipalEstadual) {
-          // Municipal/Estadual: IRRF 1.5%, PIS 0.65%, COFINS 3%, CSLL 1% = 6.15% sobre serviços
-          totalIRRF += os.total_services * 0.015;
-          totalPIS += os.total_services * 0.0065;
-          totalCOFINS += os.total_services * 0.03;
-          totalCSLL += os.total_services * 0.01;
+          retPecasNaoSimples += os.total_parts * 0.0585;       // 5,85%
+          retServicosNaoSimples += os.total_services * 0.0945; // 9,45%
+        } else {
+          retPecasNaoSimples += os.total_parts * 0.0545;       // 5,45%
+          retServicosNaoSimples += os.total_services * 0.0945; // 9,45%
         }
       }
     });
 
-    var totalRetencoes = totalIRRF + totalPIS + totalCOFINS + totalCSLL;
+    var totalRetSimples = retPecasSimples + retServicosSimples;
+    var totalRetNaoSimples = retPecasNaoSimples + retServicosNaoSimples;
+    var totalRetencoes = aplicarRetencao ? (totalRetSimples + totalRetNaoSimples) : 0;
+
     var descontoContrato = totalBruto * (_clientDiscount / 100);
     var valorLiquido = totalBruto - descontoContrato;
     var valorDevido = valorLiquido - totalRetencoes;
@@ -632,7 +641,7 @@ var Faturamento = (function() {
     // Resumo Financeiro (Retenções detalhadas)
     html += '<div class="card bg-light border-0 mb-3">';
     html += '<div class="card-body">';
-    html += '<h6 class="fw-bold mb-3"><i class="bi bi-calculator me-1"></i> Resumo Financeiro (Retenções sobre Serviços)</h6>';
+    html += '<h6 class="fw-bold mb-3"><i class="bi bi-calculator me-1"></i> Resumo Financeiro (Retenções sobre Peças e Serviços)</h6>';
     html += '<div class="row">';
 
     // Coluna valores
@@ -642,22 +651,37 @@ var Faturamento = (function() {
     html += '<tr><td class="text-muted">(-) Desconto Contrato (' + _clientDiscount.toFixed(1) + '%)</td><td class="text-end text-danger">- ' + money(descontoContrato) + '</td></tr>';
     html += '<tr class="border-top"><td class="fw-bold">Valor Líquido</td><td class="text-end fw-bold text-primary">' + money(valorLiquido) + '</td></tr>';
 
-    // Checkbox Aplicar Retenção Fiscal (como combustível)
+    // Checkbox Aplicar Retenção Fiscal
+    var chkChecked = aplicarRetencao ? 'checked' : '';
     html += '<tr><td colspan="2" class="py-2">';
     html += '<div class="alert alert-warning py-2 px-3 mb-0 d-flex align-items-center">';
-    html += '<input type="checkbox" class="form-check-input me-2" id="previaAplicarRetencao" checked onchange="Faturamento.recalcularPrevia()">';
-    html += '<strong>Aplicar Retenção Fiscal</strong>&nbsp; <small class="text-muted">Retenção conforme política fiscal (' + escapeHtml(sphereName.toLowerCase()) + ').</small>';
+    html += '<input type="checkbox" class="form-check-input me-2" id="previaAplicarRetencao" ' + chkChecked + ' onchange="Faturamento.recalcularPrevia()">';
+    html += '<strong>Aplicar Retenção Fiscal</strong>&nbsp; <small class="text-muted">Esfera: ' + escapeHtml(sphereName) + '</small>';
     html += '</div></td></tr>';
 
-    // Retenções individuais
-    if (totalRetencoes > 0) {
-      html += '<tr><td class="text-muted ps-4">(-) IRRF (1,5%)</td><td class="text-end text-danger">- ' + money(totalIRRF) + '</td></tr>';
-      html += '<tr><td class="text-muted ps-4">(-) PIS (0,65%)</td><td class="text-end text-danger">- ' + money(totalPIS) + '</td></tr>';
-      html += '<tr><td class="text-muted ps-4">(-) COFINS (3,0%)</td><td class="text-end text-danger">- ' + money(totalCOFINS) + '</td></tr>';
-      html += '<tr><td class="text-muted ps-4">(-) CSLL (1,0%)</td><td class="text-end text-danger">- ' + money(totalCSLL) + '</td></tr>';
+    // Retenções detalhadas (peças e serviços separados, por tipo fornecedor)
+    if (aplicarRetencao && (totalRetSimples + totalRetNaoSimples) > 0) {
+      // Alíquotas para exibição
+      var pctPecasSimples = '1,2%';
+      var pctServSimples = '4,8%';
+      var pctPecasNS = isFederal ? '5,85%' : '5,45%';
+      var pctServNS = '9,45%';
+
+      if (totalRetSimples > 0) {
+        html += '<tr><td class="text-muted ps-3" colspan="2"><small><strong>Optante Simples (IR):</strong></small></td></tr>';
+        if (retPecasSimples > 0) html += '<tr><td class="text-muted ps-4">(-) Peças (' + pctPecasSimples + ')</td><td class="text-end text-danger">- ' + money(retPecasSimples) + '</td></tr>';
+        if (retServicosSimples > 0) html += '<tr><td class="text-muted ps-4">(-) Serviços (' + pctServSimples + ')</td><td class="text-end text-danger">- ' + money(retServicosSimples) + '</td></tr>';
+      }
+      if (totalRetNaoSimples > 0) {
+        html += '<tr><td class="text-muted ps-3" colspan="2"><small><strong>Não-Simples (' + escapeHtml(sphereName) + '):</strong></small></td></tr>';
+        if (retPecasNaoSimples > 0) html += '<tr><td class="text-muted ps-4">(-) Peças (' + pctPecasNS + ')</td><td class="text-end text-danger">- ' + money(retPecasNaoSimples) + '</td></tr>';
+        if (retServicosNaoSimples > 0) html += '<tr><td class="text-muted ps-4">(-) Serviços (' + pctServNS + ')</td><td class="text-end text-danger">- ' + money(retServicosNaoSimples) + '</td></tr>';
+      }
       html += '<tr class="border-top"><td class="text-muted fw-bold">Total Retenções</td><td class="text-end text-danger fw-bold">- ' + money(totalRetencoes) + '</td></tr>';
+    } else if (!aplicarRetencao) {
+      html += '<tr><td class="text-muted" colspan="2"><i class="bi bi-slash-circle me-1"></i>Retenções desabilitadas pelo usuário</td></tr>';
     } else {
-      html += '<tr><td class="text-muted" colspan="2"><i class="bi bi-info-circle me-1"></i>Sem retenções (fornecedores optante pelo Simples Nacional ou sem serviços)</td></tr>';
+      html += '<tr><td class="text-muted" colspan="2"><i class="bi bi-info-circle me-1"></i>Sem retenções aplicáveis</td></tr>';
     }
 
     html += '<tr class="border-top"><td class="fw-bold fs-6">Valor Devido</td><td class="text-end fw-bold text-success fs-6">' + money(valorDevido) + '</td></tr>';
@@ -666,9 +690,14 @@ var Faturamento = (function() {
 
     // Coluna informativa
     html += '<div class="col-md-5">';
-    html += '<div class="alert alert-info py-2 px-3 mb-2 small"><i class="bi bi-info-circle me-1"></i><strong>Desconto Contrato:</strong> Percentual de ' + _clientDiscount.toFixed(1) + '% previsto no contrato do cliente aplicado sobre o valor bruto.</div>';
-    html += '<div class="alert alert-warning py-2 px-3 mb-2 small"><i class="bi bi-info-circle me-1"></i><strong>Retenções:</strong> Aplicadas apenas a fornecedores <u>não optante pelo Simples Nacional</u> que prestaram serviços. Calculadas conforme esfera <strong>' + escapeHtml(sphereName) + '</strong> do cliente: IRRF 1,5%, PIS 0,65%, COFINS 3%, CSLL 1%.</div>';
-    html += '<div class="alert alert-success py-2 px-3 mb-0 small"><i class="bi bi-info-circle me-1"></i><strong>Valor Devido:</strong> Valor final após desconto do contrato e retenções tributárias sobre serviços.</div>';
+    html += '<div class="alert alert-info py-2 px-3 mb-2 small"><i class="bi bi-info-circle me-1"></i><strong>Desconto Contrato:</strong> ' + _clientDiscount.toFixed(1) + '% previsto no contrato.</div>';
+
+    var aliqInfo = '<strong>Alíquotas (' + escapeHtml(sphereName) + '):</strong><br>';
+    aliqInfo += '<u>Optante Simples (IR):</u> Peças 1,2% | Serviços 4,8%<br>';
+    aliqInfo += '<u>Não-Simples:</u> Peças ' + (isFederal ? '5,85%' : '5,45%') + ' | Serviços 9,45%';
+    html += '<div class="alert alert-warning py-2 px-3 mb-2 small"><i class="bi bi-info-circle me-1"></i>' + aliqInfo + '</div>';
+
+    html += '<div class="alert alert-success py-2 px-3 mb-0 small"><i class="bi bi-info-circle me-1"></i><strong>Valor Devido:</strong> Valor líquido menos retenções tributárias sobre peças e serviços.</div>';
     html += '</div>';
 
     html += '</div></div></div>';
@@ -710,6 +739,8 @@ var Faturamento = (function() {
     var clienteId = document.getElementById('fAbertoCliente').value;
     var obs = document.getElementById('previaObs') ? document.getElementById('previaObs').value : '';
     var tipoValor = document.getElementById('previaTipoValor') ? document.getElementById('previaTipoValor').value : 'bruto';
+    var chkRetencao = document.getElementById('previaAplicarRetencao');
+    var aplicarRetencao = chkRetencao ? chkRetencao.checked : true;
 
     if (ids.length === 0 || !clienteId) return;
 
@@ -724,7 +755,8 @@ var Faturamento = (function() {
         client_id: clienteId,
         order_service_ids: ids,
         observacoes: obs,
-        tipo_valor: tipoValor
+        tipo_valor: tipoValor,
+        aplicar_retencao: aplicarRetencao
       }),
       contentType: 'application/json',
       headers: { 'X-CSRF-Token': csrfToken() },

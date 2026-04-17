@@ -85,22 +85,45 @@ class FaturamentoController < ApplicationController
 
     # Tipo de valor: bruto (antes do desconto) ou liquido (após desconto)
     tipo_valor = params[:tipo_valor].presence || 'bruto'
+    aplicar_retencao = params[:aplicar_retencao] != false && params[:aplicar_retencao] != 'false'
 
     # Calculate discount and retentions based on client sphere
     client_discount_pct = client.discount_percent.to_f
     desconto_valor = total_bruto * (client_discount_pct / 100)
 
-    # Determine retention percentages (only on services from non-simples providers)
-    has_retencoes = false
-    total_services_retencao = 0
+    # Calcular retenções conforme lógica do DOCX (por NF, por fornecedor, por esfera)
+    # Alíquotas:
+    #   Optante Simples:           Peças 1,2%   | Serviços 4,8%
+    #   Não-simples + Federal:     Peças 5,85%  | Serviços 9,45%
+    #   Não-simples + Mun/Est:     Peças 5,45%  | Serviços 9,45%
+    is_federal = client.federal?
+    total_retencao = 0.0
+
     order_services.each do |os|
       prop = find_approved_proposal(os)
       next unless prop
-      next if prop.provider&.optante_simples
-      nf_servicos = prop.order_service_invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }
-      total_services_retencao += nf_servicos.sum(&:value).to_f
+
+      invoices = prop.order_service_invoices.to_a
+      sum_parts = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }.sum(&:value).to_f
+      sum_services = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }.sum(&:value).to_f
+
+      if prop.provider&.optante_simples
+        total_retencao += sum_parts * 0.012    # 1,2%
+        total_retencao += sum_services * 0.048  # 4,8%
+      elsif is_federal
+        total_retencao += sum_parts * 0.0585    # 5,85%
+        total_retencao += sum_services * 0.0945 # 9,45%
+      else
+        total_retencao += sum_parts * 0.0545    # 5,45%
+        total_retencao += sum_services * 0.0945 # 9,45%
+      end
     end
-    has_retencoes = total_services_retencao > 0
+
+    # Zerar retenções se usuário desabilitou
+    total_retencao = 0.0 unless aplicar_retencao
+
+    valor_liquido = total_bruto - desconto_valor
+    valor_final = valor_liquido - total_retencao
 
     # Build fatura
     @fatura = Fatura.new(
@@ -113,15 +136,13 @@ class FaturamentoController < ApplicationController
       status: 'aberta',
       valor_bruto: total_bruto,
       desconto: desconto_valor,
-      ir_percentual: has_retencoes ? 1.5 : 0,
-      pis_percentual: has_retencoes ? 0.65 : 0,
-      cofins_percentual: has_retencoes ? 3.0 : 0,
-      csll_percentual: has_retencoes ? 1.0 : 0,
+      total_retencoes: total_retencao.round(2),
+      valor_liquido: valor_liquido.round(2),
+      valor_final: valor_final.round(2),
       tipo_valor: tipo_valor,
       total_itens: items_data.size,
       observacoes: params[:observacoes]
     )
-    @fatura.calcular_retencoes!
 
     ActiveRecord::Base.transaction do
       @fatura.save!
