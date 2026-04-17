@@ -17,7 +17,7 @@ class FaturamentoController < ApplicationController
     @ultimas_faturas = Fatura.order(created_at: :desc).limit(5)
 
     # Clients & cost_centers for filter dropdowns
-    @clients = User.client.order(:name)
+    @clients = User.client.active.name_ordered
     @cost_centers = CostCenter.order(:name)
 
     respond_to do |format|
