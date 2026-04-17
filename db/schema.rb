@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_17_160000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_17_170000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -1197,6 +1197,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_17_160000) do
     t.text "training_notes"
     t.boolean "training_declined", default: false, null: false
     t.datetime "training_declined_at", precision: nil
+    t.boolean "is_gerente", default: false, null: false
     t.index ["city_id"], name: "index_users_on_city_id"
     t.index ["client_id"], name: "index_users_on_client_id"
     t.index ["cnh_number"], name: "index_users_on_cnh_number", unique: true

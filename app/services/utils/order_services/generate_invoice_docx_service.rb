@@ -7,12 +7,13 @@ require 'fileutils'
 module Utils
   module OrderServices
     class GenerateInvoiceDocxService
-      def initialize(order_services, client, current_month, invoice_split: nil, bank_account: nil)
+      def initialize(order_services, client, current_month, invoice_split: nil, bank_account: nil, tipo_valor: 'bruto')
         @order_services = order_services
         @client = client
         @current_month = current_month
         @invoice_split = invoice_split # nil = all, 'parts' = only parts, 'services' = only services
         @bank_account = bank_account
+        @tipo_valor = tipo_valor # 'bruto' or 'liquido'
         @order_service_invoices = []
       end
 
@@ -75,6 +76,13 @@ module Utils
         # Retenções totais e valor devido
         replacements['RETENCOES'] = CustomHelper.to_currency(values[:retencoes])
         replacements['VALORDEVIDO'] = CustomHelper.to_currency(values[:valordevido])
+
+        # Valor principal da fatura conforme tipo selecionado (bruto ou líquido)
+        if @tipo_valor == 'liquido'
+          replacements['VALORFATURA'] = CustomHelper.to_currency(values[:valorcomdesconto])
+        else
+          replacements['VALORFATURA'] = CustomHelper.to_currency(values[:valorbruto])
+        end
         
         # Dados do cliente
         cost_centers_name = @order_services.map { |os| os.cost_center&.name }.compact.uniq.join(' / ')

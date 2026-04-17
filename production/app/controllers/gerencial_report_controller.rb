@@ -83,25 +83,61 @@ class GerencialReportController < ApplicationController
     metrics[:contratos_ativos] = Contract.where(active: true).count
     metrics[:contratos_novos] = Contract.where(created_at: start_date.beginning_of_day..end_date.end_of_day).count
 
-    # Clientes com saldo baixo (< 20% do valor total do contrato)
+    # Clientes com saldo baixo - considerar empenhos e valores realmente consumidos
     low_balance_clients = []
     Contract.where(active: true).includes(:client, :commitments, :addendum_contracts).find_each do |contract|
       total = contract.get_total_value
-      available = contract.get_disponible_value
       next if total.zero?
+
+      # Saldo real = valor total contrato - valor efetivamente consumido por OS (não apenas empenhado)
+      total_consumed = 0
+      contract.commitments.each do |commitment|
+        total_consumed += Commitment.get_total_already_consumed_value(commitment).to_f
+      end
+
+      available = total - total_consumed
       pct = (available / total * 100).round(1)
       if pct < 20
         client_name = contract.client&.fantasy_name.presence || contract.client&.social_name.presence || contract.client&.name
+        # Também mostrar valor empenhado para referência
+        empenhado = contract.get_used_value.to_f
         low_balance_clients << {
           client: client_name,
           contract: contract.name,
+          number: contract.number,
           total: total,
+          empenhado: empenhado,
+          consumed: total_consumed,
           available: available,
           pct: pct
         }
       end
     end
     metrics[:clientes_saldo_baixo] = low_balance_clients.sort_by { |c| c[:pct] }
+
+    # === Contratos com vencimento próximo (30 e 60 dias) ===
+    today = Date.current
+    contracts_expiring = []
+    Contract.where(active: true).includes(:client).find_each do |c|
+      next if c.final_date.blank?
+      begin
+        final = Date.parse(c.final_date.gsub(/(\d{2})\/(\d{2})\/(\d{4})/, '\3-\2-\1'))
+      rescue
+        next
+      end
+      days_left = (final - today).to_i
+      next unless days_left >= 0 && days_left <= 60
+      client_name = c.client&.fantasy_name.presence || c.client&.social_name.presence || c.client&.name
+      contracts_expiring << {
+        client: client_name,
+        contract: c.name,
+        number: c.number,
+        final_date: final,
+        days_left: days_left,
+        urgency: days_left <= 30 ? 'danger' : 'warning'
+      }
+    end
+    metrics[:contratos_vencendo] = contracts_expiring.sort_by { |c| c[:days_left] }
 
     # === Chamados ===
     tickets_periodo = SupportTicket.where(created_at: start_date.beginning_of_day..end_date.end_of_day)
@@ -171,14 +207,23 @@ class GerencialReportController < ApplicationController
 
       # Clientes com saldo baixo
       if @metrics[:clientes_saldo_baixo].any?
-        sheet.add_row ['Cliente', 'Contrato', 'Valor Total', 'Saldo Disponível', '% Disponível'], style: header_style
+        sheet.add_row ['Cliente', 'Contrato', 'Valor Total', 'Empenhado', 'Consumido (OS)', 'Saldo Real', '% Disponível'], style: header_style
         @metrics[:clientes_saldo_baixo].each do |item|
-          sheet.add_row [item[:client], item[:contract], item[:total], item[:available], item[:pct] / 100.0],
-                        style: [nil, nil, money_style, money_style, pct_style]
+          sheet.add_row [item[:client], "#{item[:contract]} (#{item[:number]})", item[:total], item[:empenhado], item[:consumed], item[:available], item[:pct] / 100.0],
+                        style: [nil, nil, money_style, money_style, money_style, money_style, pct_style]
+        end
+        sheet.add_row []
+      end
+
+      # Contratos com vencimento próximo
+      if @metrics[:contratos_vencendo].present? && @metrics[:contratos_vencendo].any?
+        sheet.add_row ['Cliente', 'Contrato', 'Nº', 'Vencimento', 'Dias Restantes'], style: header_style
+        @metrics[:contratos_vencendo].each do |item|
+          sheet.add_row [item[:client], item[:contract], item[:number], item[:final_date]&.strftime('%d/%m/%Y'), item[:days_left]]
         end
       end
 
-      sheet.column_widths 35, 20, 20, 20, 15
+      sheet.column_widths 35, 20, 20, 20, 20, 20, 15
     end
 
     send_data package.to_stream.read,
@@ -262,12 +307,34 @@ class GerencialReportController < ApplicationController
       pdf.text "Clientes com Saldo Baixo (< 20%)", style: :bold
       pdf.move_down 5
 
-      low_data = [['Cliente', 'Contrato', 'Total', 'Disponível', '%']]
+      low_data = [['Cliente', 'Contrato', 'Total', 'Empenhado', 'Consumido', 'Saldo', '%']]
       @metrics[:clientes_saldo_baixo].each do |item|
-        low_data << [item[:client], item[:contract], fmt.call(item[:total]), fmt.call(item[:available]), "#{item[:pct]}%"]
+        low_data << [item[:client], item[:contract], fmt.call(item[:total]), fmt.call(item[:empenhado]), fmt.call(item[:consumed]), fmt.call(item[:available]), "#{item[:pct]}%"]
       end
 
       pdf.table(low_data, width: pdf.bounds.width) do |t|
+        t.row(0).background_color = '251C59'
+        t.row(0).text_color = 'FFFFFF'
+        t.row(0).font_style = :bold
+        t.cells.padding = [3, 6]
+        t.cells.size = 7
+      end
+    end
+
+    pdf.move_down 15
+
+    # Contracts expiring
+    if @metrics[:contratos_vencendo].present? && @metrics[:contratos_vencendo].any?
+      pdf.font_size 12
+      pdf.text "Contratos com Vencimento em até 60 dias", style: :bold
+      pdf.move_down 5
+
+      exp_data = [['Cliente', 'Contrato', 'Vencimento', 'Dias']]
+      @metrics[:contratos_vencendo].each do |item|
+        exp_data << [item[:client], item[:contract], item[:final_date]&.strftime('%d/%m/%Y'), item[:days_left].to_s]
+      end
+
+      pdf.table(exp_data, width: pdf.bounds.width) do |t|
         t.row(0).background_color = '251C59'
         t.row(0).text_color = 'FFFFFF'
         t.row(0).font_style = :bold

@@ -90,6 +90,11 @@
                 <%= f.input :is_blocked, label: (f.object.profile_id != Profile::CLIENT_ID ? User.human_attribute_name(:status) : User.human_attribute_name(:only_status_text)), as: :select, collection: [[User.human_attribute_name(:active), false],[User.human_attribute_name(:inactive), true]], include_blank: false %>
             </div>
         <% end %>
+        <% if f.object.manager? && @current_user.admin? %>
+            <div class="col-12 col-md-2 mb-3">
+                <%= f.input :is_gerente, as: :boolean, label: 'Gerente', wrapper: :vertical_boolean %>
+            </div>
+        <% end %>
     </div>
 <% end %>
 

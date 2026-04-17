@@ -179,11 +179,51 @@ breadcrumbs = [
       </div>
     </div>
 
+    <!-- Contratos com Vencimento Próximo -->
+    <% if @metrics[:contratos_vencendo].present? && @metrics[:contratos_vencendo].any? %>
+      <div class="card shadow-sm mb-4">
+        <div class="card-header bg-danger text-white">
+          <i class="bi bi-calendar-x me-2"></i>Contratos com Vencimento em até 60 dias
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Cliente</th>
+                  <th>Contrato</th>
+                  <th>Nº</th>
+                  <th>Vencimento</th>
+                  <th class="text-end pe-3">Dias Restantes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @metrics[:contratos_vencendo].each do |item| %>
+                  <tr>
+                    <td class="ps-3"><%= item[:client] %></td>
+                    <td><%= item[:contract] %></td>
+                    <td><%= item[:number] %></td>
+                    <td><%= item[:final_date]&.strftime('%d/%m/%Y') %></td>
+                    <td class="text-end pe-3">
+                      <span class="badge bg-<%= item[:urgency] %>">
+                        <%= item[:days_left] %> dias
+                      </span>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% end %>
+
     <!-- Clientes com Saldo Baixo -->
     <% if @metrics[:clientes_saldo_baixo].any? %>
       <div class="card shadow-sm mb-4">
         <div class="card-header bg-warning text-dark">
           <i class="bi bi-exclamation-triangle me-2"></i>Clientes com Saldo Baixo (< 20% disponível)
+          <small class="d-block">Considera valor efetivamente consumido por OS (não apenas empenhado)</small>
         </div>
         <div class="card-body p-0">
           <div class="table-responsive">
@@ -193,7 +233,9 @@ breadcrumbs = [
                   <th class="ps-3">Cliente</th>
                   <th>Contrato</th>
                   <th class="text-end">Valor Total</th>
-                  <th class="text-end">Saldo Disponível</th>
+                  <th class="text-end">Empenhado</th>
+                  <th class="text-end">Consumido (OS)</th>
+                  <th class="text-end">Saldo Real</th>
                   <th class="text-end pe-3">% Disponível</th>
                 </tr>
               </thead>
@@ -201,9 +243,11 @@ breadcrumbs = [
                 <% @metrics[:clientes_saldo_baixo].each do |item| %>
                   <tr>
                     <td class="ps-3"><%= item[:client] %></td>
-                    <td><%= item[:contract] %></td>
+                    <td><%= item[:contract] %> <small class="text-muted">(<%= item[:number] %>)</small></td>
                     <td class="text-end">R$ <%= number_with_delimiter(item[:total], delimiter: '.', separator: ',') %></td>
-                    <td class="text-end">R$ <%= number_with_delimiter(item[:available], delimiter: '.', separator: ',') %></td>
+                    <td class="text-end">R$ <%= number_with_delimiter(item[:empenhado], delimiter: '.', separator: ',') %></td>
+                    <td class="text-end">R$ <%= number_with_delimiter(item[:consumed], delimiter: '.', separator: ',') %></td>
+                    <td class="text-end fw-bold">R$ <%= number_with_delimiter(item[:available], delimiter: '.', separator: ',') %></td>
                     <td class="text-end pe-3">
                       <span class="badge <%= item[:pct] < 10 ? 'bg-danger' : 'bg-warning text-dark' %>">
                         <%= item[:pct] %>%

@@ -1190,7 +1190,7 @@ class UsersController < ApplicationController
       :cellphone, :profession, :civil_state_id, :accept_therm, :property_regime_id, :user_status_id,
       :current_plan_id, :set_manually_plan, :manually_plan_id, :limit_date_manually_plan,
       :municipal_inscription, :state_inscription, :discount_percent, :department, :state_id, :city_id, :client_id,
-      :registration, :optante_simples, :needs_km,
+      :registration, :optante_simples, :needs_km, :is_gerente,
         :require_vehicle_photos, :os_blocked, :government_sphere,
         :cnh_number, :cnh_category, :cnh_expiration, :cnh_issued_at,
         :training_completed, :training_date, :training_participants, :training_location, :training_notes, :training_declined,

@@ -86,6 +86,22 @@ class FaturamentoController < ApplicationController
     # Tipo de valor: bruto (antes do desconto) ou liquido (após desconto)
     tipo_valor = params[:tipo_valor].presence || 'bruto'
 
+    # Calculate discount and retentions based on client sphere
+    client_discount_pct = client.discount_percent.to_f
+    desconto_valor = total_bruto * (client_discount_pct / 100)
+
+    # Determine retention percentages (only on services from non-simples providers)
+    has_retencoes = false
+    total_services_retencao = 0
+    order_services.each do |os|
+      prop = find_approved_proposal(os)
+      next unless prop
+      next if prop.provider&.optante_simples
+      nf_servicos = prop.order_service_invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }
+      total_services_retencao += nf_servicos.sum(&:value).to_f
+    end
+    has_retencoes = total_services_retencao > 0
+
     # Build fatura
     @fatura = Fatura.new(
       numero: Fatura.gerar_numero,
@@ -96,7 +112,11 @@ class FaturamentoController < ApplicationController
       data_vencimento: Date.current + 30.days,
       status: 'aberta',
       valor_bruto: total_bruto,
-      desconto: 0,
+      desconto: desconto_valor,
+      ir_percentual: has_retencoes ? 1.5 : 0,
+      pis_percentual: has_retencoes ? 0.65 : 0,
+      cofins_percentual: has_retencoes ? 3.0 : 0,
+      csll_percentual: has_retencoes ? 1.0 : 0,
       tipo_valor: tipo_valor,
       total_itens: items_data.size,
       observacoes: params[:observacoes]
@@ -123,7 +143,7 @@ class FaturamentoController < ApplicationController
     begin
       current_month = Date.current.beginning_of_month..Date.current.end_of_month
       service = Utils::OrderServices::GenerateInvoiceDocxService.new(
-        order_services.to_a, client, current_month
+        order_services.to_a, client, current_month, tipo_valor: tipo_valor
       )
       docx_path = service.call
       docx_filename = File.basename(docx_path) if docx_path
@@ -264,6 +284,10 @@ class FaturamentoController < ApplicationController
       nf_pecas = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }.map(&:number).compact.join(', ')
       nf_servicos = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }.map(&:number).compact.join(', ')
 
+      # Valores de NF por tipo (mais precisos que total_parts_value/total_services_value)
+      nf_parts_value = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }.sum(&:value).to_f
+      nf_services_value = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }.sum(&:value).to_f
+
       {
         id: os.id,
         code: os.code,
@@ -272,8 +296,9 @@ class FaturamentoController < ApplicationController
         cost_center: os.cost_center&.name,
         sub_unit: os.sub_unit&.name,
         provider: proposal.provider&.fantasy_name.presence || proposal.provider&.name,
-        total_parts: os.total_parts_value.to_f,
-        total_services: os.total_services_value.to_f,
+        provider_optante_simples: proposal.provider&.optante_simples || false,
+        total_parts: nf_parts_value,
+        total_services: nf_services_value,
         total_value: proposal.total_value.to_f,
         nf_pecas: nf_pecas,
         nf_servicos: nf_servicos,
@@ -282,14 +307,15 @@ class FaturamentoController < ApplicationController
       }
     end.compact
 
-    # Client discount info
+    # Client discount and sphere info
     client = User.find_by(id: client_id)
     client_discount = client&.discount_percent.to_f
+    client_sphere = client&.government_sphere.to_i  # 0=Municipal, 1=Estadual, 2=Federal
 
     # Cost centers and sub_units for this client
     client_cost_centers = CostCenter.where(client_id: client_id).order(:name).map { |cc| { id: cc.id, name: cc.name } }
 
-    render json: { results: results, cost_centers: client_cost_centers, client_discount: client_discount }
+    render json: { results: results, cost_centers: client_cost_centers, client_discount: client_discount, client_sphere: client_sphere }
   end
 
   # JSON: Sub units for a cost center

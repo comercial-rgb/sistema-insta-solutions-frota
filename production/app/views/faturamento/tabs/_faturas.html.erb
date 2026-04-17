@@ -64,8 +64,7 @@
           <th class="text-uppercase small text-muted">Emissão</th>
           <th class="text-uppercase small text-muted">Vencimento</th>
           <th class="text-uppercase small text-muted">Envio</th>
-          <th class="text-uppercase small text-muted">V.Bruto</th>
-          <th class="text-uppercase small text-muted">V.Líquido</th>
+          <th class="text-uppercase small text-muted">V.Bruto (Líquido)</th>
           <th class="text-uppercase small text-muted">Status</th>
           <th class="text-uppercase small text-muted" style="min-width:120px">Ações</th>
         </tr>
@@ -92,8 +91,7 @@
                 <% end %>
               </td>
               <td><%= f.data_envio_empresa&.strftime('%d/%m/%Y') || '-' %></td>
-              <td><%= number_to_currency(f.valor_bruto, unit: 'R$ ') %></td>
-              <td><%= number_to_currency(f.valor_liquido, unit: 'R$ ') %></td>
+              <td><%= number_to_currency(f.valor_bruto, unit: 'R$ ') %> <small class="text-muted">(<%= number_to_currency(f.valor_liquido, unit: 'R$ ') %>)</small></td>
               <td><%= render 'faturamento/shared/status_badge', status: f.status %></td>
               <td>
                 <div class="dropdown">
