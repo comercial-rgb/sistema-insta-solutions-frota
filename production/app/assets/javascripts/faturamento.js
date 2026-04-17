@@ -270,9 +270,9 @@ var Faturamento = (function() {
     var suSelect = document.getElementById('fAbertoSubUnidade');
     var btnLimpar = document.getElementById('btnLimparAbertos');
 
-    // Reset filters
-    ccSelect.innerHTML = '<option value="">Todos</option>';
-    suSelect.innerHTML = '<option value="">Todas</option>';
+    // Reset cost center and subunit filters
+    ccSelect.innerHTML = '<option value="">Todos os centros de custo</option>';
+    suSelect.innerHTML = '<option value="">Todas as subunidades</option>';
     ccSelect.disabled = true;
     suSelect.disabled = true;
     btnLimpar.disabled = true;
@@ -280,16 +280,23 @@ var Faturamento = (function() {
     _selectedOS = {};
 
     if (!clienteId) {
-      content.innerHTML = '<p class="text-center text-muted py-5">Selecione um cliente para listar as OS em aberto.</p>';
+      content.innerHTML = '<p class="text-center text-muted py-5">Selecione um cliente para listar as OS autorizadas para faturamento.</p>';
       document.getElementById('previewSection').style.display = 'none';
       document.getElementById('successSection').style.display = 'none';
       return;
     }
 
-    content.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="text-muted mt-2">Carregando OS em aberto...</p></div>';
+    content.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="text-muted mt-2">Carregando OS autorizadas...</p></div>';
+
+    // Build URL with date filters
+    var params = new URLSearchParams({ client_id: clienteId });
+    var dtIni = document.getElementById('fAbertoDtIni');
+    var dtFim = document.getElementById('fAbertoDtFim');
+    if (dtIni && dtIni.value) params.set('data_inicio', dtIni.value);
+    if (dtFim && dtFim.value) params.set('data_fim', dtFim.value);
 
     $.ajax({
-      url: '/faturamento/os_abertos_json?client_id=' + clienteId,
+      url: '/faturamento/os_abertos_json?' + params.toString(),
       method: 'GET',
       dataType: 'json',
       success: function(data) {
@@ -328,7 +335,7 @@ var Faturamento = (function() {
         method: 'GET',
         dataType: 'json',
         success: function(data) {
-          suSelect.innerHTML = '<option value="">Todas</option>';
+          suSelect.innerHTML = '<option value="">Todas as subunidades</option>';
           var subs = data.sub_units || [];
           if (subs.length > 0) {
             suSelect.disabled = false;
@@ -344,7 +351,7 @@ var Faturamento = (function() {
         }
       });
     } else {
-      suSelect.innerHTML = '<option value="">Todas</option>';
+      suSelect.innerHTML = '<option value="">Todas as subunidades</option>';
       suSelect.disabled = true;
     }
 
@@ -377,15 +384,19 @@ var Faturamento = (function() {
   function limparFiltrosAbertos() {
     document.getElementById('fAbertoCentroCusto').value = '';
     document.getElementById('fAbertoSubUnidade').value = '';
+    var dtIni = document.getElementById('fAbertoDtIni');
+    var dtFim = document.getElementById('fAbertoDtFim');
+    if (dtIni) dtIni.value = '';
+    if (dtFim) dtFim.value = '';
     _selectedOS = {};
-    renderOSAbertosTable(_osAbertosData);
+    carregarOSAbertos();
   }
 
   function renderOSAbertosTable(rows) {
     var content = document.getElementById('abertosContent');
 
     if (!rows.length) {
-      content.innerHTML = '<div class="alert alert-secondary"><i class="bi bi-info-circle me-2"></i>Nenhuma OS em aberto encontrada para este cliente/filtro.</div>';
+      content.innerHTML = '<div class="alert alert-secondary"><i class="bi bi-info-circle me-2"></i>Nenhuma OS autorizada encontrada para este cliente/filtro.</div>';
       return;
     }
 
@@ -396,7 +407,7 @@ var Faturamento = (function() {
 
     // Summary bar
     html += '<div class="card-header bg-white d-flex justify-content-between align-items-center">';
-    html += '<div><strong>' + rows.length + '</strong> OS em aberto | Total: <strong>' + money(totalValue) + '</strong></div>';
+    html += '<div><strong>' + rows.length + '</strong> OS autorizadas | Total: <strong>' + money(totalValue) + '</strong></div>';
     html += '<div>';
     html += '<button class="btn btn-sm btn-outline-primary me-2" onclick="Faturamento.toggleSelectAll()"><i class="bi bi-check-all"></i> Selecionar Todas</button>';
     html += '<button class="btn btn-sm btn-primary" onclick="Faturamento.gerarPrevia()" id="btnGerarPrevia" disabled><i class="bi bi-eye"></i> Gerar Prévia</button>';

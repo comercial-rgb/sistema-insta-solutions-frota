@@ -44,7 +44,11 @@ class FaturamentoController < ApplicationController
 
     client = User.find(params[:client_id])
     os_ids = Array(params[:order_service_ids]).map(&:to_i).uniq
+
+    # Somente OS Autorizadas e não faturadas
+    autorizada_ids = [OrderServiceStatus::AUTORIZADA_ID, OrderServiceStatus::NEW_AUTORIZADA_ID].uniq
     order_services = OrderService.where(id: os_ids, client_id: client.id, invoiced: false)
+                                 .where(order_service_status_id: autorizada_ids)
 
     if order_services.empty?
       respond_to do |format|
@@ -101,8 +105,14 @@ class FaturamentoController < ApplicationController
 
       items_data.each { |item| @fatura.fatura_itens.create!(item) }
 
-      # Mark OS as invoiced
-      order_services.update_all(invoiced: true, invoiced_at: Time.current)
+      # Mark OS as invoiced and move to "Aguardando pagamento"
+      aguardando_pagamento_id = OrderServiceStatus.find_by(name: 'Aguardando pagamento')&.id ||
+                                 OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID
+      order_services.update_all(
+        invoiced: true,
+        invoiced_at: Time.current,
+        order_service_status_id: aguardando_pagamento_id
+      )
     end
 
     # Generate DOCX
@@ -222,10 +232,24 @@ class FaturamentoController < ApplicationController
       return
     end
 
+    # Somente OS com status Autorizada (IDs antigo=5, novo=7) e não faturadas
+    autorizada_ids = [
+      OrderServiceStatus::AUTORIZADA_ID,
+      OrderServiceStatus::NEW_AUTORIZADA_ID
+    ].uniq
+
     os_scope = OrderService.not_invoiced
                            .where(client_id: client_id)
-                           .where(order_service_status_id: OrderServiceStatus::REQUIRED_ORDER_SERVICE_STATUSES)
+                           .where(order_service_status_id: autorizada_ids)
                            .includes(:vehicle, :order_service_proposals, :cost_center, :sub_unit)
+
+    # Filtro por período de apuração (data de criação da OS)
+    if params[:data_inicio].present?
+      os_scope = os_scope.where('order_services.created_at >= ?', Date.parse(params[:data_inicio]).beginning_of_day)
+    end
+    if params[:data_fim].present?
+      os_scope = os_scope.where('order_services.created_at <= ?', Date.parse(params[:data_fim]).end_of_day)
+    end
 
     os_scope = os_scope.by_cost_center_id(params[:cost_center_id]) if params[:cost_center_id].present?
 

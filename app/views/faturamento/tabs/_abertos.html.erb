@@ -16,32 +16,46 @@
 </div>
 
 <!-- Filters -->
-<div class="row mb-3 g-2">
-  <div class="col-md-4">
-    <label class="form-label small text-muted">Selecionar Cliente</label>
-    <select class="form-select" id="fAbertoCliente" onchange="Faturamento.carregarOSAbertos()">
-      <option value="">Selecione o cliente...</option>
-      <% clients.each do |c| %>
-        <option value="<%= c.id %>"><%= c.fantasy_name.presence || c.social_name.presence || c.name %></option>
-      <% end %>
-    </select>
-  </div>
-  <div class="col-md-3">
-    <label class="form-label small text-muted">Centro de Custo</label>
-    <select class="form-select" id="fAbertoCentroCusto" onchange="Faturamento.filtrarOSAbertos()" disabled>
-      <option value="">Todos</option>
-    </select>
-  </div>
-  <div class="col-md-3">
-    <label class="form-label small text-muted">Subunidade</label>
-    <select class="form-select" id="fAbertoSubUnidade" onchange="Faturamento.filtrarOSAbertos()" disabled>
-      <option value="">Todas</option>
-    </select>
-  </div>
-  <div class="col-md-2 d-flex align-items-end">
-    <button class="btn btn-outline-secondary w-100" onclick="Faturamento.limparFiltrosAbertos()" disabled id="btnLimparAbertos">
-      <i class="bi bi-x-circle"></i> Limpar
-    </button>
+<div class="card border-0 shadow-sm mb-3">
+  <div class="card-body py-3">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-4">
+        <label class="form-label small text-muted mb-1">Selecionar Cliente</label>
+        <select class="form-select" id="fAbertoCliente" onchange="Faturamento.carregarOSAbertos()">
+          <option value="">Selecione o cliente...</option>
+          <% clients.each do |c| %>
+            <option value="<%= c.id %>"><%= c.fantasy_name.presence || c.social_name.presence || c.name %></option>
+          <% end %>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small text-muted mb-1">Centro de Custo</label>
+        <select class="form-select" id="fAbertoCentroCusto" onchange="Faturamento.filtrarOSAbertos()" disabled>
+          <option value="">Todos os centros de custo</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label class="form-label small text-muted mb-1">Subunidade</label>
+        <select class="form-select" id="fAbertoSubUnidade" onchange="Faturamento.filtrarOSAbertos()" disabled>
+          <option value="">Todas as subunidades</option>
+        </select>
+      </div>
+    </div>
+    <div class="row g-2 align-items-end mt-1">
+      <div class="col-md-2">
+        <label class="form-label small text-muted mb-1">Período de</label>
+        <input type="date" class="form-control form-control-sm" id="fAbertoDtIni" onchange="Faturamento.carregarOSAbertos()">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label small text-muted mb-1">Período até</label>
+        <input type="date" class="form-control form-control-sm" id="fAbertoDtFim" onchange="Faturamento.carregarOSAbertos()">
+      </div>
+      <div class="col-auto d-flex align-items-end">
+        <button class="btn btn-outline-secondary btn-sm" onclick="Faturamento.limparFiltrosAbertos()" disabled id="btnLimparAbertos" title="Limpar filtros">
+          <i class="bi bi-x-circle"></i> Limpar
+        </button>
+      </div>
+    </div>
   </div>
 </div>
 
