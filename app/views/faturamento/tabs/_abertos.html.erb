@@ -21,6 +21,9 @@
     <label class="form-label small text-muted">Selecionar Cliente</label>
     <select class="form-select" id="fAbertoCliente" onchange="Faturamento.carregarOSAbertos()">
       <option value="">Selecione o cliente...</option>
+      <% clients.each do |c| %>
+        <option value="<%= c.id %>"><%= c.name %></option>
+      <% end %>
     </select>
   </div>
 </div>

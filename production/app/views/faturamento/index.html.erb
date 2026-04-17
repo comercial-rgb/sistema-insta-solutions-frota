@@ -62,7 +62,7 @@ breadcrumbs = [
     <!-- ========== OS EM ABERTO ========== -->
     <% if policy(:faturamento).abertos? %>
       <div class="tab-pane fade" id="panelAbertos" role="tabpanel" aria-labelledby="abertos-tab">
-        <%= render 'faturamento/tabs/abertos' %>
+        <%= render 'faturamento/tabs/abertos', clients: @clients %>
       </div>
     <% end %>
 
