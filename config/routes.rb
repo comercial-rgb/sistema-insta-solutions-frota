@@ -387,6 +387,8 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
       post :cobrar
       post :marcar_pago
       get :gerar_docx
+      get :gerar_pdf
+      get :gerar_excel
     end
     collection do
       get :resumo_json

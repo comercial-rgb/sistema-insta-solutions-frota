@@ -271,7 +271,13 @@ var Faturamento = (function() {
     var content = document.getElementById('abertosContent');
     var ccSelect = document.getElementById('fAbertoCentroCusto');
     var suSelect = document.getElementById('fAbertoSubUnidade');
+    var empenhoSelect = document.getElementById('fAbertoEmpenho');
     var btnLimpar = document.getElementById('btnLimparAbertos');
+
+    // Preservar seleções atuais dos filtros
+    var savedCC = ccSelect.value;
+    var savedSU = suSelect.value;
+    var savedEmpenho = empenhoSelect ? empenhoSelect.value : '';
 
     // Reset cost center and subunit filters
     ccSelect.innerHTML = '<option value="">Todos os centros de custo</option>';
@@ -323,7 +329,6 @@ var Faturamento = (function() {
         }
 
         // Populate empenho filter
-        var empenhoSelect = document.getElementById('fAbertoEmpenho');
         if (empenhoSelect) {
           empenhoSelect.innerHTML = '<option value="">Todos os empenhos</option>';
           var commitments = data.commitments || [];
@@ -340,7 +345,22 @@ var Faturamento = (function() {
           }
         }
 
-        renderOSAbertosTable(_osAbertosData);
+        // Restaurar seleções salvas (se as opções ainda existem)
+        if (savedCC) { ccSelect.value = savedCC; }
+        if (savedSU) { suSelect.value = savedSU; }
+        if (savedEmpenho && empenhoSelect) { empenhoSelect.value = savedEmpenho; }
+
+        // Aplicar filtro local se CC ou SU estava selecionado
+        if (savedCC || savedSU) {
+          var filtered = _osAbertosData.filter(function(os) {
+            if (savedCC && os.cost_center !== getCCNameById(savedCC)) return false;
+            if (savedSU && os.sub_unit !== getSUNameById(savedSU)) return false;
+            return true;
+          });
+          renderOSAbertosTable(filtered);
+        } else {
+          renderOSAbertosTable(_osAbertosData);
+        }
       },
       error: function() {
         content.innerHTML = '<div class="alert alert-danger">Erro ao carregar OS em aberto.</div>';
@@ -891,9 +911,9 @@ var Faturamento = (function() {
         document.getElementById('successMsg').innerHTML = msgHtml;
 
         var actionsHtml = '<a href="/faturamento/' + resp.fatura_id + '" class="btn btn-primary me-2"><i class="bi bi-eye"></i> Ver Fatura</a>';
-        if (resp.docx_url) {
-          actionsHtml += '<a href="' + resp.docx_url + '" class="btn btn-outline-success me-2" download><i class="bi bi-file-earmark-word"></i> Baixar DOCX</a>';
-        }
+        actionsHtml += '<a href="/faturamento/' + resp.fatura_id + '/gerar_pdf" class="btn btn-outline-danger me-2"><i class="bi bi-file-earmark-pdf"></i> PDF</a>';
+        actionsHtml += '<a href="/faturamento/' + resp.fatura_id + '/gerar_docx" class="btn btn-outline-success me-2"><i class="bi bi-file-earmark-word"></i> Word</a>';
+        actionsHtml += '<a href="/faturamento/' + resp.fatura_id + '/gerar_excel" class="btn btn-outline-primary me-2"><i class="bi bi-file-earmark-spreadsheet"></i> Excel</a>';
         actionsHtml += '<button class="btn btn-outline-secondary" onclick="Faturamento.resetFatura()"><i class="bi bi-plus-circle"></i> Nova Fatura</button>';
         document.getElementById('successActions').innerHTML = actionsHtml;
       },

@@ -37,8 +37,14 @@ breadcrumbs = [
         <div class="col-md-4 text-md-end mt-3 mt-md-0">
           <%= render 'faturamento/shared/status_badge', status: @fatura.status %>
           <div class="mt-2">
+            <a href="<%= gerar_pdf_faturamento_path(@fatura) %>" class="btn btn-sm btn-outline-danger">
+              <i class="bi bi-file-earmark-pdf"></i> PDF
+            </a>
             <a href="<%= gerar_docx_faturamento_path(@fatura) %>" class="btn btn-sm btn-outline-success">
-              <i class="bi bi-file-earmark-word"></i> Baixar DOCX
+              <i class="bi bi-file-earmark-word"></i> Word
+            </a>
+            <a href="<%= gerar_excel_faturamento_path(@fatura) %>" class="btn btn-sm btn-outline-primary">
+              <i class="bi bi-file-earmark-spreadsheet"></i> Excel
             </a>
             <% if @current_user.admin? && %w[aberta enviada].include?(@fatura.status) %>
               <button class="btn btn-sm btn-success" onclick="Faturamento.marcarPago(<%= @fatura.id %>)">

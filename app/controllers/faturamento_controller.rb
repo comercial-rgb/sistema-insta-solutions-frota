@@ -45,9 +45,14 @@ class FaturamentoController < ApplicationController
     client = User.find(params[:client_id])
     os_ids = Array(params[:order_service_ids]).map(&:to_i).uniq
 
-    # Somente OS que estão ATUALMENTE no status Autorizada (ID 5) e não faturadas
+    # OS não faturadas do cliente (mesmos status aceitos que os_abertos_json)
+    post_autorizada_statuses = [
+      OrderServiceStatus::AUTORIZADA_ID,
+      OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID,
+      OrderServiceStatus::PAGA_ID
+    ]
     order_services = OrderService.where(id: os_ids, client_id: client.id, invoiced: false)
-                                 .where(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID)
+                                 .where(order_service_status_id: post_autorizada_statuses)
 
     if order_services.empty?
       respond_to do |format|
@@ -272,6 +277,34 @@ class FaturamentoController < ApplicationController
               disposition: 'attachment'
   rescue => e
     redirect_to faturamento_path(@fatura), alert: "Erro ao gerar documento: #{e.message}"
+  end
+
+  def gerar_pdf
+    authorize :faturamento, :show?
+    @fatura = Fatura.includes(:fatura_itens, :client, :cost_center, :contract).find(params[:id])
+
+    service = Utils::OrderServices::GenerateInvoicePdfService.new(@fatura)
+    pdf_path = service.call
+
+    send_file pdf_path, filename: "fatura_#{@fatura.numero}.pdf",
+              type: 'application/pdf',
+              disposition: 'attachment'
+  rescue => e
+    redirect_to faturamento_path(@fatura), alert: "Erro ao gerar PDF: #{e.message}"
+  end
+
+  def gerar_excel
+    authorize :faturamento, :show?
+    @fatura = Fatura.includes(:fatura_itens, :client, :cost_center, :contract).find(params[:id])
+
+    service = Utils::OrderServices::GenerateInvoiceExcelService.new(@fatura)
+    excel_path = service.call
+
+    send_file excel_path, filename: "fatura_#{@fatura.numero}.xls",
+              type: 'application/vnd.ms-excel',
+              disposition: 'attachment'
+  rescue => e
+    redirect_to faturamento_path(@fatura), alert: "Erro ao gerar Excel: #{e.message}"
   end
 
   # JSON: OS em aberto para um cliente
