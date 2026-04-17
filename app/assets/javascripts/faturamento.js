@@ -6,6 +6,8 @@ var Faturamento = (function() {
   var _selectedOS = {};    // { osId: true/false }
   var _clientDiscount = 0; // client discount percent
   var _clientSphere = 0;   // 0=Municipal, 1=Estadual, 2=Federal
+  var _contractsInfo = [];  // contract saldo info
+  var _commitmentNumbers = []; // commitment numbers used
 
   // ========== UTILITY FUNCTIONS ==========
 
@@ -304,6 +306,8 @@ var Faturamento = (function() {
         _osAbertosData = data.results || [];
         _clientDiscount = data.client_discount || 0;
         _clientSphere = data.client_sphere || 0;
+        _contractsInfo = data.contracts_info || [];
+        _commitmentNumbers = data.commitment_numbers || [];
         btnLimpar.disabled = false;
 
         // Populate cost center filter
@@ -502,22 +506,29 @@ var Faturamento = (function() {
     var ids = Object.keys(_selectedOS).map(Number);
     if (ids.length === 0) return;
 
-    // Preservar estado do checkbox antes de reconstruir o HTML
+    // Preservar estados antes de reconstruir o HTML
     var chkEl = document.getElementById('previaAplicarRetencao');
-    var aplicarRetencao = chkEl ? chkEl.checked : true; // default true na primeira vez
+    var aplicarRetencao = chkEl ? chkEl.checked : true;
+    var prevObs = document.getElementById('previaObs');
+    var savedObs = prevObs ? prevObs.value : '';
+    var prevTipo = document.getElementById('previaTipoValor');
+    var savedTipo = prevTipo ? prevTipo.value : 'bruto';
+    var prevVenc = document.getElementById('previaVencimento');
+    var savedVenc = prevVenc ? prevVenc.value : '';
 
     var selectedOSData = _osAbertosData.filter(function(os) { return ids.indexOf(os.id) >= 0; });
     var totalParts = 0, totalServices = 0, totalBruto = 0;
 
-    // Alíquotas conforme DOCX (por esfera e tipo):
-    //   Optante Simples:           Peças 1,2%   | Serviços 4,8%
-    //   Não-simples + Federal:     Peças 5,85%  | Serviços 9,45%
-    //   Não-simples + Mun/Est:     Peças 5,45%  | Serviços 9,45%
+    // === REGRA RETENÇÃO (Config Impostos) ===
+    // Simples Nacional: ISENTO (0% em tudo)
+    // Não-simples + Federal:   Peças 5,85% (IR 1,2 + CSLL 1 + PIS 0,65 + Cofins 3)
+    //                          Serviços 9,45% (IR 4,8 + CSLL 1 + PIS 0,65 + Cofins 3)
+    // Não-simples + Mun/Est:   Peças 1,20% (somente IR)
+    //                          Serviços 4,80% (somente IR)
     var sphereNames = { 0: 'Municipal', 1: 'Estadual', 2: 'Federal' };
     var sphereName = sphereNames[_clientSphere] || 'Municipal';
     var isFederal = (_clientSphere === 2);
 
-    var retPecasSimples = 0, retServicosSimples = 0;
     var retPecasNaoSimples = 0, retServicosNaoSimples = 0;
 
     selectedOSData.forEach(function(os) {
@@ -525,86 +536,107 @@ var Faturamento = (function() {
       totalServices += os.total_services;
       totalBruto += os.total_value;
 
-      if (os.provider_optante_simples) {
-        // Optante Simples: IR 1,2% peças, IR 4,8% serviços
-        retPecasSimples += os.total_parts * 0.012;
-        retServicosSimples += os.total_services * 0.048;
+      // Simples Nacional: ISENTO - pula
+      if (os.provider_optante_simples) return;
+
+      // Não-simples: aplicar retenção conforme esfera
+      if (isFederal) {
+        retPecasNaoSimples += os.total_parts * 0.0585;       // 5,85%
+        retServicosNaoSimples += os.total_services * 0.0945; // 9,45%
       } else {
-        // Não optante simples: alíquotas variam por esfera
-        if (isFederal) {
-          retPecasNaoSimples += os.total_parts * 0.0585;       // 5,85%
-          retServicosNaoSimples += os.total_services * 0.0945; // 9,45%
-        } else {
-          retPecasNaoSimples += os.total_parts * 0.0545;       // 5,45%
-          retServicosNaoSimples += os.total_services * 0.0945; // 9,45%
-        }
+        retPecasNaoSimples += os.total_parts * 0.012;        // 1,20% (somente IR)
+        retServicosNaoSimples += os.total_services * 0.048;  // 4,80% (somente IR)
       }
     });
 
-    var totalRetSimples = retPecasSimples + retServicosSimples;
     var totalRetNaoSimples = retPecasNaoSimples + retServicosNaoSimples;
-    var totalRetencoes = aplicarRetencao ? (totalRetSimples + totalRetNaoSimples) : 0;
+    var totalRetencoes = aplicarRetencao ? totalRetNaoSimples : 0;
 
     var descontoContrato = totalBruto * (_clientDiscount / 100);
     var valorLiquido = totalBruto - descontoContrato;
     var valorDevido = valorLiquido - totalRetencoes;
 
     var clienteNome = document.getElementById('fAbertoCliente').selectedOptions[0].textContent;
-    var venc = new Date(); venc.setDate(venc.getDate() + 30);
+    var vencDefault = new Date();
+    vencDefault.setDate(vencDefault.getDate() + 30);
+    var vencStr = savedVenc || vencDefault.toISOString().substring(0, 10);
 
-    // ===== BUILD PREVIEW (combustível-style) =====
+    // Período apurado (datas filtradas ou min/max created_at)
+    var dataInicio = document.getElementById('fAbertoDataInicio');
+    var dataFim = document.getElementById('fAbertoDataFim');
+    var periodoInicio = dataInicio && dataInicio.value ? dataInicio.value : '';
+    var periodoFim = dataFim && dataFim.value ? dataFim.value : '';
+    if (!periodoInicio && selectedOSData.length > 0) {
+      var datas = selectedOSData.map(function(os) { return os.created_at; }).filter(Boolean).sort();
+      if (datas.length > 0) { periodoInicio = datas[0]; periodoFim = datas[datas.length - 1]; }
+    }
+
+    // Contratos e empenhos usados
+    var contractNums = [];
+    var commitNums = [];
+    selectedOSData.forEach(function(os) {
+      if (os.contract_number && contractNums.indexOf(os.contract_number) < 0) contractNums.push(os.contract_number);
+      if (os.commitment_number && commitNums.indexOf(os.commitment_number) < 0) commitNums.push(os.commitment_number);
+    });
+
+    // ===== BUILD PREVIEW =====
     var html = '';
 
     // Header com nome do cliente e badges
-    html += '<div class="mb-4">';
+    html += '<div class="mb-3">';
     html += '<h5 class="fw-bold mb-1"><i class="bi bi-building me-2"></i>' + escapeHtml(clienteNome) + '</h5>';
     html += '<span class="badge bg-success me-2">' + escapeHtml(sphereName) + '</span>';
-    html += '<span class="badge bg-primary">Desc. Contrato ' + _clientDiscount.toFixed(1) + '%</span>';
+    html += '<span class="badge bg-primary me-2">Desc. Contrato ' + _clientDiscount.toFixed(1) + '%</span>';
+    if (contractNums.length > 0) html += '<span class="badge bg-dark me-2">Contrato: ' + escapeHtml(contractNums.join(', ')) + '</span>';
+    if (commitNums.length > 0) html += '<span class="badge bg-secondary me-2">Empenho: ' + escapeHtml(commitNums.join(', ')) + '</span>';
+    if (periodoInicio) html += '<span class="badge bg-info text-dark">Período: ' + escapeHtml(periodoInicio) + ' a ' + escapeHtml(periodoFim || periodoInicio) + '</span>';
     html += '</div>';
 
-    // Cards de resumo (estilo combustível)
-    html += '<div class="row g-3 mb-4">';
+    // Saldo do contrato
+    if (_contractsInfo.length > 0) {
+      html += '<div class="alert alert-light border py-2 px-3 mb-3 small">';
+      html += '<i class="bi bi-wallet2 me-1"></i><strong>Saldo Contrato:</strong> ';
+      _contractsInfo.forEach(function(c, i) {
+        if (i > 0) html += ' | ';
+        var pct = c.total > 0 ? ((c.saldo / c.total) * 100).toFixed(1) : '0.0';
+        html += '#' + escapeHtml(c.number) + ': ' + money(c.saldo) + ' (' + pct + '% disponível)';
+      });
+      html += '</div>';
+    }
 
-    html += '<div class="col-md-2"><div class="card border shadow-sm h-100"><div class="card-body text-center py-3">';
-    html += '<small class="text-muted text-uppercase d-block">OS Selecionadas</small>';
-    html += '<h3 class="fw-bold mb-0">' + ids.length + '</h3>';
+    // Cards de resumo
+    html += '<div class="row g-2 mb-3">';
+
+    html += '<div class="col"><div class="card border shadow-sm h-100"><div class="card-body text-center py-2">';
+    html += '<small class="text-muted text-uppercase d-block" style="font-size:0.7em">Valor Bruto</small>';
+    html += '<h5 class="fw-bold mb-0 text-primary">' + money(totalBruto) + '</h5>';
     html += '</div></div></div>';
 
-    html += '<div class="col-md-2"><div class="card border shadow-sm h-100"><div class="card-body text-center py-3">';
-    html += '<small class="text-muted text-uppercase d-block">Valor Bruto</small>';
-    html += '<h4 class="fw-bold mb-0 text-primary">' + money(totalBruto) + '</h4>';
+    html += '<div class="col"><div class="card border shadow-sm h-100"><div class="card-body text-center py-2">';
+    html += '<small class="text-muted text-uppercase d-block" style="font-size:0.7em">Desc. Contrato</small>';
+    html += '<h5 class="fw-bold mb-0 text-danger">- ' + money(descontoContrato) + '</h5>';
+    html += '<small class="text-muted">' + _clientDiscount.toFixed(1) + '%</small>';
     html += '</div></div></div>';
 
-    html += '<div class="col-md-2"><div class="card border shadow-sm h-100"><div class="card-body text-center py-3">';
-    html += '<small class="text-muted text-uppercase d-block">Desc. Contrato</small>';
-    html += '<h4 class="fw-bold mb-0 text-danger">' + money(descontoContrato) + '</h4>';
-    html += '<small class="text-muted">' + _clientDiscount.toFixed(1) + '% = ' + money(descontoContrato) + '</small>';
+    html += '<div class="col"><div class="card border shadow-sm h-100"><div class="card-body text-center py-2">';
+    html += '<small class="text-muted text-uppercase d-block" style="font-size:0.7em">Retenções</small>';
+    html += '<h5 class="fw-bold mb-0" style="color:#c57200">- ' + money(totalRetencoes) + '</h5>';
     html += '</div></div></div>';
 
-    html += '<div class="col-md-2"><div class="card border shadow-sm h-100"><div class="card-body text-center py-3">';
-    html += '<small class="text-muted text-uppercase d-block">Retenções</small>';
-    html += '<h4 class="fw-bold mb-0 text-warning">' + money(totalRetencoes) + '</h4>';
-    html += '</div></div></div>';
-
-    html += '<div class="col-md-2"><div class="card border shadow-sm h-100"><div class="card-body text-center py-3">';
-    html += '<small class="text-muted text-uppercase d-block">Valor Líquido</small>';
-    html += '<h4 class="fw-bold mb-0 text-info">' + money(valorLiquido) + '</h4>';
-    html += '</div></div></div>';
-
-    html += '<div class="col-md-2"><div class="card border shadow-sm h-100"><div class="card-body text-center py-3">';
-    html += '<small class="text-muted text-uppercase d-block">Vencimento</small>';
-    html += '<h4 class="fw-bold mb-0">' + venc.toLocaleDateString('pt-BR') + '</h4>';
+    html += '<div class="col"><div class="card border shadow-sm h-100"><div class="card-body text-center py-2">';
+    html += '<small class="text-muted text-uppercase d-block" style="font-size:0.7em">Valor Líquido</small>';
+    html += '<h5 class="fw-bold mb-0 text-info">' + money(valorLiquido) + '</h5>';
     html += '</div></div></div>';
 
     html += '</div>';
 
-    // VALOR DEVIDO bar (como combustível)
+    // VALOR DEVIDO bar
     html += '<div class="rounded-3 mb-4 p-3 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #251C59, #005BED); color: #fff;">';
     html += '<h5 class="mb-0 fw-bold"><i class="bi bi-cash-stack me-2"></i>VALOR DEVIDO</h5>';
     html += '<h4 class="mb-0 fw-bold">' + money(valorDevido) + '</h4>';
     html += '</div>';
 
-    // Items table
+    // Items table (with supplier detail row below each OS)
     html += '<div class="table-responsive mb-3"><table class="table table-sm table-bordered mb-0">';
     html += '<thead class="table-light"><tr>';
     html += '<th>OS</th><th>Fornecedor</th><th>Veículo</th><th>C.Custo</th><th>Peças (NF)</th><th>Serviços (NF)</th><th>Valor Bruto</th><th>V. c/ Desc.</th>';
@@ -616,7 +648,8 @@ var Faturamento = (function() {
       html += '<tr>';
       html += '<td><strong>#' + escapeHtml(os.code) + '</strong></td>';
       html += '<td><small>' + escapeHtml(os.provider || '-') + '</small>';
-      if (os.provider_optante_simples) html += ' <span class="badge bg-secondary" style="font-size:0.65em;">Simples</span>';
+      if (os.provider_optante_simples) html += ' <span class="badge bg-success" style="font-size:0.6em;">Simples (Isento)</span>';
+      else html += ' <span class="badge bg-warning text-dark" style="font-size:0.6em;">Não-Simples</span>';
       html += '</td>';
       html += '<td>' + escapeHtml(os.vehicle_plate) + '</td>';
       html += '<td>' + escapeHtml(os.cost_center || '-') + '</td>';
@@ -629,19 +662,28 @@ var Faturamento = (function() {
       html += '<td>' + money(os.total_value) + '</td>';
       html += '<td class="text-success fw-bold">' + money(osComDesc) + ' <small class="text-muted">(-' + _clientDiscount.toFixed(0) + '%)</small></td>';
       html += '</tr>';
+
+      // Supplier detail row
+      html += '<tr style="background:#f8f9fa; font-size:0.8em;">';
+      html += '<td colspan="8" class="py-1 ps-4 text-muted">';
+      html += '<i class="bi bi-person-vcard me-1"></i>';
+      html += '<strong>CNPJ:</strong> ' + escapeHtml(os.provider_cnpj || '-');
+      html += ' &nbsp;|&nbsp; <strong>Regime:</strong> ' + (os.provider_optante_simples ? 'Simples Nacional (Isento de Retenção)' : 'Não-Simples (Retenção Aplicável)');
+      html += ' &nbsp;|&nbsp; <strong>Contato:</strong> ' + escapeHtml(os.provider_phone || os.provider_email || '-');
+      html += '</td></tr>';
     });
 
-    html += '<tr class="table-light"><td colspan="4" class="text-end fw-bold">SUBTOTAIS:</td>';
-    html += '<td class="fw-bold">' + money(totalParts) + '</td>';
-    html += '<td class="fw-bold">' + money(totalServices) + '</td>';
-    html += '<td class="fw-bold">' + money(totalBruto) + '</td>';
-    html += '<td class="fw-bold text-success">' + money(valorLiquido) + '</td></tr>';
+    html += '<tr class="table-light fw-bold"><td colspan="4" class="text-end">SUBTOTAIS:</td>';
+    html += '<td>' + money(totalParts) + '</td>';
+    html += '<td>' + money(totalServices) + '</td>';
+    html += '<td>' + money(totalBruto) + '</td>';
+    html += '<td class="text-success">' + money(valorLiquido) + '</td></tr>';
     html += '</tbody></table></div>';
 
-    // Resumo Financeiro (Retenções detalhadas)
-    html += '<div class="card bg-light border-0 mb-3">';
+    // Resumo Financeiro (Retenções)
+    html += '<div class="card border-0 mb-3" style="background:#f0f0f0;">';
     html += '<div class="card-body">';
-    html += '<h6 class="fw-bold mb-3"><i class="bi bi-calculator me-1"></i> Resumo Financeiro (Retenções sobre Peças e Serviços)</h6>';
+    html += '<h6 class="fw-bold mb-3"><i class="bi bi-calculator me-1"></i> Resumo Financeiro</h6>';
     html += '<div class="row">';
 
     // Coluna valores
@@ -651,37 +693,31 @@ var Faturamento = (function() {
     html += '<tr><td class="text-muted">(-) Desconto Contrato (' + _clientDiscount.toFixed(1) + '%)</td><td class="text-end text-danger">- ' + money(descontoContrato) + '</td></tr>';
     html += '<tr class="border-top"><td class="fw-bold">Valor Líquido</td><td class="text-end fw-bold text-primary">' + money(valorLiquido) + '</td></tr>';
 
-    // Checkbox Aplicar Retenção Fiscal
+    // Checkbox Aplicar Retenção Fiscal - estilo escuro quando desmarcado
     var chkChecked = aplicarRetencao ? 'checked' : '';
+    var chkStyle = aplicarRetencao ? 'background:#fff3cd; border-color:#ffc107;' : 'background:#343a40; border-color:#343a40; color:#fff;';
     html += '<tr><td colspan="2" class="py-2">';
-    html += '<div class="alert alert-warning py-2 px-3 mb-0 d-flex align-items-center">';
+    html += '<div class="py-2 px-3 mb-0 d-flex align-items-center rounded" style="' + chkStyle + '">';
     html += '<input type="checkbox" class="form-check-input me-2" id="previaAplicarRetencao" ' + chkChecked + ' onchange="Faturamento.recalcularPrevia()">';
-    html += '<strong>Aplicar Retenção Fiscal</strong>&nbsp; <small class="text-muted">Esfera: ' + escapeHtml(sphereName) + '</small>';
+    html += '<strong>' + (aplicarRetencao ? 'Aplicar Retenção Fiscal' : 'Retenção Fiscal DESABILITADA') + '</strong>';
+    html += '&nbsp; <small class="' + (aplicarRetencao ? 'text-muted' : '') + '">Esfera: ' + escapeHtml(sphereName) + '</small>';
     html += '</div></td></tr>';
 
-    // Retenções detalhadas (peças e serviços separados, por tipo fornecedor)
-    if (aplicarRetencao && (totalRetSimples + totalRetNaoSimples) > 0) {
-      // Alíquotas para exibição
-      var pctPecasSimples = '1,2%';
-      var pctServSimples = '4,8%';
-      var pctPecasNS = isFederal ? '5,85%' : '5,45%';
-      var pctServNS = '9,45%';
+    // Retenções detalhadas - somente não-simples
+    if (aplicarRetencao && totalRetNaoSimples > 0) {
+      var pctPecas = isFederal ? '5,85%' : '1,20%';
+      var pctServ = isFederal ? '9,45%' : '4,80%';
+      var detailFed = isFederal ? 'IR 1,2% + CSLL 1% + PIS 0,65% + Cofins 3%' : 'somente IR';
+      var detailServFed = isFederal ? 'IR 4,8% + CSLL 1% + PIS 0,65% + Cofins 3%' : 'somente IR';
 
-      if (totalRetSimples > 0) {
-        html += '<tr><td class="text-muted ps-3" colspan="2"><small><strong>Optante Simples (IR):</strong></small></td></tr>';
-        if (retPecasSimples > 0) html += '<tr><td class="text-muted ps-4">(-) Peças (' + pctPecasSimples + ')</td><td class="text-end text-danger">- ' + money(retPecasSimples) + '</td></tr>';
-        if (retServicosSimples > 0) html += '<tr><td class="text-muted ps-4">(-) Serviços (' + pctServSimples + ')</td><td class="text-end text-danger">- ' + money(retServicosSimples) + '</td></tr>';
-      }
-      if (totalRetNaoSimples > 0) {
-        html += '<tr><td class="text-muted ps-3" colspan="2"><small><strong>Não-Simples (' + escapeHtml(sphereName) + '):</strong></small></td></tr>';
-        if (retPecasNaoSimples > 0) html += '<tr><td class="text-muted ps-4">(-) Peças (' + pctPecasNS + ')</td><td class="text-end text-danger">- ' + money(retPecasNaoSimples) + '</td></tr>';
-        if (retServicosNaoSimples > 0) html += '<tr><td class="text-muted ps-4">(-) Serviços (' + pctServNS + ')</td><td class="text-end text-danger">- ' + money(retServicosNaoSimples) + '</td></tr>';
-      }
+      html += '<tr><td class="text-muted ps-3" colspan="2"><small><strong>Não-Simples (' + escapeHtml(sphereName) + '):</strong></small></td></tr>';
+      if (retPecasNaoSimples > 0) html += '<tr><td class="text-muted ps-4">(-) Peças (' + pctPecas + ' - ' + detailFed + ')</td><td class="text-end text-danger">- ' + money(retPecasNaoSimples) + '</td></tr>';
+      if (retServicosNaoSimples > 0) html += '<tr><td class="text-muted ps-4">(-) Serviços (' + pctServ + ' - ' + detailServFed + ')</td><td class="text-end text-danger">- ' + money(retServicosNaoSimples) + '</td></tr>';
       html += '<tr class="border-top"><td class="text-muted fw-bold">Total Retenções</td><td class="text-end text-danger fw-bold">- ' + money(totalRetencoes) + '</td></tr>';
     } else if (!aplicarRetencao) {
-      html += '<tr><td class="text-muted" colspan="2"><i class="bi bi-slash-circle me-1"></i>Retenções desabilitadas pelo usuário</td></tr>';
+      html += '<tr><td colspan="2" class="py-1"><div class="rounded py-1 px-3" style="background:#343a40; color:#fff;"><i class="bi bi-slash-circle me-1"></i>Retenções desabilitadas pelo usuário</div></td></tr>';
     } else {
-      html += '<tr><td class="text-muted" colspan="2"><i class="bi bi-info-circle me-1"></i>Sem retenções aplicáveis</td></tr>';
+      html += '<tr><td class="text-muted" colspan="2"><i class="bi bi-check-circle text-success me-1"></i>Todos os fornecedores são Simples Nacional — isento de retenção</td></tr>';
     }
 
     html += '<tr class="border-top"><td class="fw-bold fs-6">Valor Devido</td><td class="text-end fw-bold text-success fs-6">' + money(valorDevido) + '</td></tr>';
@@ -690,33 +726,39 @@ var Faturamento = (function() {
 
     // Coluna informativa
     html += '<div class="col-md-5">';
-    html += '<div class="alert alert-info py-2 px-3 mb-2 small"><i class="bi bi-info-circle me-1"></i><strong>Desconto Contrato:</strong> ' + _clientDiscount.toFixed(1) + '% previsto no contrato.</div>';
+    html += '<div class="alert alert-info py-2 px-3 mb-2 small"><i class="bi bi-info-circle me-1"></i><strong>Simples Nacional:</strong> Fornecedor optante pelo Simples é <u>isento</u> de retenção tributária.</div>';
 
-    var aliqInfo = '<strong>Alíquotas (' + escapeHtml(sphereName) + '):</strong><br>';
-    aliqInfo += '<u>Optante Simples (IR):</u> Peças 1,2% | Serviços 4,8%<br>';
-    aliqInfo += '<u>Não-Simples:</u> Peças ' + (isFederal ? '5,85%' : '5,45%') + ' | Serviços 9,45%';
+    var aliqInfo = '<strong>Alíquotas Não-Simples (' + escapeHtml(sphereName) + '):</strong><br>';
+    if (isFederal) {
+      aliqInfo += 'Peças: <strong>5,85%</strong> (IR 1,2 + CSLL 1 + PIS 0,65 + Cofins 3)<br>';
+      aliqInfo += 'Serviços: <strong>9,45%</strong> (IR 4,8 + CSLL 1 + PIS 0,65 + Cofins 3)';
+    } else {
+      aliqInfo += 'Peças: <strong>1,20%</strong> (somente IR)<br>';
+      aliqInfo += 'Serviços: <strong>4,80%</strong> (somente IR)';
+    }
     html += '<div class="alert alert-warning py-2 px-3 mb-2 small"><i class="bi bi-info-circle me-1"></i>' + aliqInfo + '</div>';
-
-    html += '<div class="alert alert-success py-2 px-3 mb-0 small"><i class="bi bi-info-circle me-1"></i><strong>Valor Devido:</strong> Valor líquido menos retenções tributárias sobre peças e serviços.</div>';
     html += '</div>';
 
     html += '</div></div></div>';
 
-    // Tipo de valor (bruto ou líquido)
-    html += '<div class="row mb-3">';
-    html += '<div class="col-md-4">';
+    // Campos editáveis: Vencimento, Tipo de valor
+    html += '<div class="row mb-3 g-3">';
+    html += '<div class="col-md-3">';
+    html += '<label class="form-label fw-bold">Data de Vencimento</label>';
+    html += '<input type="date" class="form-control" id="previaVencimento" value="' + vencStr + '">';
+    html += '</div>';
+    html += '<div class="col-md-3">';
     html += '<label class="form-label fw-bold">Tipo de Valor da Fatura</label>';
     html += '<select class="form-select" id="previaTipoValor">';
-    html += '<option value="bruto" selected>Valor Bruto (' + money(totalBruto) + ')</option>';
-    html += '<option value="liquido">Valor Líquido (' + money(valorLiquido) + ')</option>';
+    html += '<option value="bruto"' + (savedTipo === 'bruto' ? ' selected' : '') + '>Valor Bruto (' + money(totalBruto) + ')</option>';
+    html += '<option value="liquido"' + (savedTipo === 'liquido' ? ' selected' : '') + '>Valor Líquido (' + money(valorLiquido) + ')</option>';
     html += '</select>';
-    html += '<small class="text-muted mt-1 d-block"><i class="bi bi-info-circle me-1"></i>O valor selecionado será usado no documento DOCX gerado.</small>';
     html += '</div>';
     html += '</div>';
 
     // Observations input
     html += '<div class="mb-3"><label class="form-label">Observações (opcional)</label>';
-    html += '<textarea class="form-control" id="previaObs" rows="2" placeholder="Observações para a fatura..."></textarea></div>';
+    html += '<textarea class="form-control" id="previaObs" rows="2" placeholder="Observações para a fatura...">' + escapeHtml(savedObs) + '</textarea></div>';
 
     html += '<div class="d-flex justify-content-end gap-2">';
     html += '<button class="btn btn-outline-secondary" onclick="Faturamento.voltarSelecao()"><i class="bi bi-arrow-left"></i> Voltar</button>';
@@ -741,6 +783,7 @@ var Faturamento = (function() {
     var tipoValor = document.getElementById('previaTipoValor') ? document.getElementById('previaTipoValor').value : 'bruto';
     var chkRetencao = document.getElementById('previaAplicarRetencao');
     var aplicarRetencao = chkRetencao ? chkRetencao.checked : true;
+    var vencimento = document.getElementById('previaVencimento') ? document.getElementById('previaVencimento').value : '';
 
     if (ids.length === 0 || !clienteId) return;
 
@@ -756,7 +799,8 @@ var Faturamento = (function() {
         order_service_ids: ids,
         observacoes: obs,
         tipo_valor: tipoValor,
-        aplicar_retencao: aplicarRetencao
+        aplicar_retencao: aplicarRetencao,
+        vencimento: vencimento
       }),
       contentType: 'application/json',
       headers: { 'X-CSRF-Token': csrfToken() },

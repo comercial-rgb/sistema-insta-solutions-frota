@@ -153,24 +153,21 @@ module Utils
           
           irvalue = 0
           if e.order_service_proposal.provider.optante_simples
-            if e.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID
-              irvalue = e.value * 0.012
-            else
-              irvalue = e.value * 0.048
-            end
+            # Simples Nacional: ISENTO de retenção
+            irvalue = 0
           elsif is_federal
-            # IR/retenção para órgão federal + fornecedor NÃO optante simples
+            # Federal + NÃO optante simples
             if e.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID
-              irvalue = e.value * 0.0585   # 5,85% peças
+              irvalue = e.value * 0.0585   # 5,85% (IR 1,2 + CSLL 1 + PIS 0,65 + Cofins 3)
             else
-              irvalue = e.value * 0.0945   # 9,45% serviços
+              irvalue = e.value * 0.0945   # 9,45% (IR 4,8 + CSLL 1 + PIS 0,65 + Cofins 3)
             end
           elsif is_municipal_or_estadual
-            # Retenção por esfera: municipal/estadual + fornecedor NÃO optante simples
+            # Municipal/Estadual + NÃO optante simples (somente IR)
             if e.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID
-              irvalue = e.value * 0.0545   # 5,45% peças
+              irvalue = e.value * 0.012    # 1,20% (somente IR)
             else
-              irvalue = e.value * 0.0945   # 9,45% serviços
+              irvalue = e.value * 0.048    # 4,80% (somente IR)
             end
           end
           
@@ -351,22 +348,16 @@ module Utils
           total_parts += sum_parts
           total_services += sum_services
 
-          # IR para optante simples
-          if proposal.provider.optante_simples
-            total_discount_ir += (sum_parts * 0.012)
-            total_discount_ir += (sum_services * 0.048)
-          end
-
-          # Retenção por esfera: municipal/estadual + fornecedor NÃO optante simples
-          if is_municipal_or_estadual && !proposal.provider.optante_simples
-            total_retencao_esfera += (sum_parts * 0.0545)   # 5,45% peças
-            total_retencao_esfera += (sum_services * 0.0945) # 9,45% serviços
-          end
-
-          # Retenção para órgão federal + fornecedor NÃO optante simples
-          if is_federal && !proposal.provider.optante_simples
-            total_discount_ir += (sum_parts * 0.0585)    # 5,85% peças
-            total_discount_ir += (sum_services * 0.0945)  # 9,45% serviços
+          # Retenção: Simples Nacional = ISENTO (0%)
+          # Não-simples: calcular conforme esfera
+          unless proposal.provider.optante_simples
+            if is_federal
+              total_discount_ir += (sum_parts * 0.0585)    # 5,85% (IR+CSLL+PIS+Cofins)
+              total_discount_ir += (sum_services * 0.0945)  # 9,45% (IR+CSLL+PIS+Cofins)
+            elsif is_municipal_or_estadual
+              total_retencao_esfera += (sum_parts * 0.012)   # 1,20% (somente IR)
+              total_retencao_esfera += (sum_services * 0.048) # 4,80% (somente IR)
+            end
           end
         end
 

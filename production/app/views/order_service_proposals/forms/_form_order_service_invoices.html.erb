@@ -1,7 +1,28 @@
-<div class="row">
+<%
+  # Detectar tipos de itens na proposta para validação de NF
+  _proposal = f.object
+  _items = _proposal.order_service_proposal_items.to_a
+  _has_pecas = _items.any? { |i| i.get_category_id == Category::SERVICOS_PECAS_ID }
+  _has_servicos = _items.any? { |i| i.get_category_id == Category::SERVICOS_SERVICOS_ID }
+  _expected_type = if _has_pecas && !_has_servicos
+    OrderServiceInvoiceType::PECAS_ID
+  elsif _has_servicos && !_has_pecas
+    OrderServiceInvoiceType::SERVICOS_ID
+  else
+    nil # ambos os tipos existem
+  end
+%>
+<div class="row" data-has-pecas="<%= _has_pecas %>" data-has-servicos="<%= _has_servicos %>" data-expected-type="<%= _expected_type %>" id="invoicesFormBlock">
    
     <div class="col-12 mb-3 text-center">
         <h5 class="mt-4"><%= OrderServiceInvoice.model_name.human(count: 2) %></h5>
+        <% if _expected_type == OrderServiceInvoiceType::PECAS_ID %>
+          <span class="badge bg-info">Esta OS possui apenas itens de <strong>Peças</strong> — selecione tipo Peças na NF</span>
+        <% elsif _expected_type == OrderServiceInvoiceType::SERVICOS_ID %>
+          <span class="badge bg-info">Esta OS possui apenas itens de <strong>Serviços</strong> — selecione tipo Serviços na NF</span>
+        <% elsif _has_pecas && _has_servicos %>
+          <span class="badge bg-warning text-dark">Esta OS possui itens de Peças e Serviços — insira NFs separadas para cada tipo</span>
+        <% end %>
     </div>
 
     <div class="col-12 multi-orderserviceinvoice-block">
@@ -21,3 +42,40 @@
     </div>
 </div>
 
+<script>
+$(function() {
+  var block = document.getElementById('invoicesFormBlock');
+  if (!block) return;
+  var expectedType = block.dataset.expectedType;
+  if (!expectedType || expectedType === '') return;
+
+  // Auto-selecionar tipo correto em dropdowns existentes (se novo/vazio)
+  function autoSelectType() {
+    $(block).find('.order_service_invoice_order_service_invoice_type_id').each(function() {
+      var sel = $(this);
+      // Só auto-seleciona se for novo (sem valor salvo)
+      if (sel.data('auto-set')) return;
+      sel.val(expectedType);
+      sel.data('auto-set', true);
+    });
+  }
+
+  // Validar ao mudar tipo
+  $(block).on('change', '.order_service_invoice_order_service_invoice_type_id', function() {
+    var sel = $(this);
+    var val = sel.val();
+    sel.closest('.col-12').find('.nf-type-warning').remove();
+    if (val && val !== expectedType) {
+      sel.closest('.col-12').append(
+        '<div class="nf-type-warning text-danger small mt-1"><i class="bi bi-exclamation-triangle me-1"></i>Atenção: o tipo selecionado não corresponde aos itens desta OS.</div>'
+      );
+    }
+  });
+
+  autoSelectType();
+
+  // Observer para novos campos adicionados dinamicamente
+  var observer = new MutationObserver(function() { autoSelectType(); });
+  observer.observe(block, { childList: true, subtree: true });
+});
+</script>

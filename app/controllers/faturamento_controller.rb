@@ -91,31 +91,30 @@ class FaturamentoController < ApplicationController
     client_discount_pct = client.discount_percent.to_f
     desconto_valor = total_bruto * (client_discount_pct / 100)
 
-    # Calcular retenções conforme lógica do DOCX (por NF, por fornecedor, por esfera)
-    # Alíquotas:
-    #   Optante Simples:           Peças 1,2%   | Serviços 4,8%
-    #   Não-simples + Federal:     Peças 5,85%  | Serviços 9,45%
-    #   Não-simples + Mun/Est:     Peças 5,45%  | Serviços 9,45%
+    # Calcular retenções conforme Config Impostos:
+    #   Optante Simples Nacional: ISENTO (0%)
+    #   Não-simples + Federal:   Peças 5,85% (IR 1,2% + CSLL 1% + PIS 0,65% + Cofins 3%)
+    #                            Serviços 9,45% (IR 4,8% + CSLL 1% + PIS 0,65% + Cofins 3%)
+    #   Não-simples + Mun/Est:   Peças 1,20% (somente IR)
+    #                            Serviços 4,80% (somente IR)
     is_federal = client.federal?
     total_retencao = 0.0
 
     order_services.each do |os|
       prop = find_approved_proposal(os)
       next unless prop
+      next if prop.provider&.optante_simples  # Simples = ISENTO
 
       invoices = prop.order_service_invoices.to_a
       sum_parts = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }.sum(&:value).to_f
       sum_services = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }.sum(&:value).to_f
 
-      if prop.provider&.optante_simples
-        total_retencao += sum_parts * 0.012    # 1,2%
-        total_retencao += sum_services * 0.048  # 4,8%
-      elsif is_federal
+      if is_federal
         total_retencao += sum_parts * 0.0585    # 5,85%
         total_retencao += sum_services * 0.0945 # 9,45%
       else
-        total_retencao += sum_parts * 0.0545    # 5,45%
-        total_retencao += sum_services * 0.0945 # 9,45%
+        total_retencao += sum_parts * 0.012     # 1,20% (somente IR)
+        total_retencao += sum_services * 0.048  # 4,80% (somente IR)
       end
     end
 
@@ -126,13 +125,14 @@ class FaturamentoController < ApplicationController
     valor_final = valor_liquido - total_retencao
 
     # Build fatura
+    vencimento = params[:vencimento].present? ? Date.parse(params[:vencimento]) : (Date.current + 30.days)
     @fatura = Fatura.new(
       numero: Fatura.gerar_numero,
       client_id: client.id,
       cost_center_id: cost_center&.id,
       sub_unit_id: sub_unit&.id,
       data_emissao: Date.current,
-      data_vencimento: Date.current + 30.days,
+      data_vencimento: vencimento,
       status: 'aberta',
       valor_bruto: total_bruto,
       desconto: desconto_valor,
@@ -309,6 +309,20 @@ class FaturamentoController < ApplicationController
       nf_parts_value = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }.sum(&:value).to_f
       nf_services_value = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }.sum(&:value).to_f
 
+      # Provider details
+      prov = proposal.provider
+      provider_name = prov&.fantasy_name.presence || prov&.social_name.presence || prov&.name
+      provider_cnpj = prov&.cnpj
+      provider_phone = prov&.phone.presence || prov&.cellphone.presence || prov&.get_first_phone_phone
+      provider_email = prov&.email
+      provider_optante = prov&.optante_simples || false
+
+      # Commitment/Contract info
+      commitment_parts = os.commitment_parts
+      commitment_services = os.commitment_services
+      commitment = commitment_parts || commitment_services || os.commitment
+      contract = commitment&.contract
+
       {
         id: os.id,
         code: os.code,
@@ -316,13 +330,19 @@ class FaturamentoController < ApplicationController
         vehicle_model: os.vehicle&.model,
         cost_center: os.cost_center&.name,
         sub_unit: os.sub_unit&.name,
-        provider: proposal.provider&.fantasy_name.presence || proposal.provider&.name,
-        provider_optante_simples: proposal.provider&.optante_simples || false,
+        provider: provider_name,
+        provider_cnpj: provider_cnpj,
+        provider_phone: provider_phone,
+        provider_email: provider_email,
+        provider_optante_simples: provider_optante,
         total_parts: nf_parts_value,
         total_services: nf_services_value,
         total_value: proposal.total_value.to_f,
         nf_pecas: nf_pecas,
         nf_servicos: nf_servicos,
+        contract_number: contract&.number,
+        contract_name: contract&.name,
+        commitment_number: commitment&.commitment_number,
         status: os.order_service_status&.name,
         created_at: os.created_at&.strftime('%d/%m/%Y')
       }
@@ -333,10 +353,38 @@ class FaturamentoController < ApplicationController
     client_discount = client&.discount_percent.to_f
     client_sphere = client&.government_sphere.to_i  # 0=Municipal, 1=Estadual, 2=Federal
 
+    # Contracts/empenhos used across these OS
+    contract_ids = results.map { |r| r[:contract_number] }.compact.uniq
+    commitment_numbers = results.map { |r| r[:commitment_number] }.compact.uniq
+
+    # Saldo do contrato (real consumed)
+    contracts_info = []
+    Contract.where(client_id: client_id, active: true).includes(:commitments).each do |c|
+      total_consumed = 0.0
+      c.commitments.each do |cm|
+        total_consumed += Commitment.get_total_already_consumed_value(cm).to_f
+      end
+      saldo_real = c.get_total_value.to_f - total_consumed
+      contracts_info << {
+        number: c.number,
+        name: c.name,
+        total: c.get_total_value.to_f,
+        consumed: total_consumed,
+        saldo: saldo_real
+      }
+    end
+
     # Cost centers and sub_units for this client
     client_cost_centers = CostCenter.where(client_id: client_id).order(:name).map { |cc| { id: cc.id, name: cc.name } }
 
-    render json: { results: results, cost_centers: client_cost_centers, client_discount: client_discount, client_sphere: client_sphere }
+    render json: {
+      results: results,
+      cost_centers: client_cost_centers,
+      client_discount: client_discount,
+      client_sphere: client_sphere,
+      contracts_info: contracts_info,
+      commitment_numbers: commitment_numbers
+    }
   end
 
   # JSON: Sub units for a cost center
