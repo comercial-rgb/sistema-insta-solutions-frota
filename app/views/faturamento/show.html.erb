@@ -40,17 +40,17 @@ breadcrumbs = [
 
   <!-- Detail Blocks -->
   <div class="row g-3 mb-4">
-    <!-- Fornecedor -->
+    <!-- Cliente -->
     <div class="col-md-4">
       <div class="card border-0 shadow-sm h-100">
         <div class="card-body">
           <h6 class="text-uppercase small text-muted mb-2">
-            <i class="bi bi-truck"></i> Fornecedor
+            <i class="bi bi-building"></i> Cliente
           </h6>
           <div style="line-height:1.8">
-            <strong><%= @fatura.provider&.name || '-' %></strong><br>
-            <% if @fatura.provider&.cnpj.present? %>
-              CNPJ: <%= @fatura.provider.cnpj %>
+            <strong><%= @fatura.client&.name || '-' %></strong><br>
+            <% if @fatura.client&.cnpj.present? %>
+              CNPJ: <%= @fatura.client.cnpj %>
             <% end %>
           </div>
         </div>

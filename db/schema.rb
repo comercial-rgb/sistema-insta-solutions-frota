@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_17_120000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_17_140000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -407,7 +407,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_17_120000) do
 
   create_table "faturas", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "numero", null: false
-    t.bigint "provider_id"
+    t.bigint "client_id"
     t.bigint "cost_center_id"
     t.bigint "contract_id"
     t.date "data_emissao", null: false
@@ -432,11 +432,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_17_120000) do
     t.text "admin_observacoes"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["client_id"], name: "index_faturas_on_client_id"
     t.index ["contract_id"], name: "index_faturas_on_contract_id"
     t.index ["cost_center_id"], name: "index_faturas_on_cost_center_id"
     t.index ["data_emissao"], name: "index_faturas_on_data_emissao"
     t.index ["numero"], name: "index_faturas_on_numero", unique: true
-    t.index ["provider_id"], name: "index_faturas_on_provider_id"
     t.index ["status"], name: "index_faturas_on_status"
   end
 
@@ -1377,7 +1377,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_17_120000) do
   add_foreign_key "fatura_itens", "order_services"
   add_foreign_key "faturas", "contracts"
   add_foreign_key "faturas", "cost_centers"
-  add_foreign_key "faturas", "users", column: "provider_id"
+  add_foreign_key "faturas", "users", column: "client_id"
   add_foreign_key "maintenance_alerts", "maintenance_plan_items"
   add_foreign_key "maintenance_alerts", "users", column: "acknowledged_by_id"
   add_foreign_key "maintenance_alerts", "users", column: "client_id"

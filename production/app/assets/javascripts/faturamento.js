@@ -57,14 +57,14 @@ var Faturamento = (function() {
     var params = new URLSearchParams({ page: _currentPage });
     var search = document.getElementById('fSearch');
     var status = document.getElementById('fStatus');
-    var provider = document.getElementById('fProvider');
+    var client = document.getElementById('fClient');
     var costCenter = document.getElementById('fCostCenter');
     var dtIni = document.getElementById('fDtIni');
     var dtFim = document.getElementById('fDtFim');
 
     if (search && search.value) params.set('search', search.value);
     if (status && status.value) params.set('status', status.value);
-    if (provider && provider.value) params.set('provider_id', provider.value);
+    if (client && client.value) params.set('client_id', client.value);
     if (costCenter && costCenter.value) params.set('cost_center_id', costCenter.value);
     if (dtIni && dtIni.value) params.set('data_inicio', dtIni.value);
     if (dtFim && dtFim.value) params.set('data_fim', dtFim.value);
@@ -109,7 +109,7 @@ var Faturamento = (function() {
 
       return '<tr>' +
         '<td><strong><a href="/faturamento/' + f.id + '" class="text-primary text-decoration-none">' + escapeHtml(f.numero) + '</a></strong></td>' +
-        '<td>' + escapeHtml(f.fornecedor) + '</td>' +
+        '<td>' + escapeHtml(f.cliente) + '</td>' +
         '<td>' + escapeHtml(f.centro_custo) + '</td>' +
         '<td>' + (f.data_emissao_fmt || '-') + '</td>' +
         '<td>' + vencTd + '</td>' +
@@ -125,7 +125,7 @@ var Faturamento = (function() {
   }
 
   function limparFiltros() {
-    ['fSearch', 'fStatus', 'fProvider', 'fCostCenter', 'fDtIni', 'fDtFim'].forEach(function(id) {
+    ['fSearch', 'fStatus', 'fClient', 'fCostCenter', 'fDtIni', 'fDtFim'].forEach(function(id) {
       var el = document.getElementById(id);
       if (el) el.value = '';
     });
@@ -230,11 +230,11 @@ var Faturamento = (function() {
   // ========== OS EM ABERTO ==========
 
   function carregarOSAbertos() {
-    var fornecedorId = document.getElementById('fAbertoFornecedor').value;
+    var clienteId = document.getElementById('fAbertoCliente').value;
     var content = document.getElementById('abertosContent');
 
-    if (!fornecedorId) {
-      content.innerHTML = '<p class="text-center text-muted py-5">Selecione um fornecedor para listar as OS em aberto.</p>';
+    if (!clienteId) {
+      content.innerHTML = '<p class="text-center text-muted py-5">Selecione um cliente para listar as OS em aberto.</p>';
       return;
     }
 

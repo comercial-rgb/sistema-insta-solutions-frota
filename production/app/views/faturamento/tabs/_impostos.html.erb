@@ -1,150 +1,245 @@
-<!-- Info Banners -->
-<div class="alert alert-info border-0 shadow-sm d-flex align-items-start" role="alert">
-  <i class="bi bi-shield-check fs-5 me-3 mt-1"></i>
-  <div>
-    <strong>Retenções na Fonte — Serviços e Peças:</strong>
-    As alíquotas abaixo são padrões do sistema, definidas por OS e podem ser ajustadas por contrato.
-    Quando aplicável, respeitam a IN RFB nº 1.234/2012.
-  </div>
-</div>
-
-<div class="alert alert-warning border-0 shadow-sm d-flex align-items-start" role="alert">
-  <i class="bi bi-currency-dollar fs-5 me-3 mt-1"></i>
-  <div>
-    <strong>Taxa de Administração:</strong> Quando definida, é aplicada automaticamente nas faturas.
-    O valor pode ser configurado por contrato.
-  </div>
-</div>
-
-<!-- Tabela de Alíquotas Padrão -->
-<div class="card border-0 shadow-sm mt-3">
-  <div class="card-header bg-white border-bottom">
-    <h6 class="mb-0 fw-bold"><i class="bi bi-table me-1"></i> Alíquotas Padrão — Serviços (Ordem de Serviço)</h6>
-  </div>
-  <div class="table-responsive">
-    <table class="table table-hover mb-0">
-      <thead class="table-light">
-        <tr>
-          <th class="text-uppercase small text-muted">Tipo</th>
-          <th class="text-uppercase small text-muted">IR %</th>
-          <th class="text-uppercase small text-muted">PIS %</th>
-          <th class="text-uppercase small text-muted">COFINS %</th>
-          <th class="text-uppercase small text-muted">CSLL %</th>
-          <th class="text-uppercase small text-muted">Total</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td>
-            <span class="badge rounded-pill bg-primary">Serviços</span>
-          </td>
-          <td>4,80%</td>
-          <td>0,65%</td>
-          <td>3,00%</td>
-          <td>1,00%</td>
-          <td><strong>9,45%</strong></td>
-        </tr>
-        <tr>
-          <td>
-            <span class="badge rounded-pill bg-success">Peças</span>
-          </td>
-          <td>1,20%</td>
-          <td>0,65%</td>
-          <td>3,00%</td>
-          <td>1,00%</td>
-          <td><strong>5,85%</strong></td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-  <div class="card-footer bg-white">
-    <small class="text-muted">
-      Valores padrão por OS. Podem ser ajustados individualmente em cada ordem de serviço.
-    </small>
-  </div>
-</div>
-
-<!-- Fornecedores e Configuração Fiscal -->
-<div class="card border-0 shadow-sm mt-3">
-  <div class="card-header bg-white border-bottom">
-    <h6 class="mb-0 fw-bold"><i class="bi bi-building me-1"></i> Fornecedores — Configuração Fiscal</h6>
-  </div>
-  <div class="table-responsive">
-    <table class="table table-hover mb-0">
-      <thead class="table-light">
-        <tr>
-          <th class="text-uppercase small text-muted">Fornecedor</th>
-          <th class="text-uppercase small text-muted">CNPJ</th>
-          <th class="text-uppercase small text-muted">IR Peças %</th>
-          <th class="text-uppercase small text-muted">IR Serv. %</th>
-          <th class="text-uppercase small text-muted">PIS %</th>
-          <th class="text-uppercase small text-muted">COFINS %</th>
-          <th class="text-uppercase small text-muted">CSLL %</th>
-        </tr>
-      </thead>
-      <tbody id="taxConfigBody">
-        <tr>
-          <td colspan="7" class="text-center text-muted py-4">
-            <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-            Carregando configuração fiscal...
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</div>
-
-<!-- Informações Legais -->
-<div class="card border-0 shadow-sm mt-3">
-  <div class="card-header bg-white border-bottom">
-    <h6 class="mb-0 fw-bold"><i class="bi bi-info-circle me-1"></i> Informações — Retenção na Fonte</h6>
-  </div>
+<!-- SEÇÃO 1: Diferença essencial Peças x Serviços -->
+<div class="card mb-4">
   <div class="card-body">
-    <div class="accordion" id="accordionImpostos">
-      <div class="accordion-item border-0">
-        <h2 class="accordion-header">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                  data-bs-target="#collapseCliente" aria-expanded="false" aria-controls="collapseCliente">
-            <i class="bi bi-building me-2"></i> Para o Cliente (empresa contratante)
-          </button>
-        </h2>
-        <div id="collapseCliente" class="accordion-collapse collapse" data-bs-parent="#accordionImpostos">
-          <div class="accordion-body small text-muted" style="line-height:1.8">
-            <p>A retenção na fonte ocorre quando a legislação determina que o contratante (pagador)
-            deve reter parte dos tributos no momento do pagamento ao fornecedor. No âmbito de serviços
-            e aquisição de peças, a base legal principal é o art. 64 da Lei nº 9.430/1996 e a IN RFB
-            nº 1.234/2012.</p>
-            <p>Os percentuais de retenção padrão são definidos no contrato e podem variar conforme a
-            natureza do serviço (manutenção, peças, serviços técnicos, etc.) e a esfera governamental
-            do contratante.</p>
-            <p>O cliente deve observar as alíquotas corretas ao emitir o pagamento e registrar as
-            retenções no respectivo DARF.</p>
+    <span class="badge bg-warning text-dark text-uppercase mb-2">Atenção — diferença essencial</span>
+    <h5 class="card-title">Peças e serviços na manutenção de frota — entenda antes de operar</h5>
+    <p>Na manutenção de frota, peças e serviços possuem lógicas fiscais, contábeis e operacionais completamente diferentes. Tratar ambos da mesma forma é o erro mais comum e gera retenção incorreta, nota fiscal errada e problemas na contabilidade de ambos os lados.</p>
+
+    <div class="row g-3 my-3">
+      <div class="col-md-6">
+        <div class="card bg-light border-primary">
+          <div class="card-body">
+            <h6 class="text-primary fw-semibold">Peças (mercadoria)</h6>
+            <p class="mb-0 small">Nota fiscal de venda (NF-e modelo 55). CFOP 5.102/6.102. Tributação: ICMS, IPI quando aplicável, PIS/Cofins conforme regime. Retenção federal: <strong>5,85%</strong>.</p>
           </div>
         </div>
       </div>
-      <div class="accordion-item border-0">
-        <h2 class="accordion-header">
-          <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                  data-bs-target="#collapseFornecedor" aria-expanded="false" aria-controls="collapseFornecedor">
-            <i class="bi bi-truck me-2"></i> Para o Fornecedor e Contador
-          </button>
-        </h2>
-        <div id="collapseFornecedor" class="accordion-collapse collapse" data-bs-parent="#accordionImpostos">
-          <div class="accordion-body small text-muted" style="line-height:1.8">
-            <p>Quando o fornecedor emite a nota fiscal de serviço ou peças, a receita do fornecedor
-            é o valor bruto integral da nota fiscal. Se o contratante efetuar retenção tributária,
-            esse valor é tratado como antecipação de tributo, passível de compensação.</p>
-            <p>Na escrituração, o contador do fornecedor deve registrar: a nota fiscal pelo valor
-            bruto, o valor recebido líquido, e a diferença como tributos retidos a compensar,
-            segregando IR, PIS, COFINS e CSLL.</p>
-            <p>A fórmula de liquidação:<br>
-            <strong>Valor bruto da NF</strong><br>
-            (−) retenções tributárias<br>
-            (−) taxa de administração (se aplicável)<br>
-            <strong>(=) valor líquido creditado ao fornecedor</strong></p>
+      <div class="col-md-6">
+        <div class="card bg-light" style="border-color: #7c6dd8 !important;">
+          <div class="card-body">
+            <h6 class="fw-semibold" style="color: #3C3489;">Serviços (mão de obra)</h6>
+            <p class="mb-0 small">Nota fiscal de serviço (NFS-e municipal). ISS conforme alíquota municipal (2% a 5%). Retenção federal: <strong>9,45%</strong>. Duas notas distintas por OS quando há peça e mão de obra.</p>
           </div>
         </div>
       </div>
     </div>
+
+    <div class="alert alert-danger mb-0">
+      <strong>Regra inegociável:</strong> uma OS com peças e mão de obra gera duas notas fiscais — uma de mercadoria (peças) e uma de serviço (mão de obra). Emitir tudo numa NFS-e de serviço é erro fiscal que provoca retenção incorreta, ISS indevido sobre mercadorias e inconsistência no SPED.
+    </div>
+  </div>
+</div>
+
+<!-- SEÇÃO 2: Tabela de Retenções por Tipo de Órgão -->
+<div class="card mb-4">
+  <div class="card-body">
+    <span class="badge bg-danger text-uppercase mb-2">Notas fiscais</span>
+    <h5 class="card-title">Retenções por tipo de órgão pagador</h5>
+    <p>Uma OS de manutenção que envolve peças e mão de obra gera obrigatoriamente duas notas fiscais distintas. As retenções variam conforme a esfera do órgão pagador.</p>
+
+    <div class="row g-3 my-3">
+      <div class="col-md-6">
+        <div class="card border-primary">
+          <div class="card-body">
+            <h6 class="text-primary fw-semibold">Nota fiscal de peças — mercadoria</h6>
+            <p class="mb-0 small">
+              Documento: NF-e (modelo 55)<br>
+              CFOP: 5.102 (dentro do estado) / 6.102 (fora do estado)<br>
+              Tributação: ICMS, IPI quando aplicável, PIS/Cofins conforme regime<br>
+              Retenção federal: <strong>5,85%</strong><br>
+              <small class="text-muted">IR 1,20% + CSLL 1,00% + PIS 0,65% + Cofins 3,00%</small>
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card" style="border-color: #7c6dd8 !important;">
+          <div class="card-body">
+            <h6 class="fw-semibold" style="color: #3C3489;">Nota fiscal de serviços — mão de obra</h6>
+            <p class="mb-0 small">
+              Documento: NFS-e (emitida pelo município)<br>
+              CFOP: não se aplica (ISS é municipal)<br>
+              Tributação: ISS conforme alíquota municipal (2% a 5%)<br>
+              Retenção federal: <strong>9,45%</strong><br>
+              <small class="text-muted">IR 4,80% + CSLL 1,00% + PIS 0,65% + Cofins 3,00%</small>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-bordered table-sm align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Órgão pagador</th>
+            <th>Natureza</th>
+            <th>IR</th>
+            <th>CSLL</th>
+            <th>PIS</th>
+            <th>Cofins</th>
+            <th>Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="2"><span class="badge bg-danger">Federal</span><br><small class="text-muted">Ministérios, autarquias, fundações</small></td>
+            <td><span class="badge" style="background:#E6F1FB;color:#0C447C;">Peças</span></td>
+            <td>1,20%</td><td>1,00%</td><td>0,65%</td><td>3,00%</td><td><strong>5,85%</strong></td>
+          </tr>
+          <tr>
+            <td><span class="badge" style="background:#EEEDFE;color:#3C3489;">Serviços</span></td>
+            <td>4,80%</td><td>1,00%</td><td>0,65%</td><td>3,00%</td><td><strong>9,45%</strong></td>
+          </tr>
+          <tr>
+            <td rowspan="2"><span class="badge bg-warning text-dark">Estadual / Municipal</span><br><small class="text-muted">Estados, DF, municípios</small></td>
+            <td><span class="badge" style="background:#E6F1FB;color:#0C447C;">Peças</span></td>
+            <td>1,20%</td><td>—</td><td>—</td><td>—</td><td><strong>1,20%</strong></td>
+          </tr>
+          <tr>
+            <td><span class="badge" style="background:#EEEDFE;color:#3C3489;">Serviços</span></td>
+            <td>4,80%</td><td>—</td><td>—</td><td>—</td><td><strong>4,80%</strong></td>
+          </tr>
+          <tr>
+            <td><span class="badge bg-success">Simples Nacional</span><br><small class="text-muted">Qualquer órgão</small></td>
+            <td>Peças ou serviços</td>
+            <td>—</td><td>—</td><td>—</td><td>—</td><td class="text-success"><strong>Dispensada</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="bg-light rounded p-3 mt-3 small text-muted">
+      IN RFB nº 1.234/2012, Anexo I — alíquotas de retenção por natureza. IN RFB nº 2.145/2023 — extensão da retenção de IR para estados, DF e municípios. LC nº 116/2003 — lista de serviços tributáveis pelo ISS (mão de obra de oficina mecânica está no item 14.01). Lei nº 9.430/1996, art. 64 — retenção como antecipação tributária.
+    </div>
+  </div>
+</div>
+
+<!-- SEÇÃO 3: Obrigação da Fonte Pagadora -->
+<div class="card mb-4">
+  <div class="card-body">
+    <span class="badge bg-danger text-uppercase mb-2">Obrigação da fonte pagadora</span>
+    <h5 class="card-title">Como órgãos e empresas devem reter na manutenção de frota</h5>
+    <p>Na manutenção de frota, a retenção tributária exige atenção redobrada: há duas notas de naturezas distintas (peças e serviços), e a retenção de cada uma segue alíquotas diferentes. O órgão que retém o mesmo percentual sobre peças e serviços está cometendo erro fiscal em pelo menos uma das duas.</p>
+
+    <ol class="list-group list-group-numbered my-3">
+      <li class="list-group-item">
+        <strong>Tratar nota de peças e nota de serviços separadamente.</strong> O sistema de pagamento do órgão deve processar as duas notas com enquadramentos distintos. Aplicar a alíquota de serviço (9,45%) sobre a nota de peças gera retenção a maior de 3,60 pontos percentuais.
+      </li>
+      <li class="list-group-item">
+        <strong>Vincular a retenção ao CNPJ do fornecedor credenciado.</strong> Na manutenção intermediada pela plataforma, a retenção deve ser feita em nome da oficina, autopeças ou concessionária que emitiu a nota — não em nome da gerenciadora.
+      </li>
+      <li class="list-group-item">
+        <strong>Verificar o Simples Nacional separadamente para cada fornecedor.</strong> Uma OS pode envolver fornecedor de peças (optante pelo Simples) e oficina de mão de obra (não optante). A dispensa de retenção é individual por CNPJ e por nota.
+      </li>
+      <li class="list-group-item">
+        <strong>Emitir comprovante de retenção para cada CNPJ retido.</strong> O fornecedor precisa do informe de retenção para comprovar o crédito tributário. Sem o documento correto, o fornecedor não consegue compensar o valor retido.
+      </li>
+    </ol>
+
+    <div class="alert alert-warning">
+      <strong>Ponto crítico — dois fornecedores, dois CNPJs, duas retenções</strong><br>
+      Quando a OS envolve fornecedor de peças diferente da oficina de serviços (ex.: distribuidora de autopeças + oficina mecânica), há dois CNPJs distintos, duas notas e duas retenções com alíquotas diferentes. O órgão deve processar cada nota individualmente, com a retenção vinculada ao CNPJ emissor de cada documento.
+    </div>
+  </div>
+</div>
+
+<!-- SEÇÃO 4: Contabilidade do Fornecedor -->
+<div class="card mb-4">
+  <div class="card-body">
+    <span class="badge bg-info text-uppercase mb-2">Contabilidade — fornecedor</span>
+    <h5 class="card-title">Como o fornecedor registra e recupera o tributo retido</h5>
+    <p>Retenção não é perda — é crédito tributário recuperável. Na manutenção de frota, é necessário controlar dois créditos distintos: um da nota de peças e outro da nota de serviços, pois as alíquotas são diferentes.</p>
+
+    <div class="bg-light border-start border-3 border-info p-3 my-3 small" style="line-height: 1.9;">
+      <strong class="d-block mb-2">Lançamento padrão — fornecedor que sofre retenção (órgão federal)</strong>
+      <strong>Nota de peças — R$ 3.000,00 — retenção 5,85% = R$ 175,50</strong><br>
+      D — Clientes a receber: R$ 3.000,00<br>
+      C — Receita de vendas de mercadorias: R$ 3.000,00<br>
+      <em>No recebimento:</em><br>
+      D — Caixa/banco: R$ 2.824,50<br>
+      D — Tributos retidos a recuperar (peças): R$ 175,50<br>
+      C — Clientes a receber: R$ 3.000,00<br><br>
+      <strong>Nota de serviços — R$ 1.500,00 — retenção 9,45% = R$ 141,75</strong><br>
+      D — Clientes a receber: R$ 1.500,00<br>
+      C — Receita de serviços: R$ 1.500,00<br>
+      <em>No recebimento:</em><br>
+      D — Caixa/banco: R$ 1.358,25<br>
+      D — Tributos retidos a recuperar (serviços): R$ 141,75<br>
+      C — Clientes a receber: R$ 1.500,00
+    </div>
+
+    <div class="row g-3 my-3">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h6 class="text-muted text-uppercase small">Órgão federal — OS completa</h6>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Nota de peças (bruto)</span><span class="fw-semibold">R$ 3.000,00</span></div>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Retenção peças (5,85%)</span><span class="fw-semibold text-danger">− R$ 175,50</span></div>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Taxa plataforma (10%)</span><span class="fw-semibold text-danger">− R$ 300,00</span></div>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Nota de serviços (bruto)</span><span class="fw-semibold">R$ 1.500,00</span></div>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Retenção serviços (9,45%)</span><span class="fw-semibold text-danger">− R$ 141,75</span></div>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Taxa plataforma (10%)</span><span class="fw-semibold text-danger">− R$ 150,00</span></div>
+            <div class="d-flex justify-content-between pt-2"><span class="fw-bold">Líquido recebido</span><span class="fw-bold text-success">R$ 3.732,75</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-body">
+            <h6 class="text-muted text-uppercase small">O que cada valor representa</h6>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Receita bruta total</span><span class="fw-semibold">R$ 4.500,00</span></div>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Taxa plataforma (custo comercial)</span><span class="fw-semibold text-danger">− R$ 450,00</span></div>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Retenção total (crédito fiscal)</span><span class="fw-semibold text-warning">R$ 317,25</span></div>
+            <div class="d-flex justify-content-between border-bottom py-1"><span class="text-muted">Entrada financeira</span><span class="fw-semibold text-success">R$ 3.732,75</span></div>
+            <div class="d-flex justify-content-between pt-2"><span class="fw-bold">Crédito tributário a recuperar</span><span class="fw-bold text-success">R$ 317,25</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-success mb-0">
+      <strong>Regra de ouro:</strong> taxa da plataforma é custo comercial definitivo — vai para despesa. Retenção tributária é crédito fiscal recuperável — vai para ativo (tributos retidos a recuperar). Misturar os dois no mesmo lançamento distorce o resultado e desperdiça dinheiro.
+    </div>
+  </div>
+</div>
+
+<!-- SEÇÃO 5: Fórmula de Liquidação -->
+<div class="card mb-4">
+  <div class="card-body">
+    <span class="badge bg-secondary text-uppercase mb-2">Fórmula de cálculo</span>
+    <h5 class="card-title">Como o sistema calcula as retenções e o valor líquido</h5>
+
+    <div class="alert alert-info border-0 shadow-sm mb-3">
+      <i class="bi bi-calculator me-2"></i>
+      <strong>Valor bruto da NF</strong><br>
+      (−) retenções tributárias (IR + PIS + COFINS + CSLL)<br>
+      (−) taxa de administração (se aplicável)<br>
+      <strong>(=) valor líquido creditado</strong>
+    </div>
+
+    <div class="alert alert-warning border-0 shadow-sm mb-0">
+      <i class="bi bi-currency-dollar me-2"></i>
+      <strong>Taxa de Administração:</strong> Quando definida no contrato, é aplicada automaticamente nas faturas.
+      O percentual pode variar de 0% a 15% conforme o contrato do cliente.
+    </div>
+  </div>
+</div>
+
+<!-- SEÇÃO 6: Base Legal -->
+<div class="card border-0 shadow-sm">
+  <div class="card-header bg-white border-bottom">
+    <h6 class="mb-0 fw-bold"><i class="bi bi-book me-1"></i> Base Legal</h6>
+  </div>
+  <div class="card-body small text-muted" style="line-height:1.8">
+    <ul class="mb-0">
+      <li><strong>IN RFB nº 1.234/2012</strong> (Anexo I) — alíquotas de retenção por natureza de bens e serviços.</li>
+      <li><strong>IN RFB nº 2.145/2023</strong> — extensão da retenção de IR para estados, DF e municípios.</li>
+      <li><strong>Lei nº 9.430/1996, art. 64</strong> — retenção como antecipação tributária.</li>
+      <li><strong>LC nº 116/2003</strong> — lista de serviços tributáveis pelo ISS (mão de obra de oficina mecânica: item 14.01).</li>
+      <li><strong>Lei nº 8.078/1990, art. 40</strong> (CDC) — obrigação de orçamento prévio discriminando mão de obra, peças e materiais.</li>
+      <li><strong>Lei nº 14.133/2021, art. 23</strong> — parâmetro de pesquisa de preços para contratações públicas.</li>
+    </ul>
+    <p class="mt-3 mb-0">Para informações completas, consulte a página <strong>Tributação e Precificação</strong> na barra lateral.</p>
   </div>
 </div>

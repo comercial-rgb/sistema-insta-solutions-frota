@@ -8,16 +8,16 @@ class FaturamentoController < ApplicationController
     @resumo = calcular_resumo
 
     # Faturas list with filters
-    @faturas = Fatura.includes(:provider, :cost_center, :contract)
-    @faturas = @faturas.where(provider_id: @current_user.id) if @current_user.provider?
+    @faturas = Fatura.includes(:client, :cost_center, :contract)
+    @faturas = @faturas.where(client_id: @current_user.id) if @current_user.client?
     @faturas = apply_filters(@faturas)
     @faturas = @faturas.order(created_at: :desc).page(params[:page]).per(25)
 
     # Últimas faturas (resumo tab)
     @ultimas_faturas = Fatura.order(created_at: :desc).limit(5)
 
-    # Providers & cost_centers for filter dropdowns
-    @providers = User.provider.order(:name)
+    # Clients & cost_centers for filter dropdowns
+    @clients = User.client.order(:name)
     @cost_centers = CostCenter.order(:name)
 
     respond_to do |format|
@@ -28,7 +28,7 @@ class FaturamentoController < ApplicationController
 
   def show
     authorize :faturamento, :show?
-    @fatura = Fatura.includes(:fatura_itens, :provider, :cost_center, :contract).find(params[:id])
+    @fatura = Fatura.includes(:fatura_itens, :client, :cost_center, :contract).find(params[:id])
 
     respond_to do |format|
       format.html
@@ -95,8 +95,8 @@ class FaturamentoController < ApplicationController
 
   def faturas_json_endpoint
     authorize :faturamento, :faturas?
-    faturas = Fatura.includes(:provider, :cost_center)
-    faturas = faturas.where(provider_id: @current_user.id) if @current_user.provider?
+    faturas = Fatura.includes(:client, :cost_center)
+    faturas = faturas.where(client_id: @current_user.id) if @current_user.client?
     faturas = apply_filters(faturas)
     page = (params[:page] || 1).to_i
     total = faturas.count
@@ -112,7 +112,7 @@ class FaturamentoController < ApplicationController
 
   def calcular_resumo
     faturas = Fatura.all
-    faturas = faturas.where(provider_id: @current_user.id) if @current_user.provider?
+    faturas = faturas.where(client_id: @current_user.id) if @current_user.client?
 
     {
       total_faturas: faturas.count,
@@ -132,7 +132,7 @@ class FaturamentoController < ApplicationController
 
   def apply_filters(scope)
     scope = scope.where(status: params[:status]) if params[:status].present?
-    scope = scope.where(provider_id: params[:provider_id]) if params[:provider_id].present?
+    scope = scope.where(client_id: params[:client_id]) if params[:client_id].present?
     scope = scope.where(cost_center_id: params[:cost_center_id]) if params[:cost_center_id].present?
     scope = scope.where('faturas.numero LIKE ?', "%#{params[:search]}%") if params[:search].present?
     scope = scope.where('data_emissao >= ?', params[:data_inicio]) if params[:data_inicio].present?
@@ -144,8 +144,8 @@ class FaturamentoController < ApplicationController
     {
       id: f.id,
       numero: f.numero,
-      fornecedor: f.provider&.name || '-',
-      provider_id: f.provider_id,
+      cliente: f.client&.name || '-',
+      client_id: f.client_id,
       centro_custo: f.cost_center&.name || '-',
       cost_center_id: f.cost_center_id,
       data_emissao: f.data_emissao,
@@ -194,7 +194,7 @@ class FaturamentoController < ApplicationController
 
   def fatura_params
     params.require(:fatura).permit(
-      :provider_id, :cost_center_id, :contract_id,
+      :client_id, :cost_center_id, :contract_id,
       :data_emissao, :data_vencimento, :prazo_recebimento,
       :valor_bruto, :ir_percentual, :pis_percentual, :cofins_percentual, :csll_percentual,
       :taxa_administracao, :nota_fiscal_numero, :nota_fiscal_serie,

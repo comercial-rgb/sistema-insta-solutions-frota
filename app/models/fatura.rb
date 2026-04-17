@@ -1,5 +1,5 @@
 class Fatura < ApplicationRecord
-  belongs_to :provider, class_name: 'User', optional: true
+  belongs_to :client, class_name: 'User', foreign_key: 'client_id', optional: true
   belongs_to :cost_center, optional: true
   belongs_to :contract, optional: true
 

@@ -18,11 +18,11 @@
         </select>
       </div>
       <div class="col-md-2">
-        <label class="form-label small text-muted mb-1">Fornecedor</label>
-        <select class="form-select form-select-sm" id="fProvider" onchange="Faturamento.loadFaturas()">
-          <option value="">Todos os fornecedores</option>
-          <% providers.each do |p| %>
-            <option value="<%= p.id %>"><%= p.name %></option>
+        <label class="form-label small text-muted mb-1">Cliente</label>
+        <select class="form-select form-select-sm" id="fClient" onchange="Faturamento.loadFaturas()">
+          <option value="">Todos os clientes</option>
+          <% clients.each do |c| %>
+            <option value="<%= c.id %>"><%= c.name %></option>
           <% end %>
         </select>
       </div>
@@ -59,7 +59,7 @@
       <thead class="table-light">
         <tr>
           <th class="text-uppercase small text-muted">Nº</th>
-          <th class="text-uppercase small text-muted">Fornecedor</th>
+          <th class="text-uppercase small text-muted">Cliente</th>
           <th class="text-uppercase small text-muted">C.Custo</th>
           <th class="text-uppercase small text-muted">Emissão</th>
           <th class="text-uppercase small text-muted">Vencimento</th>
@@ -79,7 +79,7 @@
                   <%= f.numero %>
                 </strong>
               </td>
-              <td><%= f.provider&.name || '-' %></td>
+              <td><%= f.client&.name || '-' %></td>
               <td><%= f.cost_center&.name || '-' %></td>
               <td><%= f.data_emissao&.strftime('%d/%m/%Y') %></td>
               <td>
