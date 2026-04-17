@@ -50,6 +50,12 @@
         <label class="form-label small text-muted mb-1">Período até</label>
         <input type="date" class="form-control form-control-sm" id="fAbertoDtFim" onchange="Faturamento.carregarOSAbertos()">
       </div>
+      <div class="col-md-3">
+        <label class="form-label small text-muted mb-1">Empenho</label>
+        <select class="form-select form-select-sm" id="fAbertoEmpenho" onchange="Faturamento.filtrarOSAbertos()" disabled>
+          <option value="">Todos os empenhos</option>
+        </select>
+      </div>
       <div class="col-auto d-flex align-items-end">
         <button class="btn btn-outline-secondary btn-sm" onclick="Faturamento.limparFiltrosAbertos()" disabled id="btnLimparAbertos" title="Limpar filtros">
           <i class="bi bi-x-circle"></i> Limpar

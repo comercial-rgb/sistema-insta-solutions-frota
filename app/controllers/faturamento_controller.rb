@@ -61,22 +61,30 @@ class FaturamentoController < ApplicationController
     sub_unit = order_services.first.sub_unit
 
     # Calculate totals from OS proposals
+    # NOTA: proposal.total_value já inclui desconto do contrato
+    # proposal.total_value_without_discount = valor bruto real
     total_bruto = 0
+    total_com_desconto = 0
+    total_desconto = 0
     items_data = []
 
     order_services.each do |os|
       proposal = find_approved_proposal(os)
       next unless proposal
 
-      os_value = proposal.total_value.to_f
-      total_bruto += os_value
+      os_bruto = proposal.total_value_without_discount.to_f
+      os_com_desconto = proposal.total_value.to_f
+      os_desconto = proposal.total_discount.to_f
+      total_bruto += os_bruto
+      total_com_desconto += os_com_desconto
+      total_desconto += os_desconto
 
       items_data << {
         order_service_id: os.id,
         order_service_proposal_id: proposal.id,
         descricao: "OS ##{os.code} - #{os.vehicle&.board}",
         tipo: 'servico',
-        valor: os_value,
+        valor: os_bruto,
         quantidade: 1,
         veiculo_placa: os.vehicle&.board,
         centro_custo_nome: os.cost_center&.name
@@ -87,23 +95,23 @@ class FaturamentoController < ApplicationController
     tipo_valor = params[:tipo_valor].presence || 'bruto'
     aplicar_retencao = params[:aplicar_retencao] != false && params[:aplicar_retencao] != 'false'
 
-    # Calculate discount and retentions based on client sphere
-    client_discount_pct = client.discount_percent.to_f
-    desconto_valor = total_bruto * (client_discount_pct / 100)
+    # Desconto já calculado pela proposta (não aplicar novamente)
+    desconto_valor = total_desconto
 
     # Calcular retenções conforme Config Impostos:
-    #   Optante Simples Nacional: ISENTO (0%)
-    #   Não-simples + Federal:   Peças 5,85% (IR 1,2% + CSLL 1% + PIS 0,65% + Cofins 3%)
-    #                            Serviços 9,45% (IR 4,8% + CSLL 1% + PIS 0,65% + Cofins 3%)
-    #   Não-simples + Mun/Est:   Peças 1,20% (somente IR)
-    #                            Serviços 4,80% (somente IR)
+    #   ATENÇÃO: optante_simples=true no DB significa NÃO optante (label invertido)
+    #   Fornecedor NÃO optante simples (optante_simples=true): APLICAR retenção
+    #   Fornecedor optante simples (optante_simples=false): ISENTO (0%)
+    #   Não-simples + Federal:   Peças 5,85% | Serviços 9,45%
+    #   Não-simples + Mun/Est:   Peças 1,20% | Serviços 4,80%
     is_federal = client.federal?
     total_retencao = 0.0
 
     order_services.each do |os|
       prop = find_approved_proposal(os)
       next unless prop
-      next if prop.provider&.optante_simples  # Simples = ISENTO
+      # optante_simples=false = IS simples = ISENTO
+      next unless prop.provider&.optante_simples  # true = NÃO simples = aplicar retenção
 
       invoices = prop.order_service_invoices.to_a
       sum_parts = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }.sum(&:value).to_f
@@ -121,7 +129,7 @@ class FaturamentoController < ApplicationController
     # Zerar retenções se usuário desabilitou
     total_retencao = 0.0 unless aplicar_retencao
 
-    valor_liquido = total_bruto - desconto_valor
+    valor_liquido = total_com_desconto
     valor_final = valor_liquido - total_retencao
 
     # Build fatura
@@ -296,6 +304,15 @@ class FaturamentoController < ApplicationController
       os_scope = os_scope.joins(:vehicle).where(vehicles: { sub_unit_id: params[:sub_unit_id] })
     end
 
+    # Filtro por empenho
+    if params[:commitment_id].present?
+      cid = params[:commitment_id].to_i
+      os_scope = os_scope.where(
+        'order_services.commitment_id = :cid OR order_services.commitment_parts_id = :cid OR order_services.commitment_services_id = :cid',
+        cid: cid
+      )
+    end
+
     results = os_scope.order(:code).map do |os|
       proposal = find_approved_proposal(os)
       next nil unless proposal
@@ -305,9 +322,20 @@ class FaturamentoController < ApplicationController
       nf_pecas = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }.map(&:number).compact.join(', ')
       nf_servicos = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }.map(&:number).compact.join(', ')
 
-      # Valores de NF por tipo (mais precisos que total_parts_value/total_services_value)
+      # Valores de NF por tipo (valores faturados = com desconto)
       nf_parts_value = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }.sum(&:value).to_f
       nf_services_value = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }.sum(&:value).to_f
+
+      # Valores BRUTO por tipo (sem desconto) - calculados a partir dos itens da proposta
+      items = OrderServiceProposal.items_for_totals(proposal)
+      bruto_pecas = items.select { |i| i.service&.category_id == Category::SERVICOS_PECAS_ID }
+                         .sum { |i| (i.total_value_without_discount.presence || (i.unity_value.to_d * i.quantity.to_d)).to_f }
+      bruto_servicos = items.select { |i| i.service&.category_id == Category::SERVICOS_SERVICOS_ID }
+                            .sum { |i| (i.total_value_without_discount.presence || (i.unity_value.to_d * i.quantity.to_d)).to_f }
+      desc_pecas = items.select { |i| i.service&.category_id == Category::SERVICOS_PECAS_ID }
+                        .sum { |i| i.discount.to_f }
+      desc_servicos = items.select { |i| i.service&.category_id == Category::SERVICOS_SERVICOS_ID }
+                           .sum { |i| i.discount.to_f }
 
       # Provider details
       prov = proposal.provider
@@ -315,6 +343,7 @@ class FaturamentoController < ApplicationController
       provider_cnpj = prov&.cnpj
       provider_phone = prov&.phone.presence || prov&.cellphone.presence || prov&.get_first_phone_phone
       provider_email = prov&.email
+      # ATENÇÃO: optante_simples=true no DB = NÃO optante (label "Não optante pelo SIMPLES")
       provider_optante = prov&.optante_simples || false
 
       # Commitment/Contract info
@@ -335,14 +364,24 @@ class FaturamentoController < ApplicationController
         provider_phone: provider_phone,
         provider_email: provider_email,
         provider_optante_simples: provider_optante,
-        total_parts: nf_parts_value,
-        total_services: nf_services_value,
-        total_value: proposal.total_value.to_f,
+        # Valores bruto (sem desconto) por tipo
+        bruto_pecas: bruto_pecas,
+        bruto_servicos: bruto_servicos,
+        desc_pecas: desc_pecas,
+        desc_servicos: desc_servicos,
+        # Valores NF (com desconto) por tipo
+        nf_pecas_value: nf_parts_value,
+        nf_servicos_value: nf_services_value,
+        # Totais da proposta
+        total_bruto: proposal.total_value_without_discount.to_f,
+        total_desconto: proposal.total_discount.to_f,
+        total_com_desconto: proposal.total_value.to_f,
         nf_pecas: nf_pecas,
         nf_servicos: nf_servicos,
         contract_number: contract&.number,
         contract_name: contract&.name,
         commitment_number: commitment&.commitment_number,
+        commitment_id: commitment&.id,
         status: os.order_service_status&.name,
         created_at: os.created_at&.strftime('%d/%m/%Y')
       }
@@ -377,13 +416,19 @@ class FaturamentoController < ApplicationController
     # Cost centers and sub_units for this client
     client_cost_centers = CostCenter.where(client_id: client_id).order(:name).map { |cc| { id: cc.id, name: cc.name } }
 
+    # Empenhos do cliente para filtro
+    client_commitments = Commitment.where(client_id: client_id, active: true).order(:commitment_number).map do |cm|
+      { id: cm.id, number: cm.commitment_number, contract: cm.contract&.number }
+    end
+
     render json: {
       results: results,
       cost_centers: client_cost_centers,
       client_discount: client_discount,
       client_sphere: client_sphere,
       contracts_info: contracts_info,
-      commitment_numbers: commitment_numbers
+      commitment_numbers: commitment_numbers,
+      commitments: client_commitments
     }
   end
 

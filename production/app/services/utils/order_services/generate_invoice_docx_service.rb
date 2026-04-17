@@ -152,8 +152,8 @@ module Utils
           index_str = index < 9 ? "0#{index+1}" : (index+1).to_s
           
           irvalue = 0
-          if e.order_service_proposal.provider.optante_simples
-            # Simples Nacional: ISENTO de retenção
+          unless e.order_service_proposal.provider.optante_simples
+            # optante_simples=false → IS Simples Nacional → ISENTO de retenção
             irvalue = 0
           elsif is_federal
             # Federal + NÃO optante simples
@@ -348,9 +348,9 @@ module Utils
           total_parts += sum_parts
           total_services += sum_services
 
-          # Retenção: Simples Nacional = ISENTO (0%)
-          # Não-simples: calcular conforme esfera
-          unless proposal.provider.optante_simples
+          # Retenção: optante_simples=true → NÃO optante simples → aplicar retenção
+          # optante_simples=false → IS Simples → ISENTO
+          if proposal.provider.optante_simples
             if is_federal
               total_discount_ir += (sum_parts * 0.0585)    # 5,85% (IR+CSLL+PIS+Cofins)
               total_discount_ir += (sum_services * 0.0945)  # 9,45% (IR+CSLL+PIS+Cofins)

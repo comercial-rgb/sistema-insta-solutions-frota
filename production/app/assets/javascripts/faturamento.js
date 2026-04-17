@@ -322,6 +322,24 @@ var Faturamento = (function() {
           });
         }
 
+        // Populate empenho filter
+        var empenhoSelect = document.getElementById('fAbertoEmpenho');
+        if (empenhoSelect) {
+          empenhoSelect.innerHTML = '<option value="">Todos os empenhos</option>';
+          var commitments = data.commitments || [];
+          if (commitments.length > 0) {
+            empenhoSelect.disabled = false;
+            commitments.forEach(function(cm) {
+              var opt = document.createElement('option');
+              opt.value = cm.id;
+              opt.textContent = cm.number + (cm.contract ? ' (Contrato: ' + cm.contract + ')' : '');
+              empenhoSelect.appendChild(opt);
+            });
+          } else {
+            empenhoSelect.disabled = true;
+          }
+        }
+
         renderOSAbertosTable(_osAbertosData);
       },
       error: function() {
@@ -333,7 +351,34 @@ var Faturamento = (function() {
   function filtrarOSAbertos() {
     var ccId = document.getElementById('fAbertoCentroCusto').value;
     var suId = document.getElementById('fAbertoSubUnidade').value;
+    var empenhoId = document.getElementById('fAbertoEmpenho') ? document.getElementById('fAbertoEmpenho').value : '';
     var suSelect = document.getElementById('fAbertoSubUnidade');
+
+    // If empenho filter is set, reload from server (filter is server-side)
+    if (empenhoId) {
+      var clienteId = document.getElementById('fAbertoCliente').value;
+      var params = new URLSearchParams({ client_id: clienteId, commitment_id: empenhoId });
+      var dtIni = document.getElementById('fAbertoDtIni');
+      var dtFim = document.getElementById('fAbertoDtFim');
+      if (dtIni && dtIni.value) params.set('data_inicio', dtIni.value);
+      if (dtFim && dtFim.value) params.set('data_fim', dtFim.value);
+      if (ccId) params.set('cost_center_id', ccId);
+      if (suId) params.set('sub_unit_id', suId);
+
+      var content = document.getElementById('abertosContent');
+      content.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Filtrando...</div>';
+
+      $.ajax({
+        url: '/faturamento/os_abertos_json?' + params.toString(),
+        method: 'GET',
+        dataType: 'json',
+        success: function(data) {
+          var filtered = data.results || [];
+          renderOSAbertosTable(filtered);
+        }
+      });
+      return;
+    }
 
     // Load sub_units when cost center changes
     if (ccId) {
@@ -391,6 +436,8 @@ var Faturamento = (function() {
   function limparFiltrosAbertos() {
     document.getElementById('fAbertoCentroCusto').value = '';
     document.getElementById('fAbertoSubUnidade').value = '';
+    var empenhoSel = document.getElementById('fAbertoEmpenho');
+    if (empenhoSel) empenhoSel.value = '';
     var dtIni = document.getElementById('fAbertoDtIni');
     var dtFim = document.getElementById('fAbertoDtFim');
     if (dtIni) dtIni.value = '';
@@ -407,14 +454,14 @@ var Faturamento = (function() {
       return;
     }
 
-    var totalValue = 0;
-    rows.forEach(function(os) { totalValue += os.total_value; });
+    var totalBruto = 0;
+    rows.forEach(function(os) { totalBruto += os.total_bruto; });
 
     var html = '<div class="card border-0 shadow-sm">';
 
     // Summary bar
     html += '<div class="card-header bg-white d-flex justify-content-between align-items-center">';
-    html += '<div><strong>' + rows.length + '</strong> OS autorizadas | Total: <strong>' + money(totalValue) + '</strong></div>';
+    html += '<div><strong>' + rows.length + '</strong> OS autorizadas | Total Bruto: <strong>' + money(totalBruto) + '</strong></div>';
     html += '<div>';
     html += '<button class="btn btn-sm btn-outline-primary me-2" onclick="Faturamento.toggleSelectAll()"><i class="bi bi-check-all"></i> Selecionar Todas</button>';
     html += '<button class="btn btn-sm btn-primary" onclick="Faturamento.gerarPrevia()" id="btnGerarPrevia" disabled><i class="bi bi-eye"></i> Gerar Prévia</button>';
@@ -425,27 +472,32 @@ var Faturamento = (function() {
     html += '<thead class="table-light"><tr>';
     html += '<th width="40"><input type="checkbox" class="form-check-input" id="checkAll" onchange="Faturamento.toggleSelectAll()"></th>';
     html += '<th class="text-uppercase small text-muted">OS</th>';
+    html += '<th class="text-uppercase small text-muted">Fornecedor</th>';
     html += '<th class="text-uppercase small text-muted">Veículo</th>';
     html += '<th class="text-uppercase small text-muted">C.Custo</th>';
-    html += '<th class="text-uppercase small text-muted">Fornecedor</th>';
     html += '<th class="text-uppercase small text-muted">Peças (NF)</th>';
     html += '<th class="text-uppercase small text-muted">Serviços (NF)</th>';
-    html += '<th class="text-uppercase small text-muted">Total</th>';
-    html += '<th class="text-uppercase small text-muted">Data</th>';
+    html += '<th class="text-uppercase small text-muted">Valor Bruto</th>';
+    html += '<th class="text-uppercase small text-muted">V. c/ Desc.</th>';
     html += '</tr></thead><tbody>';
 
     rows.forEach(function(os) {
       var checked = _selectedOS[os.id] ? ' checked' : '';
+      // ATENÇÃO: optante_simples=true no DB = NÃO optante (badge invertido)
+      var isSimples = !os.provider_optante_simples;
       html += '<tr class="' + (_selectedOS[os.id] ? 'table-primary' : '') + '">';
       html += '<td><input type="checkbox" class="form-check-input os-check" value="' + os.id + '"' + checked + ' onchange="Faturamento.toggleOS(' + os.id + ')"></td>';
       html += '<td><strong>#' + escapeHtml(os.code) + '</strong></td>';
-      html += '<td>' + escapeHtml(os.vehicle_plate) + (os.vehicle_model ? '<br><small class="text-muted">' + escapeHtml(os.vehicle_model) + '</small>' : '') + '</td>';
+      html += '<td><small>' + escapeHtml(os.provider || '-') + '</small>';
+      if (isSimples) html += ' <span class="badge bg-success" style="font-size:0.6em;">Simples</span>';
+      else html += ' <span class="badge bg-warning text-dark" style="font-size:0.6em;">Não-Simples</span>';
+      html += '</td>';
+      html += '<td>' + escapeHtml(os.vehicle_plate) + '</td>';
       html += '<td>' + escapeHtml(os.cost_center || '-') + '</td>';
-      html += '<td><small>' + escapeHtml(os.provider || '-') + '</small></td>';
-      html += '<td>' + money(os.total_parts) + (os.nf_pecas ? '<br><small class="text-muted">NF ' + escapeHtml(os.nf_pecas) + '</small>' : '') + '</td>';
-      html += '<td>' + money(os.total_services) + (os.nf_servicos ? '<br><small class="text-muted">NF ' + escapeHtml(os.nf_servicos) + '</small>' : '') + '</td>';
-      html += '<td><strong>' + money(os.total_value) + '</strong></td>';
-      html += '<td>' + escapeHtml(os.created_at || '-') + '</td>';
+      html += '<td>' + money(os.bruto_pecas) + (os.nf_pecas ? '<br><small class="text-muted">NF ' + escapeHtml(os.nf_pecas) + '</small>' : '') + '</td>';
+      html += '<td>' + money(os.bruto_servicos) + (os.nf_servicos ? '<br><small class="text-muted">NF ' + escapeHtml(os.nf_servicos) + '</small>' : '') + '</td>';
+      html += '<td><strong>' + money(os.total_bruto) + '</strong></td>';
+      html += '<td class="text-success fw-bold">' + money(os.total_com_desconto) + '</td>';
       html += '</tr>';
     });
 
@@ -517,14 +569,16 @@ var Faturamento = (function() {
     var savedVenc = prevVenc ? prevVenc.value : '';
 
     var selectedOSData = _osAbertosData.filter(function(os) { return ids.indexOf(os.id) >= 0; });
-    var totalParts = 0, totalServices = 0, totalBruto = 0;
+
+    // Totais - usando valores BRUTO da proposta (sem desconto)
+    var totalBrutoPecas = 0, totalBrutoServicos = 0, totalBruto = 0;
+    var totalDescPecas = 0, totalDescServicos = 0, totalDesconto = 0;
+    var totalComDesconto = 0;
 
     // === REGRA RETENÇÃO (Config Impostos) ===
-    // Simples Nacional: ISENTO (0% em tudo)
-    // Não-simples + Federal:   Peças 5,85% (IR 1,2 + CSLL 1 + PIS 0,65 + Cofins 3)
-    //                          Serviços 9,45% (IR 4,8 + CSLL 1 + PIS 0,65 + Cofins 3)
-    // Não-simples + Mun/Est:   Peças 1,20% (somente IR)
-    //                          Serviços 4,80% (somente IR)
+    // ATENÇÃO: optante_simples=true no DB = NÃO optante (label invertido)
+    // !os.provider_optante_simples = IS simples = ISENTO
+    // os.provider_optante_simples = NOT simples = APLICAR retenção
     var sphereNames = { 0: 'Municipal', 1: 'Estadual', 2: 'Federal' };
     var sphereName = sphereNames[_clientSphere] || 'Municipal';
     var isFederal = (_clientSphere === 2);
@@ -532,38 +586,46 @@ var Faturamento = (function() {
     var retPecasNaoSimples = 0, retServicosNaoSimples = 0;
 
     selectedOSData.forEach(function(os) {
-      totalParts += os.total_parts;
-      totalServices += os.total_services;
-      totalBruto += os.total_value;
+      totalBrutoPecas += os.bruto_pecas;
+      totalBrutoServicos += os.bruto_servicos;
+      totalBruto += os.total_bruto;
+      totalDescPecas += os.desc_pecas;
+      totalDescServicos += os.desc_servicos;
+      totalDesconto += os.total_desconto;
+      totalComDesconto += os.total_com_desconto;
 
-      // Simples Nacional: ISENTO - pula
-      if (os.provider_optante_simples) return;
+      // Retenção sobre NF values (valores faturados = com desconto = base tributável)
+      // optante_simples=true = NÃO simples = aplicar retenção
+      var isSimples = !os.provider_optante_simples;
+      if (isSimples) return; // Simples = ISENTO
 
-      // Não-simples: aplicar retenção conforme esfera
+      // Não-simples: retenção sobre valores das NFs
       if (isFederal) {
-        retPecasNaoSimples += os.total_parts * 0.0585;       // 5,85%
-        retServicosNaoSimples += os.total_services * 0.0945; // 9,45%
+        retPecasNaoSimples += os.nf_pecas_value * 0.0585;       // 5,85%
+        retServicosNaoSimples += os.nf_servicos_value * 0.0945; // 9,45%
       } else {
-        retPecasNaoSimples += os.total_parts * 0.012;        // 1,20% (somente IR)
-        retServicosNaoSimples += os.total_services * 0.048;  // 4,80% (somente IR)
+        retPecasNaoSimples += os.nf_pecas_value * 0.012;        // 1,20%
+        retServicosNaoSimples += os.nf_servicos_value * 0.048;  // 4,80%
       }
     });
 
     var totalRetNaoSimples = retPecasNaoSimples + retServicosNaoSimples;
     var totalRetencoes = aplicarRetencao ? totalRetNaoSimples : 0;
 
-    var descontoContrato = totalBruto * (_clientDiscount / 100);
-    var valorLiquido = totalBruto - descontoContrato;
+    var valorLiquido = totalComDesconto;
     var valorDevido = valorLiquido - totalRetencoes;
+
+    // Percentual de desconto efetivo (com precisão)
+    var pctDesconto = totalBruto > 0 ? ((totalDesconto / totalBruto) * 100) : 0;
 
     var clienteNome = document.getElementById('fAbertoCliente').selectedOptions[0].textContent;
     var vencDefault = new Date();
     vencDefault.setDate(vencDefault.getDate() + 30);
     var vencStr = savedVenc || vencDefault.toISOString().substring(0, 10);
 
-    // Período apurado (datas filtradas ou min/max created_at)
-    var dataInicio = document.getElementById('fAbertoDataInicio');
-    var dataFim = document.getElementById('fAbertoDataFim');
+    // Período apurado
+    var dataInicio = document.getElementById('fAbertoDtIni');
+    var dataFim = document.getElementById('fAbertoDtFim');
     var periodoInicio = dataInicio && dataInicio.value ? dataInicio.value : '';
     var periodoFim = dataFim && dataFim.value ? dataFim.value : '';
     if (!periodoInicio && selectedOSData.length > 0) {
@@ -571,7 +633,7 @@ var Faturamento = (function() {
       if (datas.length > 0) { periodoInicio = datas[0]; periodoFim = datas[datas.length - 1]; }
     }
 
-    // Contratos e empenhos usados
+    // Contratos e empenhos
     var contractNums = [];
     var commitNums = [];
     selectedOSData.forEach(function(os) {
@@ -582,17 +644,17 @@ var Faturamento = (function() {
     // ===== BUILD PREVIEW =====
     var html = '';
 
-    // Header com nome do cliente e badges
+    // Header
     html += '<div class="mb-3">';
     html += '<h5 class="fw-bold mb-1"><i class="bi bi-building me-2"></i>' + escapeHtml(clienteNome) + '</h5>';
     html += '<span class="badge bg-success me-2">' + escapeHtml(sphereName) + '</span>';
-    html += '<span class="badge bg-primary me-2">Desc. Contrato ' + _clientDiscount.toFixed(1) + '%</span>';
+    html += '<span class="badge bg-primary me-2">Desc. Contrato ' + pctDesconto.toFixed(2).replace('.', ',') + '%</span>';
     if (contractNums.length > 0) html += '<span class="badge bg-dark me-2">Contrato: ' + escapeHtml(contractNums.join(', ')) + '</span>';
     if (commitNums.length > 0) html += '<span class="badge bg-secondary me-2">Empenho: ' + escapeHtml(commitNums.join(', ')) + '</span>';
     if (periodoInicio) html += '<span class="badge bg-info text-dark">Período: ' + escapeHtml(periodoInicio) + ' a ' + escapeHtml(periodoFim || periodoInicio) + '</span>';
     html += '</div>';
 
-    // Saldo do contrato
+    // Saldo contrato
     if (_contractsInfo.length > 0) {
       html += '<div class="alert alert-light border py-2 px-3 mb-3 small">';
       html += '<i class="bi bi-wallet2 me-1"></i><strong>Saldo Contrato:</strong> ';
@@ -606,16 +668,14 @@ var Faturamento = (function() {
 
     // Cards de resumo
     html += '<div class="row g-2 mb-3">';
-
     html += '<div class="col"><div class="card border shadow-sm h-100"><div class="card-body text-center py-2">';
     html += '<small class="text-muted text-uppercase d-block" style="font-size:0.7em">Valor Bruto</small>';
     html += '<h5 class="fw-bold mb-0 text-primary">' + money(totalBruto) + '</h5>';
     html += '</div></div></div>';
 
     html += '<div class="col"><div class="card border shadow-sm h-100"><div class="card-body text-center py-2">';
-    html += '<small class="text-muted text-uppercase d-block" style="font-size:0.7em">Desc. Contrato</small>';
-    html += '<h5 class="fw-bold mb-0 text-danger">- ' + money(descontoContrato) + '</h5>';
-    html += '<small class="text-muted">' + _clientDiscount.toFixed(1) + '%</small>';
+    html += '<small class="text-muted text-uppercase d-block" style="font-size:0.7em">Desconto (' + pctDesconto.toFixed(2).replace('.', ',') + '%)</small>';
+    html += '<h5 class="fw-bold mb-0 text-danger">- ' + money(totalDesconto) + '</h5>';
     html += '</div></div></div>';
 
     html += '<div class="col"><div class="card border shadow-sm h-100"><div class="card-body text-center py-2">';
@@ -624,10 +684,9 @@ var Faturamento = (function() {
     html += '</div></div></div>';
 
     html += '<div class="col"><div class="card border shadow-sm h-100"><div class="card-body text-center py-2">';
-    html += '<small class="text-muted text-uppercase d-block" style="font-size:0.7em">Valor Líquido</small>';
+    html += '<small class="text-muted text-uppercase d-block" style="font-size:0.7em">Valor c/ Desconto</small>';
     html += '<h5 class="fw-bold mb-0 text-info">' + money(valorLiquido) + '</h5>';
     html += '</div></div></div>';
-
     html += '</div>';
 
     // VALOR DEVIDO bar
@@ -636,51 +695,55 @@ var Faturamento = (function() {
     html += '<h4 class="mb-0 fw-bold">' + money(valorDevido) + '</h4>';
     html += '</div>';
 
-    // Items table (with supplier detail row below each OS)
+    // Items table
     html += '<div class="table-responsive mb-3"><table class="table table-sm table-bordered mb-0">';
     html += '<thead class="table-light"><tr>';
-    html += '<th>OS</th><th>Fornecedor</th><th>Veículo</th><th>C.Custo</th><th>Peças (NF)</th><th>Serviços (NF)</th><th>Valor Bruto</th><th>V. c/ Desc.</th>';
+    html += '<th>OS</th><th>Fornecedor</th><th>Veículo</th><th>C.Custo</th>';
+    html += '<th>Peças Bruto</th><th>Serviços Bruto</th><th>Valor Bruto</th>';
+    html += '<th>Desc.</th><th>V. c/ Desc.</th>';
     html += '</tr></thead><tbody>';
 
     selectedOSData.forEach(function(os) {
-      var osDesc = os.total_value * (_clientDiscount / 100);
-      var osComDesc = os.total_value - osDesc;
+      var isSimples = !os.provider_optante_simples;
+      var osPctDesc = os.total_bruto > 0 ? ((os.total_desconto / os.total_bruto) * 100) : 0;
       html += '<tr>';
       html += '<td><strong>#' + escapeHtml(os.code) + '</strong></td>';
       html += '<td><small>' + escapeHtml(os.provider || '-') + '</small>';
-      if (os.provider_optante_simples) html += ' <span class="badge bg-success" style="font-size:0.6em;">Simples (Isento)</span>';
+      if (isSimples) html += ' <span class="badge bg-success" style="font-size:0.6em;">Simples (Isento)</span>';
       else html += ' <span class="badge bg-warning text-dark" style="font-size:0.6em;">Não-Simples</span>';
       html += '</td>';
       html += '<td>' + escapeHtml(os.vehicle_plate) + '</td>';
       html += '<td>' + escapeHtml(os.cost_center || '-') + '</td>';
-      html += '<td>' + money(os.total_parts);
+      html += '<td>' + money(os.bruto_pecas);
       if (os.nf_pecas) html += ' <small class="text-muted">(NF ' + escapeHtml(os.nf_pecas) + ')</small>';
       html += '</td>';
-      html += '<td>' + money(os.total_services);
+      html += '<td>' + money(os.bruto_servicos);
       if (os.nf_servicos) html += ' <small class="text-muted">(NF ' + escapeHtml(os.nf_servicos) + ')</small>';
       html += '</td>';
-      html += '<td>' + money(os.total_value) + '</td>';
-      html += '<td class="text-success fw-bold">' + money(osComDesc) + ' <small class="text-muted">(-' + _clientDiscount.toFixed(0) + '%)</small></td>';
+      html += '<td>' + money(os.total_bruto) + '</td>';
+      html += '<td class="text-danger">- ' + money(os.total_desconto) + ' <small class="text-muted">(' + osPctDesc.toFixed(2).replace('.', ',') + '%)</small></td>';
+      html += '<td class="text-success fw-bold">' + money(os.total_com_desconto) + '</td>';
       html += '</tr>';
 
       // Supplier detail row
       html += '<tr style="background:#f8f9fa; font-size:0.8em;">';
-      html += '<td colspan="8" class="py-1 ps-4 text-muted">';
+      html += '<td colspan="9" class="py-1 ps-4 text-muted">';
       html += '<i class="bi bi-person-vcard me-1"></i>';
       html += '<strong>CNPJ:</strong> ' + escapeHtml(os.provider_cnpj || '-');
-      html += ' &nbsp;|&nbsp; <strong>Regime:</strong> ' + (os.provider_optante_simples ? 'Simples Nacional (Isento de Retenção)' : 'Não-Simples (Retenção Aplicável)');
+      html += ' &nbsp;|&nbsp; <strong>Regime:</strong> ' + (isSimples ? 'Simples Nacional (Isento de Retenção)' : 'Não-Simples (Retenção Aplicável)');
       html += ' &nbsp;|&nbsp; <strong>Contato:</strong> ' + escapeHtml(os.provider_phone || os.provider_email || '-');
       html += '</td></tr>';
     });
 
     html += '<tr class="table-light fw-bold"><td colspan="4" class="text-end">SUBTOTAIS:</td>';
-    html += '<td>' + money(totalParts) + '</td>';
-    html += '<td>' + money(totalServices) + '</td>';
+    html += '<td>' + money(totalBrutoPecas) + '</td>';
+    html += '<td>' + money(totalBrutoServicos) + '</td>';
     html += '<td>' + money(totalBruto) + '</td>';
-    html += '<td class="text-success">' + money(valorLiquido) + '</td></tr>';
+    html += '<td class="text-danger">- ' + money(totalDesconto) + '</td>';
+    html += '<td class="text-success">' + money(totalComDesconto) + '</td></tr>';
     html += '</tbody></table></div>';
 
-    // Resumo Financeiro (Retenções)
+    // Resumo Financeiro
     html += '<div class="card border-0 mb-3" style="background:#f0f0f0;">';
     html += '<div class="card-body">';
     html += '<h6 class="fw-bold mb-3"><i class="bi bi-calculator me-1"></i> Resumo Financeiro</h6>';
@@ -689,11 +752,25 @@ var Faturamento = (function() {
     // Coluna valores
     html += '<div class="col-md-7">';
     html += '<table class="table table-sm table-borderless mb-0">';
-    html += '<tr><td>Valor Bruto</td><td class="text-end fw-bold">' + money(totalBruto) + '</td></tr>';
-    html += '<tr><td class="text-muted">(-) Desconto Contrato (' + _clientDiscount.toFixed(1) + '%)</td><td class="text-end text-danger">- ' + money(descontoContrato) + '</td></tr>';
-    html += '<tr class="border-top"><td class="fw-bold">Valor Líquido</td><td class="text-end fw-bold text-primary">' + money(valorLiquido) + '</td></tr>';
 
-    // Checkbox Aplicar Retenção Fiscal - estilo escuro quando desmarcado
+    // Detalhamento peças
+    html += '<tr><td colspan="2" class="text-muted small fw-bold"><u>Peças</u></td></tr>';
+    html += '<tr><td class="ps-3">Total sem desconto</td><td class="text-end fw-bold">' + money(totalBrutoPecas) + '</td></tr>';
+    html += '<tr><td class="ps-3 text-muted">(-) Desconto (' + pctDesconto.toFixed(2).replace('.', ',') + '%)</td><td class="text-end text-danger">- ' + money(totalDescPecas) + '</td></tr>';
+    html += '<tr><td class="ps-3 fw-bold">Total peças c/ desconto</td><td class="text-end text-success fw-bold">' + money(totalBrutoPecas - totalDescPecas) + '</td></tr>';
+
+    // Detalhamento serviços
+    html += '<tr><td colspan="2" class="text-muted small fw-bold pt-2"><u>Serviços</u></td></tr>';
+    html += '<tr><td class="ps-3">Total sem desconto</td><td class="text-end fw-bold">' + money(totalBrutoServicos) + '</td></tr>';
+    html += '<tr><td class="ps-3 text-muted">(-) Desconto (' + pctDesconto.toFixed(2).replace('.', ',') + '%)</td><td class="text-end text-danger">- ' + money(totalDescServicos) + '</td></tr>';
+    html += '<tr><td class="ps-3 fw-bold">Total serviços c/ desconto</td><td class="text-end text-success fw-bold">' + money(totalBrutoServicos - totalDescServicos) + '</td></tr>';
+
+    // Totais gerais
+    html += '<tr class="border-top"><td class="fw-bold pt-2">Valor Bruto Total</td><td class="text-end fw-bold pt-2">' + money(totalBruto) + '</td></tr>';
+    html += '<tr><td class="text-muted">(-) Desconto Total (' + pctDesconto.toFixed(2).replace('.', ',') + '%)</td><td class="text-end text-danger">- ' + money(totalDesconto) + '</td></tr>';
+    html += '<tr class="border-top"><td class="fw-bold">Valor c/ Desconto</td><td class="text-end fw-bold text-primary">' + money(valorLiquido) + '</td></tr>';
+
+    // Checkbox Aplicar Retenção Fiscal
     var chkChecked = aplicarRetencao ? 'checked' : '';
     var chkStyle = aplicarRetencao ? 'background:#fff3cd; border-color:#ffc107;' : 'background:#343a40; border-color:#343a40; color:#fff;';
     html += '<tr><td colspan="2" class="py-2">';
@@ -703,16 +780,16 @@ var Faturamento = (function() {
     html += '&nbsp; <small class="' + (aplicarRetencao ? 'text-muted' : '') + '">Esfera: ' + escapeHtml(sphereName) + '</small>';
     html += '</div></td></tr>';
 
-    // Retenções detalhadas - somente não-simples
+    // Retenções detalhadas
     if (aplicarRetencao && totalRetNaoSimples > 0) {
       var pctPecas = isFederal ? '5,85%' : '1,20%';
       var pctServ = isFederal ? '9,45%' : '4,80%';
-      var detailFed = isFederal ? 'IR 1,2% + CSLL 1% + PIS 0,65% + Cofins 3%' : 'somente IR';
-      var detailServFed = isFederal ? 'IR 4,8% + CSLL 1% + PIS 0,65% + Cofins 3%' : 'somente IR';
+      var detailPecas = isFederal ? 'IR 1,2% + CSLL 1% + PIS 0,65% + Cofins 3%' : 'somente IR';
+      var detailServ = isFederal ? 'IR 4,8% + CSLL 1% + PIS 0,65% + Cofins 3%' : 'somente IR';
 
       html += '<tr><td class="text-muted ps-3" colspan="2"><small><strong>Não-Simples (' + escapeHtml(sphereName) + '):</strong></small></td></tr>';
-      if (retPecasNaoSimples > 0) html += '<tr><td class="text-muted ps-4">(-) Peças (' + pctPecas + ' - ' + detailFed + ')</td><td class="text-end text-danger">- ' + money(retPecasNaoSimples) + '</td></tr>';
-      if (retServicosNaoSimples > 0) html += '<tr><td class="text-muted ps-4">(-) Serviços (' + pctServ + ' - ' + detailServFed + ')</td><td class="text-end text-danger">- ' + money(retServicosNaoSimples) + '</td></tr>';
+      if (retPecasNaoSimples > 0) html += '<tr><td class="text-muted ps-4">(-) Peças (' + pctPecas + ' - ' + detailPecas + ')</td><td class="text-end text-danger">- ' + money(retPecasNaoSimples) + '</td></tr>';
+      if (retServicosNaoSimples > 0) html += '<tr><td class="text-muted ps-4">(-) Serviços (' + pctServ + ' - ' + detailServ + ')</td><td class="text-end text-danger">- ' + money(retServicosNaoSimples) + '</td></tr>';
       html += '<tr class="border-top"><td class="text-muted fw-bold">Total Retenções</td><td class="text-end text-danger fw-bold">- ' + money(totalRetencoes) + '</td></tr>';
     } else if (!aplicarRetencao) {
       html += '<tr><td colspan="2" class="py-1"><div class="rounded py-1 px-3" style="background:#343a40; color:#fff;"><i class="bi bi-slash-circle me-1"></i>Retenções desabilitadas pelo usuário</div></td></tr>';
