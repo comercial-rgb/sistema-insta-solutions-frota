@@ -73,6 +73,16 @@ module MenuHelper
 			})
 		end
 
+		if policy(:gerencial_report).index?
+			# Relatório Gerencial
+			menu_links.push({
+				opened: is_current_controller?("gerencial_report"),
+				icon: "bi bi-graph-up-arrow",
+				label: "Relatório Gerencial",
+				href: gerencial_report_path
+			})
+		end
+
 		if policy(ProviderServiceType).index?
 			# Tipos de serviços de fornecedor
 			menu_links.push({

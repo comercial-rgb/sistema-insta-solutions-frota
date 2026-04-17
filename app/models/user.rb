@@ -305,6 +305,16 @@
 		!profile.nil? && profile.admin?
 	end
 
+	# Usuário é gerente?
+	def gerente?
+		is_gerente == true
+	end
+
+	# Usuário é admin ou gerente?
+	def admin_or_gerente?
+		admin? || gerente?
+	end
+
 	# Usuário é usuário comum?
 	def user?
 		!profile.nil? && profile.user?

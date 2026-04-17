@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_17_150000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_17_160000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -436,6 +436,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_17_150000) do
     t.date "data_pagamento"
     t.bigint "pago_por_id"
     t.bigint "sub_unit_id"
+    t.string "tipo_valor", default: "bruto", null: false
     t.index ["client_id"], name: "index_faturas_on_client_id"
     t.index ["contract_id"], name: "index_faturas_on_contract_id"
     t.index ["cost_center_id"], name: "index_faturas_on_cost_center_id"

@@ -73,6 +73,16 @@ module MenuHelper
 			})
 		end
 
+		if policy(:gerencial_report).index?
+			# Relatório Gerencial
+			menu_links.push({
+				opened: is_current_controller?("gerencial_report"),
+				icon: "bi bi-graph-up-arrow",
+				label: "Relatório Gerencial",
+				href: gerencial_report_path
+			})
+		end
+
 		if policy(ProviderServiceType).index?
 			# Tipos de serviços de fornecedor
 			menu_links.push({
@@ -150,6 +160,16 @@ module MenuHelper
 				icon: "bi bi-truck",
 				label: Vehicle.model_name.human(count: 2),
 				href: vehicles_path
+			})
+		end
+
+		if policy(MaintenancePlan).index?
+			# Planos de Manutenção
+			menu_links.push({
+				opened: is_current_controller?("maintenance_plans"),
+				icon: "bi bi-clipboard2-pulse",
+				label: "Planos de Manutenção",
+				href: maintenance_plans_path
 			})
 		end
 
@@ -312,6 +332,14 @@ module MenuHelper
 				opened: is_menu_users_provider_opened?,
 				label: User.human_attribute_name(:provider_users),
 				href: users_provider_path
+			})
+		end
+		if policy(User).users_driver?
+			# Motoristas
+			submenus.push({
+				opened: is_menu_users_driver_opened?,
+				label: User.human_attribute_name(:driver_users),
+				href: users_driver_path
 			})
 		end
 		if submenus.length > 0
@@ -609,7 +637,7 @@ module MenuHelper
 	end
 
 	def is_menu_users_opened?
-		return is_menu_users_to_validate_opened? || is_menu_users_admin_opened? || is_menu_users_user_opened? || is_menu_users_manager_opened? || is_menu_users_additional_opened? || is_menu_users_provider_opened?
+		return is_menu_users_to_validate_opened? || is_menu_users_admin_opened? || is_menu_users_user_opened? || is_menu_users_manager_opened? || is_menu_users_additional_opened? || is_menu_users_provider_opened? || is_menu_users_driver_opened?
 	end
 
 	def is_menu_order_services_opened?
@@ -726,6 +754,16 @@ module MenuHelper
 		result = false
 		if is_current_controller?('users')
 			if (is_current_action?("users_provider") || (!@user.nil? && @user.profile_id == Profile::PROVIDER_ID))
+				result = true
+			end
+		end
+		return result
+	end
+
+	def is_menu_users_driver_opened?
+		result = false
+		if is_current_controller?('users')
+			if (is_current_action?("users_driver") || (!@user.nil? && @user.profile_id == Profile::DRIVER_ID))
 				result = true
 			end
 		end

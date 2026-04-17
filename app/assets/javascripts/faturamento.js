@@ -4,6 +4,7 @@ var Faturamento = (function() {
   var _currentPage = 1;
   var _osAbertosData = []; // cached OS data
   var _selectedOS = {};    // { osId: true/false }
+  var _clientDiscount = 0; // client discount percent
 
   // ========== UTILITY FUNCTIONS ==========
 
@@ -301,6 +302,7 @@ var Faturamento = (function() {
       dataType: 'json',
       success: function(data) {
         _osAbertosData = data.results || [];
+        _clientDiscount = data.client_discount || 0;
         btnLimpar.disabled = false;
 
         // Populate cost center filter
@@ -419,11 +421,10 @@ var Faturamento = (function() {
     html += '<th width="40"><input type="checkbox" class="form-check-input" id="checkAll" onchange="Faturamento.toggleSelectAll()"></th>';
     html += '<th class="text-uppercase small text-muted">OS</th>';
     html += '<th class="text-uppercase small text-muted">Veículo</th>';
-    html += '<th class="text-uppercase small text-muted">Centro de Custo</th>';
-    html += '<th class="text-uppercase small text-muted">Subunidade</th>';
+    html += '<th class="text-uppercase small text-muted">C.Custo</th>';
     html += '<th class="text-uppercase small text-muted">Fornecedor</th>';
-    html += '<th class="text-uppercase small text-muted">Peças</th>';
-    html += '<th class="text-uppercase small text-muted">Serviços</th>';
+    html += '<th class="text-uppercase small text-muted">Peças (NF)</th>';
+    html += '<th class="text-uppercase small text-muted">Serviços (NF)</th>';
     html += '<th class="text-uppercase small text-muted">Total</th>';
     html += '<th class="text-uppercase small text-muted">Data</th>';
     html += '</tr></thead><tbody>';
@@ -435,10 +436,9 @@ var Faturamento = (function() {
       html += '<td><strong>#' + escapeHtml(os.code) + '</strong></td>';
       html += '<td>' + escapeHtml(os.vehicle_plate) + (os.vehicle_model ? '<br><small class="text-muted">' + escapeHtml(os.vehicle_model) + '</small>' : '') + '</td>';
       html += '<td>' + escapeHtml(os.cost_center || '-') + '</td>';
-      html += '<td>' + escapeHtml(os.sub_unit || '-') + '</td>';
-      html += '<td>' + escapeHtml(os.provider || '-') + '</td>';
-      html += '<td>' + money(os.total_parts) + '</td>';
-      html += '<td>' + money(os.total_services) + '</td>';
+      html += '<td><small>' + escapeHtml(os.provider || '-') + '</small></td>';
+      html += '<td>' + money(os.total_parts) + (os.nf_pecas ? '<br><small class="text-muted">NF ' + escapeHtml(os.nf_pecas) + '</small>' : '') + '</td>';
+      html += '<td>' + money(os.total_services) + (os.nf_servicos ? '<br><small class="text-muted">NF ' + escapeHtml(os.nf_servicos) + '</small>' : '') + '</td>';
       html += '<td><strong>' + money(os.total_value) + '</strong></td>';
       html += '<td>' + escapeHtml(os.created_at || '-') + '</td>';
       html += '</tr>';
@@ -502,8 +502,18 @@ var Faturamento = (function() {
     if (ids.length === 0) return;
 
     var selectedOSData = _osAbertosData.filter(function(os) { return ids.indexOf(os.id) >= 0; });
-    var totalBruto = 0;
-    selectedOSData.forEach(function(os) { totalBruto += os.total_value; });
+    var totalParts = 0, totalServices = 0, totalBruto = 0;
+    selectedOSData.forEach(function(os) {
+      totalParts += os.total_parts;
+      totalServices += os.total_services;
+      totalBruto += os.total_value;
+    });
+
+    var descontoContrato = totalBruto * (_clientDiscount / 100);
+    var valorLiquido = totalBruto - descontoContrato;
+    // Estimativa de retenções (será recalculada pelo servidor)
+    var retencoes = valorLiquido * 0.0585; // Estimativa média
+    var valorDevido = valorLiquido - retencoes;
 
     var clienteId = document.getElementById('fAbertoCliente').value;
     var clienteNome = document.getElementById('fAbertoCliente').selectedOptions[0].textContent;
@@ -513,16 +523,21 @@ var Faturamento = (function() {
     html += '<div class="card-header bg-primary text-white"><h6 class="mb-0"><i class="bi bi-file-earmark-text me-2"></i>Prévia da Fatura</h6></div>';
     html += '<div class="card-body">';
 
+    // Header info
     html += '<div class="row mb-3">';
-    html += '<div class="col-md-6"><strong>Cliente:</strong> ' + escapeHtml(clienteNome) + '</div>';
-    html += '<div class="col-md-3"><strong>OS Selecionadas:</strong> ' + ids.length + '</div>';
-    html += '<div class="col-md-3"><strong>Data Emissão:</strong> ' + new Date().toLocaleDateString('pt-BR') + '</div>';
+    html += '<div class="col-md-4"><small class="text-muted d-block">Cliente</small><strong>' + escapeHtml(clienteNome) + '</strong></div>';
+    html += '<div class="col-md-2"><small class="text-muted d-block">OS Selecionadas</small><strong>' + ids.length + '</strong></div>';
+    html += '<div class="col-md-2"><small class="text-muted d-block">Data Emissão</small><strong>' + new Date().toLocaleDateString('pt-BR') + '</strong></div>';
+    html += '<div class="col-md-2"><small class="text-muted d-block">Desconto Contrato</small><strong>' + _clientDiscount.toFixed(2) + '%</strong></div>';
+    html += '<div class="col-md-2"><small class="text-muted d-block">Vencimento</small><strong>';
+    var venc = new Date(); venc.setDate(venc.getDate() + 30);
+    html += venc.toLocaleDateString('pt-BR') + '</strong></div>';
     html += '</div>';
 
-    // Items table
-    html += '<div class="table-responsive"><table class="table table-sm table-bordered">';
+    // Items table with fornecedor and NFs
+    html += '<div class="table-responsive"><table class="table table-sm table-bordered mb-0">';
     html += '<thead class="table-light"><tr>';
-    html += '<th>OS</th><th>Veículo</th><th>C.Custo</th><th>Peças</th><th>Serviços</th><th>Total</th>';
+    html += '<th>OS</th><th>Veículo</th><th>C.Custo</th><th>Fornecedor</th><th>Peças (NF)</th><th>Serviços (NF)</th><th>Total</th>';
     html += '</tr></thead><tbody>';
 
     selectedOSData.forEach(function(os) {
@@ -530,27 +545,57 @@ var Faturamento = (function() {
       html += '<td>#' + escapeHtml(os.code) + '</td>';
       html += '<td>' + escapeHtml(os.vehicle_plate) + '</td>';
       html += '<td>' + escapeHtml(os.cost_center || '-') + '</td>';
-      html += '<td>' + money(os.total_parts) + '</td>';
-      html += '<td>' + money(os.total_services) + '</td>';
+      html += '<td><small>' + escapeHtml(os.provider || '-') + '</small></td>';
+      html += '<td>' + money(os.total_parts);
+      if (os.nf_pecas) html += ' <small class="text-muted">(NF ' + escapeHtml(os.nf_pecas) + ')</small>';
+      html += '</td>';
+      html += '<td>' + money(os.total_services);
+      if (os.nf_servicos) html += ' <small class="text-muted">(NF ' + escapeHtml(os.nf_servicos) + ')</small>';
+      html += '</td>';
       html += '<td><strong>' + money(os.total_value) + '</strong></td>';
       html += '</tr>';
     });
 
-    html += '<tr class="table-warning"><td colspan="5" class="text-end fw-bold">TOTAL BRUTO:</td>';
+    html += '<tr class="table-light"><td colspan="4" class="text-end fw-bold">SUBTOTAIS:</td>';
+    html += '<td class="fw-bold">' + money(totalParts) + '</td>';
+    html += '<td class="fw-bold">' + money(totalServices) + '</td>';
     html += '<td class="fw-bold">' + money(totalBruto) + '</td></tr>';
     html += '</tbody></table></div>';
 
+    // Financial Summary Card
+    html += '<div class="card bg-light border-0 mt-3 mb-3">';
+    html += '<div class="card-body">';
+    html += '<h6 class="fw-bold mb-3"><i class="bi bi-calculator me-1"></i> Resumo Financeiro</h6>';
+    html += '<div class="row">';
+
+    // Left column - values
+    html += '<div class="col-md-6">';
+    html += '<table class="table table-sm table-borderless mb-0">';
+    html += '<tr><td class="text-muted">Valor Bruto (Peças + Serviços):</td><td class="text-end fw-bold">' + money(totalBruto) + '</td></tr>';
+    html += '<tr><td class="text-muted">Desconto Contrato (' + _clientDiscount.toFixed(2) + '%):</td><td class="text-end text-danger">- ' + money(descontoContrato) + '</td></tr>';
+    html += '<tr class="border-top"><td class="fw-bold">Valor Líquido:</td><td class="text-end fw-bold text-primary">' + money(valorLiquido) + '</td></tr>';
+    html += '<tr><td class="text-muted">Retenções (estimativa):</td><td class="text-end text-warning">- ' + money(retencoes) + '</td></tr>';
+    html += '<tr class="border-top"><td class="fw-bold">Valor Devido (estimado):</td><td class="text-end fw-bold text-success">' + money(valorDevido) + '</td></tr>';
+    html += '</table>';
+    html += '</div>';
+
+    // Right column - info texts
+    html += '<div class="col-md-6">';
+    html += '<div class="alert alert-info py-2 px-3 mb-2 small"><i class="bi bi-info-circle me-1"></i><strong>Desconto Contrato:</strong> Percentual de desconto previsto no contrato do cliente aplicado sobre o valor bruto.</div>';
+    html += '<div class="alert alert-warning py-2 px-3 mb-2 small"><i class="bi bi-info-circle me-1"></i><strong>Retenções:</strong> IR, PIS, COFINS e CSLL calculados conforme esfera do cliente (Federal/Estadual/Municipal) e regime do fornecedor. Valores finais serão calculados pelo sistema.</div>';
+    html += '<div class="alert alert-success py-2 px-3 mb-0 small"><i class="bi bi-info-circle me-1"></i><strong>Valor Devido:</strong> Valor final após desconto do contrato e retenções tributárias. O valor exato será definido após confirmação.</div>';
+    html += '</div>';
+
+    html += '</div></div></div>';
+
     // Tipo de valor (bruto ou líquido)
-    html += '<div class="row mb-3 mt-3">';
+    html += '<div class="row mb-3">';
     html += '<div class="col-md-4">';
     html += '<label class="form-label fw-bold">Tipo de Valor da Fatura</label>';
     html += '<select class="form-select" id="previaTipoValor">';
     html += '<option value="bruto" selected>Valor Bruto (antes do desconto)</option>';
     html += '<option value="liquido">Valor Líquido (após desconto)</option>';
     html += '</select>';
-    html += '</div>';
-    html += '<div class="col-md-8 d-flex align-items-end">';
-    html += '<small class="text-muted"><i class="bi bi-info-circle me-1"></i>Bruto: valor total sem descontos. Líquido: valor após desconto do cliente.</small>';
     html += '</div>';
     html += '</div>';
 

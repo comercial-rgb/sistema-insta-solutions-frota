@@ -311,6 +311,10 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
 	# Relatórios Personalizados
 	get 'custom_reports', :to => 'custom_reports#index', :as => 'custom_reports'
 
+	# Relatório Gerencial
+	get 'gerencial_report', :to => 'gerencial_report#index', :as => 'gerencial_report'
+	get 'gerencial_report/export', :to => 'gerencial_report#export', :as => 'gerencial_report_export'
+
 	resources :order_services
 		get 'order_services/:id/print_no_values', to: 'order_services#print_no_values', as: 'print_no_values_order_service'
 		get 'order_services/:id/print_os', to: 'order_services#print_os', as: 'print_os_order_service'

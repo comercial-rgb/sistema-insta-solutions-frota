@@ -259,6 +259,11 @@ class FaturamentoController < ApplicationController
       proposal = find_approved_proposal(os)
       next nil unless proposal
 
+      # NF numbers from proposal invoices
+      invoices = proposal.order_service_invoices.to_a
+      nf_pecas = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }.map(&:number).compact.join(', ')
+      nf_servicos = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }.map(&:number).compact.join(', ')
+
       {
         id: os.id,
         code: os.code,
@@ -270,15 +275,21 @@ class FaturamentoController < ApplicationController
         total_parts: os.total_parts_value.to_f,
         total_services: os.total_services_value.to_f,
         total_value: proposal.total_value.to_f,
+        nf_pecas: nf_pecas,
+        nf_servicos: nf_servicos,
         status: os.order_service_status&.name,
         created_at: os.created_at&.strftime('%d/%m/%Y')
       }
     end.compact
 
+    # Client discount info
+    client = User.find_by(id: client_id)
+    client_discount = client&.discount_percent.to_f
+
     # Cost centers and sub_units for this client
     client_cost_centers = CostCenter.where(client_id: client_id).order(:name).map { |cc| { id: cc.id, name: cc.name } }
 
-    render json: { results: results, cost_centers: client_cost_centers }
+    render json: { results: results, cost_centers: client_cost_centers, client_discount: client_discount }
   end
 
   # JSON: Sub units for a cost center
