@@ -284,18 +284,21 @@ class FaturamentoController < ApplicationController
       return
     end
 
-    # Somente OS que estão ATUALMENTE no status Autorizada (ID 5)
+    # OS não faturadas que já passaram por Autorizada (status atual >= Autorizada, exceto Cancelada)
+    # Inclui: Autorizada (5), Ag. Pagamento (6), Paga (7)
+    post_autorizada_statuses = [
+      OrderServiceStatus::AUTORIZADA_ID,
+      OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID,
+      OrderServiceStatus::PAGA_ID
+    ]
     os_scope = OrderService.not_invoiced
                            .where(client_id: client_id)
-                           .where(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID)
+                           .where(order_service_status_id: post_autorizada_statuses)
                            .includes(:vehicle, :order_service_proposals, :cost_center, :sub_unit)
 
-    # Filtro por período de apuração (data de criação da OS)
-    if params[:data_inicio].present?
-      os_scope = os_scope.where('order_services.created_at >= ?', Date.parse(params[:data_inicio]).beginning_of_day)
-    end
-    if params[:data_fim].present?
-      os_scope = os_scope.where('order_services.created_at <= ?', Date.parse(params[:data_fim]).end_of_day)
+    # Filtro por período: busca OS que foram AUTORIZADAS naquele período (via audits)
+    if params[:data_inicio].present? || params[:data_fim].present?
+      os_scope = os_scope.approved_in_period(params[:data_inicio], params[:data_fim])
     end
 
     os_scope = os_scope.by_cost_center_id(params[:cost_center_id]) if params[:cost_center_id].present?
