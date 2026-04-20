@@ -112,30 +112,33 @@ breadcrumbs = [
         <div class="card-body">
           <h6 class="text-uppercase small text-muted mb-2">
             <i class="bi bi-cash-stack"></i> Resumo Financeiro
-            <% if @fatura.respond_to?(:tipo_valor) && @fatura.tipo_valor.present? %>
-              <span class="badge bg-<%= @fatura.tipo_valor == 'liquido' ? 'info' : 'success' %> ms-1">
-                <%= @fatura.tipo_valor == 'liquido' ? 'Valor Líquido' : 'Valor Bruto' %>
-              </span>
-            <% end %>
           </h6>
-          <div style="line-height:1.8">
-            <strong class="text-success">Valor Bruto: <%= number_to_currency(@fatura.valor_bruto, unit: 'R$ ') %></strong><br>
-            <% if @fatura.desconto.to_f > 0 %>
-              <span class="text-info">
-                Desconto: -<%= number_to_currency(@fatura.desconto, unit: 'R$ ') %>
-              </span><br>
-            <% end %>
-            <span class="text-warning">
-              Retenções: -<%= number_to_currency(@fatura.total_retencoes, unit: 'R$ ') %>
-            </span><br>
-            <span class="text-danger">
-              Taxa Admin: -<%= number_to_currency(@fatura.taxa_administracao, unit: 'R$ ') %>
-            </span><br>
-            <hr class="my-1">
-            <strong class="text-primary">
-              Valor Líquido: <%= number_to_currency(@fatura.valor_liquido, unit: 'R$ ') %>
-            </strong>
-          </div>
+          <table class="table table-sm table-borderless mb-0" style="line-height:1.6">
+            <tbody>
+              <tr>
+                <td class="text-muted">Valor Bruto:</td>
+                <td class="text-end fw-bold text-success"><%= number_to_currency(@fatura.valor_bruto, unit: 'R$ ') %></td>
+              </tr>
+              <% if @fatura.desconto.to_f > 0 %>
+                <tr>
+                  <td class="text-muted">(-) Desconto:</td>
+                  <td class="text-end text-info">-<%= number_to_currency(@fatura.desconto, unit: 'R$ ') %></td>
+                </tr>
+              <% end %>
+              <tr>
+                <td class="text-muted">(-) Retenções:</td>
+                <td class="text-end text-warning">-<%= number_to_currency(@fatura.total_retencoes, unit: 'R$ ') %></td>
+              </tr>
+              <tr>
+                <td class="text-muted">(-) Taxa Admin:</td>
+                <td class="text-end text-danger">-<%= number_to_currency(@fatura.taxa_administracao, unit: 'R$ ') %></td>
+              </tr>
+              <tr class="border-top">
+                <td class="fw-bold text-primary">Valor Líquido:</td>
+                <td class="text-end fw-bold text-primary"><%= number_to_currency(@fatura.valor_liquido, unit: 'R$ ') %></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

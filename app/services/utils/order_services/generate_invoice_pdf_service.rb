@@ -311,22 +311,24 @@ module Utils
 
         pct_desc = @total_bruto > 0 ? ((@total_desconto / @total_bruto) * 100).round(2) : 0
 
+        @total_retencoes_calc = @providers_detail.sum { |p| p[:retencao] }.round(2)
+        valor_devido = @total_com_desc
+
         data = [
-          ['', 'Pe\u00e7as (NF)', 'Servi\u00e7os (NF)', 'V. Bruto', 'Total'].map { |h| { content: h, font_style: :bold } },
-          ['Valor sem desconto', money(@total_pecas), money(@total_servicos), money(@total_bruto), money(@total_bruto)],
-          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", '-', '-', "-#{money(@total_desconto)}", "-#{money(@total_desconto)}"],
-          [{ content: 'Valor c/ Desconto', font_style: :bold },
-           { content: money(@total_pecas), font_style: :bold },
-           { content: money(@total_servicos), font_style: :bold },
-           { content: money(@total_com_desc), font_style: :bold },
-           { content: money(@total_com_desc), font_style: :bold }]
+          [{ content: "Descri\u00e7\u00e3o", font_style: :bold }, { content: 'Valor', font_style: :bold }],
+          ["Total Pe\u00e7as (NF)", { content: money(@total_pecas), align: :right }],
+          ["Total Servi\u00e7os (NF)", { content: money(@total_servicos), align: :right }],
+          [{ content: 'Valor Bruto (s/ desconto)', font_style: :bold }, { content: money(@total_bruto), align: :right, font_style: :bold }],
+          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", { content: "-#{money(@total_desconto)}", align: :right, text_color: RED }],
+          [{ content: '= Valor com Desconto', font_style: :bold }, { content: money(@total_com_desc), align: :right, font_style: :bold }],
+          ["(-) Reten\u00e7\u00f5es Fiscais (informativo)", { content: "-#{money(@total_retencoes_calc)}", align: :right, text_color: RED }],
+          [{ content: '= VALOR DEVIDO', font_style: :bold }, { content: money(valor_devido), align: :right, font_style: :bold }]
         ]
 
-        @pdf.table(data, width: @pdf.bounds.width * 0.65, position: :right,
-                   cell_style: { size: 8, padding: [3, 5], borders: [:bottom], border_color: 'EEEEEE' }) do |t|
+        @pdf.table(data, width: @pdf.bounds.width * 0.55, position: :right,
+                   cell_style: { size: 8.5, padding: [3, 6], borders: [:bottom], border_color: 'EEEEEE' }) do |t|
           t.row(0).background_color = HEADER_BG
-          t.columns(1..4).align = :right
-          t.row(2).text_color = RED
+          t.row(-1).background_color = 'E8EEF8'
         end
 
         @pdf.move_down 8

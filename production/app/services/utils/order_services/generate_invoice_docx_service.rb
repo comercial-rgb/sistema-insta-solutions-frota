@@ -7,7 +7,7 @@ require 'fileutils'
 module Utils
   module OrderServices
     class GenerateInvoiceDocxService
-      INSTA_RAZAO = 'InstaSolutions Produtos e Gestao Empresarial LTDA'
+      INSTA_RAZAO = 'InstaSolutions Produtos e Gestão Empresarial LTDA'
       INSTA_CNPJ = '47.611.398/0001-66'
       INSTA_END = 'Alameda Rio Negro 1030, Alphaville Industrial, Barueri - SP'
       INSTA_TEL = '(11) 3336-6941'
@@ -17,7 +17,7 @@ module Utils
           @fatura = order_services_or_fatura
           @client = @fatura.client
           @items = @fatura.fatura_itens.includes(
-            order_service: [:vehicle, :cost_center, :sub_unit,
+            order_service: [:vehicle, :cost_center, :sub_unit, :commitment, :commitment_parts, :commitment_services,
               { order_service_proposals: [:provider, :order_service_invoices] }]
           )
           @order_services = nil
@@ -84,7 +84,7 @@ module Utils
           servicos_val = nf_servicos.sum(&:value).to_f
           next if pecas_val == 0 && servicos_val == 0
 
-          bruto = pecas_val + servicos_val
+          bruto = proposal.total_value_without_discount.to_f
           desc_val = (bruto * client_discount_pct).to_f.round(2)
           com_desc = bruto - desc_val
 
@@ -132,14 +132,15 @@ module Utils
         body_xml = ''
 
         # === HEADER: InstaSolutions ===
-        body_xml << wp_heading('Fatura Gestao de Frotas', 18, align: 'center', color: '251C59')
+        body_xml << wp_heading('Fatura Gestão de Frotas', 18, align: 'center', color: '251C59')
         body_xml << wp_empty
+        body_xml << wp_heading('Dados Gerenciadora', 12, color: '251C59')
 
         insta_rows = [
-          ['Razao Social:', INSTA_RAZAO, 'CNPJ:', INSTA_CNPJ],
-          ['Endereco:', INSTA_END, 'Telefone:', INSTA_TEL]
+          ['Razão Social:', INSTA_RAZAO, 'CNPJ:', INSTA_CNPJ],
+          ['Endereço:', INSTA_END, 'Telefone:', INSTA_TEL]
         ]
-        body_xml << wp_table(insta_rows, [1200, 5000, 1100, 2100], font_size: 18, shd_all: 'F5F5F5')
+        body_xml << wp_table(insta_rows, [2200, 7500, 1600, 4400], font_size: 18, shd_all: 'F5F5F5', bold_cols: [0, 2])
         body_xml << wp_empty
 
         split_txt = case @invoice_split
@@ -148,7 +149,7 @@ module Utils
                     else ''
                     end
         body_xml << wp_para("N\u00B0 #{@fatura.numero}#{split_txt}", 14, align: 'center', bold: true, color: '005BED')
-        body_xml << wp_para("Emissao: #{fmt_date(@fatura.data_emissao)}  |  Vencimento: #{fmt_date(@fatura.data_vencimento)}  |  Status: #{@fatura.status.upcase}", 10, align: 'center')
+        body_xml << wp_para("Emissão: #{fmt_date(@fatura.data_emissao)}  |  Vencimento: #{fmt_date(@fatura.data_vencimento)}  |  Status: #{@fatura.status.upcase}", 10, align: 'center')
         body_xml << wp_hr
 
         # === CLIENTE / CONTRATANTE ===
@@ -163,20 +164,56 @@ module Utils
         client_email = @client&.email || '-'
 
         client_rows = [
-          ['Razao Social:', client_name, 'CNPJ:', @client&.cnpj || '-'],
-          ['Endereco:', "#{client_address} - #{client_city_uf}", 'Esfera:', sphere_name],
+          ['Razão Social:', client_name, 'CNPJ:', @client&.cnpj || '-'],
+          ['Endereço:', "#{client_address} - #{client_city_uf}", 'Esfera:', sphere_name],
           ['Desconto Contrato:', "#{fmt_pct(@client&.discount_percent)}%", 'Contatos:', "#{client_phone} / #{client_email}"]
         ]
         if @fatura.contract&.number
           client_rows << ['Contrato:', @fatura.contract.number, 'Centro de Custo:', @fatura.cost_center&.name || '-']
         end
-        body_xml << wp_table(client_rows, [1600, 4200, 1600, 2000], font_size: 18, shd_all: 'F8F8FF')
+        body_xml << wp_table(client_rows, [2400, 6800, 2000, 4500], font_size: 18, shd_all: 'F8F8FF', bold_cols: [0, 2])
+        body_xml << wp_empty
+
+        # === CONTRATO / EMPENHOS / SALDO ===
+        if @fatura.contract
+          contract = @fatura.contract
+          saldo_total = contract.respond_to?(:get_total_value) ? contract.get_total_value.to_f : contract.total_value.to_f
+          saldo_usado = contract.respond_to?(:get_used_value) ? contract.get_used_value.to_f : 0
+          saldo_disponivel = contract.respond_to?(:get_disponible_value) ? contract.get_disponible_value.to_f : (saldo_total - saldo_usado)
+
+          body_xml << wp_heading('Contrato / Empenhos', 13, color: '251C59')
+          contrato_rows = [
+            ['Contrato N\u00ba:', contract.number || '-', 'Valor Total:', money(saldo_total)],
+            ['Saldo Consumido:', money(saldo_usado), 'Saldo Dispon\u00edvel:', money(saldo_disponivel)]
+          ]
+          body_xml << wp_table(contrato_rows, [2400, 5400, 2500, 5400], font_size: 18, shd_all: 'F0F7FF', bold_cols: [0, 2])
+
+          # Empenhos vinculados
+          empenhos = @items.map { |i| i.order_service }.compact.flat_map { |os|
+            [os.commitment, os.commitment_parts, os.commitment_services].compact
+          }.uniq(&:id)
+
+          if empenhos.any?
+            body_xml << wp_empty
+            emp_header = ['Empenho N\u00ba', 'Saldo Inicial', 'Consumido', 'Restante']
+            emp_rows = [emp_header]
+            empenhos.each do |emp|
+              saldo_ini = Commitment.respond_to?(:sum_budget_value) ? Commitment.sum_budget_value(emp).to_f : emp.commitment_value.to_f
+              consumido = Commitment.respond_to?(:get_total_already_consumed_value) ? Commitment.get_total_already_consumed_value(emp).to_f : 0
+              restante = emp.respond_to?(:get_available_balance) ? emp.get_available_balance.to_f : (saldo_ini - consumido)
+              emp_rows << [emp.commitment_number || '-', money(saldo_ini), money(consumido), money(restante)]
+            end
+            body_xml << wp_table(emp_rows, [4300, 3800, 3800, 3800], header_row: true, font_size: 18)
+          end
+          body_xml << wp_empty
+        end
+
         body_xml << wp_hr
 
         # === ITENS DA FATURA ===
         body_xml << wp_heading('Itens da Fatura', 13, color: '251C59')
 
-        item_header = ['OS', 'Fornecedor', 'Veiculo', 'C.Custo', 'NF Pecas', 'Vl. Pecas', 'NF Servicos', 'Vl. Servicos', 'V.Bruto', 'Desc.', 'V.c/Desc.']
+        item_header = ['OS', 'Fornecedor', 'Veículo', 'C.Custo', 'NF Peças', 'Vl. Peças', 'NF Serviços', 'Vl. Serviços', 'V.Bruto', 'Desc.', 'V.c/Desc.']
         item_rows = [item_header]
 
         os_rows.each do |r|
@@ -187,7 +224,7 @@ module Utils
             r[:nf_servicos].presence || '-', money(r[:servicos]),
             money(r[:bruto]), "-#{money(r[:desconto])}", money(r[:com_desc])
           ]
-          regime_txt = r[:is_simples] ? 'Optante Simples (Isento)' : "Nao Optante - Ret. Pecas #{fmt_pct(r[:pct_pecas_ret])}% / Servicos #{fmt_pct(r[:pct_serv_ret])}% = #{money(r[:ret])}"
+          regime_txt = r[:is_simples] ? 'Optante Simples (Isento)' : "Não Optante - Ret. Peças #{fmt_pct(r[:pct_pecas_ret])}% / Serviços #{fmt_pct(r[:pct_serv_ret])}% = #{money(r[:ret])}"
           item_rows << :sub_row
           item_rows << { sub: true, text: "CNPJ: #{r[:provider_cnpj]}  |  #{regime_txt}" }
         end
@@ -198,22 +235,24 @@ module Utils
           money(total_bruto), "-#{money(total_desconto)}", money(total_com_desc)
         ]
 
-        col_w = [550, 1400, 650, 850, 750, 850, 750, 900, 750, 750, 750]
+        col_w = [1000, 2550, 1070, 1570, 1280, 1430, 1280, 1500, 1350, 1350, 1320]
         body_xml << wp_items_table(item_rows, col_w)
         body_xml << wp_empty
 
         # === RESUMO FINANCEIRO ===
         body_xml << wp_heading('Resumo Financeiro', 13, color: '251C59')
-        desc_pecas = total_pecas * (@client&.discount_percent || 0).to_d / 100
-        desc_servicos = total_servicos * (@client&.discount_percent || 0).to_d / 100
 
         fin_rows = [
-          ['', 'Pecas', 'Servicos', 'Total'],
-          ['Valor sem desconto', money(total_pecas), money(total_servicos), money(total_bruto)],
-          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", "-#{money(desc_pecas)}", "-#{money(desc_servicos)}", "-#{money(total_desconto)}"],
-          ['Valor c/ Desconto', money(total_pecas - desc_pecas), money(total_servicos - desc_servicos), money(total_com_desc)]
+          ['Descrição', 'Valor'],
+          ['Total Peças (NF)', money(total_pecas)],
+          ['Total Serviços (NF)', money(total_servicos)],
+          ['Valor Bruto (s/ desconto)', money(total_bruto)],
+          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", "-#{money(total_desconto)}"],
+          ['= Valor com Desconto', money(total_com_desc)],
+          ['(-) Retenções Fiscais (informativo)', "-#{money(total_ret)}"],
+          ['= VALOR DEVIDO', money(valor_devido)]
         ]
-        body_xml << wp_table(fin_rows, [3000, 2000, 2000, 2400], header_row: true, font_size: 19)
+        body_xml << wp_table(fin_rows, [10500, 5200], header_row: true, font_size: 20, bold_cols: [0])
         body_xml << wp_empty
 
         # === RETENCOES FISCAIS (informativo) ===
@@ -223,20 +262,20 @@ module Utils
           ret_pecas_total = providers_detail.reject { |p| p[:is_simples] }.sum { |p| is_federal ? p[:pecas] * 0.0585 : p[:pecas] * 0.012 }
           ret_servicos_total = providers_detail.reject { |p| p[:is_simples] }.sum { |p| is_federal ? p[:servicos] * 0.0945 : p[:servicos] * 0.048 }
 
-          body_xml << wp_heading("Retencoes Fiscais - #{sphere_name} (informativo, nao deduzido do valor devido)", 11, color: 'C57200')
+          body_xml << wp_heading("Retenções Fiscais - #{sphere_name}", 11, color: 'C57200')
 
           ret_summ = [
-            ["Pecas Nao-Simples (#{pct_p_str})", "-#{money(ret_pecas_total)}"],
-            ["Servicos Nao-Simples (#{pct_s_str})", "-#{money(ret_servicos_total)}"],
-            ['Total Retencoes', "-#{money(total_ret)}"]
+            ["Peças Não-Simples (#{pct_p_str})", "-#{money(ret_pecas_total)}"],
+            ["Serviços Não-Simples (#{pct_s_str})", "-#{money(ret_servicos_total)}"],
+            ['Total Retenções', "-#{money(total_ret)}"]
           ]
-          body_xml << wp_table(ret_summ, [6500, 2900], font_size: 18)
+          body_xml << wp_table(ret_summ, [10700, 5000], font_size: 18)
           body_xml << wp_empty
 
           non_simples = providers_detail.reject { |p| p[:is_simples] }
           if non_simples.any?
-            body_xml << wp_heading('Detalhamento de Retencao por Fornecedor', 11, color: '251C59')
-            det_header = ['OS', 'Fornecedor', 'CNPJ', '% Pecas', 'Ret. Pecas', '% Servicos', 'Ret. Servicos', 'Total Ret.']
+            body_xml << wp_heading('Detalhamento de Retenção por Fornecedor', 11, color: '251C59')
+            det_header = ['OS', 'Fornecedor', 'CNPJ', '% Peças', 'Ret. Peças', '% Serviços', 'Ret. Serviços', 'Total Ret.']
             det_rows = [det_header]
             non_simples.each do |p|
               ret_p = is_federal ? p[:pecas] * 0.0585 : p[:pecas] * 0.012
@@ -249,23 +288,20 @@ module Utils
               ]
             end
             det_rows << ['', '', 'TOTAL:', '', "-#{money(ret_pecas_total)}", '', "-#{money(ret_servicos_total)}", "-#{money(total_ret)}"]
-            body_xml << wp_table(det_rows, [550, 1700, 1300, 700, 1000, 800, 1050, 1000], header_row: true, font_size: 17)
+            body_xml << wp_table(det_rows, [1100, 3450, 2500, 1400, 1900, 1550, 1900, 1900], header_row: true, font_size: 17)
             body_xml << wp_empty
           end
         else
-          body_xml << wp_para('Todos os fornecedores sao Simples Nacional - isento de retencao fiscal.', 10, color: '28A745')
+          body_xml << wp_para('Todos os fornecedores são Simples Nacional - isento de retenção fiscal.', 10, color: '28A745')
           body_xml << wp_empty
         end
 
         # === VALOR DEVIDO (antes da retencao) ===
         body_xml << wp_shaded_bar("VALOR DEVIDO: #{money(valor_devido)}")
-        if total_ret > 0
-          body_xml << wp_para("* Retencao fiscal de #{money(total_ret)} informada acima para conhecimento, nao deduzida deste valor.", 9, color: '666666')
-        end
         body_xml << wp_empty
 
         if @fatura.observacoes.present?
-          body_xml << wp_heading('Observacoes', 11, color: '666666')
+          body_xml << wp_heading('Observações', 11, color: '666666')
           body_xml << wp_para(@fatura.observacoes, 10)
         end
 
@@ -451,7 +487,7 @@ module Utils
         '<w:t xml:space="preserve">' + esc(text) + '</w:t></w:r></w:p>'
       end
 
-      def wp_table(rows, col_widths, header_row: false, font_size: 18, shd_all: nil)
+      def wp_table(rows, col_widths, header_row: false, font_size: 18, shd_all: nil, bold_cols: [])
         total_w = col_widths.sum
         xml = '<w:tbl><w:tblPr>' \
               '<w:tblStyle w:val="TableGrid"/>' \
@@ -487,7 +523,7 @@ module Utils
                    end
 
             shd = fill ? '<w:shd w:val="clear" w:color="auto" w:fill="' + fill + '"/>' : ''
-            bold_tag = (is_hdr || (is_last && header_row)) ? '<w:b/>' : ''
+            bold_tag = (is_hdr || (is_last && header_row) || bold_cols.include?(ci)) ? '<w:b/>' : ''
             fsz = font_size.to_s
             w = col_widths[ci] || 1000
 
@@ -534,7 +570,7 @@ module Utils
             xml += '<w:gridSpan w:val="' + ncols.to_s + '"/>'
             xml += '<w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/></w:tcPr>'
             xml += '<w:p><w:pPr><w:spacing w:after="5" w:line="240" w:lineRule="auto"/><w:ind w:left="200"/></w:pPr>'
-            xml += '<w:r><w:rPr><w:i/><w:sz w:val="15"/><w:szCs w:val="15"/><w:color w:val="666666"/></w:rPr>'
+            xml += '<w:r><w:rPr><w:i/><w:sz w:val="20"/><w:szCs w:val="20"/><w:color w:val="666666"/></w:rPr>'
             xml += '<w:t xml:space="preserve">' + esc(row[:text]) + '</w:t></w:r></w:p></w:tc>'
             xml += '</w:tr>'
             next

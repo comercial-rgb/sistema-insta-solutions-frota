@@ -140,7 +140,7 @@ module Utils
           ['Razão Social:', INSTA_RAZAO, 'CNPJ:', INSTA_CNPJ],
           ['Endereço:', INSTA_END, 'Telefone:', INSTA_TEL]
         ]
-        body_xml << wp_table(insta_rows, [1600, 5800, 1200, 2400], font_size: 18, shd_all: 'F5F5F5', bold_cols: [0, 2])
+        body_xml << wp_table(insta_rows, [2200, 7500, 1600, 4400], font_size: 18, shd_all: 'F5F5F5', bold_cols: [0, 2])
         body_xml << wp_empty
 
         split_txt = case @invoice_split
@@ -171,7 +171,7 @@ module Utils
         if @fatura.contract&.number
           client_rows << ['Contrato:', @fatura.contract.number, 'Centro de Custo:', @fatura.cost_center&.name || '-']
         end
-        body_xml << wp_table(client_rows, [1800, 5000, 1600, 2600], font_size: 18, shd_all: 'F8F8FF', bold_cols: [0, 2])
+        body_xml << wp_table(client_rows, [2400, 6800, 2000, 4500], font_size: 18, shd_all: 'F8F8FF', bold_cols: [0, 2])
         body_xml << wp_empty
 
         # === CONTRATO / EMPENHOS / SALDO ===
@@ -186,7 +186,7 @@ module Utils
             ['Contrato N\u00ba:', contract.number || '-', 'Valor Total:', money(saldo_total)],
             ['Saldo Consumido:', money(saldo_usado), 'Saldo Dispon\u00edvel:', money(saldo_disponivel)]
           ]
-          body_xml << wp_table(contrato_rows, [1800, 4000, 2000, 3200], font_size: 18, shd_all: 'F0F7FF', bold_cols: [0, 2])
+          body_xml << wp_table(contrato_rows, [2400, 5400, 2500, 5400], font_size: 18, shd_all: 'F0F7FF', bold_cols: [0, 2])
 
           # Empenhos vinculados
           empenhos = @items.map { |i| i.order_service }.compact.flat_map { |os|
@@ -203,7 +203,7 @@ module Utils
               restante = emp.respond_to?(:get_available_balance) ? emp.get_available_balance.to_f : (saldo_ini - consumido)
               emp_rows << [emp.commitment_number || '-', money(saldo_ini), money(consumido), money(restante)]
             end
-            body_xml << wp_table(emp_rows, [3000, 2800, 2600, 2600], header_row: true, font_size: 18)
+            body_xml << wp_table(emp_rows, [4300, 3800, 3800, 3800], header_row: true, font_size: 18)
           end
           body_xml << wp_empty
         end
@@ -235,7 +235,7 @@ module Utils
           money(total_bruto), "-#{money(total_desconto)}", money(total_com_desc)
         ]
 
-        col_w = [700, 1800, 750, 1100, 900, 1000, 900, 1050, 950, 950, 900]
+        col_w = [1000, 2550, 1070, 1570, 1280, 1430, 1280, 1500, 1350, 1350, 1320]
         body_xml << wp_items_table(item_rows, col_w)
         body_xml << wp_empty
 
@@ -243,12 +243,16 @@ module Utils
         body_xml << wp_heading('Resumo Financeiro', 13, color: '251C59')
 
         fin_rows = [
-          ['', 'Peças (NF)', 'Serviços (NF)', 'V. Bruto', 'Total'],
-          ['Valor sem desconto', money(total_pecas), money(total_servicos), money(total_bruto), money(total_bruto)],
-          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", '-', '-', "-#{money(total_desconto)}", "-#{money(total_desconto)}"],
-          ['Valor c/ Desconto', money(total_pecas), money(total_servicos), money(total_com_desc), money(total_com_desc)]
+          ['Descrição', 'Valor'],
+          ['Total Peças (NF)', money(total_pecas)],
+          ['Total Serviços (NF)', money(total_servicos)],
+          ['Valor Bruto (s/ desconto)', money(total_bruto)],
+          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", "-#{money(total_desconto)}"],
+          ['= Valor com Desconto', money(total_com_desc)],
+          ['(-) Retenções Fiscais (informativo)', "-#{money(total_ret)}"],
+          ['= VALOR DEVIDO', money(valor_devido)]
         ]
-        body_xml << wp_table(fin_rows, [2200, 1800, 1800, 1800, 2000], header_row: true, font_size: 19)
+        body_xml << wp_table(fin_rows, [10500, 5200], header_row: true, font_size: 20, bold_cols: [0])
         body_xml << wp_empty
 
         # === RETENCOES FISCAIS (informativo) ===
@@ -265,7 +269,7 @@ module Utils
             ["Serviços Não-Simples (#{pct_s_str})", "-#{money(ret_servicos_total)}"],
             ['Total Retenções', "-#{money(total_ret)}"]
           ]
-          body_xml << wp_table(ret_summ, [7500, 3500], font_size: 18)
+          body_xml << wp_table(ret_summ, [10700, 5000], font_size: 18)
           body_xml << wp_empty
 
           non_simples = providers_detail.reject { |p| p[:is_simples] }
@@ -284,7 +288,7 @@ module Utils
               ]
             end
             det_rows << ['', '', 'TOTAL:', '', "-#{money(ret_pecas_total)}", '', "-#{money(ret_servicos_total)}", "-#{money(total_ret)}"]
-            body_xml << wp_table(det_rows, [700, 2200, 1600, 900, 1200, 1000, 1200, 1200], header_row: true, font_size: 17)
+            body_xml << wp_table(det_rows, [1100, 3450, 2500, 1400, 1900, 1550, 1900, 1900], header_row: true, font_size: 17)
             body_xml << wp_empty
           end
         else

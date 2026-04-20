@@ -112,34 +112,105 @@ breadcrumbs = [
         <div class="card-body">
           <h6 class="text-uppercase small text-muted mb-2">
             <i class="bi bi-cash-stack"></i> Resumo Financeiro
-            <% if @fatura.respond_to?(:tipo_valor) && @fatura.tipo_valor.present? %>
-              <span class="badge bg-<%= @fatura.tipo_valor == 'liquido' ? 'info' : 'success' %> ms-1">
-                <%= @fatura.tipo_valor == 'liquido' ? 'Valor Líquido' : 'Valor Bruto' %>
-              </span>
-            <% end %>
           </h6>
-          <div style="line-height:1.8">
-            <strong class="text-success">Valor Bruto: <%= number_to_currency(@fatura.valor_bruto, unit: 'R$ ') %></strong><br>
-            <% if @fatura.desconto.to_f > 0 %>
-              <span class="text-info">
-                Desconto: -<%= number_to_currency(@fatura.desconto, unit: 'R$ ') %>
-              </span><br>
-            <% end %>
-            <span class="text-warning">
-              Retenções: -<%= number_to_currency(@fatura.total_retencoes, unit: 'R$ ') %>
-            </span><br>
-            <span class="text-danger">
-              Taxa Admin: -<%= number_to_currency(@fatura.taxa_administracao, unit: 'R$ ') %>
-            </span><br>
-            <hr class="my-1">
-            <strong class="text-primary">
-              Valor Líquido: <%= number_to_currency(@fatura.valor_liquido, unit: 'R$ ') %>
-            </strong>
-          </div>
+          <table class="table table-sm table-borderless mb-0" style="line-height:1.6">
+            <tbody>
+              <tr>
+                <td class="text-muted">Valor Bruto:</td>
+                <td class="text-end fw-bold text-success"><%= number_to_currency(@fatura.valor_bruto, unit: 'R$ ') %></td>
+              </tr>
+              <% if @fatura.desconto.to_f > 0 %>
+                <tr>
+                  <td class="text-muted">(-) Desconto:</td>
+                  <td class="text-end text-info">-<%= number_to_currency(@fatura.desconto, unit: 'R$ ') %></td>
+                </tr>
+              <% end %>
+              <tr>
+                <td class="text-muted">(-) Retenções:</td>
+                <td class="text-end text-warning">-<%= number_to_currency(@fatura.total_retencoes, unit: 'R$ ') %></td>
+              </tr>
+              <tr>
+                <td class="text-muted">(-) Taxa Admin:</td>
+                <td class="text-end text-danger">-<%= number_to_currency(@fatura.taxa_administracao, unit: 'R$ ') %></td>
+              </tr>
+              <tr class="border-top">
+                <td class="fw-bold text-primary">Valor Líquido:</td>
+                <td class="text-end fw-bold text-primary"><%= number_to_currency(@fatura.valor_liquido, unit: 'R$ ') %></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   </div>
+
+  <!-- Contrato / Empenhos -->
+  <% if @fatura.contract %>
+    <%
+      contract = @fatura.contract
+      saldo_total = contract.respond_to?(:get_total_value) ? contract.get_total_value.to_f : contract.total_value.to_f
+      saldo_usado = contract.respond_to?(:get_used_value) ? contract.get_used_value.to_f : 0
+      saldo_disponivel = contract.respond_to?(:get_disponible_value) ? contract.get_disponible_value.to_f : (saldo_total - saldo_usado)
+
+      empenhos = @fatura.fatura_itens.includes(order_service: [:commitment, :commitment_parts, :commitment_services])
+        .map { |i| i.order_service }.compact.flat_map { |os|
+          [os.commitment, os.commitment_parts, os.commitment_services].compact
+        }.uniq(&:id)
+    %>
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white border-bottom">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-file-earmark-text me-1"></i> Contrato / Empenhos</h6>
+      </div>
+      <div class="card-body">
+        <div class="row mb-3">
+          <div class="col-md-3">
+            <small class="text-muted d-block">Contrato Nº</small>
+            <strong><%= contract.number || '-' %></strong>
+          </div>
+          <div class="col-md-3">
+            <small class="text-muted d-block">Valor Total</small>
+            <strong><%= number_to_currency(saldo_total, unit: 'R$ ') %></strong>
+          </div>
+          <div class="col-md-3">
+            <small class="text-muted d-block">Saldo Consumido</small>
+            <strong class="text-warning"><%= number_to_currency(saldo_usado, unit: 'R$ ') %></strong>
+          </div>
+          <div class="col-md-3">
+            <small class="text-muted d-block">Saldo Disponível</small>
+            <strong class="text-success"><%= number_to_currency(saldo_disponivel, unit: 'R$ ') %></strong>
+          </div>
+        </div>
+        <% if empenhos.any? %>
+          <h6 class="fw-bold small text-muted mb-2">Empenhos Vinculados</h6>
+          <table class="table table-sm table-bordered mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="text-uppercase small text-muted">Empenho Nº</th>
+                <th class="text-uppercase small text-muted text-end">Saldo Inicial</th>
+                <th class="text-uppercase small text-muted text-end">Consumido</th>
+                <th class="text-uppercase small text-muted text-end">Restante</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% empenhos.each do |emp| %>
+                <%
+                  saldo_ini = Commitment.respond_to?(:sum_budget_value) ? Commitment.sum_budget_value(emp).to_f : emp.commitment_value.to_f
+                  consumido = Commitment.respond_to?(:get_total_already_consumed_value) ? Commitment.get_total_already_consumed_value(emp).to_f : 0
+                  restante = emp.respond_to?(:get_available_balance) ? emp.get_available_balance.to_f : (saldo_ini - consumido)
+                %>
+                <tr>
+                  <td><%= emp.commitment_number || '-' %></td>
+                  <td class="text-end"><%= number_to_currency(saldo_ini, unit: 'R$ ') %></td>
+                  <td class="text-end text-warning"><%= number_to_currency(consumido, unit: 'R$ ') %></td>
+                  <td class="text-end text-success"><%= number_to_currency(restante, unit: 'R$ ') %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
 
   <!-- NF Info -->
   <% if @fatura.nota_fiscal_numero.present? %>
@@ -210,8 +281,8 @@ breadcrumbs = [
             <th class="text-uppercase small text-muted">Fornecedor</th>
             <th class="text-uppercase small text-muted">Veículo</th>
             <th class="text-uppercase small text-muted">C.Custo</th>
-            <th class="text-uppercase small text-muted text-end">Peças Bruto</th>
-            <th class="text-uppercase small text-muted text-end">Serviços Bruto</th>
+            <th class="text-uppercase small text-muted text-end">Vl. Peças (NF)</th>
+            <th class="text-uppercase small text-muted text-end">Vl. Serviços (NF)</th>
             <th class="text-uppercase small text-muted text-end">Valor Bruto</th>
             <th class="text-uppercase small text-muted text-end">Desc.</th>
             <th class="text-uppercase small text-muted text-end">V. c/ Desc.</th>
