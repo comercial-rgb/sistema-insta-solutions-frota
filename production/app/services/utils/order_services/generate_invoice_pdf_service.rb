@@ -16,7 +16,7 @@ module Utils
       INSTA_CNPJ = '47.611.398/0001-66'
       INSTA_END = 'Alameda Rio Negro 1030, Alphaville Industrial, Barueri - SP'
       INSTA_TEL = '(11) 3336-6941'
-      LOGO_PATH = Rails.root.join('app', 'assets', 'images', 'InstaSolutions-S\u00edmbolo-AzulCorp.png').to_s
+      LOGO_PATH = Rails.root.join('app', 'assets', 'images', "InstaSolutions-S\u00edmbolo-AzulCorp.png").to_s
 
       def initialize(fatura, invoice_split: nil, tipo_valor: 'bruto')
         @fatura = fatura
@@ -135,13 +135,6 @@ module Utils
           [{ content: 'Desconto Contrato:', font_style: :bold }, "#{fmt_pct(@client&.discount_percent)}%", { content: 'Telefone:', font_style: :bold }, phone],
           [{ content: 'Centro de Custo:', font_style: :bold }, @fatura.cost_center&.name || '-', { content: 'E-mail:', font_style: :bold }, email]
         ]
-
-        if @derived_contract&.number
-          client_data << [
-            { content: 'Contrato:', font_style: :bold }, @derived_contract.number,
-            { content: '', font_style: :bold }, ''
-          ]
-        end
 
         @pdf.table(client_data, width: @pdf.bounds.width,
                    cell_style: { size: 8, padding: [2, 4], borders: [:bottom], border_color: 'EEEEEE', background_color: 'F8F8FF' })

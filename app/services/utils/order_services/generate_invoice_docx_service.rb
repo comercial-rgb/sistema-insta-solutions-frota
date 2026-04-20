@@ -11,7 +11,7 @@ module Utils
       INSTA_CNPJ = '47.611.398/0001-66'
       INSTA_END = 'Alameda Rio Negro 1030, Alphaville Industrial, Barueri - SP'
       INSTA_TEL = '(11) 3336-6941'
-      LOGO_PATH = Rails.root.join('app', 'assets', 'images', 'InstaSolutions-S\u00edmbolo-AzulCorp.png').to_s
+      LOGO_PATH = Rails.root.join('app', 'assets', 'images', "InstaSolutions-S\u00edmbolo-AzulCorp.png").to_s
 
       def initialize(order_services_or_fatura, client = nil, current_month = nil, **opts)
         if order_services_or_fatura.is_a?(Fatura)
@@ -190,9 +190,6 @@ module Utils
           ['Desconto Contrato:', "#{fmt_pct(@client&.discount_percent)}%", 'Telefone:', client_phone],
           ['Centro de Custo:', @fatura.cost_center&.name || '-', 'E-mail:', client_email]
         ]
-        if contract&.number
-          client_rows << ['Contrato:', contract.number, '', '']
-        end
         body_xml << wp_table(client_rows, [2400, 6800, 2000, 4500], font_size: 18, shd_all: 'F8F8FF', bold_cols: [0, 2])
         body_xml << wp_empty
 
@@ -204,8 +201,8 @@ module Utils
           saldo_disponivel = contract.respond_to?(:get_disponible_value) ? contract.get_disponible_value.to_f : (saldo_total - saldo_usado)
 
           contrato_rows = [
-            ['Contrato N\u00ba:', contract.number || '-', 'Valor Total:', money(saldo_total)],
-            ['Saldo Consumido:', money(saldo_usado), 'Saldo Dispon\u00edvel:', money(saldo_disponivel)]
+            ["Contrato N\u00ba:", contract.number || '-', 'Valor Total:', money(saldo_total)],
+            ['Saldo Consumido:', money(saldo_usado), "Saldo Dispon\u00edvel:", money(saldo_disponivel)]
           ]
           body_xml << wp_table(contrato_rows, [2400, 5400, 2500, 5400], font_size: 18, shd_all: 'F0F7FF', bold_cols: [0, 2])
 
@@ -216,7 +213,7 @@ module Utils
 
           if empenhos.any?
             body_xml << wp_empty
-            emp_header = ['Empenho N\u00ba', 'Saldo Inicial', 'Consumido', 'Restante']
+            emp_header = ["Empenho N\u00ba", 'Saldo Inicial', 'Consumido', 'Restante']
             emp_rows = [emp_header]
             empenhos.each do |emp|
               saldo_ini = Commitment.respond_to?(:sum_budget_value) ? Commitment.sum_budget_value(emp).to_f : emp.commitment_value.to_f
