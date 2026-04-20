@@ -31,7 +31,11 @@ class FaturamentoController < ApplicationController
 
   def show
     authorize :faturamento, :show?
-    @fatura = Fatura.includes(:fatura_itens, :client, :cost_center, :contract).find(params[:id])
+    @fatura = Fatura.includes(
+      fatura_itens: { order_service: [:vehicle, :cost_center, :sub_unit,
+        { order_service_proposals: [:provider, :order_service_invoices] }] },
+      client: [], cost_center: [], contract: []
+    ).find(params[:id])
 
     respond_to do |format|
       format.html
@@ -257,14 +261,13 @@ class FaturamentoController < ApplicationController
 
   def gerar_docx
     authorize :faturamento, :show?
-    @fatura = Fatura.includes(:fatura_itens, :client).find(params[:id])
-    os_ids = @fatura.fatura_itens.where.not(order_service_id: nil).pluck(:order_service_id)
-    order_services = OrderService.where(id: os_ids)
+    @fatura = Fatura.includes(
+      fatura_itens: { order_service: [:vehicle, :cost_center, :sub_unit,
+        { order_service_proposals: [:provider, :order_service_invoices] }] },
+      client: [], cost_center: [], contract: []
+    ).find(params[:id])
 
-    current_month = (@fatura.data_emissao || Date.current).beginning_of_month..(@fatura.data_emissao || Date.current).end_of_month
-    service = Utils::OrderServices::GenerateInvoiceDocxService.new(
-      order_services.to_a, @fatura.client, current_month
-    )
+    service = Utils::OrderServices::GenerateInvoiceDocxService.new(@fatura)
     docx_path = service.call
 
     send_file docx_path, filename: "fatura_#{@fatura.numero}.docx",
@@ -276,7 +279,11 @@ class FaturamentoController < ApplicationController
 
   def gerar_pdf
     authorize :faturamento, :show?
-    @fatura = Fatura.includes(:fatura_itens, :client, :cost_center, :contract).find(params[:id])
+    @fatura = Fatura.includes(
+      fatura_itens: { order_service: [:vehicle, :cost_center, :sub_unit,
+        { order_service_proposals: [:provider, :order_service_invoices] }] },
+      client: [], cost_center: [], contract: []
+    ).find(params[:id])
 
     service = Utils::OrderServices::GenerateInvoicePdfService.new(@fatura)
     pdf_path = service.call

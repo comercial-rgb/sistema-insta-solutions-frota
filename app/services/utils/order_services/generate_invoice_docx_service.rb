@@ -1,383 +1,482 @@
 require 'zip'
 require 'fileutils'
 
-# NÃO usa mais docx_replace devido a problemas de File.rename no Windows
-# Manipula o DOCX diretamente como arquivo ZIP
+# Gera DOCX robusto a partir dos dados da Fatura (sem template)
+# Layout idêntico ao PDF: Gerenciada, Fornecedores, Tabela de Itens, Resumo Financeiro
 
 module Utils
   module OrderServices
     class GenerateInvoiceDocxService
-      def initialize(order_services, client, current_month, invoice_split: nil, bank_account: nil, tipo_valor: 'bruto')
-        @order_services = order_services
-        @client = client
-        @current_month = current_month
-        @invoice_split = invoice_split # nil = all, 'parts' = only parts, 'services' = only services
-        @bank_account = bank_account
-        @tipo_valor = tipo_valor # 'bruto' or 'liquido'
-        @order_service_invoices = []
+      def initialize(order_services_or_fatura, client = nil, current_month = nil, **opts)
+        if order_services_or_fatura.is_a?(Fatura)
+          @fatura = order_services_or_fatura
+          @client = @fatura.client
+          @items = @fatura.fatura_itens.includes(
+            order_service: [:vehicle, :cost_center, :sub_unit,
+              { order_service_proposals: [:provider, :order_service_invoices] }]
+          )
+          @order_services = nil
+        else
+          @order_services = order_services_or_fatura
+          @client = client
+          @current_month = current_month
+          @fatura = nil
+          @items = nil
+        end
+        @tipo_valor = opts[:tipo_valor] || 'bruto'
       end
 
       def call
-        # WINDOWS FIX: Cria no diretório public/ onde já temos permissão garantida
-        timestamp = Time.now.strftime('%Y%m%d%H%M%S%L')
-        output_filename = "fatura_gerada_#{timestamp}_#{SecureRandom.hex(4)}.docx"
-        output_path = Rails.root.join('public', output_filename)
-        
-        # Limpa faturas antigas (mais de 1 hora)
-        cleanup_old_invoices
-        
-        values = getting_values_by_proposals
-        values = values.transform_values { |v| v.respond_to?(:to_f) ? v.to_f : v.inspect }
-
-        # Determine the appropriate template size based on invoice count
-        @template_size = case @order_service_invoices.length
-                when 0..50
-                  50
-                when 51..75
-                  75
-                when 76..100
-                  100
-                when 101..125
-                  125
-                when 126..150
-                  150
-                when 151..175
-                  175
-                when 176..200
-                  200
-                when 201..225
-                  225
-                when 226..250
-                  250
-                when 251..275
-                  275
-                when 276..300
-                  300
-                else
-                  300 # Default to largest template if exceeds 300
-                end
-
-        template_path = Rails.root.join('public', 'fatura_'+@template_size.to_s+'.docx')
-        raise "Template não encontrado em #{template_path}" unless File.exist?(template_path)
-
-        # Preparar todas as substituições
-        replacements = {}
-        
-        # Valores financeiros
-        replacements['VALORTOTAL'] = CustomHelper.to_currency(values[:valortotal])
-        replacements['DESCONTOIR'] = CustomHelper.to_currency(values[:descontoir])
-        replacements['VALORBRUTO'] = CustomHelper.to_currency(values[:valorbruto])
-        replacements['DISCOUNT'] = CustomHelper.to_currency(values[:desconto])
-        replacements['VALORDESCONTO'] = CustomHelper.to_currency(values[:valorcomdesconto])
-        
-        # Retenções por esfera (municipal/estadual: 5,45% peças, 9,45% serviços para não-simples)
-        replacements['RETENCAOESFERA'] = CustomHelper.to_currency(values[:retencao_esfera])
-        
-        # Retenções totais e valor devido
-        replacements['RETENCOES'] = CustomHelper.to_currency(values[:retencoes])
-        replacements['VALORDEVIDO'] = CustomHelper.to_currency(values[:valordevido])
-
-        # Valor principal da fatura conforme tipo selecionado (bruto ou líquido)
-        if @tipo_valor == 'liquido'
-          replacements['VALORFATURA'] = CustomHelper.to_currency(values[:valorcomdesconto])
+        if @fatura
+          generate_from_fatura
         else
-          replacements['VALORFATURA'] = CustomHelper.to_currency(values[:valorbruto])
+          generate_from_order_services
         end
-        
-        # Dados do cliente
-        cost_centers_name = @order_services.map { |os| os.cost_center&.name }.compact.uniq.join(' / ')
-        replacements['NOMECLIENTE'] = @client.social_name || ''
-        replacements['CENTRODECUSTO'] = cost_centers_name
-        replacements['CNPJCLIENTE'] = @client.cnpj || ''
-        replacements['ENDERECOCLIENTE'] = @client.get_address || ''
-        replacements['CIDADECLIENTE'] = @client.get_city || ''
-        replacements['ESTADOCLIENTE'] = @client.get_state || ''
-        replacements['TELEFONECLIENTE'] = @client.phone || ''
-        replacements['EMAILCLIENTE'] = @client.email || ''
-        replacements['ESFERACLIENTE'] = @client.sphere_name
-        
-        # Desconto do cliente (percentual real, não fixo)
-        client_discount = @client.discount_percent || 0
-        replacements['PERCENTUALDESCONTO'] = "#{CustomHelper.to_currency(client_discount)} %"
-        
-        # Contrato e Empenho (pega do primeiro OS que tiver)
-        first_os_with_commitment = @order_services.find { |os| os.commitment_parts_id.present? || os.commitment_services_id.present? }
-        commitment = nil
-        if first_os_with_commitment
-          commitment = Commitment.find_by(id: first_os_with_commitment.commitment_parts_id) || 
-                       Commitment.find_by(id: first_os_with_commitment.commitment_services_id)
-        end
-        replacements['NUMEROEMPENHO'] = commitment&.commitment_number || ''
-        replacements['NUMEROCONTRATO'] = commitment&.contract&.number || ''
-        
-        # Nosso número (aleatório)
-        replacements['NOSSONUMERO'] = SecureRandom.random_number(100000000).to_s.rjust(8, '0')
-        
-        # Conta bancária
-        if @bank_account
-          bank_info = "#{@bank_account.bank&.name} | Ag: #{@bank_account.agency} | CC: #{@bank_account.account}"
-          bank_info += " | Op: #{@bank_account.operation}" if @bank_account.operation.present?
-          bank_info += " | PIX: #{@bank_account.pix}" if @bank_account.pix.present?
-          bank_info += " | CPF/CNPJ: #{@bank_account.cpf_cnpj}" if @bank_account.cpf_cnpj.present?
-          replacements['CONTABANCARIA'] = bank_info
-        else
-          replacements['CONTABANCARIA'] = ''
-        end
-        
-        # Datas
-        vencimento = (@current_month.last + 1.month)
-        replacements['DATAVENCIMENTO'] = CustomHelper.get_text_date(vencimento, 'date', :default)
-        replacements['INICIOFATURA'] = CustomHelper.get_text_date(@current_month.first, 'date', :default)
-        replacements['FIMFATURA'] = CustomHelper.get_text_date(@current_month.last, 'date', :default)
-        replacements['DATADOCUMENTO'] = CustomHelper.get_text_date(Date.today, 'date', :default)
-        
-        # Adicionar substituições da tabela de despesas
-        add_expense_table_replacements(replacements)
-        
-        # NOVA ABORDAGEM: Manipula DOCX diretamente usando RubyZip
-        # Sem usar docx_replace que tem problemas de File.rename no Windows
-        generate_docx_without_rename(template_path, output_path, replacements)
-
-        # Retorna o caminho do arquivo gerado
-        output_path.to_s
       end
 
       private
 
-      def add_expense_table_replacements(replacements)
-        is_federal = @client.federal?
-        is_municipal_or_estadual = @client.municipal? || @client.estadual?
+      def generate_from_fatura
+        timestamp = Time.now.strftime('%Y%m%d%H%M%S%L')
+        output_filename = "fatura_#{@fatura.numero.parameterize}_#{timestamp}.docx"
+        output_path = Rails.root.join('tmp', output_filename)
 
-        @order_service_invoices.each_with_index do |e, index|
-          index_str = index < 9 ? "0#{index+1}" : (index+1).to_s
-          
-          irvalue = 0
-          if !e.order_service_proposal.provider.optante_simples
-            # optante_simples=false → IS Simples Nacional → ISENTO de retenção
-            irvalue = 0
-          elsif is_federal
-            # Federal + NÃO optante simples
-            if e.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID
-              irvalue = e.value * 0.0585   # 5,85% (IR 1,2 + CSLL 1 + PIS 0,65 + Cofins 3)
-            else
-              irvalue = e.value * 0.0945   # 9,45% (IR 4,8 + CSLL 1 + PIS 0,65 + Cofins 3)
-            end
-          elsif is_municipal_or_estadual
-            # Municipal/Estadual + NÃO optante simples (somente IR)
-            if e.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID
-              irvalue = e.value * 0.012    # 1,20% (somente IR)
-            else
-              irvalue = e.value * 0.048    # 4,80% (somente IR)
-            end
-          end
-          
-          description = e.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID ? 
-                        "Aquisição de Peças" : "Prestação de Serviços"
-          
-          replacements["#{index_str}DATA"] = e.emission_date.strftime('%d/%m')
-          replacements["#{index_str}DESCRICAO"] = description
-          replacements["#{index_str}VALOR"] = CustomHelper.to_currency(e.value)
-          replacements["#{index_str}NOTA"] = e.number.to_s
-          replacements["#{index_str}IR"] = CustomHelper.to_currency(irvalue)
-          replacements["#{index_str}FORNECEDOR"] = e.order_service_proposal.provider.get_name || ''
-          replacements["#{index_str}CNPJ"] = e.order_service_proposal.provider.cnpj || ''
+        client_discount_pct = (@client&.discount_percent || 0).to_d / 100
+        is_federal = @client&.respond_to?(:federal?) && @client.federal?
+        sphere_name = @client&.respond_to?(:sphere_name) ? @client.sphere_name : 'Municipal'
+
+        # Collect OS data
+        os_rows = []
+        total_pecas = 0; total_servicos = 0; total_bruto = 0
+        total_desconto = 0; total_com_desc = 0
+        providers_info = []
+
+        grouped = @items.select { |i| i.order_service_id.present? }.group_by(&:order_service_id)
+
+        grouped.each do |_os_id, items|
+          os = items.first.order_service
+          next unless os
+
+          proposal = find_approved_proposal(os)
+          next unless proposal
+
+          invoices = proposal.order_service_invoices.to_a
+          nf_pecas = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }
+          nf_servicos = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }
+
+          pecas_val = nf_pecas.sum(&:value).to_f
+          servicos_val = nf_servicos.sum(&:value).to_f
+          bruto = proposal.total_value_without_discount.to_f
+          desc_val = (bruto * client_discount_pct).to_f.round(2)
+          com_desc = bruto - desc_val
+
+          provider = proposal.provider
+          is_simples = provider ? !provider.optante_simples : true
+
+          total_pecas += pecas_val; total_servicos += servicos_val
+          total_bruto += bruto; total_desconto += desc_val; total_com_desc += com_desc
+
+          providers_info << { is_simples: is_simples, nf_pecas_val: nf_pecas.sum(&:value).to_f, nf_servicos_val: nf_servicos.sum(&:value).to_f }
+
+          os_rows << {
+            code: os.code, provider: provider&.get_name || '-', provider_cnpj: provider&.cnpj || '-',
+            regime: is_simples ? 'Simples' : 'Não-Simples', vehicle: os.vehicle&.board || '-',
+            cost_center: os.cost_center&.name || '-',
+            pecas: pecas_val, nf_pecas: nf_pecas.map(&:number).compact.join(', '),
+            servicos: servicos_val, nf_servicos: nf_servicos.map(&:number).compact.join(', '),
+            bruto: bruto, desconto: desc_val, com_desc: com_desc,
+            pct_desc: bruto > 0 ? ((desc_val / bruto) * 100).round(2) : 0
+          }
         end
-        
-        # Limpa linhas não usadas
-        (@order_service_invoices.length...@template_size).each do |i|
-          index_str = i < 9 ? "0#{i+1}" : (i+1).to_s
-          %w[DATA DESCRICAO VALOR NOTA IR FORNECEDOR CNPJ].each do |field|
-            replacements["#{index_str}#{field}"] = ''
+
+        # Retenções
+        total_ret = 0
+        providers_info.each do |p|
+          next if p[:is_simples]
+          if is_federal
+            total_ret += p[:nf_pecas_val] * 0.0585 + p[:nf_servicos_val] * 0.0945
+          else
+            total_ret += p[:nf_pecas_val] * 0.012 + p[:nf_servicos_val] * 0.048
           end
         end
+        total_ret = total_ret.round(2)
+        valor_devido = total_com_desc - total_ret
+
+        pct_desc = total_bruto > 0 ? ((total_desconto / total_bruto) * 100).round(2) : 0
+
+        # Build XML
+        body_xml = ''
+
+        # Header
+        body_xml += heading("FATURA DE SERVIÇOS", 24, align: 'center', color: '251C59')
+        body_xml += paragraph("Nº #{@fatura.numero}", 14, align: 'center', bold: true, color: '005BED')
+        body_xml += paragraph("Emissão: #{fmt_date(@fatura.data_emissao)}    |    Vencimento: #{fmt_date(@fatura.data_vencimento)}    |    Status: #{@fatura.status.upcase}", 9, align: 'center')
+        body_xml += horizontal_line
+
+        # Client
+        body_xml += heading("GERENCIADA / CLIENTE", 11, color: '251C59')
+        client_name = @client&.fantasy_name.presence || @client&.social_name.presence || @client&.name || '-'
+        body_xml += paragraph("Razão Social: #{client_name}        CNPJ: #{@client&.cnpj || '-'}", 9)
+        body_xml += paragraph("Esfera: #{sphere_name}        Desconto Contrato: #{fmt_pct(@client&.discount_percent)}%", 9)
+        if @fatura.contract&.number || @fatura.cost_center&.name
+          parts = []
+          parts << "Contrato: #{@fatura.contract.number}" if @fatura.contract&.number
+          parts << "Centro de Custo: #{@fatura.cost_center.name}" if @fatura.cost_center&.name
+          body_xml += paragraph(parts.join('    |    '), 9)
+        end
+        body_xml += horizontal_line
+
+        # Items table
+        body_xml += heading("ITENS DA FATURA", 11, color: '251C59')
+
+        table_header = ['OS', 'Fornecedor', 'Veículo', 'C.Custo', 'Peças (NF)', 'Serviços (NF)', 'V.Bruto', 'Desc.', 'V.c/Desc.']
+        table_rows = [table_header]
+
+        os_rows.each do |r|
+          pecas_str = money(r[:pecas])
+          pecas_str += " (NF #{r[:nf_pecas]})" if r[:nf_pecas].present?
+          servicos_str = money(r[:servicos])
+          servicos_str += " (NF #{r[:nf_servicos]})" if r[:nf_servicos].present?
+
+          table_rows << [
+            "##{r[:code]}", "#{r[:provider].truncate(20)} (#{r[:regime]})", r[:vehicle],
+            r[:cost_center].truncate(15), pecas_str, servicos_str, money(r[:bruto]),
+            "-#{money(r[:desconto])} (#{fmt_pct(r[:pct_desc])}%)", money(r[:com_desc])
+          ]
+        end
+
+        table_rows << ['', '', '', 'SUBTOTAIS:', money(total_pecas), money(total_servicos),
+                        money(total_bruto), "-#{money(total_desconto)}", money(total_com_desc)]
+
+        col_widths = [600, 1400, 700, 900, 1000, 1000, 800, 900, 900]
+        body_xml += build_table(table_rows, col_widths, header: true)
+        body_xml += empty_paragraph
+
+        # Financial Summary
+        body_xml += heading("RESUMO FINANCEIRO", 11, color: '251C59')
+        desc_pecas = total_pecas * (@client&.discount_percent || 0).to_d / 100
+        desc_servicos = total_servicos * (@client&.discount_percent || 0).to_d / 100
+
+        fin_rows = [
+          ['', 'Peças', 'Serviços', 'Total'],
+          ['Valor sem desconto', money(total_pecas), money(total_servicos), money(total_bruto)],
+          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", "-#{money(desc_pecas)}", "-#{money(desc_servicos)}", "-#{money(total_desconto)}"],
+          ['Valor c/ Desconto', money(total_pecas - desc_pecas), money(total_servicos - desc_servicos), money(total_com_desc)]
+        ]
+        body_xml += build_table(fin_rows, [3000, 2000, 2000, 2000], header: true)
+        body_xml += empty_paragraph
+
+        # Retentions
+        if total_ret > 0
+          pct_pecas_str = is_federal ? '5,85%' : '1,20%'
+          pct_serv_str = is_federal ? '9,45%' : '4,80%'
+          ret_pecas = providers_info.reject { |p| p[:is_simples] }.sum { |p| is_federal ? p[:nf_pecas_val] * 0.0585 : p[:nf_pecas_val] * 0.012 }
+          ret_servicos = providers_info.reject { |p| p[:is_simples] }.sum { |p| is_federal ? p[:nf_servicos_val] * 0.0945 : p[:nf_servicos_val] * 0.048 }
+
+          body_xml += heading("RETENÇÕES FISCAIS (#{sphere_name})", 10, color: 'C57200')
+          ret_rows = [
+            ["Peças Não-Simples (#{pct_pecas_str})", "-#{money(ret_pecas)}"],
+            ["Serviços Não-Simples (#{pct_serv_str})", "-#{money(ret_servicos)}"],
+            ['Total Retenções', "-#{money(total_ret)}"]
+          ]
+          body_xml += build_table(ret_rows, [6000, 3000])
+          body_xml += empty_paragraph
+        else
+          body_xml += paragraph("Todos os fornecedores são Simples Nacional — isento de retenção fiscal.", 9, color: '28A745')
+        end
+
+        # Valor Devido
+        body_xml += shaded_bar("VALOR DEVIDO: #{money(valor_devido)}")
+        body_xml += empty_paragraph
+
+        # Observations
+        if @fatura.observacoes.present?
+          body_xml += heading("OBSERVAÇÕES", 10, color: '666666')
+          body_xml += paragraph(@fatura.observacoes, 9)
+        end
+
+        # Footer
+        body_xml += horizontal_line
+        body_xml += paragraph("Documento gerado em #{Time.current.strftime('%d/%m/%Y %H:%M')} — Frota Insta Solutions", 7, align: 'center', color: '999999')
+
+        write_docx(output_path, body_xml)
+        output_path.to_s
       end
 
-      # Escapa caracteres especiais XML para evitar corrupção do DOCX
-      def escape_xml(value)
-        value.to_s
-             .gsub('&', '&amp;')
-             .gsub('<', '&lt;')
-             .gsub('>', '&gt;')
-             .gsub('"', '&quot;')
-             .gsub("'", '&apos;')
-      end
+      # Fallback: old interface for backward compatibility
+      def generate_from_order_services
+        # Create a minimal fatura-like generation for legacy callers
+        timestamp = Time.now.strftime('%Y%m%d%H%M%S%L')
+        output_filename = "fatura_gerada_#{timestamp}_#{SecureRandom.hex(4)}.docx"
+        output_path = Rails.root.join('tmp', output_filename)
 
-      def generate_docx_without_rename(template_path, output_path, replacements)
-        # Lê todo o conteúdo do template em memória
-        entries_data = {}
-        
-        Zip::File.open(template_path.to_s) do |zip_file|
-          zip_file.each do |entry|
-            content = entry.get_input_stream.read
-            
-            # Substitui placeholders em arquivos XML (com escape de caracteres especiais)
-            if entry.name =~ /\.xml$/ || entry.name =~ /\.rels$/
-              content = content.force_encoding('UTF-8')
-              
-              # CORREÇÃO: O Word fragmenta texto em múltiplos <w:r> runs.
-              # Ex: "NOSSONUMERO" pode virar <w:r><w:t>NOSSO</w:t></w:r><w:r><w:t>NUMERO</w:t></w:r>
-              # Precisamos juntar os runs antes de substituir, e depois aplicar os replacements.
-              content = merge_split_placeholders(content, replacements.keys)
-              
-              replacements.each do |key, value|
-                content = content.gsub(key.to_s, escape_xml(value))
-              end
+        body_xml = heading("FATURA DE SERVIÇOS", 24, align: 'center', color: '251C59')
+        body_xml += paragraph("Cliente: #{@client&.social_name || @client&.name || '-'}", 11)
+        body_xml += paragraph("CNPJ: #{@client&.cnpj || '-'}", 9)
+        body_xml += horizontal_line
+
+        client_discount_pct = (@client&.discount_percent || 0).to_d / 100
+        is_federal = @client&.respond_to?(:federal?) && @client.federal?
+
+        table_header = ['OS', 'Fornecedor', 'Veículo', 'Tipo', 'NF', 'Valor NF', 'Retenção']
+        table_rows = [table_header]
+        total_val = 0; total_ret = 0
+
+        @order_services.each do |os|
+          proposal = find_approved_proposal(os)
+          next unless proposal
+
+          invoices = proposal.order_service_invoices.sort_by(&:order_service_invoice_type_id)
+          invoices.each do |inv|
+            is_pecas = inv.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID
+            desc = is_pecas ? 'Peças' : 'Serviços'
+            ret = 0
+            if proposal.provider&.optante_simples
+              ret = is_federal ? (is_pecas ? inv.value * 0.0585 : inv.value * 0.0945) : (is_pecas ? inv.value * 0.012 : inv.value * 0.048)
             end
-            
-            entries_data[entry.name] = content
+            total_val += inv.value.to_f
+            total_ret += ret
+
+            table_rows << [
+              "##{os.code}", proposal.provider&.get_name&.truncate(20) || '-',
+              os.vehicle&.board || '-', desc, inv.number.to_s,
+              money(inv.value), money(ret)
+            ]
           end
         end
-        
-        # Escreve diretamente no arquivo de saída usando File.open
-        # Isso evita o File.rename problemático
+
+        col_widths = [700, 1800, 900, 900, 800, 1200, 1200]
+        body_xml += build_table(table_rows, col_widths, header: true)
+        body_xml += empty_paragraph
+
+        total_desc = (total_val * client_discount_pct).round(2)
+        body_xml += paragraph("Valor Total NFs: #{money(total_val)}", 10, bold: true)
+        body_xml += paragraph("(-) Desconto: -#{money(total_desc)}", 10)
+        body_xml += paragraph("(-) Retenções: -#{money(total_ret.round(2))}", 10)
+        body_xml += shaded_bar("VALOR DEVIDO: #{money(total_val - total_desc - total_ret.round(2))}")
+
+        body_xml += horizontal_line
+        body_xml += paragraph("Documento gerado em #{Time.current.strftime('%d/%m/%Y %H:%M')} — Frota Insta Solutions", 7, align: 'center', color: '999999')
+
+        write_docx(output_path, body_xml)
+        output_path.to_s
+      end
+
+      # ===== DOCX XML Helpers =====
+
+      def write_docx(output_path, body_xml)
         File.open(output_path.to_s, 'wb') do |file|
           buffer = Zip::OutputStream.write_buffer do |zos|
-            entries_data.each do |name, content|
-              zos.put_next_entry(name)
-              zos.write(content)
-            end
+            zos.put_next_entry('[Content_Types].xml')
+            zos.write(content_types_xml)
+            zos.put_next_entry('_rels/.rels')
+            zos.write(rels_xml)
+            zos.put_next_entry('word/_rels/document.xml.rels')
+            zos.write(document_rels_xml)
+            zos.put_next_entry('word/document.xml')
+            zos.write(document_xml(body_xml))
+            zos.put_next_entry('word/styles.xml')
+            zos.write(styles_xml)
           end
           buffer.rewind
           file.write(buffer.read)
         end
       end
 
-      def cleanup_old_invoices
-        # Remove faturas geradas há mais de 1 hora do diretório public/
-        Dir.glob(Rails.root.join('public', 'fatura_gerada_*.docx')).each do |file|
-          if File.mtime(file) < 1.hour.ago
-            File.delete(file) rescue nil
-          end
-        end
-      rescue => e
-        # Ignora erros de limpeza para não impactar a geração
-        Rails.logger.warn "Erro ao limpar faturas antigas: #{e.message}"
+      def document_xml(body)
+        <<~XML
+          <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+          <w:document xmlns:wpc="http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas"
+                      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                      xmlns:o="urn:schemas-microsoft-com:office:office"
+                      xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+                      xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
+                      xmlns:v="urn:schemas-microsoft-com:vml"
+                      xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+                      xmlns:w10="urn:schemas-microsoft-com:office:word"
+                      xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                      xmlns:w14="http://schemas.microsoft.com/office/word/2010/wordml"
+                      xmlns:wpg="http://schemas.microsoft.com/office/word/2010/wordprocessingGroup"
+                      xmlns:wpi="http://schemas.microsoft.com/office/word/2010/wordprocessingInk"
+                      xmlns:wne="http://schemas.microsoft.com/office/word/2006/wordml"
+                      xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
+                      mc:Ignorable="w14 wp14">
+            <w:body>
+              #{body}
+              <w:sectPr>
+                <w:pgSz w:w="11906" w:h="16838"/>
+                <w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720" w:header="708" w:footer="708" w:gutter="0"/>
+              </w:sectPr>
+            </w:body>
+          </w:document>
+        XML
       end
 
-      # Junta texto fragmentado pelo Word em múltiplos <w:r> runs.
-      # O Word pode quebrar "NOSSONUMERO" em <w:r><w:t>NOSSO</w:t></w:r><w:r><w:t>NUMERO</w:t></w:r>.
-      # Esta função detecta quando um placeholder está fragmentado e junta os runs em um só.
-      #
-      # OTIMIZAÇÃO: Processa apenas os placeholders globais (não-numéricos) que são
-      # os únicos passíveis de fragmentação pelo Word. Placeholders numéricos (01DATA, 02VALOR, etc.)
-      # ficam em células de tabela e nunca são fragmentados.
-      def merge_split_placeholders(xml_content, placeholder_keys)
-        # Filtra apenas placeholders que: (1) não existem inteiros no XML, (2) não são numéricos de tabela
-        global_keys = placeholder_keys.select do |k|
-          key_str = k.to_s
-          key_str.length >= 4 && !xml_content.include?(key_str) && key_str !~ /\A\d{1,3}(DATA|DESCRICAO|VALOR|NOTA|IR|FORNECEDOR|CNPJ)\z/
-        end
-
-        return xml_content if global_keys.empty?
-
-        # Para cada parágrafo (<w:p>...</w:p>), extrai texto concatenado dos runs.
-        # Se algum placeholder global aparece no texto concatenado, mescla os runs.
-        xml_content.gsub(%r{<w:p[ >].*?</w:p>}m) do |paragraph|
-          # Extrai texto de todos os <w:t> nodes dentro do parágrafo
-          texts = paragraph.scan(%r{<w:t[^>]*>(.*?)</w:t>}m).flatten
-          full_text = texts.join
-
-          # Verifica se algum placeholder global está no texto concatenado
-          needs_merge = global_keys.any? { |k| full_text.include?(k.to_s) }
-
-          if needs_merge
-            # Mescla runs adjacentes: substitui </w:t></w:r><w:r>...<w:t...> por nada
-            # entre as partes de texto, efetivamente juntando o conteúdo dos runs
-            xml_noise = %r{</w:t>\s*</w:r>\s*<w:r>(?:\s*<w:rPr>.*?</w:rPr>)?\s*<w:t[^>]*>}m
-            paragraph.gsub(xml_noise, '')
-          else
-            paragraph
-          end
-        end
+      def content_types_xml
+        <<~XML
+          <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+          <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+            <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+            <Default Extension="xml" ContentType="application/xml"/>
+            <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+            <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
+          </Types>
+        XML
       end
 
-      # Busca a proposta aprovada SEM chamar ensure_total_values (read-only)
-      # Evita efeito colateral de recalcular e gravar totais durante geração de fatura
-      def find_approved_proposal_readonly(order_service)
+      def rels_xml
+        <<~XML
+          <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+          <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+            <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+          </Relationships>
+        XML
+      end
+
+      def document_rels_xml
+        <<~XML
+          <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+          <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+            <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>
+          </Relationships>
+        XML
+      end
+
+      def styles_xml
+        <<~XML
+          <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+          <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+            <w:style w:type="paragraph" w:default="1" w:styleId="Normal">
+              <w:name w:val="Normal"/>
+              <w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="20"/></w:rPr>
+            </w:style>
+          </w:styles>
+        XML
+      end
+
+      def heading(text, size, align: 'left', color: '000000')
+        <<~XML
+          <w:p>
+            <w:pPr><w:jc w:val="#{align}"/><w:spacing w:before="120" w:after="60"/></w:pPr>
+            <w:r><w:rPr><w:b/><w:sz w:val="#{size * 2}"/><w:szCs w:val="#{size * 2}"/><w:color w:val="#{color}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t>#{esc(text)}</w:t></w:r>
+          </w:p>
+        XML
+      end
+
+      def paragraph(text, size, align: 'left', bold: false, color: '000000')
+        b_tag = bold ? '<w:b/>' : ''
+        <<~XML
+          <w:p>
+            <w:pPr><w:jc w:val="#{align}"/><w:spacing w:after="40"/></w:pPr>
+            <w:r><w:rPr>#{b_tag}<w:sz w:val="#{size * 2}"/><w:szCs w:val="#{size * 2}"/><w:color w:val="#{color}"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr><w:t xml:space="preserve">#{esc(text)}</w:t></w:r>
+          </w:p>
+        XML
+      end
+
+      def empty_paragraph
+        '<w:p><w:pPr><w:spacing w:after="60"/></w:pPr></w:p>'
+      end
+
+      def horizontal_line
+        <<~XML
+          <w:p>
+            <w:pPr><w:pBdr><w:bottom w:val="single" w:sz="4" w:space="1" w:color="CCCCCC"/></w:pBdr><w:spacing w:after="80"/></w:pPr>
+          </w:p>
+        XML
+      end
+
+      def shaded_bar(text)
+        <<~XML
+          <w:p>
+            <w:pPr>
+              <w:shd w:val="clear" w:color="auto" w:fill="251C59"/>
+              <w:spacing w:before="120" w:after="120"/>
+              <w:jc w:val="center"/>
+            </w:pPr>
+            <w:r>
+              <w:rPr><w:b/><w:sz w:val="28"/><w:szCs w:val="28"/><w:color w:val="FFFFFF"/><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/></w:rPr>
+              <w:t>#{esc(text)}</w:t>
+            </w:r>
+          </w:p>
+        XML
+      end
+
+      def build_table(rows, col_widths, header: false)
+        grid_xml = col_widths.map { |w| "<w:gridCol w:w=\"#{w}\"/>" }.join
+
+        xml = "<w:tbl><w:tblPr><w:tblStyle w:val=\"TableGrid\"/><w:tblW w:w=\"0\" w:type=\"auto\"/>"
+        xml += "<w:tblBorders>"
+        %w[top left bottom right insideH insideV].each do |border|
+          xml += "<w:#{border} w:val=\"single\" w:sz=\"4\" w:space=\"0\" w:color=\"DDDDDD\"/>"
+        end
+        xml += "</w:tblBorders></w:tblPr>"
+        xml += "<w:tblGrid>#{grid_xml}</w:tblGrid>"
+
+        rows.each_with_index do |row, ri|
+          is_header = header && ri == 0
+          is_last = ri == rows.length - 1
+
+          xml += '<w:tr>'
+          if is_header
+            xml += '<w:trPr><w:tblHeader/></w:trPr>'
+          end
+
+          row.each_with_index do |cell, ci|
+            shd = ''
+            if is_header
+              shd = '<w:shd w:val="clear" w:color="auto" w:fill="E8E8E8"/>'
+            elsif is_last && header
+              shd = '<w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/>'
+            end
+
+            align = ci >= (row.length - 5) && row.length > 5 ? 'right' : 'left'
+            bold = is_header || (is_last && header) ? '<w:b/>' : ''
+            font_size = is_header ? 14 : 13
+
+            xml += "<w:tc><w:tcPr><w:tcW w:w=\"#{col_widths[ci] || 1000}\" w:type=\"dxa\"/>#{shd}</w:tcPr>"
+            xml += "<w:p><w:pPr><w:jc w:val=\"#{align}\"/><w:spacing w:after=\"20\"/></w:pPr>"
+            xml += "<w:r><w:rPr>#{bold}<w:sz w:val=\"#{font_size}\"/><w:szCs w:val=\"#{font_size}\"/><w:rFonts w:ascii=\"Calibri\" w:hAnsi=\"Calibri\"/></w:rPr>"
+            xml += "<w:t xml:space=\"preserve\">#{esc(cell.to_s)}</w:t></w:r></w:p></w:tc>"
+          end
+
+          xml += '</w:tr>'
+        end
+
+        xml += '</w:tbl>'
+        xml
+      end
+
+      def find_approved_proposal(order_service)
         approved_statuses = [
           OrderServiceProposalStatus::APROVADA_ID,
           OrderServiceProposalStatus::NOTAS_INSERIDAS_ID,
           OrderServiceProposalStatus::AUTORIZADA_ID,
           OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
           OrderServiceProposalStatus::PAGA_ID
-        ]
+        ].compact
 
-        result = order_service.order_service_proposals
-          .where(is_complement: [false, nil])
-          .where(order_service_proposal_status_id: approved_statuses)
-          .order(updated_at: :desc)
-          .first
-
-        result || order_service.order_service_proposals
-          .where(order_service_proposal_status_id: approved_statuses)
-          .order(updated_at: :desc)
-          .first
+        order_service.order_service_proposals
+          .select { |p| approved_statuses.include?(p.order_service_proposal_status_id) && !p.is_complement }
+          .sort_by(&:updated_at).last ||
+        order_service.order_service_proposals
+          .select { |p| approved_statuses.include?(p.order_service_proposal_status_id) }
+          .sort_by(&:updated_at).last
       end
 
-      def getting_values_by_proposals
-        total_parts = 0
-        total_services = 0
-        total_discount_ir = 0
-        total_retencao_esfera = 0
+      def esc(val)
+        val.to_s.gsub('&', '&amp;').gsub('<', '&lt;').gsub('>', '&gt;').gsub('"', '&quot;').gsub("'", '&apos;')
+      end
 
-        # Desconto do cliente (percentual)
-        client_discount_pct = (@client.discount_percent || 0).to_d / 100
+      def money(val)
+        "R$ #{format('%.2f', val.to_f).gsub('.', ',').gsub(/(\d)(?=(\d{3})+(?!\d))/, '\\1.')}"
+      end
 
-        # Verifica esfera do cliente para retenções
-        is_municipal_or_estadual = @client.municipal? || @client.estadual?
-        is_federal = @client.federal?
+      def fmt_date(date)
+        date&.strftime('%d/%m/%Y') || '-'
+      end
 
-        @order_services.each do |order_service|
-          proposal = find_approved_proposal_readonly(order_service)
-          next unless proposal
-
-          invoices = proposal.order_service_invoices.sort_by { |item| item.order_service_invoice_type_id }
-
-          # Filtrar por tipo de fatura quando invoice_split está definido
-          if @invoice_split == 'parts'
-            invoices = invoices.select { |inv| inv.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }
-          elsif @invoice_split == 'services'
-            invoices = invoices.select { |inv| inv.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }
-          end
-
-          @order_service_invoices.concat(invoices)
-
-          sum_parts = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }.sum(&:value).to_d
-          sum_services = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }.sum(&:value).to_d
-
-          total_parts += sum_parts
-          total_services += sum_services
-
-          # Retenção: optante_simples=true → NÃO optante simples → aplicar retenção
-          # optante_simples=false → IS Simples → ISENTO
-          if proposal.provider.optante_simples
-            if is_federal
-              total_discount_ir += (sum_parts * 0.0585)    # 5,85% (IR+CSLL+PIS+Cofins)
-              total_discount_ir += (sum_services * 0.0945)  # 9,45% (IR+CSLL+PIS+Cofins)
-            elsif is_municipal_or_estadual
-              total_retencao_esfera += (sum_parts * 0.012)   # 1,20% (somente IR)
-              total_retencao_esfera += (sum_services * 0.048) # 4,80% (somente IR)
-            end
-          end
-        end
-
-        # Calcula totais a partir dos valores das NFs (sem depender de totais da proposta)
-        total_value_without_discount = (total_parts + total_services).to_d
-        total_discount = (total_value_without_discount * client_discount_pct).round(2)
-        total_value = (total_value_without_discount - total_discount).to_d
-        total_retencoes = (total_discount_ir + total_retencao_esfera).round(2)
-        valor_devido = (total_value - total_retencoes).round(2)
-
-        return {
-          valortotal: total_value_without_discount,
-          descontoir: total_discount_ir,
-          valorbruto: total_value_without_discount,
-          desconto: total_discount,
-          valorcomdesconto: total_value,
-          retencoes: total_retencoes,
-          retencao_esfera: total_retencao_esfera,
-          valordevido: valor_devido
-        }
+      def fmt_pct(val)
+        format('%.2f', val.to_f).gsub('.', ',')
       end
     end
   end

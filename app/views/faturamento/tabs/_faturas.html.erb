@@ -54,7 +54,7 @@
 
 <!-- Faturas Table -->
 <div class="card border-0 shadow-sm">
-  <div class="table-responsive">
+  <div class="table-responsive" style="overflow: visible;">
     <table class="table table-hover mb-0">
       <thead class="table-light">
         <tr>
@@ -96,10 +96,10 @@
               <td>
                 <div class="dropdown">
                   <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
-                          data-bs-toggle="dropdown" aria-expanded="false">
+                          data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">
                     <i class="bi bi-three-dots-vertical"></i>
                   </button>
-                  <ul class="dropdown-menu dropdown-menu-end">
+                  <ul class="dropdown-menu dropdown-menu-end shadow">
                     <li>
                       <a class="dropdown-item" href="#" onclick="Faturamento.verDetalhe(<%= f.id %>); return false;">
                         <i class="bi bi-eye-fill me-2"></i> Ver Detalhes

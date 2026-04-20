@@ -27,19 +27,19 @@ function generateWatermarkChart(chartDomId, chartData) {
 }
 
 function renderBarChart(builderJson) {
-    var chartDom = document.getElementById('chartBarras');
+    const chartDom = document.getElementById('chartBarras');
     if (!chartDom) return;
 
     if (myBarChart && echarts.getInstanceByDom(chartDom)) { echarts.dispose(chartDom); }
 
     // Combinar dados de approved (charts) e authorized (components) numa única visão empilhada
-    var allCostCenters = new Set([
+    const allCostCenters = new Set([
         ...Object.keys(builderJson.charts || {}),
         ...Object.keys(builderJson.components || {})
     ]);
 
     // Ordenar por valor total decrescente (ECharts bar horizontal: primeiro item = bottom)
-    var sortedCenters = Array.from(allCostCenters).map(function(name) {
+    const sortedCenters = Array.from(allCostCenters).map(function(name) {
         return {
             name: name,
             approved: (builderJson.charts || {})[name] || 0,
@@ -235,13 +235,13 @@ function renderConsumoChart(typesJson) {
         },
         legend: {
             orient: 'horizontal',
-            bottom: 5,
+            bottom: 0,
             textStyle: { fontSize: 11 }
         },
         series: [{
             type: 'pie',
-            radius: ['35%', '65%'],
-            center: ['50%', '42%'],
+            radius: ['40%', '62%'],
+            center: ['50%', '45%'],
             name: 'Consumo peças/serviços',
             avoidLabelOverlap: true,
             itemStyle: {
@@ -252,12 +252,18 @@ function renderConsumoChart(typesJson) {
             color: ['#3366cc', '#00acc1'],
             label: {
                 show: true,
+                position: 'outside',
                 formatter: function(params) {
                     return params.name + '\n' + formatCurrency(params.value);
                 },
-                fontSize: 10
+                fontSize: 10,
+                distanceToLabelLine: 5
             },
-            labelLine: { show: true },
+            labelLine: {
+                show: true,
+                length: 10,
+                length2: 8
+            },
             data: Object.keys(typesJson).map(function(key) {
                 return { name: key, value: typesJson[key] };
             })
@@ -265,21 +271,21 @@ function renderConsumoChart(typesJson) {
         graphic: [{
             type: 'text',
             left: 'center',
-            top: '38%',
+            top: '40%',
             style: {
                 text: 'Total',
                 textAlign: 'center',
-                fontSize: 11,
+                fontSize: 10,
                 fill: '#999'
             }
         }, {
             type: 'text',
             left: 'center',
-            top: '44%',
+            top: '47%',
             style: {
                 text: formatCurrency(total),
                 textAlign: 'center',
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: 'bold',
                 fill: '#333'
             }

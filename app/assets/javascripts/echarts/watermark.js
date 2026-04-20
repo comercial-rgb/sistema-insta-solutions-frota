@@ -235,13 +235,13 @@ function renderConsumoChart(typesJson) {
         },
         legend: {
             orient: 'horizontal',
-            bottom: 5,
+            bottom: 0,
             textStyle: { fontSize: 11 }
         },
         series: [{
             type: 'pie',
-            radius: ['35%', '65%'],
-            center: ['50%', '42%'],
+            radius: ['40%', '62%'],
+            center: ['50%', '45%'],
             name: 'Consumo peças/serviços',
             avoidLabelOverlap: true,
             itemStyle: {
@@ -252,12 +252,18 @@ function renderConsumoChart(typesJson) {
             color: ['#3366cc', '#00acc1'],
             label: {
                 show: true,
+                position: 'outside',
                 formatter: function(params) {
                     return params.name + '\n' + formatCurrency(params.value);
                 },
-                fontSize: 10
+                fontSize: 10,
+                distanceToLabelLine: 5
             },
-            labelLine: { show: true },
+            labelLine: {
+                show: true,
+                length: 10,
+                length2: 8
+            },
             data: Object.keys(typesJson).map(function(key) {
                 return { name: key, value: typesJson[key] };
             })
@@ -265,21 +271,21 @@ function renderConsumoChart(typesJson) {
         graphic: [{
             type: 'text',
             left: 'center',
-            top: '38%',
+            top: '40%',
             style: {
                 text: 'Total',
                 textAlign: 'center',
-                fontSize: 11,
+                fontSize: 10,
                 fill: '#999'
             }
         }, {
             type: 'text',
             left: 'center',
-            top: '44%',
+            top: '47%',
             style: {
                 text: formatCurrency(total),
                 textAlign: 'center',
-                fontSize: 12,
+                fontSize: 11,
                 fontWeight: 'bold',
                 fill: '#333'
             }
