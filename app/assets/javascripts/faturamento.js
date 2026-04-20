@@ -240,6 +240,28 @@ var Faturamento = (function() {
     });
   }
 
+  // ========== EXCLUIR FATURA ==========
+
+  function excluirFatura(id, numero) {
+    if (!confirm('Tem certeza que deseja excluir a fatura ' + numero + '?\n\nAs OS vinculadas serão liberadas para faturar novamente.')) return;
+
+    $.ajax({
+      url: '/faturamento/' + id,
+      method: 'DELETE',
+      headers: { 'X-CSRF-Token': csrfToken() },
+      dataType: 'json',
+      success: function(resp) {
+        showAlert(resp.message || 'Fatura excluída com sucesso!');
+        setTimeout(function() { window.location.reload(); }, 1000);
+      },
+      error: function(xhr) {
+        var msg = 'Erro ao excluir fatura';
+        try { msg = JSON.parse(xhr.responseText).error; } catch(e) {}
+        showAlert(msg, 'danger');
+      }
+    });
+  }
+
   // ========== MARCAR PAGO ==========
 
   function marcarPago(id) {
@@ -950,6 +972,7 @@ var Faturamento = (function() {
     editarFatura: editarFatura,
     salvarEdicao: salvarEdicao,
     enviarCobranca: enviarCobranca,
+    excluirFatura: excluirFatura,
     marcarPago: marcarPago,
     carregarOSAbertos: carregarOSAbertos,
     filtrarOSAbertos: filtrarOSAbertos,

@@ -382,7 +382,7 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
 	post 'financial_portal/webhook_skip/:id', :to => 'financial_portal#webhook_skip', :as => 'financial_portal_webhook_skip'
 
   # Faturamento
-  resources :faturamento, controller: 'faturamento', only: [:index, :show, :create, :update] do
+  resources :faturamento, controller: 'faturamento', only: [:index, :show, :create, :update, :destroy] do
     member do
       post :cobrar
       post :marcar_pago

@@ -259,6 +259,44 @@ class FaturamentoController < ApplicationController
     end
   end
 
+  def destroy
+    authorize :faturamento, :destroy?
+    @fatura = Fatura.includes(:fatura_itens).find(params[:id])
+
+    unless %w[aberta cancelada].include?(@fatura.status)
+      respond_to do |format|
+        format.html { redirect_to faturamento_index_path, alert: "Fatura está #{@fatura.status}, não pode ser excluída. Apenas faturas abertas ou canceladas." }
+        format.json { render json: { error: "Fatura está #{@fatura.status}, não pode ser excluída." }, status: :bad_request }
+      end
+      return
+    end
+
+    os_ids = @fatura.fatura_itens.where.not(order_service_id: nil).pluck(:order_service_id)
+
+    ActiveRecord::Base.transaction do
+      # Liberar as OS: voltar para status Autorizada e marcar como não faturada
+      if os_ids.any?
+        OrderService.where(id: os_ids).update_all(
+          invoiced: false,
+          invoiced_at: nil,
+          order_service_status_id: OrderServiceStatus::AUTORIZADA_ID
+        )
+      end
+
+      @fatura.destroy!
+    end
+
+    respond_to do |format|
+      format.html { redirect_to faturamento_index_path, notice: "Fatura #{@fatura.numero} excluída. #{os_ids.size} OS liberadas para faturamento." }
+      format.json { render json: { success: true, message: "Fatura excluída. #{os_ids.size} OS liberadas." } }
+    end
+  rescue => e
+    respond_to do |format|
+      format.html { redirect_to faturamento_index_path, alert: "Erro ao excluir: #{e.message}" }
+      format.json { render json: { error: e.message }, status: :unprocessable_entity }
+    end
+  end
+
   def gerar_docx
     authorize :faturamento, :show?
     @fatura = Fatura.includes(

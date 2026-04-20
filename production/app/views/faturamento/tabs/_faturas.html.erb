@@ -118,6 +118,14 @@
                           </a>
                         </li>
                       <% end %>
+                      <% if %w[aberta cancelada].include?(f.status) && policy(:faturamento).destroy? %>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                          <a class="dropdown-item text-danger" href="#" onclick="Faturamento.excluirFatura(<%= f.id %>, '<%= j(f.numero) %>'); return false;">
+                            <i class="bi bi-trash-fill me-2"></i> Excluir Fatura
+                          </a>
+                        </li>
+                      <% end %>
                     <% end %>
                   </ul>
                 </div>
