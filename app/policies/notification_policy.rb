@@ -21,7 +21,7 @@ class NotificationPolicy < ApplicationPolicy
   end
 
   def update?
-    false
+    user.admin?
   end
 
   def edit?

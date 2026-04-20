@@ -63,7 +63,11 @@ module Utils
       def build_header        # Logo top-left
         if File.exist?(LOGO_PATH)
           logo_top = @pdf.cursor
-          @pdf.image LOGO_PATH, width: 35, at: [0, logo_top]
+          begin
+            @pdf.image LOGO_PATH, width: 35, at: [0, logo_top]
+          rescue Prawn::Errors::UnsupportedImageType, StandardError => e
+            Rails.logger.warn("[GenerateInvoicePdfService] Falha ao carregar logo (#{e.class}: #{e.message}); seguindo sem logo.")
+          end
         end
         @pdf.font_size 18
         @pdf.text "Fatura Gestão de Frotas", style: :bold, align: :center, color: BLUE_DARK
@@ -87,8 +91,13 @@ module Utils
                     when 'servicos' then ' (Somente Servicos)'
                     else ''
                     end
+        numero_exibicao = case @invoice_split
+                          when 'pecas' then (@fatura.numero_pecas.presence || "#{@fatura.numero}-P")
+                          when 'servicos' then (@fatura.numero_servicos.presence || "#{@fatura.numero}-S")
+                          else @fatura.numero
+                          end
         @pdf.font_size 13
-        @pdf.text "N\u00B0 #{@fatura.numero}#{split_txt}", style: :bold, align: :center, color: BLUE_LIGHT
+        @pdf.text "N\u00B0 #{numero_exibicao}#{split_txt}", style: :bold, align: :center, color: BLUE_LIGHT
         @pdf.move_down 4
 
         @pdf.font_size 9

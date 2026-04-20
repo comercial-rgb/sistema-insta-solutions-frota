@@ -1,7 +1,10 @@
 <% popup_notifications = Notification.popup_unread_for(@current_user) %>
 <% if popup_notifications.any? %>
+<% requires_ack_count = popup_notifications.count { |n| n.requires_acknowledgment } %>
 <!-- Modal de Notificações Pop-up -->
-<div class="modal fade" id="importantNotificationsModal" tabindex="-1" aria-labelledby="importantNotificationsModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+<div class="modal fade" id="importantNotificationsModal" tabindex="-1" aria-labelledby="importantNotificationsModalLabel" aria-hidden="true"
+     data-requires-ack-count="<%= requires_ack_count %>"
+     <% if requires_ack_count > 0 %>data-bs-backdrop="static" data-bs-keyboard="false"<% end %>>
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
 
@@ -12,6 +15,9 @@
                     Notificações Importantes
                     <span class="badge bg-warning text-dark ms-2"><%= popup_notifications.length %></span>
                 </h5>
+                <% if requires_ack_count == 0 %>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                <% end %>
             </div>
 
             <!-- Conteúdo -->
@@ -28,7 +34,7 @@
                             </div>
                             <% if notification.requires_acknowledgment %>
                                 <div class="text-end">
-                                    <button type="button" class="btn btn-sm btn-outline-success acknowledge-notification-btn" data-notification-id="<%= notification.id %>">
+                                    <button type="button" class="btn btn-sm btn-outline-success acknowledge-notification-btn acknowledge-notification-required" data-notification-id="<%= notification.id %>">
                                         <i class="bi bi-check-circle me-1"></i> Ciente
                                     </button>
                                 </div>
@@ -49,7 +55,8 @@
                 <a href="<%= notifications_path %>" class="btn btn-outline-primary btn-sm">
                     <i class="bi bi-bell me-1"></i> Ver todas as notificações
                 </a>
-                <button type="button" class="btn btn-warning btn-sm" id="closePopupNotifications" disabled>
+                <button type="button" class="btn btn-warning btn-sm" id="closePopupNotifications"
+                        <% if requires_ack_count > 0 %>disabled<% end %>>
                     <i class="bi bi-check2-all me-1"></i> Fechar
                 </button>
             </div>

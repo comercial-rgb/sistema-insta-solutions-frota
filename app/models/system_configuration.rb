@@ -1,6 +1,7 @@
 class SystemConfiguration < ApplicationRecord
 	after_initialize :default_values
 	after_commit :ensure_favicon_processing, if: -> { favicon.attached? }
+	after_commit :clear_configuration_cache
 
 	SOBRE = 'sobre'
 	POLITICA_USO = 'politica_uso'
@@ -144,6 +145,10 @@ class SystemConfiguration < ApplicationRecord
       !File.exist?(Rails.root.join("public/favicon/custom/favicon-#{size}.png"))
     end
     ProcessFaviconJob.perform_later(id) if missing_files
+  end
+
+  def clear_configuration_cache
+    Rails.cache.delete('system_configuration/current')
   end
 
 end

@@ -220,7 +220,8 @@ class OrderServicesController < ApplicationController
       .where(id: os_ids)
       .includes(:client, :vehicle, :cost_center, :manager, :provider_service_type, 
                 :order_service_type, :order_service_status, :commitment,
-                order_service_proposals: [:provider, :order_service_proposal_status, :order_service_proposal_items])
+                order_service_proposals: [:provider, :order_service_proposal_status, :order_service_proposal_items,
+                                          { order_service_invoices: { file_attachment: :blob } }])
     
     # Filtrar por permissão do usuário
     if @current_user.manager? || @current_user.additional?
@@ -231,13 +232,29 @@ class OrderServicesController < ApplicationController
     elsif @current_user.provider?
       order_services = order_services.where(provider_id: @current_user.id)
     end
-    
-    pdf_data = Utils::OrderServices::BatchPdfExporter.new(order_services, @current_user).call
-    
-    send_data pdf_data,
-      type: 'application/pdf',
-      disposition: 'attachment',
-      filename: "ordens_servico_lote_#{Time.now.strftime('%Y%m%d_%H%M%S')}.pdf"
+
+    order_services = order_services.to_a
+
+    # Se há NFs anexadas, entrega um ZIP com cada NF nomeada por OS/Fornecedor/Tipo.
+    has_attached_nf = order_services.any? do |os|
+      os.order_service_proposals.any? do |p|
+        p.order_service_invoices.any? { |i| i.file.attached? }
+      end
+    end
+
+    if has_attached_nf
+      zip_data, total = Utils::OrderServices::BatchInvoiceZipExporter.new(order_services).call
+      send_data zip_data,
+        type: 'application/zip',
+        disposition: 'attachment',
+        filename: "notas_fiscais_lote_#{Time.now.strftime('%Y%m%d_%H%M%S')}_#{total}arqs.zip"
+    else
+      pdf_data = Utils::OrderServices::BatchPdfExporter.new(order_services, @current_user).call
+      send_data pdf_data,
+        type: 'application/pdf',
+        disposition: 'attachment',
+        filename: "ordens_servico_lote_#{Time.now.strftime('%Y%m%d_%H%M%S')}.pdf"
+    end
   end
 
   def defining_data(order_service_status_id, show_order_service_status, order_service_status_ids, filter_audit, period_filter, order_services_grid, order_services_grid_class, method)
@@ -1094,31 +1111,33 @@ class OrderServicesController < ApplicationController
       end
     end
 
-    clients = @order_services_without_filter.assets.map(&:client).map {|c| [c.fantasy_name, c.id] }.uniq
+    without_filter_assets = @order_services_without_filter.assets.to_a
 
-    managers = @order_services_without_filter.assets.map(&:manager).map {|c| [c.get_name, c.id] }.uniq
+    clients = without_filter_assets.map(&:client).compact.uniq.map {|c| [c.fantasy_name, c.id] }
 
-    current_cost_center_ids = @order_services_without_filter.assets.map{|item| item.vehicle.cost_center_id}.uniq.flatten
+    managers = without_filter_assets.map(&:manager).compact.uniq.map {|c| [c.get_name, c.id] }
+
+    current_cost_center_ids = without_filter_assets.map{|item| item.vehicle&.cost_center_id }.compact.uniq
     if @current_user.manager? || @current_user.additional?
       current_cost_center_ids = cost_center_ids
     end
     cost_centers = CostCenter.where(id: [current_cost_center_ids]).joins(:order_services).distinct.order(:name).map {|c| [c.name, c.id] }.uniq
 
-    vehicles = @order_services_without_filter.assets.map(&:vehicle).map {|c| [c.get_text_name, c.id] }.uniq
+    vehicles = without_filter_assets.map(&:vehicle).compact.uniq.map {|c| [c.get_text_name, c.id] }
 
-    commitments = @order_services_without_filter.assets.map(&:commitment).select{|item| !item.nil?}.map {|c| [c.get_text_name, c.id] }.uniq
+    commitments = without_filter_assets.map(&:commitment).compact.uniq.map {|c| [c.get_text_name, c.id] }
 
-    sub_units = @order_services_without_filter.assets.map(&:vehicle).select{|item| !item.nil? }.map{|item| item.sub_unit}.compact.uniq.map {|c| [c.get_text_name, c.id] }.uniq
+    sub_units = without_filter_assets.map(&:vehicle).compact.map(&:sub_unit).compact.uniq.map {|c| [c.get_text_name, c.id] }
 
-    provider_service_types = @order_services_without_filter.assets.map(&:provider_service_type).map {|c| [c.get_text_name, c.id] }.uniq
+    provider_service_types = without_filter_assets.map(&:provider_service_type).compact.uniq.map {|c| [c.get_text_name, c.id] }
 
-    order_service_types = @order_services_without_filter.assets.map(&:order_service_type).map {|c| [c.get_text_name, c.id] }.uniq
+    order_service_types = without_filter_assets.map(&:order_service_type).compact.uniq.map {|c| [c.get_text_name, c.id] }
 
-    order_service_ids = @order_services_without_filter.assets.map(&:id).uniq
+    order_service_ids = without_filter_assets.map(&:id).uniq
     order_service_proposals = OrderServiceProposal.by_order_services_id(order_service_ids)
 
     provider_ids = order_service_proposals.map(&:provider_id)
-    provider_ids.concat(@order_services_without_filter.assets.map(&:provider_id))
+    provider_ids.concat(without_filter_assets.map(&:provider_id))
     providers = User.provider.name_ordered.where(id: [provider_ids]).order(:name).map {|c| [c.get_name, c.id] }.uniq
 
     # Atribuir dados para todos os grids (incluindo filtros)

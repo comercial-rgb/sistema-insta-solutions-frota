@@ -22,6 +22,10 @@ breadcrumbs = [
       <div class="row align-items-start">
         <div class="col-md-8">
           <h3 class="text-primary mb-1">Fatura <%= @fatura.numero %></h3>
+          <p class="text-muted mb-1">
+            <span class="badge bg-light text-dark border me-1">Peças: <%= @fatura.numero_pecas || "#{@fatura.numero}-P" %></span>
+            <span class="badge bg-light text-dark border">Serviços: <%= @fatura.numero_servicos || "#{@fatura.numero}-S" %></span>
+          </p>
           <p class="text-muted mb-1">Emissão: <%= @fatura.data_emissao&.strftime('%d/%m/%Y') %></p>
           <% if @fatura.data_vencimento %>
             <p class="mb-0 <%= @fatura.vencida? ? 'text-danger fw-bold' : 'text-muted' %>">
@@ -236,15 +240,17 @@ breadcrumbs = [
   <% end %>
 
   <!-- NF Info -->
-  <% if @fatura.nota_fiscal_numero.present? %>
+  <% has_nf = @fatura.nota_fiscal_numero.present? || @fatura.nota_fiscal_numero_pecas.present? || @fatura.nota_fiscal_numero_servicos.present? || @fatura.nota_fiscal_pecas_file.attached? || @fatura.nota_fiscal_servicos_file.attached? %>
+  <% if has_nf %>
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-white border-bottom">
         <h6 class="mb-0 fw-bold"><i class="bi bi-file-earmark-text me-1"></i> Dados da Nota Fiscal</h6>
       </div>
       <div class="card-body">
+        <% if @fatura.nota_fiscal_numero.present? %>
         <div class="row">
           <div class="col-md-3">
-            <small class="text-muted d-block">N° Nota Fiscal</small>
+            <small class="text-muted d-block">N° Nota Fiscal (consolidado)</small>
             <strong><%= @fatura.nota_fiscal_numero %></strong>
           </div>
           <div class="col-md-2">
@@ -262,6 +268,51 @@ breadcrumbs = [
           <div class="col-md-3">
             <small class="text-muted d-block">Valor Líquido</small>
             <strong class="text-primary"><%= number_to_currency(@fatura.valor_liquido, unit: 'R$ ') %></strong>
+          </div>
+        </div>
+        <% end %>
+        <div class="row mt-3">
+          <div class="col-md-6 border-end">
+            <h6 class="text-muted mb-2"><i class="bi bi-gear me-1"></i> NF de Peças <span class="badge bg-light text-dark ms-1"><%= @fatura.numero_pecas || "#{@fatura.numero}-P" %></span></h6>
+            <div class="row">
+              <div class="col-md-6">
+                <small class="text-muted d-block">N°</small>
+                <strong><%= @fatura.nota_fiscal_numero_pecas.presence || '-' %></strong>
+              </div>
+              <div class="col-md-6">
+                <small class="text-muted d-block">Série</small>
+                <strong><%= @fatura.nota_fiscal_serie_pecas.presence || '-' %></strong>
+              </div>
+            </div>
+            <div class="mt-2">
+              <small class="text-muted d-block">Arquivo anexado</small>
+              <% if @fatura.nota_fiscal_pecas_file.attached? %>
+                <%= link_to "<i class='bi bi-download'></i> #{@fatura.nota_fiscal_pecas_file.filename}".html_safe, rails_blob_path(@fatura.nota_fiscal_pecas_file, disposition: 'attachment'), class: 'btn btn-sm btn-outline-primary' %>
+              <% else %>
+                <span class="text-muted">Nenhum</span>
+              <% end %>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <h6 class="text-muted mb-2"><i class="bi bi-tools me-1"></i> NF de Serviços <span class="badge bg-light text-dark ms-1"><%= @fatura.numero_servicos || "#{@fatura.numero}-S" %></span></h6>
+            <div class="row">
+              <div class="col-md-6">
+                <small class="text-muted d-block">N°</small>
+                <strong><%= @fatura.nota_fiscal_numero_servicos.presence || '-' %></strong>
+              </div>
+              <div class="col-md-6">
+                <small class="text-muted d-block">Série</small>
+                <strong><%= @fatura.nota_fiscal_serie_servicos.presence || '-' %></strong>
+              </div>
+            </div>
+            <div class="mt-2">
+              <small class="text-muted d-block">Arquivo anexado</small>
+              <% if @fatura.nota_fiscal_servicos_file.attached? %>
+                <%= link_to "<i class='bi bi-download'></i> #{@fatura.nota_fiscal_servicos_file.filename}".html_safe, rails_blob_path(@fatura.nota_fiscal_servicos_file, disposition: 'attachment'), class: 'btn btn-sm btn-outline-primary' %>
+              <% else %>
+                <span class="text-muted">Nenhum</span>
+              <% end %>
+            </div>
           </div>
         </div>
         <div class="row mt-3">

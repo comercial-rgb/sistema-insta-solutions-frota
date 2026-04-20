@@ -340,6 +340,17 @@
 		!profile.nil? && profile.provider?
 	end
 
+	# Estado efetivo do usuário (usa o estado direto do usuário ou, se ausente,
+	# o estado do endereço — caso dos fornecedores que só têm state_id no address).
+	def effective_state_id
+		state_id.presence || address&.state_id
+	end
+
+	# Cidade efetiva do usuário (mesma lógica do estado efetivo).
+	def effective_city_id
+		city_id.presence || address&.city_id
+	end
+
 	# Usuário é motorista?
 	def driver?
 		!profile.nil? && profile.driver?

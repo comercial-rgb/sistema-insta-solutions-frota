@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_17_170000) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_20_150000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -437,12 +437,20 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_17_170000) do
     t.bigint "pago_por_id"
     t.bigint "sub_unit_id"
     t.string "tipo_valor", default: "bruto", null: false
+    t.string "nota_fiscal_numero_pecas"
+    t.string "nota_fiscal_numero_servicos"
+    t.string "nota_fiscal_serie_pecas"
+    t.string "nota_fiscal_serie_servicos"
+    t.string "numero_pecas"
+    t.string "numero_servicos"
     t.index ["client_id"], name: "index_faturas_on_client_id"
     t.index ["contract_id"], name: "index_faturas_on_contract_id"
     t.index ["cost_center_id"], name: "index_faturas_on_cost_center_id"
     t.index ["data_emissao"], name: "index_faturas_on_data_emissao"
     t.index ["data_vencimento"], name: "index_faturas_on_data_vencimento"
     t.index ["numero"], name: "index_faturas_on_numero", unique: true
+    t.index ["numero_pecas"], name: "index_faturas_on_numero_pecas", unique: true
+    t.index ["numero_servicos"], name: "index_faturas_on_numero_servicos", unique: true
     t.index ["pago_por_id"], name: "index_faturas_on_pago_por_id"
     t.index ["status"], name: "index_faturas_on_status"
     t.index ["sub_unit_id"], name: "index_faturas_on_sub_unit_id"
@@ -552,6 +560,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_17_170000) do
     t.integer "display_type", default: 0, null: false
     t.boolean "requires_acknowledgment", default: false, null: false
     t.index ["city_id"], name: "index_notifications_on_city_id"
+    t.index ["display_type", "created_at"], name: "idx_notifications_display_created"
     t.index ["profile_id"], name: "index_notifications_on_profile_id"
     t.index ["state_id"], name: "index_notifications_on_state_id"
   end
@@ -644,7 +653,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_17_170000) do
     t.text "justification"
     t.index ["approved_by_additional_id"], name: "index_order_service_proposals_on_approved_by_additional_id"
     t.index ["authorized_by_additional_id"], name: "index_order_service_proposals_on_authorized_by_additional_id"
+    t.index ["order_service_id", "order_service_proposal_status_id"], name: "idx_osp_os_status"
     t.index ["order_service_id"], name: "index_order_service_proposals_on_order_service_id"
+    t.index ["order_service_proposal_status_id", "updated_at"], name: "idx_osp_status_updated"
     t.index ["order_service_proposal_status_id"], name: "idx_on_order_service_proposal_status_id_a50919f65f"
     t.index ["parent_proposal_id"], name: "index_order_service_proposals_on_parent_proposal_id"
     t.index ["pending_manager_approval"], name: "index_order_service_proposals_on_pending_manager_approval"
@@ -707,6 +718,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_17_170000) do
     t.boolean "proposals_blocked", default: false, null: false
     t.index ["cilia_priced_at"], name: "index_order_services_on_cilia_priced_at"
     t.index ["cilia_priced_by_id"], name: "index_order_services_on_cilia_priced_by_id"
+    t.index ["client_id", "order_service_status_id"], name: "idx_os_client_status"
     t.index ["client_id"], name: "index_order_services_on_client_id"
     t.index ["commitment_id"], name: "index_order_services_on_commitment_id"
     t.index ["commitment_parts_id"], name: "fk_rails_8411f8cafd"
@@ -722,6 +734,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_17_170000) do
     t.index ["provider_service_type_id"], name: "index_order_services_on_provider_service_type_id"
     t.index ["reevaluation_requested_by_id"], name: "index_order_services_on_reevaluation_requested_by_id"
     t.index ["service_group_id"], name: "index_order_services_on_service_group_id"
+    t.index ["vehicle_id", "order_service_status_id"], name: "idx_os_vehicle_status"
     t.index ["vehicle_id"], name: "index_order_services_on_vehicle_id"
   end
 

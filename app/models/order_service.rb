@@ -614,6 +614,8 @@ class OrderService < ApplicationRecord
   end
 
   def getting_order_service_proposal_approved
+    return @_approved_proposal if defined?(@_approved_proposal)
+
     approved_statuses = [
       OrderServiceProposalStatus::APROVADA_ID,
       OrderServiceProposalStatus::NOTAS_INSERIDAS_ID,
@@ -631,7 +633,7 @@ class OrderService < ApplicationRecord
       .first
     if result.present?
       OrderServiceProposal.ensure_total_values(result)
-      return result
+      return @_approved_proposal = result
     end
 
     result = order_service_proposals
@@ -639,7 +641,7 @@ class OrderService < ApplicationRecord
       .order(updated_at: :desc)
       .first
     OrderServiceProposal.ensure_total_values(result) if result.present?
-    result
+    @_approved_proposal = result
   end
 
   def total_value_by_category(category_id)

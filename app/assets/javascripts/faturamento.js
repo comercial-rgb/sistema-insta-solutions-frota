@@ -172,6 +172,31 @@ var Faturamento = (function() {
         document.getElementById('editDtVenc').value = f.data_vencimento ? f.data_vencimento.substring(0, 10) : '';
         document.getElementById('editNfNumero').value = f.nota_fiscal_numero || '';
         document.getElementById('editNfSerie').value = f.nota_fiscal_serie || '';
+        var setVal = function(id, v) { var el = document.getElementById(id); if (el) el.value = v || ''; };
+        setVal('editNfNumeroPecas', f.nota_fiscal_numero_pecas);
+        setVal('editNfSeriePecas', f.nota_fiscal_serie_pecas);
+        setVal('editNfNumeroServicos', f.nota_fiscal_numero_servicos);
+        setVal('editNfSerieServicos', f.nota_fiscal_serie_servicos);
+
+        var pecasInfo = document.getElementById('editNfPecasFileExistente');
+        if (pecasInfo) {
+          if (f.nota_fiscal_pecas_file_url) {
+            pecasInfo.innerHTML = 'Arquivo atual: <a href="' + f.nota_fiscal_pecas_file_url + '" target="_blank">' + (f.nota_fiscal_pecas_file_name || 'baixar') + '</a>';
+          } else {
+            pecasInfo.textContent = 'Nenhum arquivo anexado.';
+          }
+        }
+        var servInfo = document.getElementById('editNfServicosFileExistente');
+        if (servInfo) {
+          if (f.nota_fiscal_servicos_file_url) {
+            servInfo.innerHTML = 'Arquivo atual: <a href="' + f.nota_fiscal_servicos_file_url + '" target="_blank">' + (f.nota_fiscal_servicos_file_name || 'baixar') + '</a>';
+          } else {
+            servInfo.textContent = 'Nenhum arquivo anexado.';
+          }
+        }
+        var fileP = document.getElementById('editNfPecasFile'); if (fileP) fileP.value = '';
+        var fileS = document.getElementById('editNfServicosFile'); if (fileS) fileS.value = '';
+
         document.getElementById('editDesconto').value = f.desconto || 0;
         document.getElementById('editObs').value = f.admin_observacoes || '';
         var modal = new bootstrap.Modal(document.getElementById('modalEditFatura'));
@@ -185,25 +210,38 @@ var Faturamento = (function() {
 
   function salvarEdicao() {
     var id = document.getElementById('editFaturaId').value;
-    var data = {
-      fatura: {
-        status: document.getElementById('editStatus').value,
-        data_envio_empresa: document.getElementById('editDtEnvio').value || null,
-        data_recebimento: document.getElementById('editDtReceb').value || null,
-        data_vencimento: document.getElementById('editDtVenc').value || null,
-        nota_fiscal_numero: document.getElementById('editNfNumero').value || null,
-        nota_fiscal_serie: document.getElementById('editNfSerie').value || null,
-        desconto: document.getElementById('editDesconto').value || 0,
-        admin_observacoes: document.getElementById('editObs').value
-      }
-    };
+    var fd = new FormData();
+    var getVal = function(id) { var el = document.getElementById(id); return el ? el.value : ''; };
+    fd.append('fatura[status]', getVal('editStatus'));
+    fd.append('fatura[data_envio_empresa]', getVal('editDtEnvio') || '');
+    fd.append('fatura[data_recebimento]', getVal('editDtReceb') || '');
+    fd.append('fatura[data_vencimento]', getVal('editDtVenc') || '');
+    fd.append('fatura[nota_fiscal_numero]', getVal('editNfNumero') || '');
+    fd.append('fatura[nota_fiscal_serie]', getVal('editNfSerie') || '');
+    fd.append('fatura[nota_fiscal_numero_pecas]', getVal('editNfNumeroPecas') || '');
+    fd.append('fatura[nota_fiscal_serie_pecas]', getVal('editNfSeriePecas') || '');
+    fd.append('fatura[nota_fiscal_numero_servicos]', getVal('editNfNumeroServicos') || '');
+    fd.append('fatura[nota_fiscal_serie_servicos]', getVal('editNfSerieServicos') || '');
+    fd.append('fatura[desconto]', getVal('editDesconto') || 0);
+    fd.append('fatura[admin_observacoes]', getVal('editObs') || '');
+
+    var pecasFile = document.getElementById('editNfPecasFile');
+    if (pecasFile && pecasFile.files && pecasFile.files[0]) {
+      fd.append('fatura[nota_fiscal_pecas_file]', pecasFile.files[0]);
+    }
+    var servFile = document.getElementById('editNfServicosFile');
+    if (servFile && servFile.files && servFile.files[0]) {
+      fd.append('fatura[nota_fiscal_servicos_file]', servFile.files[0]);
+    }
+    fd.append('_method', 'patch');
 
     $.ajax({
       url: '/faturamento/' + id,
-      method: 'PATCH',
-      data: JSON.stringify(data),
-      contentType: 'application/json',
-      headers: { 'X-CSRF-Token': csrfToken() },
+      method: 'POST',
+      data: fd,
+      processData: false,
+      contentType: false,
+      headers: { 'X-CSRF-Token': csrfToken(), 'Accept': 'application/json' },
       dataType: 'json',
       success: function() {
         bootstrap.Modal.getInstance(document.getElementById('modalEditFatura')).hide();
@@ -212,7 +250,10 @@ var Faturamento = (function() {
       },
       error: function(xhr) {
         var msg = 'Erro ao atualizar fatura';
-        try { msg = JSON.parse(xhr.responseText).error.join(', '); } catch(e) {}
+        try {
+          var err = JSON.parse(xhr.responseText).error;
+          msg = Array.isArray(err) ? err.join(', ') : (err || msg);
+        } catch(e) {}
         showAlert(msg, 'danger');
       }
     });

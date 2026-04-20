@@ -598,6 +598,16 @@ class FaturamentoController < ApplicationController
       taxa_administracao: f.taxa_administracao.to_f,
       nota_fiscal_numero: f.nota_fiscal_numero,
       nota_fiscal_serie: f.nota_fiscal_serie,
+      nota_fiscal_numero_pecas: f.nota_fiscal_numero_pecas,
+      nota_fiscal_serie_pecas: f.nota_fiscal_serie_pecas,
+      nota_fiscal_numero_servicos: f.nota_fiscal_numero_servicos,
+      nota_fiscal_serie_servicos: f.nota_fiscal_serie_servicos,
+      numero_pecas: f.numero_pecas,
+      numero_servicos: f.numero_servicos,
+      nota_fiscal_pecas_file_url: (f.nota_fiscal_pecas_file.attached? ? Rails.application.routes.url_helpers.rails_blob_path(f.nota_fiscal_pecas_file, only_path: true) : nil),
+      nota_fiscal_pecas_file_name: (f.nota_fiscal_pecas_file.attached? ? f.nota_fiscal_pecas_file.filename.to_s : nil),
+      nota_fiscal_servicos_file_url: (f.nota_fiscal_servicos_file.attached? ? Rails.application.routes.url_helpers.rails_blob_path(f.nota_fiscal_servicos_file, only_path: true) : nil),
+      nota_fiscal_servicos_file_name: (f.nota_fiscal_servicos_file.attached? ? f.nota_fiscal_servicos_file.filename.to_s : nil),
       total_itens: f.total_itens
     }
   end
@@ -643,6 +653,9 @@ class FaturamentoController < ApplicationController
     params.require(:fatura).permit(
       :status, :data_envio_empresa, :data_recebimento, :data_vencimento,
       :admin_observacoes, :nota_fiscal_numero, :nota_fiscal_serie,
+      :nota_fiscal_numero_pecas, :nota_fiscal_serie_pecas,
+      :nota_fiscal_numero_servicos, :nota_fiscal_serie_servicos,
+      :nota_fiscal_pecas_file, :nota_fiscal_servicos_file,
       :desconto, :valor_bruto
     )
   end

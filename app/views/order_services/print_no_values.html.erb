@@ -90,6 +90,7 @@
           <th><%= OrderServiceProposalItem.human_attribute_name(:brand) %></th>
           <th><%= OrderServiceProposalItem.human_attribute_name(:quantity) %></th>
           <th><%= OrderServiceProposalItem.human_attribute_name(:warranty_period) %></th>
+          <th><%= OrderServiceProposalItem.human_attribute_name(:observation) %></th>
         </tr>
       </thead>
       <tbody>
@@ -102,6 +103,7 @@
             <td><%= item.brand %></td>
             <td><%= item.quantity %></td>
             <td><%= item.warranty_period.presence || '-' %></td>
+            <td><%= item.observation.presence || '-' %></td>
           </tr>
         <% end %>
       </tbody>

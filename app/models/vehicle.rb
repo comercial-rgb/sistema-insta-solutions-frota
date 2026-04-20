@@ -135,15 +135,22 @@
   end
 
   def get_total_paid_value
-    result = 0
-    invoiced_order_services = self.order_services.select{|item| [OrderServiceStatus::AUTORIZADA_ID, OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID, OrderServiceStatus::PAGA_ID].include?(item.order_service_status_id)}
-    invoiced_order_services.each do |order_service|
-      order_service_proposal = order_service.order_service_proposals.select{|item| [OrderServiceProposalStatus::AUTORIZADA_ID, OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID, OrderServiceProposalStatus::PAGA_ID].include?(item.order_service_proposal_status_id)}.last
-      if order_service_proposal
-        result += order_service_proposal.total_value
-      end
-    end
-    return result
+    paid_os_statuses = [
+      OrderServiceStatus::AUTORIZADA_ID,
+      OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID,
+      OrderServiceStatus::PAGA_ID
+    ]
+    paid_proposal_statuses = [
+      OrderServiceProposalStatus::AUTORIZADA_ID,
+      OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+      OrderServiceProposalStatus::PAGA_ID
+    ]
+
+    OrderServiceProposal
+      .joins(:order_service)
+      .where(order_services: { vehicle_id: self.id, order_service_status_id: paid_os_statuses })
+      .where(order_service_proposal_status_id: paid_proposal_statuses)
+      .sum(:total_value).to_f
   end
 
   def getting_last_km

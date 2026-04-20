@@ -15,8 +15,8 @@ class NotificationsController < ApplicationController
     if @current_user.admin?
       @notifications.scope {|scope| scope.page(params[:page]) }
     else
-      @notifications.scope {|scope| scope.is_to_me(@current_user.profile_id, @current_user.id, @current_user.state_id, @current_user.city_id).page(params[:page]) }
-      @notifications_to_export.scope {|scope| scope.is_to_me(@current_user.profile_id, @current_user.id, @current_user.state_id, @current_user.city_id) }
+      @notifications.scope {|scope| scope.is_to_me(@current_user.profile_id, @current_user.id, @current_user.effective_state_id, @current_user.effective_city_id).page(params[:page]) }
+      @notifications_to_export.scope {|scope| scope.is_to_me(@current_user.profile_id, @current_user.id, @current_user.effective_state_id, @current_user.effective_city_id) }
     end
 
     respond_to do |format|

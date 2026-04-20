@@ -35,7 +35,11 @@ class ApplicationController < ActionController::Base
 
   # Buscando model de configuração do sistema
   def get_system_configuration
-    @system_configuration = SystemConfiguration.first_or_create!
+    # Cache em memória por request + cache de baixa duração para reduzir
+    # uma query por request (antes: SystemConfiguration.first_or_create! rodava a cada hit).
+    @system_configuration = Rails.cache.fetch('system_configuration/current', expires_in: 10.minutes) do
+      SystemConfiguration.first || SystemConfiguration.create!
+    end
   end
 
   # Gerando um novo carrinho ou buscando o carrinho atual

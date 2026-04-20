@@ -106,13 +106,18 @@ module Utils
 
             items_data = [['Tipo', 'Descrição', 'Qtd', 'Valor Unit.', 'Desconto', 'Total']]
             approved.order_service_proposal_items.each do |item|
+              tipo = item.service&.category_id == Category::SERVICOS_PECAS_ID ? 'Peça' : 'Serviço'
+              unit_value = item.unity_value.to_f
+              qty = item.quantity.to_f
+              desc_val = item.discount.to_f
+              total_val = item.total_value.present? ? item.total_value.to_f : ((qty * unit_value) - desc_val)
               items_data << [
-                item.service&.service_type_id == 1 ? 'Peça' : 'Serviço',
-                item.service&.name.to_s,
+                tipo,
+                (item.service_name.presence || item.service&.name).to_s,
                 item.quantity.to_s,
-                CustomHelper.to_currency(item.value),
-                CustomHelper.to_currency(item.discount),
-                CustomHelper.to_currency((item.quantity.to_f * item.value.to_f) - item.discount.to_f)
+                CustomHelper.to_currency(unit_value),
+                CustomHelper.to_currency(desc_val),
+                CustomHelper.to_currency(total_val)
               ]
             end
 

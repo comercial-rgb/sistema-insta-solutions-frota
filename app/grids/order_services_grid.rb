@@ -8,7 +8,12 @@ class OrderServicesGrid
   end
 
   scope do
-    OrderService.all
+    OrderService.all.includes(
+      :client, :manager, :provider, :provider_service_type, :order_service_type,
+      :order_service_status, :commitment, :commitment_parts, :commitment_services,
+      { vehicle: [:cost_center, :sub_unit] },
+      { order_service_proposals: [:provider, :order_service_proposal_status, :order_service_proposal_items] }
+    )
   end
 
   attr_accessor :current_user,
