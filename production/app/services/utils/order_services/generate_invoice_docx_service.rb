@@ -75,6 +75,8 @@ module Utils
           nf_pecas = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }
           nf_servicos = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }
 
+          all_nf_total = nf_pecas.sum(&:value).to_f + nf_servicos.sum(&:value).to_f
+
           if @invoice_split == 'pecas'
             nf_servicos = []
           elsif @invoice_split == 'servicos'
@@ -85,7 +87,13 @@ module Utils
           servicos_val = nf_servicos.sum(&:value).to_f
           next if pecas_val == 0 && servicos_val == 0
 
-          bruto = proposal.total_value_without_discount.to_f
+          full_bruto = proposal.total_value_without_discount.to_f
+          if @invoice_split.present? && all_nf_total > 0
+            split_nf_total = pecas_val + servicos_val
+            bruto = (full_bruto * (split_nf_total / all_nf_total)).round(2)
+          else
+            bruto = full_bruto
+          end
           desc_val = (bruto * client_discount_pct).to_f.round(2)
           com_desc = bruto - desc_val
 
