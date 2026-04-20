@@ -85,7 +85,13 @@ breadcrumbs = [
           <div style="line-height:1.8">
             <strong><%= @fatura.client&.fantasy_name.presence || @fatura.client&.social_name.presence || @fatura.client&.name || '-' %></strong><br>
             <% if @fatura.client&.cnpj.present? %>
-              CNPJ: <%= @fatura.client.cnpj %>
+              CNPJ: <%= @fatura.client.cnpj %><br>
+            <% end %>
+            <% if @fatura.client&.phone.present? %>
+              <i class="bi bi-telephone"></i> <%= @fatura.client.phone %><br>
+            <% end %>
+            <% if @fatura.client&.email.present? %>
+              <i class="bi bi-envelope"></i> <%= @fatura.client.email %>
             <% end %>
           </div>
         </div>
@@ -319,7 +325,7 @@ breadcrumbs = [
 
               pecas_val = nf_pecas.sum(&:value).to_f
               servicos_val = nf_servicos.sum(&:value).to_f
-              bruto = proposal.total_value_without_discount.to_f
+              bruto = pecas_val + servicos_val
               desc_val = (bruto * client_discount_pct).to_f
               com_desc = bruto - desc_val
 

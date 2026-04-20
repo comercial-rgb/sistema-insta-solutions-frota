@@ -84,7 +84,7 @@ module Utils
           servicos_val = nf_servicos.sum(&:value).to_f
           next if pecas_val == 0 && servicos_val == 0
 
-          bruto = proposal.total_value_without_discount.to_f
+          bruto = pecas_val + servicos_val
           desc_val = (bruto * client_discount_pct).to_f.round(2)
           com_desc = bruto - desc_val
 
@@ -166,17 +166,18 @@ module Utils
         client_rows = [
           ['Razão Social:', client_name, 'CNPJ:', @client&.cnpj || '-'],
           ['Endereço:', "#{client_address} - #{client_city_uf}", 'Esfera:', sphere_name],
-          ['Desconto Contrato:', "#{fmt_pct(@client&.discount_percent)}%", 'Contatos:', "#{client_phone} / #{client_email}"]
+          ['Desconto Contrato:', "#{fmt_pct(@client&.discount_percent)}%", 'Telefone:', client_phone],
+          ['Centro de Custo:', @fatura.cost_center&.name || '-', 'E-mail:', client_email]
         ]
         if @fatura.contract&.number
-          client_rows << ['Contrato:', @fatura.contract.number, 'Centro de Custo:', @fatura.cost_center&.name || '-']
+          client_rows << ['Contrato:', @fatura.contract.number, '', '']
         end
         body_xml << wp_table(client_rows, [2400, 6800, 2000, 4500], font_size: 18, shd_all: 'F8F8FF', bold_cols: [0, 2])
         body_xml << wp_empty
 
         # === CONTRATO / EMPENHOS / SALDO ===
-        if @fatura.contract
-          contract = @fatura.contract
+        contract = @fatura.contract
+        if contract
           saldo_total = contract.respond_to?(:get_total_value) ? contract.get_total_value.to_f : contract.total_value.to_f
           saldo_usado = contract.respond_to?(:get_used_value) ? contract.get_used_value.to_f : 0
           saldo_disponivel = contract.respond_to?(:get_disponible_value) ? contract.get_disponible_value.to_f : (saldo_total - saldo_usado)
@@ -242,17 +243,18 @@ module Utils
         # === RESUMO FINANCEIRO ===
         body_xml << wp_heading('Resumo Financeiro', 13, color: '251C59')
 
+        desc_pecas = (total_pecas * client_discount_pct).to_f.round(2)
+        desc_servicos = (total_servicos * client_discount_pct).to_f.round(2)
+        pecas_com_desc = total_pecas - desc_pecas
+        servicos_com_desc = total_servicos - desc_servicos
+
         fin_rows = [
-          ['Descrição', 'Valor'],
-          ['Total Peças (NF)', money(total_pecas)],
-          ['Total Serviços (NF)', money(total_servicos)],
-          ['Valor Bruto (s/ desconto)', money(total_bruto)],
-          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", "-#{money(total_desconto)}"],
-          ['= Valor com Desconto', money(total_com_desc)],
-          ['(-) Retenções Fiscais (informativo)', "-#{money(total_ret)}"],
-          ['= VALOR DEVIDO', money(valor_devido)]
+          ['Descri\u00e7\u00e3o', 'Total s/ Desconto', 'Desconto', '% Desconto', 'Total c/ Desconto'],
+          ['Totais de Pe\u00e7as', money(total_pecas), "-#{money(desc_pecas)}", "#{fmt_pct(pct_desc)}%", money(pecas_com_desc)],
+          ['Totais de Servi\u00e7os', money(total_servicos), "-#{money(desc_servicos)}", "#{fmt_pct(pct_desc)}%", money(servicos_com_desc)],
+          ['Totais do Pedido', money(total_bruto), "-#{money(total_desconto)}", "#{fmt_pct(pct_desc)}%", money(total_com_desc)]
         ]
-        body_xml << wp_table(fin_rows, [10500, 5200], header_row: true, font_size: 20, bold_cols: [0])
+        body_xml << wp_table(fin_rows, [3500, 3200, 3000, 2400, 3600], header_row: true, font_size: 19)
         body_xml << wp_empty
 
         # === RETENCOES FISCAIS (informativo) ===

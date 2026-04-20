@@ -118,13 +118,14 @@ module Utils
         client_data = [
           [{ content: 'Razão Social:', font_style: :bold }, client_name, { content: 'CNPJ:', font_style: :bold }, cnpj],
           [{ content: 'Endereço:', font_style: :bold }, "#{address} - #{city_uf}", { content: 'Esfera:', font_style: :bold }, sphere],
-          [{ content: 'Desconto Contrato:', font_style: :bold }, "#{fmt_pct(@client&.discount_percent)}%", { content: 'Contatos:', font_style: :bold }, "#{phone} / #{email}"]
+          [{ content: 'Desconto Contrato:', font_style: :bold }, "#{fmt_pct(@client&.discount_percent)}%", { content: 'Telefone:', font_style: :bold }, phone],
+          [{ content: 'Centro de Custo:', font_style: :bold }, @fatura.cost_center&.name || '-', { content: 'E-mail:', font_style: :bold }, email]
         ]
 
         if @fatura.contract&.number
           client_data << [
             { content: 'Contrato:', font_style: :bold }, @fatura.contract.number,
-            { content: 'Centro de Custo:', font_style: :bold }, @fatura.cost_center&.name || '-'
+            { content: '', font_style: :bold }, ''
           ]
         end
 
@@ -219,7 +220,7 @@ module Utils
           servicos_val = nf_servicos.sum(&:value).to_f
           next if pecas_val == 0 && servicos_val == 0
 
-          bruto = proposal.total_value_without_discount.to_f
+          bruto = pecas_val + servicos_val
           desc_val = (bruto * client_discount_pct).to_f.round(2)
           com_desc = bruto - desc_val
 
@@ -310,23 +311,35 @@ module Utils
         @pdf.move_down 4
 
         pct_desc = @total_bruto > 0 ? ((@total_desconto / @total_bruto) * 100).round(2) : 0
+        client_discount_pct = (@client&.discount_percent || 0).to_d / 100
+
+        desc_pecas = (@total_pecas * client_discount_pct).to_f.round(2)
+        desc_servicos = (@total_servicos * client_discount_pct).to_f.round(2)
+        pecas_com_desc = @total_pecas - desc_pecas
+        servicos_com_desc = @total_servicos - desc_servicos
 
         @total_retencoes_calc = @providers_detail.sum { |p| p[:retencao] }.round(2)
-        valor_devido = @total_com_desc
 
+        header = ['', 'Total s/ Desconto', 'Desconto', '% Desc.', 'Total c/ Desconto']
         data = [
-          [{ content: "Descri\u00e7\u00e3o", font_style: :bold }, { content: 'Valor', font_style: :bold }],
-          ["Total Pe\u00e7as (NF)", { content: money(@total_pecas), align: :right }],
-          ["Total Servi\u00e7os (NF)", { content: money(@total_servicos), align: :right }],
-          [{ content: 'Valor Bruto (s/ desconto)', font_style: :bold }, { content: money(@total_bruto), align: :right, font_style: :bold }],
-          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", { content: "-#{money(@total_desconto)}", align: :right, text_color: RED }],
-          [{ content: '= Valor com Desconto', font_style: :bold }, { content: money(@total_com_desc), align: :right, font_style: :bold }],
-          ["(-) Reten\u00e7\u00f5es Fiscais (informativo)", { content: "-#{money(@total_retencoes_calc)}", align: :right, text_color: RED }],
-          [{ content: '= VALOR DEVIDO', font_style: :bold }, { content: money(valor_devido), align: :right, font_style: :bold }]
+          header.map { |h| { content: h, font_style: :bold } },
+          ['Totais de Pe\u00e7as', { content: money(@total_pecas), align: :right },
+           { content: "-#{money(desc_pecas)}", align: :right, text_color: RED },
+           { content: "#{fmt_pct(pct_desc)}%", align: :center },
+           { content: money(pecas_com_desc), align: :right }],
+          ['Totais de Servi\u00e7os', { content: money(@total_servicos), align: :right },
+           { content: "-#{money(desc_servicos)}", align: :right, text_color: RED },
+           { content: "#{fmt_pct(pct_desc)}%", align: :center },
+           { content: money(servicos_com_desc), align: :right }],
+          [{ content: 'Totais do Pedido', font_style: :bold },
+           { content: money(@total_bruto), align: :right, font_style: :bold },
+           { content: "-#{money(@total_desconto)}", align: :right, font_style: :bold, text_color: RED },
+           { content: "#{fmt_pct(pct_desc)}%", align: :center, font_style: :bold },
+           { content: money(@total_com_desc), align: :right, font_style: :bold }]
         ]
 
-        @pdf.table(data, width: @pdf.bounds.width * 0.55, position: :right,
-                   cell_style: { size: 8.5, padding: [3, 6], borders: [:bottom], border_color: 'EEEEEE' }) do |t|
+        @pdf.table(data, width: @pdf.bounds.width * 0.75, position: :right,
+                   cell_style: { size: 8, padding: [3, 5], borders: [:bottom], border_color: 'EEEEEE' }) do |t|
           t.row(0).background_color = HEADER_BG
           t.row(-1).background_color = 'E8EEF8'
         end
