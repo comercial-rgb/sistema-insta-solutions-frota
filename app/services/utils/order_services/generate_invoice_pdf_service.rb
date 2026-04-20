@@ -12,7 +12,7 @@ module Utils
       GRAY_BG    = 'F5F5F5'
       HEADER_BG  = 'D9E2F3'
 
-      INSTA_RAZAO = 'InstaSolutions Produtos e Gestao Empresarial LTDA'
+      INSTA_RAZAO = 'InstaSolutions Produtos e Gestão Empresarial LTDA'
       INSTA_CNPJ = '47.611.398/0001-66'
       INSTA_END = 'Alameda Rio Negro 1030, Alphaville Industrial, Barueri - SP'
       INSTA_TEL = '(11) 3336-6941'
@@ -59,7 +59,7 @@ module Utils
 
       def build_header
         @pdf.font_size 18
-        @pdf.text "Fatura Gestao de Frotas", style: :bold, align: :center, color: BLUE_DARK
+        @pdf.text "Fatura Gestão de Frotas", style: :bold, align: :center, color: BLUE_DARK
         @pdf.move_down 6
 
         @pdf.font_size 11
@@ -68,8 +68,8 @@ module Utils
 
         # InstaSolutions info table
         insta_data = [
-          [{ content: 'Razao Social:', font_style: :bold }, INSTA_RAZAO, { content: 'CNPJ:', font_style: :bold }, INSTA_CNPJ],
-          [{ content: 'Endereco:', font_style: :bold }, INSTA_END, { content: 'Telefone:', font_style: :bold }, INSTA_TEL]
+          [{ content: 'Razão Social:', font_style: :bold }, INSTA_RAZAO, { content: 'CNPJ:', font_style: :bold }, INSTA_CNPJ],
+          [{ content: 'Endereço:', font_style: :bold }, INSTA_END, { content: 'Telefone:', font_style: :bold }, INSTA_TEL]
         ]
         @pdf.table(insta_data, width: @pdf.bounds.width,
                    cell_style: { size: 8, padding: [2, 4], borders: [:bottom], border_color: 'EEEEEE', background_color: GRAY_BG })
@@ -87,7 +87,7 @@ module Utils
         @pdf.font_size 9
         date_data = [
           [
-            { content: "Emissao: #{fmt_date(@fatura.data_emissao)}", align: :left },
+            { content: "Emissão: #{fmt_date(@fatura.data_emissao)}", align: :left },
             { content: "Vencimento: #{fmt_date(@fatura.data_vencimento)}", align: :center },
             { content: "Status: #{@fatura.status.upcase}", align: :right }
           ]
@@ -115,8 +115,8 @@ module Utils
         sphere = @client&.respond_to?(:sphere_name) ? @client.sphere_name : '-'
 
         client_data = [
-          [{ content: 'Razao Social:', font_style: :bold }, client_name, { content: 'CNPJ:', font_style: :bold }, cnpj],
-          [{ content: 'Endereco:', font_style: :bold }, "#{address} - #{city_uf}", { content: 'Esfera:', font_style: :bold }, sphere],
+          [{ content: 'Razão Social:', font_style: :bold }, client_name, { content: 'CNPJ:', font_style: :bold }, cnpj],
+          [{ content: 'Endereço:', font_style: :bold }, "#{address} - #{city_uf}", { content: 'Esfera:', font_style: :bold }, sphere],
           [{ content: 'Desconto Contrato:', font_style: :bold }, "#{fmt_pct(@client&.discount_percent)}%", { content: 'Contatos:', font_style: :bold }, "#{phone} / #{email}"]
         ]
 
@@ -140,7 +140,7 @@ module Utils
         @pdf.text "Itens da Fatura", style: :bold, color: BLUE_DARK
         @pdf.move_down 4
 
-        header = ['OS', 'Fornecedor', 'Veiculo', 'C.Custo', 'NF Pecas', 'Vl. Pecas', 'NF Servicos', 'Vl. Servicos', 'V.Bruto', 'Desc.', 'V.c/Desc.']
+        header = ['OS', 'Fornecedor', 'Veículo', 'C.Custo', 'NF Peças', 'Vl. Peças', 'NF Serviços', 'Vl. Serviços', 'V.Bruto', 'Desc.', 'V.c/Desc.']
         rows = [header.map { |h| { content: h, font_style: :bold } }]
 
         @total_pecas = 0; @total_servicos = 0; @total_bruto = 0
@@ -221,7 +221,7 @@ module Utils
           ]
 
           # Sub-row: CNPJ + regime + retention info
-          regime_txt = is_simples ? 'Optante Simples (Isento)' : "Nao Optante - Ret. Pecas #{fmt_pct(pct_pecas_ret)}% / Servicos #{fmt_pct(pct_serv_ret)}% = #{money(ret_provider)}"
+          regime_txt = is_simples ? 'Optante Simples (Isento)' : "Não Optante - Ret. Peças #{fmt_pct(pct_pecas_ret)}% / Serviços #{fmt_pct(pct_serv_ret)}% = #{money(ret_provider)}"
           rows << [{ content: "CNPJ: #{provider&.cnpj || '-'}  |  #{regime_txt}", colspan: 11, text_color: '888888', size: 7 }]
         end
 
@@ -265,17 +265,13 @@ module Utils
 
         pct_desc = @total_bruto > 0 ? ((@total_desconto / @total_bruto) * 100).round(2) : 0
 
-        client_discount_pct_val = (@client&.discount_percent || 0).to_d / 100
-        desc_pecas = (@total_pecas * client_discount_pct_val).round(2)
-        desc_servicos = (@total_servicos * client_discount_pct_val).round(2)
-
         data = [
-          ['', 'Pecas (NF)', 'Servicos (NF)', 'V. Bruto', 'Total'].map { |h| { content: h, font_style: :bold } },
+          ['', 'Pe\u00e7as (NF)', 'Servi\u00e7os (NF)', 'V. Bruto', 'Total'].map { |h| { content: h, font_style: :bold } },
           ['Valor sem desconto', money(@total_pecas), money(@total_servicos), money(@total_bruto), money(@total_bruto)],
-          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", "-#{money(desc_pecas)}", "-#{money(desc_servicos)}", "-#{money(@total_desconto)}", "-#{money(@total_desconto)}"],
+          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", '-', '-', "-#{money(@total_desconto)}", "-#{money(@total_desconto)}"],
           [{ content: 'Valor c/ Desconto', font_style: :bold },
-           { content: money(@total_pecas - desc_pecas), font_style: :bold },
-           { content: money(@total_servicos - desc_servicos), font_style: :bold },
+           { content: money(@total_pecas), font_style: :bold },
+           { content: money(@total_servicos), font_style: :bold },
            { content: money(@total_com_desc), font_style: :bold },
            { content: money(@total_com_desc), font_style: :bold }]
         ]
@@ -304,13 +300,13 @@ module Utils
           ret_servicos = @providers_detail.reject { |p| p[:is_simples] }.sum { |p| is_federal ? p[:servicos] * 0.0945 : p[:servicos] * 0.048 }
 
           @pdf.font_size 9
-          @pdf.text "Retencoes Fiscais - #{sphere_name}", style: :bold, color: ORANGE
+          @pdf.text "Retenções Fiscais - #{sphere_name}", style: :bold, color: ORANGE
           @pdf.move_down 3
 
           ret_data = [
-            ["Pecas Nao-Simples (#{pct_pecas})", "-#{money(ret_pecas)}"],
-            ["Servicos Nao-Simples (#{pct_serv})", "-#{money(ret_servicos)}"],
-            [{ content: "Total Retencoes", font_style: :bold }, { content: "-#{money(@total_retencoes)}", font_style: :bold }]
+            ["Peças Não-Simples (#{pct_pecas})", "-#{money(ret_pecas)}"],
+            ["Serviços Não-Simples (#{pct_serv})", "-#{money(ret_servicos)}"],
+            [{ content: "Total Retenções", font_style: :bold }, { content: "-#{money(@total_retencoes)}", font_style: :bold }]
           ]
 
           @pdf.table(ret_data, width: @pdf.bounds.width * 0.60, position: :right,
@@ -321,7 +317,7 @@ module Utils
         else
           @total_retencoes = 0
           @pdf.font_size 8
-          @pdf.text "Todos os fornecedores sao Simples Nacional - isento de retencao fiscal.", color: GREEN
+          @pdf.text "Todos os fornecedores são Simples Nacional - isento de retenção fiscal.", color: GREEN
         end
 
         @pdf.move_down 6
@@ -333,10 +329,10 @@ module Utils
         return unless non_simples.any?
 
         @pdf.font_size 9
-        @pdf.text "Detalhamento de Retencao por Fornecedor", style: :bold, color: BLUE_DARK
+        @pdf.text "Detalhamento de Retenção por Fornecedor", style: :bold, color: BLUE_DARK
         @pdf.move_down 3
 
-        header = ['OS', 'Fornecedor', 'CNPJ', '% Pecas', 'Ret. Pecas', '% Servicos', 'Ret. Servicos', 'Total Ret.']
+        header = ['OS', 'Fornecedor', 'CNPJ', '% Peças', 'Ret. Peças', '% Serviços', 'Ret. Serviços', 'Total Ret.']
         det_rows = [header.map { |h| { content: h, font_style: :bold } }]
 
         ret_pecas_total = 0; ret_servicos_total = 0
@@ -389,7 +385,7 @@ module Utils
       def build_observations
         if @fatura.observacoes.present?
           @pdf.font_size 9
-          @pdf.text "Observacoes", style: :bold, color: '666666'
+          @pdf.text "Observações", style: :bold, color: '666666'
           @pdf.move_down 2
           @pdf.text @fatura.observacoes, size: 8, color: '444444'
           @pdf.move_down 6
