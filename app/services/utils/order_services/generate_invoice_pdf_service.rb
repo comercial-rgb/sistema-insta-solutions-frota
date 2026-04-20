@@ -62,6 +62,10 @@ module Utils
         @pdf.text "Fatura Gestao de Frotas", style: :bold, align: :center, color: BLUE_DARK
         @pdf.move_down 6
 
+        @pdf.font_size 11
+        @pdf.text "Dados Gerenciadora", style: :bold, color: BLUE_DARK
+        @pdf.move_down 3
+
         # InstaSolutions info table
         insta_data = [
           [{ content: 'Razao Social:', font_style: :bold }, INSTA_RAZAO, { content: 'CNPJ:', font_style: :bold }, INSTA_CNPJ],
@@ -218,7 +222,7 @@ module Utils
 
           # Sub-row: CNPJ + regime + retention info
           regime_txt = is_simples ? 'Optante Simples (Isento)' : "Nao Optante - Ret. Pecas #{fmt_pct(pct_pecas_ret)}% / Servicos #{fmt_pct(pct_serv_ret)}% = #{money(ret_provider)}"
-          rows << [{ content: "CNPJ: #{provider&.cnpj || '-'}  |  #{regime_txt}", colspan: 11, text_color: '888888' }]
+          rows << [{ content: "CNPJ: #{provider&.cnpj || '-'}  |  #{regime_txt}", colspan: 11, text_color: '888888', size: 7 }]
         end
 
         rows << [
@@ -261,11 +265,18 @@ module Utils
 
         pct_desc = @total_bruto > 0 ? ((@total_desconto / @total_bruto) * 100).round(2) : 0
 
+        client_discount_pct_val = (@client&.discount_percent || 0).to_d / 100
+        desc_pecas = (@total_pecas * client_discount_pct_val).round(2)
+        desc_servicos = (@total_servicos * client_discount_pct_val).round(2)
+
         data = [
           ['', 'Pecas (NF)', 'Servicos (NF)', 'V. Bruto', 'Total'].map { |h| { content: h, font_style: :bold } },
-          ['Valores', money(@total_pecas), money(@total_servicos), money(@total_bruto), money(@total_bruto)],
-          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", '', '', '', "-#{money(@total_desconto)}"],
-          [{ content: 'Valor c/ Desconto', font_style: :bold }, '', '', '',
+          ['Valor sem desconto', money(@total_pecas), money(@total_servicos), money(@total_bruto), money(@total_bruto)],
+          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", "-#{money(desc_pecas)}", "-#{money(desc_servicos)}", "-#{money(@total_desconto)}", "-#{money(@total_desconto)}"],
+          [{ content: 'Valor c/ Desconto', font_style: :bold },
+           { content: money(@total_pecas - desc_pecas), font_style: :bold },
+           { content: money(@total_servicos - desc_servicos), font_style: :bold },
+           { content: money(@total_com_desc), font_style: :bold },
            { content: money(@total_com_desc), font_style: :bold }]
         ]
 

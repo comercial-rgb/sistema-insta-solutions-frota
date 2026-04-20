@@ -134,6 +134,7 @@ module Utils
         # === HEADER: InstaSolutions ===
         body_xml << wp_heading('Fatura Gestao de Frotas', 18, align: 'center', color: '251C59')
         body_xml << wp_empty
+        body_xml << wp_heading('Dados Gerenciadora', 12, color: '251C59')
 
         insta_rows = [
           ['Razao Social:', INSTA_RAZAO, 'CNPJ:', INSTA_CNPJ],
@@ -205,11 +206,15 @@ module Utils
         # === RESUMO FINANCEIRO ===
         body_xml << wp_heading('Resumo Financeiro', 13, color: '251C59')
 
+        desc_pecas = (total_pecas * client_discount_pct).round(2)
+        desc_servicos = (total_servicos * client_discount_pct).round(2)
+        desc_bruto = total_desconto
+
         fin_rows = [
           ['', 'Pecas (NF)', 'Servicos (NF)', 'V. Bruto', 'Total'],
-          ['Valores', money(total_pecas), money(total_servicos), money(total_bruto), money(total_bruto)],
-          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", '', '', '', "-#{money(total_desconto)}"],
-          ['Valor c/ Desconto', '', '', '', money(total_com_desc)]
+          ['Valor sem desconto', money(total_pecas), money(total_servicos), money(total_bruto), money(total_bruto)],
+          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", "-#{money(desc_pecas)}", "-#{money(desc_servicos)}", "-#{money(desc_bruto)}", "-#{money(total_desconto)}"],
+          ['Valor c/ Desconto', money(total_pecas - desc_pecas), money(total_servicos - desc_servicos), money(total_com_desc), money(total_com_desc)]
         ]
         body_xml << wp_table(fin_rows, [2200, 1800, 1800, 1800, 2000], header_row: true, font_size: 19)
         body_xml << wp_empty
@@ -529,7 +534,7 @@ module Utils
             xml += '<w:gridSpan w:val="' + ncols.to_s + '"/>'
             xml += '<w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/></w:tcPr>'
             xml += '<w:p><w:pPr><w:spacing w:after="5" w:line="240" w:lineRule="auto"/><w:ind w:left="200"/></w:pPr>'
-            xml += '<w:r><w:rPr><w:i/><w:sz w:val="15"/><w:szCs w:val="15"/><w:color w:val="666666"/></w:rPr>'
+            xml += '<w:r><w:rPr><w:i/><w:sz w:val="20"/><w:szCs w:val="20"/><w:color w:val="666666"/></w:rPr>'
             xml += '<w:t xml:space="preserve">' + esc(row[:text]) + '</w:t></w:r></w:p></w:tc>'
             xml += '</w:tr>'
             next
