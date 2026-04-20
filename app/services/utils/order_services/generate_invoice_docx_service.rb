@@ -84,7 +84,7 @@ module Utils
           servicos_val = nf_servicos.sum(&:value).to_f
           next if pecas_val == 0 && servicos_val == 0
 
-          bruto = pecas_val + servicos_val
+          bruto = proposal.total_value_without_discount.to_f
           desc_val = (bruto * client_discount_pct).to_f.round(2)
           com_desc = bruto - desc_val
 
@@ -139,7 +139,7 @@ module Utils
           ['Razao Social:', INSTA_RAZAO, 'CNPJ:', INSTA_CNPJ],
           ['Endereco:', INSTA_END, 'Telefone:', INSTA_TEL]
         ]
-        body_xml << wp_table(insta_rows, [1200, 5000, 1100, 2100], font_size: 18, shd_all: 'F5F5F5')
+        body_xml << wp_table(insta_rows, [1600, 5800, 1200, 2400], font_size: 18, shd_all: 'F5F5F5')
         body_xml << wp_empty
 
         split_txt = case @invoice_split
@@ -170,7 +170,7 @@ module Utils
         if @fatura.contract&.number
           client_rows << ['Contrato:', @fatura.contract.number, 'Centro de Custo:', @fatura.cost_center&.name || '-']
         end
-        body_xml << wp_table(client_rows, [1600, 4200, 1600, 2000], font_size: 18, shd_all: 'F8F8FF')
+        body_xml << wp_table(client_rows, [1800, 5000, 1600, 2600], font_size: 18, shd_all: 'F8F8FF')
         body_xml << wp_hr
 
         # === ITENS DA FATURA ===
@@ -198,22 +198,20 @@ module Utils
           money(total_bruto), "-#{money(total_desconto)}", money(total_com_desc)
         ]
 
-        col_w = [550, 1400, 650, 850, 750, 850, 750, 900, 750, 750, 750]
+        col_w = [700, 1800, 750, 1100, 900, 1000, 900, 1050, 950, 950, 900]
         body_xml << wp_items_table(item_rows, col_w)
         body_xml << wp_empty
 
         # === RESUMO FINANCEIRO ===
         body_xml << wp_heading('Resumo Financeiro', 13, color: '251C59')
-        desc_pecas = total_pecas * (@client&.discount_percent || 0).to_d / 100
-        desc_servicos = total_servicos * (@client&.discount_percent || 0).to_d / 100
 
         fin_rows = [
-          ['', 'Pecas', 'Servicos', 'Total'],
-          ['Valor sem desconto', money(total_pecas), money(total_servicos), money(total_bruto)],
-          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", "-#{money(desc_pecas)}", "-#{money(desc_servicos)}", "-#{money(total_desconto)}"],
-          ['Valor c/ Desconto', money(total_pecas - desc_pecas), money(total_servicos - desc_servicos), money(total_com_desc)]
+          ['', 'Pecas (NF)', 'Servicos (NF)', 'V. Bruto', 'Total'],
+          ['Valores', money(total_pecas), money(total_servicos), money(total_bruto), money(total_bruto)],
+          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", '', '', '', "-#{money(total_desconto)}"],
+          ['Valor c/ Desconto', '', '', '', money(total_com_desc)]
         ]
-        body_xml << wp_table(fin_rows, [3000, 2000, 2000, 2400], header_row: true, font_size: 19)
+        body_xml << wp_table(fin_rows, [2200, 1800, 1800, 1800, 2000], header_row: true, font_size: 19)
         body_xml << wp_empty
 
         # === RETENCOES FISCAIS (informativo) ===
@@ -223,14 +221,14 @@ module Utils
           ret_pecas_total = providers_detail.reject { |p| p[:is_simples] }.sum { |p| is_federal ? p[:pecas] * 0.0585 : p[:pecas] * 0.012 }
           ret_servicos_total = providers_detail.reject { |p| p[:is_simples] }.sum { |p| is_federal ? p[:servicos] * 0.0945 : p[:servicos] * 0.048 }
 
-          body_xml << wp_heading("Retencoes Fiscais - #{sphere_name} (informativo, nao deduzido do valor devido)", 11, color: 'C57200')
+          body_xml << wp_heading("Retencoes Fiscais - #{sphere_name}", 11, color: 'C57200')
 
           ret_summ = [
             ["Pecas Nao-Simples (#{pct_p_str})", "-#{money(ret_pecas_total)}"],
             ["Servicos Nao-Simples (#{pct_s_str})", "-#{money(ret_servicos_total)}"],
             ['Total Retencoes', "-#{money(total_ret)}"]
           ]
-          body_xml << wp_table(ret_summ, [6500, 2900], font_size: 18)
+          body_xml << wp_table(ret_summ, [7500, 3500], font_size: 18)
           body_xml << wp_empty
 
           non_simples = providers_detail.reject { |p| p[:is_simples] }
@@ -249,7 +247,7 @@ module Utils
               ]
             end
             det_rows << ['', '', 'TOTAL:', '', "-#{money(ret_pecas_total)}", '', "-#{money(ret_servicos_total)}", "-#{money(total_ret)}"]
-            body_xml << wp_table(det_rows, [550, 1700, 1300, 700, 1000, 800, 1050, 1000], header_row: true, font_size: 17)
+            body_xml << wp_table(det_rows, [700, 2200, 1600, 900, 1200, 1000, 1200, 1200], header_row: true, font_size: 17)
             body_xml << wp_empty
           end
         else
@@ -259,9 +257,6 @@ module Utils
 
         # === VALOR DEVIDO (antes da retencao) ===
         body_xml << wp_shaded_bar("VALOR DEVIDO: #{money(valor_devido)}")
-        if total_ret > 0
-          body_xml << wp_para("* Retencao fiscal de #{money(total_ret)} informada acima para conhecimento, nao deduzida deste valor.", 9, color: '666666')
-        end
         body_xml << wp_empty
 
         if @fatura.observacoes.present?

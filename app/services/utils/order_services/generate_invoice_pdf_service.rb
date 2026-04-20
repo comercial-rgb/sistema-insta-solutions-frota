@@ -169,7 +169,7 @@ module Utils
           servicos_val = nf_servicos.sum(&:value).to_f
           next if pecas_val == 0 && servicos_val == 0
 
-          bruto = pecas_val + servicos_val
+          bruto = proposal.total_value_without_discount.to_f
           desc_val = (bruto * client_discount_pct).to_f.round(2)
           com_desc = bruto - desc_val
 
@@ -260,21 +260,19 @@ module Utils
         @pdf.move_down 4
 
         pct_desc = @total_bruto > 0 ? ((@total_desconto / @total_bruto) * 100).round(2) : 0
-        desc_pecas = @total_pecas * (@client&.discount_percent || 0).to_d / 100
-        desc_servicos = @total_servicos * (@client&.discount_percent || 0).to_d / 100
 
         data = [
-          ['', 'Pecas', 'Servicos', 'Total'].map { |h| { content: h, font_style: :bold } },
-          ['Valor sem desconto', money(@total_pecas), money(@total_servicos), money(@total_bruto)],
-          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", "-#{money(desc_pecas)}", "-#{money(desc_servicos)}", "-#{money(@total_desconto)}"],
-          [{ content: 'Valor c/ Desconto', font_style: :bold }, { content: money(@total_pecas - desc_pecas), font_style: :bold },
-           { content: money(@total_servicos - desc_servicos), font_style: :bold }, { content: money(@total_com_desc), font_style: :bold }]
+          ['', 'Pecas (NF)', 'Servicos (NF)', 'V. Bruto', 'Total'].map { |h| { content: h, font_style: :bold } },
+          ['Valores', money(@total_pecas), money(@total_servicos), money(@total_bruto), money(@total_bruto)],
+          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", '', '', '', "-#{money(@total_desconto)}"],
+          [{ content: 'Valor c/ Desconto', font_style: :bold }, '', '', '',
+           { content: money(@total_com_desc), font_style: :bold }]
         ]
 
-        @pdf.table(data, width: @pdf.bounds.width * 0.60, position: :right,
+        @pdf.table(data, width: @pdf.bounds.width * 0.65, position: :right,
                    cell_style: { size: 8, padding: [3, 5], borders: [:bottom], border_color: 'EEEEEE' }) do |t|
           t.row(0).background_color = HEADER_BG
-          t.columns(1..3).align = :right
+          t.columns(1..4).align = :right
           t.row(2).text_color = RED
         end
 
@@ -295,7 +293,7 @@ module Utils
           ret_servicos = @providers_detail.reject { |p| p[:is_simples] }.sum { |p| is_federal ? p[:servicos] * 0.0945 : p[:servicos] * 0.048 }
 
           @pdf.font_size 9
-          @pdf.text "Retencoes Fiscais - #{sphere_name} (informativo, nao deduzido do valor devido)", style: :bold, color: ORANGE
+          @pdf.text "Retencoes Fiscais - #{sphere_name}", style: :bold, color: ORANGE
           @pdf.move_down 3
 
           ret_data = [
@@ -304,7 +302,7 @@ module Utils
             [{ content: "Total Retencoes", font_style: :bold }, { content: "-#{money(@total_retencoes)}", font_style: :bold }]
           ]
 
-          @pdf.table(ret_data, width: @pdf.bounds.width * 0.55, position: :right,
+          @pdf.table(ret_data, width: @pdf.bounds.width * 0.60, position: :right,
                      cell_style: { size: 7.5, padding: [2, 5], borders: [:bottom], border_color: 'EEEEEE' }) do |t|
             t.columns(1).align = :right
             t.column(1).text_color = RED
@@ -375,12 +373,6 @@ module Utils
                       style: :bold, size: 14, align: :right
         @pdf.fill_color '000000'
         @pdf.move_down 36
-
-        if @total_retencoes > 0
-          @pdf.font_size 7
-          @pdf.text "* Retencao fiscal de #{money(@total_retencoes)} informada acima para conhecimento, nao deduzida deste valor.", color: '888888'
-          @pdf.move_down 4
-        end
       end
 
       def build_observations
