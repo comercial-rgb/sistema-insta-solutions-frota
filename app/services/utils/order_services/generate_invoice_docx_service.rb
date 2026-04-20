@@ -572,7 +572,7 @@ module Utils
             xml += '<w:gridSpan w:val="' + ncols.to_s + '"/>'
             xml += '<w:shd w:val="clear" w:color="auto" w:fill="F5F5F5"/></w:tcPr>'
             xml += '<w:p><w:pPr><w:spacing w:after="5" w:line="240" w:lineRule="auto"/><w:ind w:left="200"/></w:pPr>'
-            xml += '<w:r><w:rPr><w:i/><w:sz w:val="20"/><w:szCs w:val="20"/><w:color w:val="666666"/></w:rPr>'
+            xml += '<w:r><w:rPr><w:i/><w:sz w:val="17"/><w:szCs w:val="17"/><w:color w:val="666666"/></w:rPr>'
             xml += '<w:t xml:space="preserve">' + esc(row[:text]) + '</w:t></w:r></w:p></w:tc>'
             xml += '</w:tr>'
             next
@@ -595,7 +595,7 @@ module Utils
 
             shd = fill ? '<w:shd w:val="clear" w:color="auto" w:fill="' + fill + '"/>' : ''
             bold_tag = (is_hdr || is_last) ? '<w:b/>' : ''
-            fsz = is_hdr ? '17' : '16'
+            fsz = is_hdr ? '18' : '19'
             w = col_widths[ci] || 1000
 
             xml += '<w:tc><w:tcPr><w:tcW w:w="' + w.to_s + '" w:type="dxa"/>' + shd + '</w:tcPr>'
