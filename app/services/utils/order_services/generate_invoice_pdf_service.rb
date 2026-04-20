@@ -138,16 +138,23 @@ module Utils
       end
 
       def build_contract_block
-        return unless @fatura.contract
+        @pdf.font_size 11
+        @pdf.text "Contrato / Empenhos", style: :bold, color: BLUE_DARK
+        @pdf.move_down 4
+
+        unless @fatura.contract
+          @pdf.text "Nenhum contrato vinculado a esta fatura.", size: 9, color: '999999'
+          @pdf.move_down 4
+          @pdf.stroke_color 'CCCCCC'
+          @pdf.stroke_horizontal_rule
+          @pdf.move_down 6
+          return
+        end
 
         contract = @fatura.contract
         saldo_total = contract.respond_to?(:get_total_value) ? contract.get_total_value.to_f : contract.total_value.to_f
         saldo_usado = contract.respond_to?(:get_used_value) ? contract.get_used_value.to_f : 0
         saldo_disponivel = contract.respond_to?(:get_disponible_value) ? contract.get_disponible_value.to_f : (saldo_total - saldo_usado)
-
-        @pdf.font_size 11
-        @pdf.text "Contrato / Empenhos", style: :bold, color: BLUE_DARK
-        @pdf.move_down 4
 
         contrato_data = [
           [{ content: "Contrato N\u00ba:", font_style: :bold }, contract.number || '-',
@@ -220,7 +227,7 @@ module Utils
           servicos_val = nf_servicos.sum(&:value).to_f
           next if pecas_val == 0 && servicos_val == 0
 
-          bruto = pecas_val + servicos_val
+          bruto = proposal.total_value_without_discount.to_f
           desc_val = (bruto * client_discount_pct).to_f.round(2)
           com_desc = bruto - desc_val
 
@@ -311,26 +318,30 @@ module Utils
         @pdf.move_down 4
 
         pct_desc = @total_bruto > 0 ? ((@total_desconto / @total_bruto) * 100).round(2) : 0
-        client_discount_pct = (@client&.discount_percent || 0).to_d / 100
 
-        desc_pecas = (@total_pecas * client_discount_pct).to_f.round(2)
-        desc_servicos = (@total_servicos * client_discount_pct).to_f.round(2)
-        pecas_com_desc = @total_pecas - desc_pecas
-        servicos_com_desc = @total_servicos - desc_servicos
+        nf_total = @total_pecas + @total_servicos
+        if nf_total > 0
+          pecas_sem_desc = (@total_bruto * (@total_pecas / nf_total)).round(2)
+          servicos_sem_desc = (@total_bruto - pecas_sem_desc).round(2)
+        else
+          pecas_sem_desc = 0; servicos_sem_desc = 0
+        end
+        desc_pecas = (pecas_sem_desc - @total_pecas).round(2)
+        desc_servicos = (servicos_sem_desc - @total_servicos).round(2)
 
         @total_retencoes_calc = @providers_detail.sum { |p| p[:retencao] }.round(2)
 
         header = ['', 'Total s/ Desconto', 'Desconto', '% Desc.', 'Total c/ Desconto']
         data = [
           header.map { |h| { content: h, font_style: :bold } },
-          ['Totais de Pe\u00e7as', { content: money(@total_pecas), align: :right },
+          ["Totais de Pe\u00E7as", { content: money(pecas_sem_desc), align: :right },
            { content: "-#{money(desc_pecas)}", align: :right, text_color: RED },
            { content: "#{fmt_pct(pct_desc)}%", align: :center },
-           { content: money(pecas_com_desc), align: :right }],
-          ['Totais de Servi\u00e7os', { content: money(@total_servicos), align: :right },
+           { content: money(@total_pecas), align: :right }],
+          ["Totais de Servi\u00E7os", { content: money(servicos_sem_desc), align: :right },
            { content: "-#{money(desc_servicos)}", align: :right, text_color: RED },
            { content: "#{fmt_pct(pct_desc)}%", align: :center },
-           { content: money(servicos_com_desc), align: :right }],
+           { content: money(@total_servicos), align: :right }],
           [{ content: 'Totais do Pedido', font_style: :bold },
            { content: money(@total_bruto), align: :right, font_style: :bold },
            { content: "-#{money(@total_desconto)}", align: :right, font_style: :bold, text_color: RED },

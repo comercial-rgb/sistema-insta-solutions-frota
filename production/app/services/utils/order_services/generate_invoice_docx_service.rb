@@ -84,7 +84,7 @@ module Utils
           servicos_val = nf_servicos.sum(&:value).to_f
           next if pecas_val == 0 && servicos_val == 0
 
-          bruto = pecas_val + servicos_val
+          bruto = proposal.total_value_without_discount.to_f
           desc_val = (bruto * client_discount_pct).to_f.round(2)
           com_desc = bruto - desc_val
 
@@ -176,13 +176,13 @@ module Utils
         body_xml << wp_empty
 
         # === CONTRATO / EMPENHOS / SALDO ===
+        body_xml << wp_heading('Contrato / Empenhos', 13, color: '251C59')
         contract = @fatura.contract
         if contract
           saldo_total = contract.respond_to?(:get_total_value) ? contract.get_total_value.to_f : contract.total_value.to_f
           saldo_usado = contract.respond_to?(:get_used_value) ? contract.get_used_value.to_f : 0
           saldo_disponivel = contract.respond_to?(:get_disponible_value) ? contract.get_disponible_value.to_f : (saldo_total - saldo_usado)
 
-          body_xml << wp_heading('Contrato / Empenhos', 13, color: '251C59')
           contrato_rows = [
             ['Contrato N\u00ba:', contract.number || '-', 'Valor Total:', money(saldo_total)],
             ['Saldo Consumido:', money(saldo_usado), 'Saldo Dispon\u00edvel:', money(saldo_disponivel)]
@@ -206,6 +206,9 @@ module Utils
             end
             body_xml << wp_table(emp_rows, [4300, 3800, 3800, 3800], header_row: true, font_size: 18)
           end
+          body_xml << wp_empty
+        else
+          body_xml << wp_para('Nenhum contrato vinculado a esta fatura.', 10, color: '999999')
           body_xml << wp_empty
         end
 
@@ -236,23 +239,28 @@ module Utils
           money(total_bruto), "-#{money(total_desconto)}", money(total_com_desc)
         ]
 
-        col_w = [1000, 2550, 1070, 1570, 1280, 1430, 1280, 1500, 1350, 1350, 1320]
+        col_w = [1400, 2200, 1020, 1520, 1230, 1430, 1230, 1500, 1350, 1350, 1470]
         body_xml << wp_items_table(item_rows, col_w)
         body_xml << wp_empty
 
         # === RESUMO FINANCEIRO ===
         body_xml << wp_heading('Resumo Financeiro', 13, color: '251C59')
 
-        desc_pecas = (total_pecas * client_discount_pct).to_f.round(2)
-        desc_servicos = (total_servicos * client_discount_pct).to_f.round(2)
-        pecas_com_desc = total_pecas - desc_pecas
-        servicos_com_desc = total_servicos - desc_servicos
+        nf_total = total_pecas + total_servicos
+        if nf_total > 0
+          pecas_sem_desc = (total_bruto * (total_pecas / nf_total)).round(2)
+          servicos_sem_desc = (total_bruto - pecas_sem_desc).round(2)
+        else
+          pecas_sem_desc = 0; servicos_sem_desc = 0
+        end
+        desc_pecas = (pecas_sem_desc - total_pecas).round(2)
+        desc_servicos = (servicos_sem_desc - total_servicos).round(2)
 
         fin_rows = [
-          ['Descri\u00e7\u00e3o', 'Total s/ Desconto', 'Desconto', '% Desconto', 'Total c/ Desconto'],
-          ['Totais de Pe\u00e7as', money(total_pecas), "-#{money(desc_pecas)}", "#{fmt_pct(pct_desc)}%", money(pecas_com_desc)],
-          ['Totais de Servi\u00e7os', money(total_servicos), "-#{money(desc_servicos)}", "#{fmt_pct(pct_desc)}%", money(servicos_com_desc)],
-          ['Totais do Pedido', money(total_bruto), "-#{money(total_desconto)}", "#{fmt_pct(pct_desc)}%", money(total_com_desc)]
+          ['', 'Total s/ Desconto', 'Desconto', '% Desconto', 'Total c/ Desconto'],
+          ["Totais de Pe\u00E7as", money(pecas_sem_desc), "-#{money(desc_pecas)}", "#{fmt_pct(pct_desc)}%", money(total_pecas)],
+          ["Totais de Servi\u00E7os", money(servicos_sem_desc), "-#{money(desc_servicos)}", "#{fmt_pct(pct_desc)}%", money(total_servicos)],
+          ["Totais do Pedido", money(total_bruto), "-#{money(total_desconto)}", "#{fmt_pct(pct_desc)}%", money(total_com_desc)]
         ]
         body_xml << wp_table(fin_rows, [3500, 3200, 3000, 2400, 3600], header_row: true, font_size: 19)
         body_xml << wp_empty

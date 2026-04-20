@@ -216,6 +216,15 @@ breadcrumbs = [
         <% end %>
       </div>
     </div>
+  <% else %>
+    <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-white border-bottom">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-file-earmark-text me-1"></i> Contrato / Empenhos</h6>
+      </div>
+      <div class="card-body">
+        <p class="text-muted mb-0">Nenhum contrato vinculado a esta fatura.</p>
+      </div>
+    </div>
   <% end %>
 
   <!-- NF Info -->
@@ -325,7 +334,7 @@ breadcrumbs = [
 
               pecas_val = nf_pecas.sum(&:value).to_f
               servicos_val = nf_servicos.sum(&:value).to_f
-              bruto = pecas_val + servicos_val
+              bruto = proposal.total_value_without_discount.to_f
               desc_val = (bruto * client_discount_pct).to_f
               com_desc = bruto - desc_val
 
