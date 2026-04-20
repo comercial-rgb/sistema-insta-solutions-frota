@@ -16,11 +16,13 @@ module Utils
       INSTA_CNPJ = '47.611.398/0001-66'
       INSTA_END = 'Alameda Rio Negro 1030, Alphaville Industrial, Barueri - SP'
       INSTA_TEL = '(11) 3336-6941'
+      LOGO_PATH = Rails.root.join('app', 'assets', 'images', 'InstaSolutions-S\u00edmbolo-AzulCorp.png').to_s
 
-      def initialize(fatura, invoice_split: nil)
+      def initialize(fatura, invoice_split: nil, tipo_valor: 'bruto')
         @fatura = fatura
         @client = fatura.client
         @invoice_split = invoice_split
+        @tipo_valor = tipo_valor
         @items = fatura.fatura_itens.includes(
           order_service: [:vehicle, :cost_center, :sub_unit, :commitment, :commitment_parts, :commitment_services,
             { order_service_proposals: [:provider, :order_service_invoices] }]
@@ -58,7 +60,11 @@ module Utils
 
       private
 
-      def build_header
+      def build_header        # Logo top-left
+        if File.exist?(LOGO_PATH)
+          logo_top = @pdf.cursor
+          @pdf.image LOGO_PATH, width: 35, at: [0, logo_top]
+        end
         @pdf.font_size 18
         @pdf.text "Fatura Gestão de Frotas", style: :bold, align: :center, color: BLUE_DARK
         @pdf.move_down 6
@@ -101,6 +107,14 @@ module Utils
       end
 
       def build_client_block
+        # Derive contract from OS commitments if not directly linked
+        @derived_contract = @fatura.contract
+        unless @derived_contract
+          @derived_contract = @items.map { |i| i.order_service }.compact.flat_map { |os|
+            [os.commitment, os.commitment_parts, os.commitment_services].compact
+          }.map(&:contract).compact.first
+        end
+
         @pdf.font_size 11
         @pdf.text "Cliente / Contratante", style: :bold, color: BLUE_DARK
         @pdf.move_down 4
@@ -122,9 +136,9 @@ module Utils
           [{ content: 'Centro de Custo:', font_style: :bold }, @fatura.cost_center&.name || '-', { content: 'E-mail:', font_style: :bold }, email]
         ]
 
-        if @fatura.contract&.number
+        if @derived_contract&.number
           client_data << [
-            { content: 'Contrato:', font_style: :bold }, @fatura.contract.number,
+            { content: 'Contrato:', font_style: :bold }, @derived_contract.number,
             { content: '', font_style: :bold }, ''
           ]
         end
@@ -142,7 +156,7 @@ module Utils
         @pdf.text "Contrato / Empenhos", style: :bold, color: BLUE_DARK
         @pdf.move_down 4
 
-        unless @fatura.contract
+        unless @derived_contract
           @pdf.text "Nenhum contrato vinculado a esta fatura.", size: 9, color: '999999'
           @pdf.move_down 4
           @pdf.stroke_color 'CCCCCC'
@@ -151,7 +165,7 @@ module Utils
           return
         end
 
-        contract = @fatura.contract
+        contract = @derived_contract
         saldo_total = contract.respond_to?(:get_total_value) ? contract.get_total_value.to_f : contract.total_value.to_f
         saldo_usado = contract.respond_to?(:get_used_value) ? contract.get_used_value.to_f : 0
         saldo_disponivel = contract.respond_to?(:get_disponible_value) ? contract.get_disponible_value.to_f : (saldo_total - saldo_usado)
@@ -199,6 +213,7 @@ module Utils
 
         @total_pecas = 0; @total_servicos = 0; @total_bruto = 0
         @total_desconto = 0; @total_com_desc = 0
+        @total_pecas_display = 0; @total_servicos_display = 0
         @providers_detail = []
 
         client_discount_pct = (@client&.discount_percent || 0).to_d / 100
@@ -237,8 +252,18 @@ module Utils
           provider = proposal.provider
           is_simples = provider ? !provider.optante_simples : true
 
+          nf_total_os = pecas_val + servicos_val
+          if @tipo_valor == 'bruto' && nf_total_os > 0
+            pecas_display = (bruto * (pecas_val / nf_total_os)).round(2)
+            servicos_display = (bruto - pecas_display).round(2)
+          else
+            pecas_display = pecas_val
+            servicos_display = servicos_val
+          end
+
           @total_pecas += pecas_val; @total_servicos += servicos_val
           @total_bruto += bruto; @total_desconto += desc_val; @total_com_desc += com_desc
+          @total_pecas_display += pecas_display; @total_servicos_display += servicos_display
 
           pct_pecas_ret = 0; pct_serv_ret = 0; ret_provider = 0
           unless is_simples
@@ -260,15 +285,16 @@ module Utils
           pct = bruto > 0 ? ((desc_val / bruto) * 100).round(2) : 0
 
           # Main data row
+          provider_name = provider&.get_name || '-'
           rows << [
             "##{os.code}",
-            (provider&.get_name || '-').truncate(22),
+            provider_name.truncate(22),
             os.vehicle&.board || '-',
             (os.cost_center&.name || '-').truncate(14),
             pecas_nums.presence || '-',
-            money(pecas_val),
+            money(pecas_display),
             servicos_nums.presence || '-',
-            money(servicos_val),
+            money(servicos_display),
             money(bruto),
             "-#{money(desc_val)}",
             money(com_desc)
@@ -276,13 +302,13 @@ module Utils
 
           # Sub-row: CNPJ + regime + retention info
           regime_txt = is_simples ? 'Optante Simples (Isento)' : "Não Optante - Ret. Peças #{fmt_pct(pct_pecas_ret)}% / Serviços #{fmt_pct(pct_serv_ret)}% = #{money(ret_provider)}"
-          rows << [{ content: "CNPJ: #{provider&.cnpj || '-'}  |  #{regime_txt}", colspan: 11, text_color: '888888', size: 7 }]
+          rows << [{ content: "#{provider_name}  |  CNPJ: #{provider&.cnpj || '-'}  |  #{regime_txt}", colspan: 11, text_color: '888888', size: 7 }]
         end
 
         rows << [
           { content: 'SUBTOTAIS:', colspan: 4, font_style: :bold, align: :right },
-          '', { content: money(@total_pecas), font_style: :bold, align: :right },
-          '', { content: money(@total_servicos), font_style: :bold, align: :right },
+          '', { content: money(@total_pecas_display), font_style: :bold, align: :right },
+          '', { content: money(@total_servicos_display), font_style: :bold, align: :right },
           { content: money(@total_bruto), font_style: :bold, align: :right },
           { content: "-#{money(@total_desconto)}", font_style: :bold, align: :right, text_color: RED },
           { content: money(@total_com_desc), font_style: :bold, align: :right, text_color: GREEN }

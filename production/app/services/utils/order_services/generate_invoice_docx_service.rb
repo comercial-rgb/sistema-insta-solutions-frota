@@ -11,6 +11,7 @@ module Utils
       INSTA_CNPJ = '47.611.398/0001-66'
       INSTA_END = 'Alameda Rio Negro 1030, Alphaville Industrial, Barueri - SP'
       INSTA_TEL = '(11) 3336-6941'
+      LOGO_PATH = Rails.root.join('app', 'assets', 'images', 'InstaSolutions-S\u00edmbolo-AzulCorp.png').to_s
 
       def initialize(order_services_or_fatura, client = nil, current_month = nil, **opts)
         if order_services_or_fatura.is_a?(Fatura)
@@ -91,6 +92,15 @@ module Utils
           provider = proposal.provider
           is_simples = provider ? !provider.optante_simples : true
 
+          nf_total_os = pecas_val + servicos_val
+          if @tipo_valor == 'bruto' && nf_total_os > 0
+            pecas_display = (bruto * (pecas_val / nf_total_os)).round(2)
+            servicos_display = (bruto - pecas_display).round(2)
+          else
+            pecas_display = pecas_val
+            servicos_display = servicos_val
+          end
+
           total_pecas += pecas_val; total_servicos += servicos_val
           total_bruto += bruto; total_desconto += desc_val; total_com_desc += com_desc
 
@@ -115,8 +125,8 @@ module Utils
             code: os.code, provider: provider&.get_name || '-', provider_cnpj: provider&.cnpj || '-',
             regime: is_simples ? 'Simples Nacional' : 'Nao Optante Simples', vehicle: os.vehicle&.board || '-',
             cost_center: os.cost_center&.name || '-',
-            pecas: pecas_val, nf_pecas: nf_pecas.map(&:number).compact.join(', '),
-            servicos: servicos_val, nf_servicos: nf_servicos.map(&:number).compact.join(', '),
+            pecas: pecas_val, pecas_display: pecas_display, nf_pecas: nf_pecas.map(&:number).compact.join(', '),
+            servicos: servicos_val, servicos_display: servicos_display, nf_servicos: nf_servicos.map(&:number).compact.join(', '),
             bruto: bruto, desconto: desc_val, com_desc: com_desc,
             pct_desc: bruto > 0 ? ((desc_val / bruto) * 100).round(2) : 0,
             ret: ret_provider.round(2), pct_pecas_ret: pct_pecas_ret, pct_serv_ret: pct_serv_ret,
@@ -129,10 +139,21 @@ module Utils
 
         pct_desc = total_bruto > 0 ? ((total_desconto / total_bruto) * 100).round(2) : 0
 
+        total_pecas_display = os_rows.sum { |r| r[:pecas_display] }
+        total_servicos_display = os_rows.sum { |r| r[:servicos_display] }
+
+        # Derive contract from OS commitments if not directly linked
+        contract = @fatura.contract
+        unless contract
+          contract = @items.map { |i| i.order_service }.compact.flat_map { |os|
+            [os.commitment, os.commitment_parts, os.commitment_services].compact
+          }.map(&:contract).compact.first
+        end
+
         body_xml = ''
 
         # === HEADER: InstaSolutions ===
-        body_xml << wp_heading('Fatura Gestão de Frotas', 18, align: 'center', color: '251C59')
+        body_xml << wp_header_with_logo
         body_xml << wp_empty
         body_xml << wp_heading('Dados Gerenciadora', 12, color: '251C59')
 
@@ -169,15 +190,14 @@ module Utils
           ['Desconto Contrato:', "#{fmt_pct(@client&.discount_percent)}%", 'Telefone:', client_phone],
           ['Centro de Custo:', @fatura.cost_center&.name || '-', 'E-mail:', client_email]
         ]
-        if @fatura.contract&.number
-          client_rows << ['Contrato:', @fatura.contract.number, '', '']
+        if contract&.number
+          client_rows << ['Contrato:', contract.number, '', '']
         end
         body_xml << wp_table(client_rows, [2400, 6800, 2000, 4500], font_size: 18, shd_all: 'F8F8FF', bold_cols: [0, 2])
         body_xml << wp_empty
 
         # === CONTRATO / EMPENHOS / SALDO ===
         body_xml << wp_heading('Contrato / Empenhos', 13, color: '251C59')
-        contract = @fatura.contract
         if contract
           saldo_total = contract.respond_to?(:get_total_value) ? contract.get_total_value.to_f : contract.total_value.to_f
           saldo_usado = contract.respond_to?(:get_used_value) ? contract.get_used_value.to_f : 0
@@ -224,18 +244,18 @@ module Utils
           item_rows << [
             "##{r[:code]}", r[:provider].to_s[0..24], r[:vehicle],
             r[:cost_center].to_s[0..14],
-            r[:nf_pecas].presence || '-', money(r[:pecas]),
-            r[:nf_servicos].presence || '-', money(r[:servicos]),
+            r[:nf_pecas].presence || '-', money(r[:pecas_display]),
+            r[:nf_servicos].presence || '-', money(r[:servicos_display]),
             money(r[:bruto]), "-#{money(r[:desconto])}", money(r[:com_desc])
           ]
           regime_txt = r[:is_simples] ? 'Optante Simples (Isento)' : "Não Optante - Ret. Peças #{fmt_pct(r[:pct_pecas_ret])}% / Serviços #{fmt_pct(r[:pct_serv_ret])}% = #{money(r[:ret])}"
           item_rows << :sub_row
-          item_rows << { sub: true, text: "CNPJ: #{r[:provider_cnpj]}  |  #{regime_txt}" }
+          item_rows << { sub: true, text: "#{r[:provider]}  |  CNPJ: #{r[:provider_cnpj]}  |  #{regime_txt}" }
         end
 
         item_rows << [
           '', '', '', 'SUBTOTAIS:',
-          '', money(total_pecas), '', money(total_servicos),
+          '', money(total_pecas_display), '', money(total_servicos_display),
           money(total_bruto), "-#{money(total_desconto)}", money(total_com_desc)
         ]
 
@@ -382,14 +402,20 @@ module Utils
       # ===== DOCX XML Generation (Valid OOXML) =====
 
       def write_docx(output_path, body_xml)
+        logo_bytes = File.exist?(LOGO_PATH) ? File.binread(LOGO_PATH) : nil
+
         File.open(output_path.to_s, 'wb') do |file|
           buffer = Zip::OutputStream.write_buffer do |zos|
             zos.put_next_entry('[Content_Types].xml')
-            zos.write(xml_content_types)
+            zos.write(xml_content_types(has_image: logo_bytes.present?))
             zos.put_next_entry('_rels/.rels')
             zos.write(xml_rels)
             zos.put_next_entry('word/_rels/document.xml.rels')
-            zos.write(xml_document_rels)
+            zos.write(xml_document_rels(has_image: logo_bytes.present?))
+            if logo_bytes
+              zos.put_next_entry('word/media/image1.png')
+              zos.write(logo_bytes)
+            end
             zos.put_next_entry('word/document.xml')
             zos.write(xml_document(body_xml))
             zos.put_next_entry('word/styles.xml')
@@ -400,14 +426,16 @@ module Utils
         end
       end
 
-      def xml_content_types
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' \
+      def xml_content_types(has_image: false)
+        ct = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' \
         '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">' \
         '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>' \
-        '<Default Extension="xml" ContentType="application/xml"/>' \
-        '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' \
+        '<Default Extension="xml" ContentType="application/xml"/>'
+        ct += '<Default Extension="png" ContentType="image/png"/>' if has_image
+        ct += '<Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>' \
         '<Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>' \
         '</Types>'
+        ct
       end
 
       def xml_rels
@@ -417,11 +445,13 @@ module Utils
         '</Relationships>'
       end
 
-      def xml_document_rels
-        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' \
+      def xml_document_rels(has_image: false)
+        rels = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' \
         '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' \
-        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>' \
-        '</Relationships>'
+        '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>'
+        rels += '<Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/image1.png"/>' if has_image
+        rels += '</Relationships>'
+        rels
       end
 
       def xml_styles
@@ -453,7 +483,10 @@ module Utils
       def xml_document(body)
         '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' \
         '<w:document xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" ' \
-        'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' \
+        'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" ' \
+        'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing" ' \
+        'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" ' \
+        'xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">' \
         '<w:body>' + body +
         '<w:sectPr>' \
         '<w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/>' \
@@ -634,6 +667,72 @@ module Utils
         order_service.order_service_proposals
           .select { |p| approved_statuses.include?(p.order_service_proposal_status_id) }
           .sort_by(&:updated_at).last
+      end
+
+      def wp_header_with_logo
+        total_w = 15704
+        logo_w = 900
+        title_w = total_w - logo_w
+
+        xml = '<w:tbl><w:tblPr>' \
+              '<w:tblW w:w="' + total_w.to_s + '" w:type="dxa"/>' \
+              '<w:tblBorders>' \
+              '<w:top w:val="none" w:sz="0" w:space="0" w:color="auto"/>' \
+              '<w:left w:val="none" w:sz="0" w:space="0" w:color="auto"/>' \
+              '<w:bottom w:val="none" w:sz="0" w:space="0" w:color="auto"/>' \
+              '<w:right w:val="none" w:sz="0" w:space="0" w:color="auto"/>' \
+              '<w:insideH w:val="none" w:sz="0" w:space="0" w:color="auto"/>' \
+              '<w:insideV w:val="none" w:sz="0" w:space="0" w:color="auto"/>' \
+              '</w:tblBorders></w:tblPr>'
+
+        xml += '<w:tblGrid><w:gridCol w:w="' + logo_w.to_s + '"/><w:gridCol w:w="' + title_w.to_s + '"/></w:tblGrid>'
+        xml += '<w:tr>'
+
+        # Logo cell
+        xml += '<w:tc><w:tcPr><w:tcW w:w="' + logo_w.to_s + '" w:type="dxa"/>' \
+               '<w:tcBorders><w:top w:val="nil"/><w:bottom w:val="nil"/><w:left w:val="nil"/><w:right w:val="nil"/></w:tcBorders>' \
+               '<w:vAlign w:val="center"/></w:tcPr>'
+        if File.exist?(LOGO_PATH)
+          cx = 450000; cy = 450000
+          xml += '<w:p><w:pPr><w:spacing w:after="0"/></w:pPr><w:r>' + wp_inline_image('rId2', cx, cy) + '</w:r></w:p>'
+        else
+          xml += '<w:p><w:pPr><w:spacing w:after="0"/></w:pPr></w:p>'
+        end
+        xml += '</w:tc>'
+
+        # Title cell
+        xml += '<w:tc><w:tcPr><w:tcW w:w="' + title_w.to_s + '" w:type="dxa"/>' \
+               '<w:tcBorders><w:top w:val="nil"/><w:bottom w:val="nil"/><w:left w:val="nil"/><w:right w:val="nil"/></w:tcBorders>' \
+               '<w:vAlign w:val="center"/></w:tcPr>'
+        xml += '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="60" w:after="40"/></w:pPr>' \
+               '<w:r><w:rPr><w:b/><w:sz w:val="36"/><w:szCs w:val="36"/>' \
+               '<w:color w:val="251C59"/></w:rPr>' \
+               "<w:t xml:space=\"preserve\">Fatura Gest\u00E3o de Frotas</w:t></w:r></w:p>"
+        xml += '</w:tc>'
+
+        xml += '</w:tr></w:tbl>'
+        xml
+      end
+
+      def wp_inline_image(rel_id, cx, cy)
+        '<w:drawing>' \
+        '<wp:inline distT="0" distB="0" distL="0" distR="0">' \
+        '<wp:extent cx="' + cx.to_s + '" cy="' + cy.to_s + '"/>' \
+        '<wp:docPr id="1" name="Logo"/>' \
+        '<a:graphic>' \
+        '<a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">' \
+        '<pic:pic>' \
+        '<pic:nvPicPr><pic:cNvPr id="0" name="image1.png"/><pic:cNvPicPr/></pic:nvPicPr>' \
+        '<pic:blipFill><a:blip r:embed="' + rel_id + '"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>' \
+        '<pic:spPr>' \
+        '<a:xfrm><a:off x="0" y="0"/><a:ext cx="' + cx.to_s + '" cy="' + cy.to_s + '"/></a:xfrm>' \
+        '<a:prstGeom prst="rect"><a:avLst/></a:prstGeom>' \
+        '</pic:spPr>' \
+        '</pic:pic>' \
+        '</a:graphicData>' \
+        '</a:graphic>' \
+        '</wp:inline>' \
+        '</w:drawing>'
       end
 
       def esc(val)

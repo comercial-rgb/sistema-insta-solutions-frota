@@ -151,9 +151,17 @@ breadcrumbs = [
   </div>
 
   <!-- Contrato / Empenhos -->
-  <% if @fatura.contract %>
+  <%
+    contract = @fatura.contract
+    unless contract
+      contract = @fatura.fatura_itens.includes(order_service: [:commitment, :commitment_parts, :commitment_services])
+        .map { |i| i.order_service }.compact.flat_map { |os|
+          [os.commitment, os.commitment_parts, os.commitment_services].compact
+        }.map(&:contract).compact.first
+    end
+  %>
+  <% if contract %>
     <%
-      contract = @fatura.contract
       saldo_total = contract.respond_to?(:get_total_value) ? contract.get_total_value.to_f : contract.total_value.to_f
       saldo_usado = contract.respond_to?(:get_used_value) ? contract.get_used_value.to_f : 0
       saldo_disponivel = contract.respond_to?(:get_disponible_value) ? contract.get_disponible_value.to_f : (saldo_total - saldo_usado)
