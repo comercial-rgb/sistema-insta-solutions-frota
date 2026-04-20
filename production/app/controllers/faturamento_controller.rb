@@ -305,7 +305,7 @@ class FaturamentoController < ApplicationController
       client: [], cost_center: [], contract: []
     ).find(params[:id])
 
-    service = Utils::OrderServices::GenerateInvoiceDocxService.new(@fatura)
+    service = Utils::OrderServices::GenerateInvoiceDocxService.new(@fatura, invoice_split: params[:split])
     docx_path = service.call
 
     send_file docx_path, filename: "fatura_#{@fatura.numero}.docx",
@@ -323,7 +323,7 @@ class FaturamentoController < ApplicationController
       client: [], cost_center: [], contract: []
     ).find(params[:id])
 
-    service = Utils::OrderServices::GenerateInvoicePdfService.new(@fatura)
+    service = Utils::OrderServices::GenerateInvoicePdfService.new(@fatura, invoice_split: params[:split])
     pdf_path = service.call
 
     send_file pdf_path, filename: "fatura_#{@fatura.numero}.pdf",

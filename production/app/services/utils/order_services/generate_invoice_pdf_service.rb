@@ -10,11 +10,17 @@ module Utils
       RED        = 'dc3545'
       ORANGE     = 'c57200'
       GRAY_BG    = 'F5F5F5'
-      HEADER_BG  = 'E8E8E8'
+      HEADER_BG  = 'D9E2F3'
 
-      def initialize(fatura)
+      INSTA_RAZAO = 'InstaSolutions Produtos e Gestao Empresarial LTDA'
+      INSTA_CNPJ = '47.611.398/0001-66'
+      INSTA_END = 'Alameda Rio Negro 1030, Alphaville Industrial, Barueri - SP'
+      INSTA_TEL = '(11) 3336-6941'
+
+      def initialize(fatura, invoice_split: nil)
         @fatura = fatura
         @client = fatura.client
+        @invoice_split = invoice_split
         @items = fatura.fatura_itens.includes(
           order_service: [:vehicle, :cost_center, :sub_unit,
             { order_service_proposals: [:provider, :order_service_invoices] }]
@@ -22,20 +28,25 @@ module Utils
       end
 
       def call
+        split_label = case @invoice_split
+                      when 'pecas' then '_PECAS'
+                      when 'servicos' then '_SERVICOS'
+                      else ''
+                      end
         timestamp = Time.now.strftime('%Y%m%d%H%M%S%L')
-        output_filename = "fatura_#{@fatura.numero.parameterize}_#{timestamp}.pdf"
+        output_filename = "fatura_#{@fatura.numero.parameterize}#{split_label}_#{timestamp}.pdf"
         output_path = Rails.root.join('tmp', output_filename)
 
-        Prawn::Document.generate(output_path.to_s, page_size: 'A4', margin: [30, 30, 30, 30]) do |pdf|
+        Prawn::Document.generate(output_path.to_s, page_size: 'A4', page_layout: :landscape, margin: [25, 25, 25, 25]) do |pdf|
           @pdf = pdf
           pdf.font 'Helvetica'
 
           build_header
           build_client_block
-          build_contract_info
           build_items_table
           build_financial_summary
           build_retention_detail
+          build_provider_retention_table
           build_valor_devido_bar
           build_observations
           build_footer
@@ -47,89 +58,93 @@ module Utils
       private
 
       def build_header
-        @pdf.font_size 16
-        @pdf.text "FATURA DE SERVIÇOS", style: :bold, align: :center, color: BLUE_DARK
-        @pdf.move_down 3
-        @pdf.font_size 12
-        @pdf.text "Nº #{@fatura.numero}", style: :bold, align: :center, color: BLUE_LIGHT
-        @pdf.move_down 8
+        @pdf.font_size 18
+        @pdf.text "Fatura Gestao de Frotas", style: :bold, align: :center, color: BLUE_DARK
+        @pdf.move_down 6
+
+        # InstaSolutions info table
+        insta_data = [
+          [{ content: 'Razao Social:', font_style: :bold }, INSTA_RAZAO, { content: 'CNPJ:', font_style: :bold }, INSTA_CNPJ],
+          [{ content: 'Endereco:', font_style: :bold }, INSTA_END, { content: 'Telefone:', font_style: :bold }, INSTA_TEL]
+        ]
+        @pdf.table(insta_data, width: @pdf.bounds.width,
+                   cell_style: { size: 8, padding: [2, 4], borders: [:bottom], border_color: 'EEEEEE', background_color: GRAY_BG })
+        @pdf.move_down 6
+
+        split_txt = case @invoice_split
+                    when 'pecas' then ' (Somente Pecas)'
+                    when 'servicos' then ' (Somente Servicos)'
+                    else ''
+                    end
+        @pdf.font_size 13
+        @pdf.text "N\u00B0 #{@fatura.numero}#{split_txt}", style: :bold, align: :center, color: BLUE_LIGHT
+        @pdf.move_down 4
 
         @pdf.font_size 9
-        data_table = [
+        date_data = [
           [
-            { content: "Emissão: #{fmt_date(@fatura.data_emissao)}", align: :left },
+            { content: "Emissao: #{fmt_date(@fatura.data_emissao)}", align: :left },
             { content: "Vencimento: #{fmt_date(@fatura.data_vencimento)}", align: :center },
             { content: "Status: #{@fatura.status.upcase}", align: :right }
           ]
         ]
-        @pdf.table(data_table, width: @pdf.bounds.width, cell_style: { borders: [], padding: [2, 4], size: 9 })
+        @pdf.table(date_data, width: @pdf.bounds.width, cell_style: { borders: [], padding: [2, 4], size: 9 })
         @pdf.move_down 4
         @pdf.stroke_color 'CCCCCC'
         @pdf.stroke_horizontal_rule
-        @pdf.move_down 8
+        @pdf.move_down 6
       end
 
       def build_client_block
-        @pdf.font_size 10
-        @pdf.text "GERENCIADA / CLIENTE", style: :bold, color: BLUE_DARK
+        @pdf.font_size 11
+        @pdf.text "Cliente / Contratante", style: :bold, color: BLUE_DARK
         @pdf.move_down 4
 
-        client_name = @client&.fantasy_name.presence || @client&.social_name.presence || @client&.name || '-'
+        client_name = @client&.social_name.presence || @client&.fantasy_name.presence || @client&.name || '-'
         cnpj = @client&.cnpj || '-'
         address = @client&.respond_to?(:get_address) ? @client.get_address : '-'
         city = @client&.respond_to?(:get_city) ? @client.get_city : ''
         state = @client&.respond_to?(:get_state) ? @client.get_state : ''
+        city_uf = [city, state].reject(&:blank?).join(' / ')
         phone = @client&.phone || '-'
         email = @client&.email || '-'
         sphere = @client&.respond_to?(:sphere_name) ? @client.sphere_name : '-'
 
-        info_data = [
-          ["Razão Social: #{client_name}", "CNPJ: #{cnpj}"],
-          ["Endereço: #{address}", "Cidade/UF: #{city}/#{state}"],
-          ["Telefone: #{phone}", "E-mail: #{email}"],
-          ["Esfera: #{sphere}", "Desconto Contrato: #{fmt_pct(@client&.discount_percent)}%"]
+        client_data = [
+          [{ content: 'Razao Social:', font_style: :bold }, client_name, { content: 'CNPJ:', font_style: :bold }, cnpj],
+          [{ content: 'Endereco:', font_style: :bold }, "#{address} - #{city_uf}", { content: 'Esfera:', font_style: :bold }, sphere],
+          [{ content: 'Desconto Contrato:', font_style: :bold }, "#{fmt_pct(@client&.discount_percent)}%", { content: 'Contatos:', font_style: :bold }, "#{phone} / #{email}"]
         ]
 
-        @pdf.table(info_data, width: @pdf.bounds.width,
-                   cell_style: { size: 8, padding: [1, 4], borders: [] })
-        @pdf.move_down 8
+        if @fatura.contract&.number
+          client_data << [
+            { content: 'Contrato:', font_style: :bold }, @fatura.contract.number,
+            { content: 'Centro de Custo:', font_style: :bold }, @fatura.cost_center&.name || '-'
+          ]
+        end
+
+        @pdf.table(client_data, width: @pdf.bounds.width,
+                   cell_style: { size: 8, padding: [2, 4], borders: [:bottom], border_color: 'EEEEEE', background_color: 'F8F8FF' })
+        @pdf.move_down 4
         @pdf.stroke_color 'CCCCCC'
         @pdf.stroke_horizontal_rule
-        @pdf.move_down 8
-      end
-
-      def build_contract_info
-        contract_number = @fatura.contract&.number
-        cc_name = @fatura.cost_center&.name
-        su_name = @fatura.sub_unit&.respond_to?(:name) ? @fatura.sub_unit.name : nil
-
-        return unless contract_number || cc_name
-
-        @pdf.font_size 8
-        parts = []
-        parts << "Contrato: #{contract_number}" if contract_number
-        parts << "Centro de Custo: #{cc_name}" if cc_name
-        parts << "Sub-unidade: #{su_name}" if su_name.present?
-        @pdf.text parts.join('  |  '), color: '666666'
-        @pdf.move_down 8
+        @pdf.move_down 6
       end
 
       def build_items_table
-        @pdf.font_size 9
-        @pdf.text "ITENS DA FATURA", style: :bold, color: BLUE_DARK
+        @pdf.font_size 11
+        @pdf.text "Itens da Fatura", style: :bold, color: BLUE_DARK
         @pdf.move_down 4
 
-        header = ['OS', 'Fornecedor', 'Veículo', 'C.Custo', 'Peças (NF)', 'Serviços (NF)', 'V.Bruto', 'Desc.', 'V.c/Desc.']
+        header = ['OS', 'Fornecedor', 'Veiculo', 'C.Custo', 'NF Pecas', 'Vl. Pecas', 'NF Servicos', 'Vl. Servicos', 'V.Bruto', 'Desc.', 'V.c/Desc.']
         rows = [header.map { |h| { content: h, font_style: :bold } }]
 
-        @total_pecas = 0
-        @total_servicos = 0
-        @total_bruto = 0
-        @total_desconto = 0
-        @total_com_desc = 0
-        @providers_info = []
+        @total_pecas = 0; @total_servicos = 0; @total_bruto = 0
+        @total_desconto = 0; @total_com_desc = 0
+        @providers_detail = []
 
         client_discount_pct = (@client&.discount_percent || 0).to_d / 100
+        is_federal = @client&.respond_to?(:federal?) && @client.federal?
 
         grouped = @items.select { |i| i.order_service_id.present? }.group_by(&:order_service_id)
 
@@ -144,9 +159,17 @@ module Utils
           nf_pecas = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }
           nf_servicos = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }
 
+          if @invoice_split == 'pecas'
+            nf_servicos = []
+          elsif @invoice_split == 'servicos'
+            nf_pecas = []
+          end
+
           pecas_val = nf_pecas.sum(&:value).to_f
           servicos_val = nf_servicos.sum(&:value).to_f
-          bruto = proposal.total_value_without_discount.to_f
+          next if pecas_val == 0 && servicos_val == 0
+
+          bruto = pecas_val + servicos_val
           desc_val = (bruto * client_discount_pct).to_f.round(2)
           com_desc = bruto - desc_val
 
@@ -155,66 +178,85 @@ module Utils
 
           provider = proposal.provider
           is_simples = provider ? !provider.optante_simples : true
-          regime = is_simples ? 'Simples' : 'Não-Simples'
 
-          @total_pecas += pecas_val
-          @total_servicos += servicos_val
-          @total_bruto += bruto
-          @total_desconto += desc_val
-          @total_com_desc += com_desc
+          @total_pecas += pecas_val; @total_servicos += servicos_val
+          @total_bruto += bruto; @total_desconto += desc_val; @total_com_desc += com_desc
 
-          @providers_info << {
-            name: provider&.get_name || '-',
-            cnpj: provider&.cnpj || '-',
-            is_simples: is_simples,
-            nf_pecas_val: nf_pecas.sum(&:value).to_f,
-            nf_servicos_val: nf_servicos.sum(&:value).to_f
+          pct_pecas_ret = 0; pct_serv_ret = 0; ret_provider = 0
+          unless is_simples
+            if is_federal
+              pct_pecas_ret = 5.85; pct_serv_ret = 9.45
+              ret_provider = pecas_val * 0.0585 + servicos_val * 0.0945
+            else
+              pct_pecas_ret = 1.20; pct_serv_ret = 4.80
+              ret_provider = pecas_val * 0.012 + servicos_val * 0.048
+            end
+          end
+
+          @providers_detail << {
+            os_code: os.code, name: provider&.get_name || '-', cnpj: provider&.cnpj || '-',
+            is_simples: is_simples, pecas: pecas_val, servicos: servicos_val,
+            pct_pecas: pct_pecas_ret, pct_servicos: pct_serv_ret, retencao: ret_provider.round(2)
           }
 
           pct = bruto > 0 ? ((desc_val / bruto) * 100).round(2) : 0
 
+          # Main data row
           rows << [
             "##{os.code}",
-            "#{provider&.get_name&.truncate(18) || '-'}\n(#{regime})",
+            (provider&.get_name || '-').truncate(22),
             os.vehicle&.board || '-',
-            (os.cost_center&.name || '-').truncate(15),
-            "#{money(pecas_val)}#{pecas_nums.present? ? "\n(NF #{pecas_nums})" : ''}",
-            "#{money(servicos_val)}#{servicos_nums.present? ? "\n(NF #{servicos_nums})" : ''}",
+            (os.cost_center&.name || '-').truncate(14),
+            pecas_nums.presence || '-',
+            money(pecas_val),
+            servicos_nums.presence || '-',
+            money(servicos_val),
             money(bruto),
-            "-#{money(desc_val)}\n(#{fmt_pct(pct)}%)",
+            "-#{money(desc_val)}",
             money(com_desc)
           ]
+
+          # Sub-row: CNPJ + regime + retention info
+          regime_txt = is_simples ? 'Optante Simples (Isento)' : "Nao Optante - Ret. Pecas #{fmt_pct(pct_pecas_ret)}% / Servicos #{fmt_pct(pct_serv_ret)}% = #{money(ret_provider)}"
+          rows << [{ content: "CNPJ: #{provider&.cnpj || '-'}  |  #{regime_txt}", colspan: 11, text_color: '888888' }]
         end
 
         rows << [
           { content: 'SUBTOTAIS:', colspan: 4, font_style: :bold, align: :right },
-          { content: money(@total_pecas), font_style: :bold, align: :right },
-          { content: money(@total_servicos), font_style: :bold, align: :right },
+          '', { content: money(@total_pecas), font_style: :bold, align: :right },
+          '', { content: money(@total_servicos), font_style: :bold, align: :right },
           { content: money(@total_bruto), font_style: :bold, align: :right },
           { content: "-#{money(@total_desconto)}", font_style: :bold, align: :right, text_color: RED },
           { content: money(@total_com_desc), font_style: :bold, align: :right, text_color: GREEN }
         ]
 
         if rows.length > 2
-          col_widths = [35, 85, 45, 55, 65, 65, 55, 55, 55]
+          col_widths = [40, 100, 50, 60, 60, 65, 60, 70, 60, 60, 60]
+          total_w = col_widths.sum
+          scale = @pdf.bounds.width / total_w.to_f
+          col_widths = col_widths.map { |w| (w * scale).floor }
+          col_widths[-1] += (@pdf.bounds.width - col_widths.sum).to_i
+
           @pdf.table(rows, header: true, width: @pdf.bounds.width,
                      column_widths: col_widths,
-                     cell_style: { size: 6.5, padding: [3, 3], borders: [:bottom], border_color: 'DDDDDD' }) do |t|
+                     cell_style: { size: 7, padding: [3, 3], borders: [:bottom], border_color: 'DDDDDD' }) do |t|
             t.row(0).background_color = HEADER_BG
-            t.row(0).size = 7
+            t.row(0).size = 7.5
             t.row(-1).background_color = GRAY_BG
-            t.columns(4..8).align = :right
+            t.columns(5).align = :right
+            t.columns(7).align = :right
+            t.columns(8..10).align = :right
           end
         else
           @pdf.text "Nenhum item encontrado.", style: :italic, size: 8
         end
 
-        @pdf.move_down 10
+        @pdf.move_down 8
       end
 
       def build_financial_summary
-        @pdf.font_size 9
-        @pdf.text "RESUMO FINANCEIRO", style: :bold, color: BLUE_DARK
+        @pdf.font_size 11
+        @pdf.text "Resumo Financeiro", style: :bold, color: BLUE_DARK
         @pdf.move_down 4
 
         pct_desc = @total_bruto > 0 ? ((@total_desconto / @total_bruto) * 100).round(2) : 0
@@ -222,18 +264,17 @@ module Utils
         desc_servicos = @total_servicos * (@client&.discount_percent || 0).to_d / 100
 
         data = [
-          ['', 'Peças', 'Serviços', 'Total'],
+          ['', 'Pecas', 'Servicos', 'Total'].map { |h| { content: h, font_style: :bold } },
           ['Valor sem desconto', money(@total_pecas), money(@total_servicos), money(@total_bruto)],
           ["(-) Desconto (#{fmt_pct(pct_desc)}%)", "-#{money(desc_pecas)}", "-#{money(desc_servicos)}", "-#{money(@total_desconto)}"],
-          ['Valor c/ Desconto', money(@total_pecas - desc_pecas), money(@total_servicos - desc_servicos), money(@total_com_desc)]
+          [{ content: 'Valor c/ Desconto', font_style: :bold }, { content: money(@total_pecas - desc_pecas), font_style: :bold },
+           { content: money(@total_servicos - desc_servicos), font_style: :bold }, { content: money(@total_com_desc), font_style: :bold }]
         ]
 
-        @pdf.table(data, width: @pdf.bounds.width * 0.65, position: :right,
-                   cell_style: { size: 7.5, padding: [3, 5], borders: [:bottom], border_color: 'EEEEEE' }) do |t|
-          t.row(0).font_style = :bold
+        @pdf.table(data, width: @pdf.bounds.width * 0.60, position: :right,
+                   cell_style: { size: 8, padding: [3, 5], borders: [:bottom], border_color: 'EEEEEE' }) do |t|
           t.row(0).background_color = HEADER_BG
           t.columns(1..3).align = :right
-          t.row(-1).font_style = :bold
           t.row(2).text_color = RED
         end
 
@@ -244,71 +285,108 @@ module Utils
         is_federal = @client&.respond_to?(:federal?) && @client.federal?
         sphere_name = @client&.respond_to?(:sphere_name) ? @client.sphere_name : 'Municipal'
 
-        total_ret = 0
-        @providers_info.each do |p|
-          next if p[:is_simples]
-          if is_federal
-            total_ret += p[:nf_pecas_val] * 0.0585
-            total_ret += p[:nf_servicos_val] * 0.0945
-          else
-            total_ret += p[:nf_pecas_val] * 0.012
-            total_ret += p[:nf_servicos_val] * 0.048
-          end
-        end
-        @total_retencoes = total_ret.round(2)
+        @total_retencoes = @providers_detail.sum { |p| p[:retencao] }.round(2)
 
         if @total_retencoes > 0
-          @pdf.font_size 8
-          @pdf.text "RETENÇÕES FISCAIS (#{sphere_name})", style: :bold, color: ORANGE
-          @pdf.move_down 3
-
           pct_pecas = is_federal ? '5,85%' : '1,20%'
           pct_serv = is_federal ? '9,45%' : '4,80%'
-          detail_pecas = is_federal ? 'IR 1,2% + CSLL 1% + PIS 0,65% + Cofins 3%' : 'somente IR'
-          detail_serv = is_federal ? 'IR 4,8% + CSLL 1% + PIS 0,65% + Cofins 3%' : 'somente IR'
 
-          ret_pecas = @providers_info.reject { |p| p[:is_simples] }.sum { |p| is_federal ? p[:nf_pecas_val] * 0.0585 : p[:nf_pecas_val] * 0.012 }
-          ret_servicos = @providers_info.reject { |p| p[:is_simples] }.sum { |p| is_federal ? p[:nf_servicos_val] * 0.0945 : p[:nf_servicos_val] * 0.048 }
+          ret_pecas = @providers_detail.reject { |p| p[:is_simples] }.sum { |p| is_federal ? p[:pecas] * 0.0585 : p[:pecas] * 0.012 }
+          ret_servicos = @providers_detail.reject { |p| p[:is_simples] }.sum { |p| is_federal ? p[:servicos] * 0.0945 : p[:servicos] * 0.048 }
+
+          @pdf.font_size 9
+          @pdf.text "Retencoes Fiscais - #{sphere_name} (informativo, nao deduzido do valor devido)", style: :bold, color: ORANGE
+          @pdf.move_down 3
 
           ret_data = [
-            ["Peças Não-Simples (#{pct_pecas} - #{detail_pecas})", "-#{money(ret_pecas)}"],
-            ["Serviços Não-Simples (#{pct_serv} - #{detail_serv})", "-#{money(ret_servicos)}"],
-            [{ content: "Total Retenções", font_style: :bold }, { content: "-#{money(@total_retencoes)}", font_style: :bold }]
+            ["Pecas Nao-Simples (#{pct_pecas})", "-#{money(ret_pecas)}"],
+            ["Servicos Nao-Simples (#{pct_serv})", "-#{money(ret_servicos)}"],
+            [{ content: "Total Retencoes", font_style: :bold }, { content: "-#{money(@total_retencoes)}", font_style: :bold }]
           ]
 
-          @pdf.table(ret_data, width: @pdf.bounds.width * 0.65, position: :right,
-                     cell_style: { size: 7, padding: [2, 5], borders: [:bottom], border_color: 'EEEEEE' }) do |t|
+          @pdf.table(ret_data, width: @pdf.bounds.width * 0.55, position: :right,
+                     cell_style: { size: 7.5, padding: [2, 5], borders: [:bottom], border_color: 'EEEEEE' }) do |t|
             t.columns(1).align = :right
             t.column(1).text_color = RED
           end
         else
           @total_retencoes = 0
           @pdf.font_size 8
-          @pdf.text "Todos os fornecedores são Simples Nacional — isento de retenção fiscal.", color: GREEN
+          @pdf.text "Todos os fornecedores sao Simples Nacional - isento de retencao fiscal.", color: GREEN
         end
 
-        @pdf.move_down 8
+        @pdf.move_down 6
+      end
+
+      def build_provider_retention_table
+        is_federal = @client&.respond_to?(:federal?) && @client.federal?
+        non_simples = @providers_detail.reject { |p| p[:is_simples] }
+        return unless non_simples.any?
+
+        @pdf.font_size 9
+        @pdf.text "Detalhamento de Retencao por Fornecedor", style: :bold, color: BLUE_DARK
+        @pdf.move_down 3
+
+        header = ['OS', 'Fornecedor', 'CNPJ', '% Pecas', 'Ret. Pecas', '% Servicos', 'Ret. Servicos', 'Total Ret.']
+        det_rows = [header.map { |h| { content: h, font_style: :bold } }]
+
+        ret_pecas_total = 0; ret_servicos_total = 0
+        non_simples.each do |p|
+          ret_p = is_federal ? p[:pecas] * 0.0585 : p[:pecas] * 0.012
+          ret_s = is_federal ? p[:servicos] * 0.0945 : p[:servicos] * 0.048
+          ret_pecas_total += ret_p; ret_servicos_total += ret_s
+          det_rows << [
+            "##{p[:os_code]}", p[:name].to_s.truncate(20), p[:cnpj],
+            "#{fmt_pct(p[:pct_pecas])}%", "-#{money(ret_p)}",
+            "#{fmt_pct(p[:pct_servicos])}%", "-#{money(ret_s)}",
+            "-#{money(p[:retencao])}"
+          ]
+        end
+        det_rows << [
+          { content: 'TOTAL:', colspan: 3, font_style: :bold, align: :right },
+          '', { content: "-#{money(ret_pecas_total)}", font_style: :bold },
+          '', { content: "-#{money(ret_servicos_total)}", font_style: :bold },
+          { content: "-#{money(@total_retencoes)}", font_style: :bold }
+        ]
+
+        @pdf.table(det_rows, header: true, width: @pdf.bounds.width,
+                   cell_style: { size: 7, padding: [2, 3], borders: [:bottom], border_color: 'DDDDDD' }) do |t|
+          t.row(0).background_color = HEADER_BG
+          t.row(0).size = 7
+          t.row(-1).background_color = GRAY_BG
+          t.columns(4).align = :right
+          t.columns(6..7).align = :right
+        end
+
+        @pdf.move_down 6
       end
 
       def build_valor_devido_bar
-        valor_devido = @total_com_desc - @total_retencoes
+        # Valor devido = total com desconto (antes da retencao)
+        valor_devido = @total_com_desc
 
         @pdf.fill_color BLUE_DARK
         bar_y = @pdf.cursor
-        @pdf.fill_rectangle [0, bar_y], @pdf.bounds.width, 28
+        @pdf.fill_rectangle [0, bar_y], @pdf.bounds.width, 30
         @pdf.fill_color 'FFFFFF'
-        @pdf.font_size 11
-        @pdf.text_box "VALOR DEVIDO", at: [10, bar_y - 6], style: :bold, size: 11
-        @pdf.text_box money(valor_devido), at: [0, bar_y - 5], width: @pdf.bounds.width - 10,
-                      style: :bold, size: 13, align: :right
+        @pdf.font_size 12
+        @pdf.text_box "VALOR DEVIDO", at: [12, bar_y - 6], style: :bold, size: 12
+        @pdf.text_box money(valor_devido), at: [0, bar_y - 4], width: @pdf.bounds.width - 12,
+                      style: :bold, size: 14, align: :right
         @pdf.fill_color '000000'
-        @pdf.move_down 35
+        @pdf.move_down 36
+
+        if @total_retencoes > 0
+          @pdf.font_size 7
+          @pdf.text "* Retencao fiscal de #{money(@total_retencoes)} informada acima para conhecimento, nao deduzida deste valor.", color: '888888'
+          @pdf.move_down 4
+        end
       end
 
       def build_observations
         if @fatura.observacoes.present?
-          @pdf.font_size 8
-          @pdf.text "OBSERVAÇÕES", style: :bold, color: '666666'
+          @pdf.font_size 9
+          @pdf.text "Observacoes", style: :bold, color: '666666'
           @pdf.move_down 2
           @pdf.text @fatura.observacoes, size: 8, color: '444444'
           @pdf.move_down 6
@@ -320,9 +398,8 @@ module Utils
         @pdf.stroke_horizontal_rule
         @pdf.move_down 4
         @pdf.font_size 7
-        @pdf.text "Documento gerado em #{Time.current.strftime('%d/%m/%Y %H:%M')} — Frota Insta Solutions",
+        @pdf.text "Documento gerado em #{Time.current.strftime('%d/%m/%Y %H:%M')} - Frota Insta Solutions",
                   align: :center, color: '999999'
-        @pdf.text "Este documento não possui valor fiscal.", align: :center, color: '999999'
       end
 
       def find_approved_proposal(order_service)

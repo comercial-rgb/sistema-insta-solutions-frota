@@ -36,13 +36,29 @@ breadcrumbs = [
         </div>
         <div class="col-md-4 text-md-end mt-3 mt-md-0">
           <%= render 'faturamento/shared/status_badge', status: @fatura.status %>
-          <div class="mt-2">
-            <a href="<%= gerar_pdf_faturamento_path(@fatura) %>" class="btn btn-sm btn-outline-danger">
-              <i class="bi bi-file-earmark-pdf"></i> PDF
-            </a>
-            <a href="<%= gerar_docx_faturamento_path(@fatura) %>" class="btn btn-sm btn-outline-success">
-              <i class="bi bi-file-earmark-word"></i> Word
-            </a>
+          <div class="mt-2 d-flex flex-wrap gap-1 justify-content-md-end">
+            <div class="btn-group">
+              <a href="<%= gerar_pdf_faturamento_path(@fatura) %>" class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-file-earmark-pdf"></i> PDF
+              </a>
+              <button type="button" class="btn btn-sm btn-outline-danger dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="<%= gerar_pdf_faturamento_path(@fatura) %>"><i class="bi bi-files me-1"></i> Completo</a></li>
+                <li><a class="dropdown-item" href="<%= gerar_pdf_faturamento_path(@fatura, split: 'pecas') %>"><i class="bi bi-tools me-1"></i> Somente Peças</a></li>
+                <li><a class="dropdown-item" href="<%= gerar_pdf_faturamento_path(@fatura, split: 'servicos') %>"><i class="bi bi-wrench me-1"></i> Somente Serviços</a></li>
+              </ul>
+            </div>
+            <div class="btn-group">
+              <a href="<%= gerar_docx_faturamento_path(@fatura) %>" class="btn btn-sm btn-outline-success">
+                <i class="bi bi-file-earmark-word"></i> Word
+              </a>
+              <button type="button" class="btn btn-sm btn-outline-success dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown"></button>
+              <ul class="dropdown-menu">
+                <li><a class="dropdown-item" href="<%= gerar_docx_faturamento_path(@fatura) %>"><i class="bi bi-files me-1"></i> Completo</a></li>
+                <li><a class="dropdown-item" href="<%= gerar_docx_faturamento_path(@fatura, split: 'pecas') %>"><i class="bi bi-tools me-1"></i> Somente Peças</a></li>
+                <li><a class="dropdown-item" href="<%= gerar_docx_faturamento_path(@fatura, split: 'servicos') %>"><i class="bi bi-wrench me-1"></i> Somente Serviços</a></li>
+              </ul>
+            </div>
             <a href="<%= gerar_excel_faturamento_path(@fatura) %>" class="btn btn-sm btn-outline-primary">
               <i class="bi bi-file-earmark-spreadsheet"></i> Excel
             </a>

@@ -22,7 +22,7 @@ module Utils
         @client = fatura.client
         @invoice_split = invoice_split
         @items = fatura.fatura_itens.includes(
-          order_service: [:vehicle, :cost_center, :sub_unit,
+          order_service: [:vehicle, :cost_center, :sub_unit, :commitment, :commitment_parts, :commitment_services,
             { order_service_proposals: [:provider, :order_service_invoices] }]
         )
       end
@@ -43,6 +43,7 @@ module Utils
 
           build_header
           build_client_block
+          build_contract_block
           build_items_table
           build_financial_summary
           build_retention_detail
@@ -135,7 +136,52 @@ module Utils
         @pdf.move_down 6
       end
 
-      def build_items_table
+      def build_contract_block
+        return unless @fatura.contract
+
+        contract = @fatura.contract
+        saldo_total = contract.respond_to?(:get_total_value) ? contract.get_total_value.to_f : contract.total_value.to_f
+        saldo_usado = contract.respond_to?(:get_used_value) ? contract.get_used_value.to_f : 0
+        saldo_disponivel = contract.respond_to?(:get_disponible_value) ? contract.get_disponible_value.to_f : (saldo_total - saldo_usado)
+
+        @pdf.font_size 11
+        @pdf.text "Contrato / Empenhos", style: :bold, color: BLUE_DARK
+        @pdf.move_down 4
+
+        contrato_data = [
+          [{ content: "Contrato N\u00ba:", font_style: :bold }, contract.number || '-',
+           { content: 'Valor Total:', font_style: :bold }, money(saldo_total)],
+          [{ content: 'Saldo Consumido:', font_style: :bold }, money(saldo_usado),
+           { content: "Saldo Dispon\u00edvel:", font_style: :bold }, money(saldo_disponivel)]
+        ]
+        @pdf.table(contrato_data, width: @pdf.bounds.width,
+                   cell_style: { size: 8, padding: [2, 4], borders: [:bottom], border_color: 'EEEEEE', background_color: 'F0F7FF' })
+        @pdf.move_down 4
+
+        empenhos = @items.map { |i| i.order_service }.compact.flat_map { |os|
+          [os.commitment, os.commitment_parts, os.commitment_services].compact
+        }.uniq(&:id)
+
+        if empenhos.any?
+          emp_header = ["Empenho N\u00ba", 'Saldo Inicial', 'Consumido', 'Restante']
+          emp_rows = [emp_header.map { |h| { content: h, font_style: :bold } }]
+          empenhos.each do |emp|
+            saldo_ini = Commitment.respond_to?(:sum_budget_value) ? Commitment.sum_budget_value(emp).to_f : emp.commitment_value.to_f
+            consumido = Commitment.respond_to?(:get_total_already_consumed_value) ? Commitment.get_total_already_consumed_value(emp).to_f : 0
+            restante = emp.respond_to?(:get_available_balance) ? emp.get_available_balance.to_f : (saldo_ini - consumido)
+            emp_rows << [emp.commitment_number || '-', money(saldo_ini), money(consumido), money(restante)]
+          end
+          @pdf.table(emp_rows, header: true, width: @pdf.bounds.width * 0.60,
+                     cell_style: { size: 7.5, padding: [2, 4], borders: [:bottom], border_color: 'DDDDDD' }) do |t|
+            t.row(0).background_color = HEADER_BG
+            t.columns(1..3).align = :right
+          end
+        end
+
+        @pdf.move_down 4
+        @pdf.stroke_color 'CCCCCC'
+        @pdf.stroke_horizontal_rule
+        @pdf.move_down 6
         @pdf.font_size 11
         @pdf.text "Itens da Fatura", style: :bold, color: BLUE_DARK
         @pdf.move_down 4

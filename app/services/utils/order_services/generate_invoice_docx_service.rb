@@ -17,7 +17,7 @@ module Utils
           @fatura = order_services_or_fatura
           @client = @fatura.client
           @items = @fatura.fatura_itens.includes(
-            order_service: [:vehicle, :cost_center, :sub_unit,
+            order_service: [:vehicle, :cost_center, :sub_unit, :commitment, :commitment_parts, :commitment_services,
               { order_service_proposals: [:provider, :order_service_invoices] }]
           )
           @order_services = nil
@@ -172,6 +172,42 @@ module Utils
           client_rows << ['Contrato:', @fatura.contract.number, 'Centro de Custo:', @fatura.cost_center&.name || '-']
         end
         body_xml << wp_table(client_rows, [1800, 5000, 1600, 2600], font_size: 18, shd_all: 'F8F8FF', bold_cols: [0, 2])
+        body_xml << wp_empty
+
+        # === CONTRATO / EMPENHOS / SALDO ===
+        if @fatura.contract
+          contract = @fatura.contract
+          saldo_total = contract.respond_to?(:get_total_value) ? contract.get_total_value.to_f : contract.total_value.to_f
+          saldo_usado = contract.respond_to?(:get_used_value) ? contract.get_used_value.to_f : 0
+          saldo_disponivel = contract.respond_to?(:get_disponible_value) ? contract.get_disponible_value.to_f : (saldo_total - saldo_usado)
+
+          body_xml << wp_heading('Contrato / Empenhos', 13, color: '251C59')
+          contrato_rows = [
+            ['Contrato N\u00ba:', contract.number || '-', 'Valor Total:', money(saldo_total)],
+            ['Saldo Consumido:', money(saldo_usado), 'Saldo Dispon\u00edvel:', money(saldo_disponivel)]
+          ]
+          body_xml << wp_table(contrato_rows, [1800, 4000, 2000, 3200], font_size: 18, shd_all: 'F0F7FF', bold_cols: [0, 2])
+
+          # Empenhos vinculados
+          empenhos = @items.map { |i| i.order_service }.compact.flat_map { |os|
+            [os.commitment, os.commitment_parts, os.commitment_services].compact
+          }.uniq(&:id)
+
+          if empenhos.any?
+            body_xml << wp_empty
+            emp_header = ['Empenho N\u00ba', 'Saldo Inicial', 'Consumido', 'Restante']
+            emp_rows = [emp_header]
+            empenhos.each do |emp|
+              saldo_ini = Commitment.respond_to?(:sum_budget_value) ? Commitment.sum_budget_value(emp).to_f : emp.commitment_value.to_f
+              consumido = Commitment.respond_to?(:get_total_already_consumed_value) ? Commitment.get_total_already_consumed_value(emp).to_f : 0
+              restante = emp.respond_to?(:get_available_balance) ? emp.get_available_balance.to_f : (saldo_ini - consumido)
+              emp_rows << [emp.commitment_number || '-', money(saldo_ini), money(consumido), money(restante)]
+            end
+            body_xml << wp_table(emp_rows, [3000, 2800, 2600, 2600], header_row: true, font_size: 18)
+          end
+          body_xml << wp_empty
+        end
+
         body_xml << wp_hr
 
         # === ITENS DA FATURA ===
@@ -209,7 +245,7 @@ module Utils
         fin_rows = [
           ['', 'Peças (NF)', 'Serviços (NF)', 'V. Bruto', 'Total'],
           ['Valor sem desconto', money(total_pecas), money(total_servicos), money(total_bruto), money(total_bruto)],
-          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", '-', '-', "-#{money(desc_bruto)}", "-#{money(total_desconto)}"],
+          ["(-) Desconto (#{fmt_pct(pct_desc)}%)", '-', '-', "-#{money(total_desconto)}", "-#{money(total_desconto)}"],
           ['Valor c/ Desconto', money(total_pecas), money(total_servicos), money(total_com_desc), money(total_com_desc)]
         ]
         body_xml << wp_table(fin_rows, [2200, 1800, 1800, 1800, 2000], header_row: true, font_size: 19)
