@@ -78,12 +78,29 @@ class VehiclesController < ApplicationController
 
   def update
     authorize @vehicle
-    @vehicle.update(vehicle_params)
-    if @vehicle.valid?
-      flash[:success] = t('flash.update')
-      redirect_to vehicles_path
-    else
-      flash[:error] = @vehicle.errors.full_messages.join('<br>')
+    
+    Rails.logger.info "🔍 [VEHICLE UPDATE] ID: #{@vehicle.id}, Params: #{vehicle_params.inspect}"
+    Rails.logger.info "🔍 [VEHICLE UPDATE] cost_center_id antes: #{@vehicle.cost_center_id}"
+    
+    begin
+      update_result = @vehicle.update(vehicle_params)
+      
+      Rails.logger.info "🔍 [VEHICLE UPDATE] Update result: #{update_result}"
+      Rails.logger.info "🔍 [VEHICLE UPDATE] cost_center_id depois: #{@vehicle.cost_center_id}"
+      
+      if @vehicle.valid?
+        flash[:success] = t('flash.update')
+        redirect_to vehicles_path
+      else
+        Rails.logger.error "❌ [VEHICLE UPDATE] Erros de validação: #{@vehicle.errors.full_messages.join(', ')}"
+        flash[:error] = @vehicle.errors.full_messages.join('<br>')
+        build_initial_relations
+        render :edit
+      end
+    rescue => e
+      Rails.logger.error "❌ [VEHICLE UPDATE] Exceção: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      flash[:error] = "Erro ao atualizar veículo: #{e.message}"
       build_initial_relations
       render :edit
     end
@@ -211,8 +228,9 @@ class VehiclesController < ApplicationController
   end
 
   def vehicles_by_cost_center_id
+    vehicles = Vehicle.by_cost_center_ids([params[:cost_center_id]]).includes(:vehicle_type)
     data = {
-      result: Vehicle.by_cost_center_ids([params[:cost_center_id]])
+      result: vehicles.map { |v| v.as_json.merge(display_name: v.label_for_os_select) }
     }
     respond_to do |format|
       format.json {render :json => data, :status => 200}
@@ -220,8 +238,9 @@ class VehiclesController < ApplicationController
   end
 
   def vehicles_by_client_id
+    vehicles = Vehicle.by_active(params[:active]).by_client_ids([params[:client_id]]).includes(:vehicle_type)
     data = {
-      result: Vehicle.by_active(params[:active]).by_client_ids([params[:client_id]])
+      result: vehicles.map { |v| v.as_json.merge(display_name: v.label_for_os_select) }
     }
     respond_to do |format|
       format.json {render :json => data, :status => 200}
@@ -266,7 +285,9 @@ class VehiclesController < ApplicationController
       has_global: has_global,
       has_parts: has_parts,
       has_services: has_services,
-      commitments: commitments.map { |c| { id: c.id, name: c.get_formatted_name_with_pendent_value, category_id: c.category_id } }
+      commitments: commitments.map { |c| { id: c.id, name: c.get_formatted_name_with_pendent_value, category_id: c.category_id } },
+      sub_unit_name: vehicle.sub_unit&.name,
+      cost_center_name: vehicle.cost_center&.name
     }
     
     respond_to do |format|
@@ -370,7 +391,8 @@ class VehiclesController < ApplicationController
     :gearbox_type,
     :fipe_code,
     :model_text,
-    :value_text
+    :value_text,
+    :vehicle_model_id
     )
   end
 end

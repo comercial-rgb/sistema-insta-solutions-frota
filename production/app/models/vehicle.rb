@@ -1,4 +1,4 @@
-class Vehicle < ApplicationRecord
+﻿class Vehicle < ApplicationRecord
   after_initialize :default_values
   after_save :try_auto_link_vehicle_model
 
@@ -9,7 +9,7 @@ class Vehicle < ApplicationRecord
 
   scope :by_id, lambda { |value| where("vehicles.id = ?", value) if !value.nil? && !value.blank? }
   scope :by_client_id, lambda { |value| where("vehicles.client_id = ?", value) if !value.nil? && !value.blank? }
-  scope :by_cost_center_ids, lambda { |value| joins(:vehicle).where("vehicles.cost_center_id IN (?)", value) if !value.nil? && !value.blank? }
+  scope :by_cost_center_ids, lambda { |value| where("vehicles.cost_center_id IN (?)", value) if !value.nil? && !value.blank? }
   scope :by_client_ids, lambda { |value| where("vehicles.client_id IN (?)", value) if !value.nil? && !value.blank? }
   scope :by_cost_center_id, lambda { |value| where("vehicles.cost_center_id = ?", value) if !value.nil? && !value.blank? }
   scope :by_sub_unit_id, lambda { |value| where("vehicles.sub_unit_id = ?", value) if !value.nil? && !value.blank? }
@@ -26,14 +26,14 @@ class Vehicle < ApplicationRecord
 
   # scope :by_name, lambda { |value| where("LOWER(vehicles.name) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
-  scope :by_initial_acquisition_date, lambda { |value| where("vehicles.acquisition_date >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_acquisition_date, lambda { |value| where("vehicles.acquisition_date <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_acquisition_date, lambda { |value| where("vehicles.acquisition_date >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_acquisition_date, lambda { |value| where("vehicles.acquisition_date <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
   scope :by_initial_maintenance_value, lambda { |value| where("vehicles.id > 0") if !value.nil? && !value.blank? }
   scope :by_final_maintenance_value, lambda { |value| where("vehicles.id > 0") if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("vehicles.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("vehicles.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("vehicles.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("vehicles.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
   scope :by_cost_center_or_sub_unit_ids, lambda { |cost_center_ids, sub_unit_ids|
     if cost_center_ids.present? || sub_unit_ids.present?
@@ -55,6 +55,10 @@ class Vehicle < ApplicationRecord
   belongs_to :fuel_type, optional: true
 
   has_many :order_services, validate: false, dependent: :destroy
+  has_many :vehicle_checklists, dependent: :destroy
+  has_many :driver_vehicle_assignments, dependent: :destroy
+  has_many :assigned_drivers, through: :driver_vehicle_assignments, source: :user
+  has_many :traffic_violations, dependent: :destroy
 
   validates_presence_of :client_id, :cost_center_id, :fuel_type_id
 
@@ -122,6 +126,25 @@ class Vehicle < ApplicationRecord
     return result
   end
 
+  # Rótulo usado em selects de veículo (ex.: abertura de OS)
+  # Formato: "<TIPO> <MARCA> <MODELO> - <PLACA>"
+  def label_for_os_select
+    parts = []
+    type_name = vehicle_type&.name.to_s.strip
+    parts << type_name unless type_name.empty?
+    parts << self.brand.to_s.strip unless self.brand.to_s.strip.empty?
+    parts << self.model.to_s.strip unless self.model.to_s.strip.empty?
+    prefix = parts.join(' ')
+    board_str = self.board.to_s.strip
+    if prefix.empty?
+      board_str
+    elsif board_str.empty?
+      prefix
+    else
+      "#{prefix} - #{board_str}"
+    end
+  end
+
   def getting_vehicle_data_custom
     result = ''
     result += self.board + ", "
@@ -131,15 +154,22 @@ class Vehicle < ApplicationRecord
   end
 
   def get_total_paid_value
-    result = 0
-    invoiced_order_services = self.order_services.select{|item| [OrderServiceStatus::AUTORIZADA_ID, OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID, OrderServiceStatus::PAGA_ID].include?(item.order_service_status_id)}
-    invoiced_order_services.each do |order_service|
-      order_service_proposal = order_service.order_service_proposals.select{|item| [OrderServiceProposalStatus::AUTORIZADA_ID, OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID, OrderServiceProposalStatus::PAGA_ID].include?(item.order_service_proposal_status_id)}.last
-      if order_service_proposal
-        result += order_service_proposal.total_value
-      end
-    end
-    return result
+    paid_os_statuses = [
+      OrderServiceStatus::AUTORIZADA_ID,
+      OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID,
+      OrderServiceStatus::PAGA_ID
+    ]
+    paid_proposal_statuses = [
+      OrderServiceProposalStatus::AUTORIZADA_ID,
+      OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+      OrderServiceProposalStatus::PAGA_ID
+    ]
+
+    OrderServiceProposal
+      .joins(:order_service)
+      .where(order_services: { vehicle_id: self.id, order_service_status_id: paid_os_statuses })
+      .where(order_service_proposal_status_id: paid_proposal_statuses)
+      .sum(:total_value).to_f
   end
 
   def getting_last_km
@@ -159,13 +189,19 @@ class Vehicle < ApplicationRecord
   
   # Auto-vinculação com VehicleModel baseado em model_text
   def try_auto_link_vehicle_model
+    # Verificar se a coluna vehicle_model_id existe antes de tentar acessar
+    return unless self.class.column_names.include?('vehicle_model_id')
     return if vehicle_model_id.present? # Já vinculado manualmente
     return if model_text.blank?
     return if vehicle_type_id.blank?
     
     # Normalizar o texto para busca
     normalized = VehicleModel.normalize_text(model_text)
-    self.model_text_normalized = normalized
+    
+    # Verificar se a coluna model_text_normalized existe
+    if self.class.column_names.include?('model_text_normalized')
+      self.model_text_normalized = normalized
+    end
     
     # Tentar encontrar modelo correspondente
     matched_model = VehicleModel.find_by_text_match(
@@ -174,7 +210,7 @@ class Vehicle < ApplicationRecord
     )
     
     if matched_model
-      self.vehicle_model_id = matched_model.id
+      update_column(:vehicle_model_id, matched_model.id)
       Rails.logger.info "Vehicle #{id} auto-linked to VehicleModel #{matched_model.id} (#{matched_model.display_name})"
     end
   end

@@ -126,6 +126,25 @@
     return result
   end
 
+  # Rótulo usado em selects de veículo (ex.: abertura de OS)
+  # Formato: "<TIPO> <MARCA> <MODELO> - <PLACA>"
+  def label_for_os_select
+    parts = []
+    type_name = vehicle_type&.name.to_s.strip
+    parts << type_name unless type_name.empty?
+    parts << self.brand.to_s.strip unless self.brand.to_s.strip.empty?
+    parts << self.model.to_s.strip unless self.model.to_s.strip.empty?
+    prefix = parts.join(' ')
+    board_str = self.board.to_s.strip
+    if prefix.empty?
+      board_str
+    elsif board_str.empty?
+      prefix
+    else
+      "#{prefix} - #{board_str}"
+    end
+  end
+
   def getting_vehicle_data_custom
     result = ''
     result += self.board + ", "

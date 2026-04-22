@@ -147,7 +147,7 @@ $(document).ready(function () {
                 cost_center_id: cost_center_id
             },
             success: function (data) {
-                fillSelect(data.result, select_vehicle_id, 'board', null);
+                fillSelect(data.result, select_vehicle_id, 'display_name', null);
             }
         });
     }
@@ -176,7 +176,7 @@ $(document).ready(function () {
                 active: 1
             },
             success: function (data) {
-                fillSelect(data.result, select_vehicle_id, 'board', null);
+                fillSelect(data.result, select_vehicle_id, 'display_name', null);
             }
         });
     }

@@ -63,7 +63,7 @@
                 </div>
             </div>
         <% else %>
-            <%= f.association :vehicle, disabled: disabled_basic_fields, collection: Vehicle.getting_data_by_user(@current_user), label_method: :board, as: :select, include_blank: t('model.select_option') %>
+            <%= f.association :vehicle, disabled: disabled_basic_fields, collection: Vehicle.getting_data_by_user(@current_user), label_method: :label_for_os_select, as: :select, include_blank: t('model.select_option') %>
         <% end %>
         <div id="vehicle-sub-unit-info" class="small text-muted mt-1" style="display:none;">
             <i class="fa fa-info-circle"></i> Subunidade: <strong id="vehicle-sub-unit-name"></strong>
@@ -232,36 +232,6 @@
             end
         %>
         <%= f.association :provider, disabled: disabled_basic_fields, label_method: :get_name, collection: providers_collection, as: :select, include_blank: t('model.select_option'), input_html: { class: 'form-control w-100', style: 'width: 100% !important;' } %>
-    </div>
-</div>
-
-<!-- Link para download da Requisição de Serviços (visível apenas para tipo Requisição) -->
-<div class="row mt-2 d-none" id="div-requisicao-download">
-    <div class="col-12">
-        <div class="alert alert-info d-flex align-items-center py-2 mb-2" role="alert">
-            <i class="bi bi-file-earmark-word me-2" style="font-size: 1.3rem; color: #2b579a;"></i>
-            <div>
-                <strong>Requisição de Serviços:</strong>
-                <a href="/Requisicao_Servicos_InstaSolutions.docx" target="_blank" class="ms-2 btn btn-sm btn-outline-primary">
-                    <i class="bi bi-download me-1"></i> Baixar Formulário de Requisição (.docx)
-                </a>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Link para download da Requisição de Serviços (visível apenas para tipo Requisição) -->
-<div class="row mt-2 d-none" id="div-requisicao-download">
-    <div class="col-12">
-        <div class="alert alert-info d-flex align-items-center py-2 mb-2" role="alert">
-            <i class="bi bi-file-earmark-word me-2" style="font-size: 1.3rem; color: #2b579a;"></i>
-            <div>
-                <strong>Requisição de Serviços:</strong>
-                <a href="/Requisicao_Servicos_InstaSolutions.docx" target="_blank" class="ms-2 btn btn-sm btn-outline-primary">
-                    <i class="bi bi-download me-1"></i> Baixar Formulário de Requisição (.docx)
-                </a>
-            </div>
-        </div>
     </div>
 </div>
 
