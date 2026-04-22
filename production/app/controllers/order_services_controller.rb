@@ -220,7 +220,8 @@ class OrderServicesController < ApplicationController
       .where(id: os_ids)
       .includes(:client, :vehicle, :cost_center, :manager, :provider_service_type, 
                 :order_service_type, :order_service_status, :commitment,
-                order_service_proposals: [:provider, :order_service_proposal_status, :order_service_proposal_items])
+                order_service_proposals: [:provider, :order_service_proposal_status, :order_service_proposal_items,
+                                          { order_service_invoices: { file_attachment: :blob } }])
     
     # Filtrar por permissão do usuário
     if @current_user.manager? || @current_user.additional?
@@ -231,13 +232,29 @@ class OrderServicesController < ApplicationController
     elsif @current_user.provider?
       order_services = order_services.where(provider_id: @current_user.id)
     end
-    
-    pdf_data = Utils::OrderServices::BatchPdfExporter.new(order_services, @current_user).call
-    
-    send_data pdf_data,
-      type: 'application/pdf',
-      disposition: 'attachment',
-      filename: "ordens_servico_lote_#{Time.now.strftime('%Y%m%d_%H%M%S')}.pdf"
+
+    order_services = order_services.to_a
+
+    # Se há NFs anexadas, entrega um ZIP com cada NF nomeada por OS/Fornecedor/Tipo.
+    has_attached_nf = order_services.any? do |os|
+      os.order_service_proposals.any? do |p|
+        p.order_service_invoices.any? { |i| i.file.attached? }
+      end
+    end
+
+    if has_attached_nf
+      zip_data, total = Utils::OrderServices::BatchInvoiceZipExporter.new(order_services).call
+      send_data zip_data,
+        type: 'application/zip',
+        disposition: 'attachment',
+        filename: "notas_fiscais_lote_#{Time.now.strftime('%Y%m%d_%H%M%S')}_#{total}arqs.zip"
+    else
+      pdf_data = Utils::OrderServices::BatchPdfExporter.new(order_services, @current_user).call
+      send_data pdf_data,
+        type: 'application/pdf',
+        disposition: 'attachment',
+        filename: "ordens_servico_lote_#{Time.now.strftime('%Y%m%d_%H%M%S')}.pdf"
+    end
   end
 
   def defining_data(order_service_status_id, show_order_service_status, order_service_status_ids, filter_audit, period_filter, order_services_grid, order_services_grid_class, method)
@@ -1094,31 +1111,33 @@ class OrderServicesController < ApplicationController
       end
     end
 
-    clients = @order_services_without_filter.assets.map(&:client).map {|c| [c.fantasy_name, c.id] }.uniq
+    without_filter_assets = @order_services_without_filter.assets.to_a
 
-    managers = @order_services_without_filter.assets.map(&:manager).map {|c| [c.get_name, c.id] }.uniq
+    clients = without_filter_assets.map(&:client).compact.uniq.map {|c| [c.fantasy_name, c.id] }
 
-    current_cost_center_ids = @order_services_without_filter.assets.map{|item| item.vehicle.cost_center_id}.uniq.flatten
+    managers = without_filter_assets.map(&:manager).compact.uniq.map {|c| [c.get_name, c.id] }
+
+    current_cost_center_ids = without_filter_assets.map{|item| item.vehicle&.cost_center_id }.compact.uniq
     if @current_user.manager? || @current_user.additional?
       current_cost_center_ids = cost_center_ids
     end
     cost_centers = CostCenter.where(id: [current_cost_center_ids]).joins(:order_services).distinct.order(:name).map {|c| [c.name, c.id] }.uniq
 
-    vehicles = @order_services_without_filter.assets.map(&:vehicle).map {|c| [c.get_text_name, c.id] }.uniq
+    vehicles = without_filter_assets.map(&:vehicle).compact.uniq.map {|c| [c.get_text_name, c.id] }
 
-    commitments = @order_services_without_filter.assets.map(&:commitment).select{|item| !item.nil?}.map {|c| [c.get_text_name, c.id] }.uniq
+    commitments = without_filter_assets.map(&:commitment).compact.uniq.map {|c| [c.get_text_name, c.id] }
 
-    sub_units = @order_services_without_filter.assets.map(&:vehicle).select{|item| !item.nil? }.map{|item| item.sub_unit}.compact.uniq.map {|c| [c.get_text_name, c.id] }.uniq
+    sub_units = without_filter_assets.map(&:vehicle).compact.map(&:sub_unit).compact.uniq.map {|c| [c.get_text_name, c.id] }
 
-    provider_service_types = @order_services_without_filter.assets.map(&:provider_service_type).map {|c| [c.get_text_name, c.id] }.uniq
+    provider_service_types = without_filter_assets.map(&:provider_service_type).compact.uniq.map {|c| [c.get_text_name, c.id] }
 
-    order_service_types = @order_services_without_filter.assets.map(&:order_service_type).map {|c| [c.get_text_name, c.id] }.uniq
+    order_service_types = without_filter_assets.map(&:order_service_type).compact.uniq.map {|c| [c.get_text_name, c.id] }
 
-    order_service_ids = @order_services_without_filter.assets.map(&:id).uniq
+    order_service_ids = without_filter_assets.map(&:id).uniq
     order_service_proposals = OrderServiceProposal.by_order_services_id(order_service_ids)
 
     provider_ids = order_service_proposals.map(&:provider_id)
-    provider_ids.concat(@order_services_without_filter.assets.map(&:provider_id))
+    provider_ids.concat(without_filter_assets.map(&:provider_id))
     providers = User.provider.name_ordered.where(id: [provider_ids]).order(:name).map {|c| [c.get_name, c.id] }.uniq
 
     # Atribuir dados para todos os grids (incluindo filtros)
@@ -1178,11 +1197,24 @@ class OrderServicesController < ApplicationController
         filename: OrderService.model_name.human(count: 2)+" - #{Time.now.to_s}.csv"
       end
       format.pdf do
-        pdf = Utils::DatagridPdfExporter.new(@order_services_to_export, title: OrderService.model_name.human(count: 2)).call
-        send_data pdf,
-          type: 'application/pdf',
-          disposition: 'inline',
-          filename: OrderService.model_name.human(count: 2)+" - #{Time.now.to_s}.pdf"
+        if params[:report_type] == 'demonstrativo'
+          os_list = @order_services_to_export.assets.to_a
+          current_client = nil
+          if params[:order_services_invoice_grid].present? && params[:order_services_invoice_grid][:client_id].present?
+            current_client = User.client.find_by(id: params[:order_services_invoice_grid][:client_id])
+          end
+          pdf = generate_demonstrativo_pdf(os_list, current_client)
+          send_data pdf.render,
+            type: 'application/pdf',
+            disposition: 'inline',
+            filename: "demonstrativo_faturamento_#{Date.current.strftime('%Y%m%d')}.pdf"
+        else
+          pdf = Utils::DatagridPdfExporter.new(@order_services_to_export, title: OrderService.model_name.human(count: 2)).call
+          send_data pdf,
+            type: 'application/pdf',
+            disposition: 'inline',
+            filename: OrderService.model_name.human(count: 2)+" - #{Time.now.to_s}.pdf"
+        end
       end
     end
   end
@@ -1633,20 +1665,28 @@ class OrderServicesController < ApplicationController
     providers = User.provider.active
     providers = providers.by_provider_state_ids(state_ids) if state_ids.present?
 
-    # Filtrar por tipo de serviço se informado
-    if provider_service_type_id.present?
-      providers = providers.joins(:provider_service_types)
-        .where(provider_service_types: { id: provider_service_type_id })
-    end
+    # Observação: anteriormente havia filtro obrigatório por provider_service_type_id
+    # (via joins(:provider_service_types)). Isso escondia fornecedores que atendem
+    # outros tipos de serviço da mesma região (ex.: Campina Grande), impedindo o gestor
+    # de direcionar a OS de Cotação para eles. A regra foi alinhada ao dropdown de
+    # fornecedor usado em Diagnóstico (filtra apenas por estado do cliente).
+    # Mantemos o parâmetro no contrato para possíveis usos futuros, mas NÃO excluímos
+    # fornecedores por tipo de serviço.
 
-    providers = providers.includes(address: [:state, :city]).name_ordered.distinct
+    providers = providers.includes(address: [:state, :city], provider_service_types: []).name_ordered.distinct
+
+    # Flag que indica se o fornecedor atende o tipo de serviço desejado, para
+    # destacar/priorizar na UI sem removê-lo da lista.
+    target_pst_id = provider_service_type_id.present? ? provider_service_type_id.to_i : nil
 
     result = providers.map do |p|
+      matches_service_type = target_pst_id ? p.provider_service_types.any? { |pst| pst.id == target_pst_id } : true
       {
         id: p.id,
         name: p.get_name,
         state: p.address&.state&.name || 'Não informado',
-        city: p.address&.city&.name || 'Não informada'
+        city: p.address&.city&.name || 'Não informada',
+        matches_service_type: matches_service_type
       }
     end
 
@@ -1654,6 +1694,133 @@ class OrderServicesController < ApplicationController
   end
 
   private
+
+  def generate_demonstrativo_pdf(order_services, current_client)
+    tempfiles_to_cleanup = []
+
+    pdf = Prawn::Document.new(page_size: 'A4', page_layout: :landscape) do |pdf|
+      pdf.font_size 10
+
+      # --- Logo ---
+      logo_path = Rails.root.join('app', 'assets', 'images', 'logos', 'logo.png')
+      logo_drawn = false
+      if File.exist?(logo_path)
+        begin
+          pdf.image logo_path.to_s, fit: [160, 50], position: :left
+          logo_drawn = true
+        rescue Prawn::Errors::UnsupportedImageType, Prawn::Errors::UnsupportedImageFormat
+          begin
+            require 'mini_magick'
+            tmp = Tempfile.new(['instasolutions-logo', '.png'])
+            tmp.binmode
+            image = MiniMagick::Image.open(logo_path.to_s)
+            begin; image.interlace 'none'; rescue StandardError; end
+            image.format 'png'
+            image.write tmp.path
+            tempfiles_to_cleanup << tmp
+            pdf.image tmp.path, fit: [160, 50], position: :left
+            logo_drawn = true
+          rescue StandardError
+            logo_drawn = false
+          end
+        end
+      end
+      pdf.text 'InstaSolutions', size: 16, style: :bold unless logo_drawn
+
+      pdf.move_down 10
+      pdf.text 'DEMONSTRATIVO DE FATURAMENTO', size: 16, style: :bold, align: :center
+      pdf.move_down 5
+
+      if current_client.present?
+        client_name = current_client.fantasy_name.presence || current_client.name
+        pdf.text "Cliente: #{client_name}", size: 11
+      end
+      pdf.text "Data de emissão: #{Date.current.strftime('%d/%m/%Y')}", size: 10
+      pdf.move_down 10
+
+      # --- Tabela ---
+      header = ['ID', 'Placa', 'Modelo', 'Subunidades', 'Orgão solicitante',
+                'Fornecedor Aprovado', 'Nota Fiscal peça', 'Valor',
+                'Nota Fiscal serviço', 'Valor', 'Total R$']
+      rows = []
+      total_parts = 0.0
+      total_services = 0.0
+      total_geral = 0.0
+
+      order_services.each do |os|
+        approved_proposal = os.getting_order_service_proposal_approved
+        provider = approved_proposal&.provider || os.provider
+        provider_name = provider&.fantasy_name.presence || provider&.name || '-'
+
+        nf_peca = ''
+        nf_servico = ''
+        if approved_proposal.present?
+          invoices = approved_proposal.order_service_invoices
+          nf_peca_rec = invoices.find { |inv| inv.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }
+          nf_servico_rec = invoices.find { |inv| inv.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }
+          nf_peca = nf_peca_rec&.number.to_s
+          nf_servico = nf_servico_rec&.number.to_s
+        end
+
+        sub_unit_name = os.vehicle&.sub_unit&.name || ''
+        client_name = os.client&.fantasy_name.presence || os.client&.name || '-'
+        modelo = "#{os.vehicle&.brand} #{os.vehicle&.model}".strip
+
+        parts = os.total_parts_value.to_f
+        services = os.total_services_value.to_f
+        total = os.total_value.to_f
+
+        total_parts += parts
+        total_services += services
+        total_geral += total
+
+        rows << [
+          os.code,
+          os.vehicle&.board || '-',
+          modelo.truncate(28),
+          sub_unit_name.truncate(20),
+          client_name.truncate(30),
+          provider_name.truncate(30),
+          nf_peca,
+          CustomHelper.to_currency(parts),
+          nf_servico,
+          CustomHelper.to_currency(services),
+          CustomHelper.to_currency(total)
+        ]
+      end
+
+      # Linha de totais
+      rows << [
+        { content: 'Total: R$', colspan: 7, font_style: :bold, align: :right },
+        { content: CustomHelper.to_currency(total_parts), font_style: :bold },
+        { content: '', font_style: :bold },
+        { content: CustomHelper.to_currency(total_services), font_style: :bold },
+        { content: CustomHelper.to_currency(total_geral), font_style: :bold }
+      ]
+
+      table_data = [header] + rows
+
+      pdf.table(table_data, header: true, width: pdf.bounds.width,
+                cell_style: { size: 8, padding: [3, 4, 3, 4] },
+                row_colors: ['FFFFFF', 'F5F5F5']) do
+        row(0).font_style = :bold
+        row(0).background_color = 'E0E0E0'
+        row(0).align = :center
+        columns(7).align = :right
+        columns(9).align = :right
+        columns(10).align = :right
+      end
+
+      pdf.move_down 15
+      pdf.text "Total de OS: #{order_services.size}", size: 10
+
+      # --- Rodapé com número de página ---
+      pdf.number_pages 'Página <page> de <total>', at: [pdf.bounds.right - 100, -5], size: 8
+    end
+
+    tempfiles_to_cleanup.each { |tmp| tmp.close! rescue nil }
+    pdf
+  end
 
   def load_warranty_panel_data
     # Permite carregar itens de garantia tanto na criação (new) quanto na edição (edit)

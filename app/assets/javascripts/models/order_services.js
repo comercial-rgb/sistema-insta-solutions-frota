@@ -4,10 +4,15 @@ $(document).ready(function () {
     
     // Oculta ou mostra os botões de cadastrar nova peça/serviço
     function hideNewServiceButtons(hide) {
+        var $wrappers = $('.new-service-btn-wrapper');
+        if ($wrappers.length === 0) {
+            // Fallback para templates antigos que ainda não possuem a classe dedicada
+            $wrappers = $('button[data-bs-target^="#newServiceModal"]').closest('.mt-2, .btn-outline-primary');
+        }
         if (hide) {
-            $('button[data-bs-target^="#newServiceModal"]').closest('.mt-2, .btn-outline-primary').hide();
+            $wrappers.hide();
         } else {
-            $('button[data-bs-target^="#newServiceModal"]').closest('.mt-2, .btn-outline-primary').show();
+            $wrappers.show();
         }
     }
     
@@ -72,6 +77,7 @@ $(document).ready(function () {
         $('#div-with-directed-providers').addClass('d-none').hide(); // Esconde - Diagnóstico usa Fornecedor específico
         $('#div-diagnostico-info').removeClass('d-none').show(); // Mostra informativo
         $('.quantity-field-container').hide();
+        hideNewServiceButtons(false);
         setTimeout(fixSelect2Width, 100);
     } else if (initialOrderServiceTypeId == '1') { 
         // COTAÇÕES - Esconde ambos, mostra seleção direcionada
@@ -81,14 +87,16 @@ $(document).ready(function () {
         $('#div-with-directed-providers').removeClass('d-none').show(); // Mostra seleção direcionada
         $('#div-diagnostico-info').addClass('d-none').hide(); // Esconde informativo
         $('.quantity-field-container').show();
+        hideNewServiceButtons(false);
         changeQuantityFieldType('text');
     } else {
-        // Qualquer outro tipo
+        // Qualquer outro tipo (inclui OS nova sem tipo selecionado)
         $('#div-with-provider-selection').addClass('d-none').hide();
         $('#div-with-service-group-selection').addClass('d-none').hide();
         $('#div-with-directed-providers').addClass('d-none').hide();
         $('#div-diagnostico-info').addClass('d-none').hide();
         $('.quantity-field-container').show();
+        hideNewServiceButtons(false);
         changeQuantityFieldType('text');
     }
 
@@ -1391,11 +1399,10 @@ $(document).ready(function () {
         
         var clientId = $('#order_service_client_id').val();
         var providerServiceTypeId = $('#order_service_provider_service_type_id').val();
-        
-        if (!providerServiceTypeId) {
-            $('#directed-providers-summary-text').text('Selecione o tipo de serviço para carregar os fornecedores.');
-            return;
-        }
+
+        // Observação: provider_service_type_id é opcional agora.
+        // O backend retorna todos os fornecedores dos estados do cliente e marca
+        // com "matches_service_type" quem atende o tipo selecionado.
         
         $('#directed-providers-loading').removeClass('d-none');
         

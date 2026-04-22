@@ -19,7 +19,8 @@
         <h5 class="mt-4">
             <%= form_title %>
             <% unless disabled || is_requisicao %>
-                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newServiceModal<%=category_id%>" data-category-id="<%= category_id %>">
+                <span class="new-service-btn-wrapper" data-category-id="<%= category_id %>">
+                <button type="button" class="btn btn-outline-primary btn-sm new-service-btn" data-bs-toggle="modal" data-bs-target="#newServiceModal<%=category_id%>" data-category-id="<%= category_id %>">
                     <i class="bi bi-plus-circle"></i> 
                     Adicionar nov<%= letter %>
                     <span 
@@ -30,6 +31,7 @@
                         <i class="bi bi-info-circle"></i>
                     </span>
                 </button>
+                </span>
             <% end %>
         </h5>
     </div>

@@ -1665,20 +1665,28 @@ class OrderServicesController < ApplicationController
     providers = User.provider.active
     providers = providers.by_provider_state_ids(state_ids) if state_ids.present?
 
-    # Filtrar por tipo de serviço se informado
-    if provider_service_type_id.present?
-      providers = providers.joins(:provider_service_types)
-        .where(provider_service_types: { id: provider_service_type_id })
-    end
+    # Observação: anteriormente havia filtro obrigatório por provider_service_type_id
+    # (via joins(:provider_service_types)). Isso escondia fornecedores que atendem
+    # outros tipos de serviço da mesma região (ex.: Campina Grande), impedindo o gestor
+    # de direcionar a OS de Cotação para eles. A regra foi alinhada ao dropdown de
+    # fornecedor usado em Diagnóstico (filtra apenas por estado do cliente).
+    # Mantemos o parâmetro no contrato para possíveis usos futuros, mas NÃO excluímos
+    # fornecedores por tipo de serviço.
 
-    providers = providers.includes(address: [:state, :city]).name_ordered.distinct
+    providers = providers.includes(address: [:state, :city], provider_service_types: []).name_ordered.distinct
+
+    # Flag que indica se o fornecedor atende o tipo de serviço desejado, para
+    # destacar/priorizar na UI sem removê-lo da lista.
+    target_pst_id = provider_service_type_id.present? ? provider_service_type_id.to_i : nil
 
     result = providers.map do |p|
+      matches_service_type = target_pst_id ? p.provider_service_types.any? { |pst| pst.id == target_pst_id } : true
       {
         id: p.id,
         name: p.get_name,
         state: p.address&.state&.name || 'Não informado',
-        city: p.address&.city&.name || 'Não informada'
+        city: p.address&.city&.name || 'Não informada',
+        matches_service_type: matches_service_type
       }
     end
 
