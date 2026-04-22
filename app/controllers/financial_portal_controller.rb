@@ -83,17 +83,17 @@ class FinancialPortalController < ApplicationController
 
     # Search filters
     if params[:search_os].present?
-      os_ids = OrderService.where("code LIKE ?", "%#{params[:search_os]}%").pluck(:id)
+      os_ids = OrderService.unscoped.where("order_services.code LIKE ?", "%#{params[:search_os]}%").pluck(:id)
       scope = scope.where(order_service_id: os_ids)
     end
     if params[:search_client].present?
       client_ids = User.where("fantasy_name LIKE :q OR social_name LIKE :q", q: "%#{params[:search_client]}%").pluck(:id)
-      os_ids = OrderService.where(client_id: client_ids).pluck(:id)
+      os_ids = OrderService.unscoped.where(client_id: client_ids).pluck(:id)
       scope = scope.where(order_service_id: os_ids)
     end
     if params[:search_provider].present?
       provider_ids = User.where("fantasy_name LIKE :q OR social_name LIKE :q", q: "%#{params[:search_provider]}%").pluck(:id)
-      os_ids = OrderService.joins(order_service_proposals: :provider)
+      os_ids = OrderService.unscoped.joins(order_service_proposals: :provider)
                            .where(order_service_proposals: { provider_id: provider_ids })
                            .pluck(:id).uniq
       scope = scope.where(order_service_id: os_ids)
