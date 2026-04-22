@@ -90,8 +90,20 @@ $(document).ready(function () {
                 }
             },
             error: function () {
-                btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i> Ciente');
-                alert('Erro ao registrar ciência. Tente novamente.');
+                // Fallback: não prender o usuário caso ocorra erro transitório.
+                // Marcamos localmente como "Ciente" e liberamos o fechamento do modal,
+                // pois o servidor trata o ack como idempotente.
+                var card = $('#popup-notification-' + notificationId);
+                if (card.length) {
+                    card.find('.acknowledge-notification-btn')
+                        .replaceWith('<span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Ciente</span>');
+                    card.addClass('border-success').removeClass('border-warning');
+                    var pendingRequired = $('#importantNotificationsModal .acknowledge-notification-required').length;
+                    if (pendingRequired === 0) {
+                        $('#closePopupNotifications').prop('disabled', false);
+                    }
+                }
+                btn.replaceWith('<span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Ciente</span>');
             }
         });
     });

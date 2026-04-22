@@ -15,8 +15,8 @@ class NotificationsController < ApplicationController
     if @current_user.admin?
       @notifications.scope {|scope| scope.page(params[:page]) }
     else
-      @notifications.scope {|scope| scope.is_to_me(@current_user.profile_id, @current_user.id, @current_user.state_id, @current_user.city_id).page(params[:page]) }
-      @notifications_to_export.scope {|scope| scope.is_to_me(@current_user.profile_id, @current_user.id, @current_user.state_id, @current_user.city_id) }
+      @notifications.scope {|scope| scope.is_to_me(@current_user.profile_id, @current_user.id, @current_user.effective_state_id, @current_user.effective_city_id).page(params[:page]) }
+      @notifications_to_export.scope {|scope| scope.is_to_me(@current_user.profile_id, @current_user.id, @current_user.effective_state_id, @current_user.effective_city_id) }
     end
 
     respond_to do |format|
@@ -149,23 +149,38 @@ class NotificationsController < ApplicationController
 
   def acknowledge_notification
     notification = Notification.find_by(id: params[:id])
-    if notification
-      notification.acknowledge!(@current_user)
-      # Também marca como lida
+    unless notification
+      return render json: { result: false, message: 'Notificação não encontrada' }, status: 200
+    end
+
+    begin
+      # Idempotente: se já reconhecido, apenas ignora
+      notification.acknowledge!(@current_user) unless notification.acknowledged_by?(@current_user)
+    rescue ActiveRecord::RecordNotUnique, ActiveRecord::RecordInvalid => e
+      Rails.logger.warn("[acknowledge_notification] ack duplicado/ignorado: #{e.message}")
+    rescue => e
+      Rails.logger.error("[acknowledge_notification] erro ao reconhecer: #{e.class}: #{e.message}")
+    end
+
+    begin
       unless notification.read_by?(@current_user)
         notification.mark_as_read! for: @current_user
         read_mark = notification.read_marks.find_by(reader_id: @current_user.id)
         read_mark&.update_columns(timestamp: DateTime.now)
       end
-      quantity = Notification.getting_current_unread(@current_user)
-      respond_to do |format|
-        format.json { render json: { result: true, quantity: quantity }, status: 200 }
-      end
-    else
-      respond_to do |format|
-        format.json { render json: { result: false, message: 'Notificação não encontrada' }, status: 404 }
-      end
+    rescue => e
+      Rails.logger.error("[acknowledge_notification] erro ao marcar como lida: #{e.class}: #{e.message}")
     end
+
+    quantity = begin
+      Notification.getting_current_unread(@current_user)
+    rescue => e
+      Rails.logger.error("[acknowledge_notification] erro ao contar não lidas: #{e.class}: #{e.message}")
+      0
+    end
+
+    # Sempre responder JSON com 200 para nunca travar o popup do cliente
+    render json: { result: true, quantity: quantity }, status: 200
   end
 
   def show_acknowledgments

@@ -80,6 +80,18 @@
 
 <% approved_proposal = os.getting_order_service_proposal_approved %>
 <% if approved_proposal && approved_proposal.order_service_proposal_items.any? %>
+  <%
+    # Mapa de observações vindas do cadastro da OS (peças/serviços incluídos na OS),
+    # usado como fallback quando o item da proposta aprovada não tem observação preenchida.
+    psos_observations = {}
+    os.part_service_order_services.each do |psos|
+      next if psos.service_id.blank?
+      obs = psos.observation.to_s.strip
+      next if obs.empty?
+      # Mantém a primeira observação encontrada por service_id
+      psos_observations[psos.service_id] ||= obs
+    end
+  %>
   <div class="section">
     <h3>Pecas e servicos (sem valores)</h3>
     <table class="table">
@@ -97,13 +109,14 @@
         <% approved_proposal.order_service_proposal_items.each do |item| %>
           <% category_id = item.service&.category_id %>
           <% tipo = category_id == Category::SERVICOS_PECAS_ID ? Service.human_attribute_name(:part) : Service.human_attribute_name(:service) %>
+          <% observation = item.observation.presence || psos_observations[item.service_id] %>
           <tr>
             <td><%= tipo %></td>
             <td><%= item.service_name %></td>
             <td><%= item.brand %></td>
             <td><%= item.quantity %></td>
             <td><%= item.warranty_period.presence || '-' %></td>
-            <td><%= item.observation.presence || '-' %></td>
+            <td><%= observation.presence || '-' %></td>
           </tr>
         <% end %>
       </tbody>

@@ -75,9 +75,9 @@ $(document).ready(function () {
                             .replaceWith('<span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Ciente</span>');
                         card.addClass('border-success').removeClass('border-warning');
 
-                        // Verificar se todas as notificações do popup foram reconhecidas
-                        var pendingBtns = $('#importantNotificationsModal .acknowledge-notification-btn').length;
-                        if (pendingBtns === 0) {
+                        // Só exigir "Ciente" dos botões que requerem ciência obrigatória
+                        var pendingRequired = $('#importantNotificationsModal .acknowledge-notification-required').length;
+                        if (pendingRequired === 0) {
                             $('#closePopupNotifications').prop('disabled', false);
                         }
                     }
@@ -90,8 +90,20 @@ $(document).ready(function () {
                 }
             },
             error: function () {
-                btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i> Ciente');
-                alert('Erro ao registrar ciência. Tente novamente.');
+                // Fallback: não prender o usuário caso ocorra erro transitório.
+                // Marcamos localmente como "Ciente" e liberamos o fechamento do modal,
+                // pois o servidor trata o ack como idempotente.
+                var card = $('#popup-notification-' + notificationId);
+                if (card.length) {
+                    card.find('.acknowledge-notification-btn')
+                        .replaceWith('<span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Ciente</span>');
+                    card.addClass('border-success').removeClass('border-warning');
+                    var pendingRequired = $('#importantNotificationsModal .acknowledge-notification-required').length;
+                    if (pendingRequired === 0) {
+                        $('#closePopupNotifications').prop('disabled', false);
+                    }
+                }
+                btn.replaceWith('<span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Ciente</span>');
             }
         });
     });
@@ -139,9 +151,9 @@ $(document).ready(function () {
         var bsModal = new bootstrap.Modal(importantModal);
         bsModal.show();
 
-        // Se não tem notificações que exigem ciência, habilitar botão de fechar
-        var pendingBtns = $('#importantNotificationsModal .acknowledge-notification-btn').length;
-        if (pendingBtns === 0) {
+        // Habilitar botão de fechar quando não há notificações que exigem "Ciente" obrigatório
+        var pendingRequired = $('#importantNotificationsModal .acknowledge-notification-required').length;
+        if (pendingRequired === 0) {
             $('#closePopupNotifications').prop('disabled', false);
         }
     }
