@@ -239,7 +239,6 @@ class CommitmentsController < ApplicationController
     :commitment_value,
     :category_id,
     :active,
-    :skip_validations,
     cost_center_ids: [],
     cancel_commitments_attributes: [:id, :commitment_id, :value, :number, :date]
     )

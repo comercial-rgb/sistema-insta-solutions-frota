@@ -11,6 +11,7 @@ import {
   ScrollView,
   Platform,
   Modal,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -224,7 +225,10 @@ export default function OrderServicesScreen() {
 
       {/* Period filter modal */}
       <Modal visible={showPeriodFilter} transparent animationType="fade">
-        <View style={styles.periodOverlay}>
+        <KeyboardAvoidingView
+          style={styles.periodOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <View style={styles.periodContainer}>
             <View style={styles.periodHeader}>
               <Text style={styles.periodTitle}>Filtrar por Período</Text>
@@ -286,7 +290,7 @@ export default function OrderServicesScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* Result count */}

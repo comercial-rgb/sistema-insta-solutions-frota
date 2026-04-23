@@ -7,6 +7,8 @@ import {
   FlatList,
   TextInput,
   StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing, borderRadius, fontSize, shadows } from '../theme/colors';
@@ -47,7 +49,10 @@ export default function ClientSelector() {
       </TouchableOpacity>
 
       <Modal visible={visible} animationType="slide" transparent>
-        <View style={s.overlay}>
+        <KeyboardAvoidingView
+          style={s.overlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <View style={s.modal}>
             <View style={s.modalHeader}>
               <Text style={s.modalTitle}>Selecionar Cliente</Text>
@@ -62,10 +67,13 @@ export default function ClientSelector() {
               value={search}
               onChangeText={setSearch}
               autoFocus
+              returnKeyType="search"
             />
             <FlatList
               data={filtered}
               keyExtractor={(item) => String(item.id)}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={[s.item, item.id === selectedClientId && s.itemSelected]}
@@ -90,7 +98,7 @@ export default function ClientSelector() {
               }
             />
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   );

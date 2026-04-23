@@ -101,6 +101,9 @@ class UsersController < ApplicationController
     elsif @current_user.client?
       @users.scope {|scope| scope.by_client_id(@current_user.id).page(params[:page]) }
       @users_to_export.scope {|scope| scope.by_client_id(@current_user.id) }
+    elsif @current_user.manager?
+      @users.scope {|scope| scope.by_client_id(@current_user.client_id).page(params[:page]) }
+      @users_to_export.scope {|scope| scope.by_client_id(@current_user.client_id) }
     end
 
     respond_to do |format|

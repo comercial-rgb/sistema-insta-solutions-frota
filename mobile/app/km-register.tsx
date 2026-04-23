@@ -98,7 +98,10 @@ export default function KmRegisterScreen() {
       </TouchableOpacity>
 
       <Modal visible={showPicker} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Selecionar Veículo</Text>
@@ -113,11 +116,13 @@ export default function KmRegisterScreen() {
               onChangeText={setSearch}
               placeholderTextColor={colors.placeholder}
               autoFocus
+              returnKeyType="search"
             />
             <FlatList
               data={vehiclesData?.vehicles?.slice(0, 100)}
               keyExtractor={(v) => v.id.toString()}
               keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
               renderItem={({ item: v }) => (
                 <TouchableOpacity
                   style={[styles.pickerItem, v.id === selectedVehicleId && styles.pickerItemSelected]}
@@ -130,7 +135,7 @@ export default function KmRegisterScreen() {
               ListEmptyComponent={<Text style={styles.pickerEmpty}>Nenhum veículo encontrado</Text>}
             />
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       {/* KM Atual */}
@@ -224,7 +229,7 @@ const styles = StyleSheet.create({
   },
   pickerText: { flex: 1, fontSize: fontSize.sm, color: colors.text },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContainer: { backgroundColor: colors.surface, borderTopLeftRadius: borderRadius.lg, borderTopRightRadius: borderRadius.lg, maxHeight: '70%', padding: spacing.md },
+  modalContainer: { backgroundColor: colors.surface, borderTopLeftRadius: borderRadius.lg, borderTopRightRadius: borderRadius.lg, maxHeight: '85%', minHeight: 320, padding: spacing.md },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
   modalTitle: { fontSize: fontSize.lg, fontWeight: '700', color: colors.text },
   pickerSearch: { backgroundColor: colors.background, borderRadius: borderRadius.md, padding: spacing.sm, fontSize: fontSize.sm, color: colors.text, marginBottom: spacing.sm },

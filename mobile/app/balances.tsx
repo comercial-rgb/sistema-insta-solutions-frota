@@ -93,31 +93,49 @@ export default function BalancesScreen() {
           {contractsData?.contracts && contractsData.contracts.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Contratos</Text>
-              {contractsData.contracts.map((c: any) => (
-                <View key={c.id} style={styles.contractCard}>
-                  <View style={styles.contractHeader}>
-                    <Ionicons name="document-text-outline" size={18} color={colors.primary} />
-                    <Text style={styles.contractName} numberOfLines={1}>
-                      {c.name || c.number || `Contrato #${c.id}`}
-                    </Text>
-                    {c.active !== undefined && (
-                      <View style={[styles.contractBadge, { backgroundColor: c.active ? '#E8F5E9' : '#FFEBEE' }]}>
-                        <Text style={{ fontSize: fontSize.xs, color: c.active ? colors.success : colors.danger }}>
-                          {c.active ? 'Ativo' : 'Inativo'}
-                        </Text>
+              {contractsData.contracts.map((c: any) => {
+                const totalValue = c.total_value ?? 0;
+                const usedValue = c.used_value ?? 0;
+                const availableValue = c.available_value ?? (totalValue - usedValue);
+                const pct = totalValue > 0 ? (usedValue / totalValue) * 100 : 0;
+                return (
+                  <View key={c.id} style={styles.contractCard}>
+                    <View style={styles.contractHeader}>
+                      <Ionicons name="document-text-outline" size={18} color={colors.primary} />
+                      <Text style={styles.contractName} numberOfLines={1}>
+                        {c.name || c.number || `Contrato #${c.id}`}
+                      </Text>
+                      {c.active !== undefined && (
+                        <View style={[styles.contractBadge, { backgroundColor: c.active ? '#E8F5E9' : '#FFEBEE' }]}>
+                          <Text style={{ fontSize: fontSize.xs, color: c.active ? colors.success : colors.danger }}>
+                            {c.active ? 'Ativo' : 'Inativo'}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <View style={styles.contractDetails}>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Valor total</Text>
+                        <Text style={styles.detailValue}>{formatCurrency(totalValue)}</Text>
                       </View>
-                    )}
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Empenhado</Text>
+                        <Text style={[styles.detailValue, { color: colors.danger }]}>{formatCurrency(usedValue)}</Text>
+                      </View>
+                      <View style={styles.detailRow}>
+                        <Text style={styles.detailLabel}>Disponível</Text>
+                        <Text style={[styles.detailValue, { color: colors.success }]}>{formatCurrency(availableValue)}</Text>
+                      </View>
+                      <View style={styles.progressBar}>
+                        <View style={[styles.progressFill, { width: `${Math.min(pct, 100)}%`, backgroundColor: pct > 80 ? colors.danger : colors.primary }]} />
+                      </View>
+                      {c.commitments_count != null && (
+                        <Text style={styles.contractMeta}>{c.commitments_count} empenho{c.commitments_count !== 1 ? 's' : ''}</Text>
+                      )}
+                    </View>
                   </View>
-                  <View style={styles.contractDetails}>
-                    {c.total_value != null && (
-                      <Text style={styles.contractValue}>Valor: {formatCurrency(c.total_value)}</Text>
-                    )}
-                    {c.commitments_count != null && (
-                      <Text style={styles.contractMeta}>{c.commitments_count} empenho{c.commitments_count !== 1 ? 's' : ''}</Text>
-                    )}
-                  </View>
-                </View>
-              ))}
+                );
+              })}
             </View>
           )}
 
@@ -199,6 +217,9 @@ function BalanceCard({ balance, formatCurrency }: { balance: Balance; formatCurr
                     <Text style={styles.commitmentDesc}>
                       {c.number || `Empenho #${c.id}`}
                     </Text>
+                    {(c as any).category?.name && (
+                      <Text style={styles.commitmentContract}>{(c as any).category.name}</Text>
+                    )}
                     {c.contract && (
                       <Text style={styles.commitmentContract}>
                         {c.contract.name || c.contract.number}
@@ -207,8 +228,18 @@ function BalanceCard({ balance, formatCurrency }: { balance: Balance; formatCurr
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
                     <Text style={styles.commitmentValue}>{formatCurrency(c.value ?? 0)}</Text>
+                    {(c as any).consumed != null && (
+                      <Text style={[styles.commitmentContract, { color: colors.danger }]}>
+                        -{formatCurrency((c as any).consumed)}
+                      </Text>
+                    )}
+                    {(c as any).available != null && (
+                      <Text style={[styles.commitmentContract, { color: colors.success, fontWeight: '700' }]}>
+                        {formatCurrency((c as any).available)}
+                      </Text>
+                    )}
                     {(c.cancelled ?? 0) > 0 && (
-                      <Text style={styles.commitmentCancelled}>-{formatCurrency(c.cancelled)}</Text>
+                      <Text style={styles.commitmentCancelled}>Cancelado: {formatCurrency(c.cancelled)}</Text>
                     )}
                   </View>
                 </View>

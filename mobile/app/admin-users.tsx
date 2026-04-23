@@ -11,6 +11,8 @@ import {
   Alert,
   Modal,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { router, Stack } from 'expo-router';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -224,64 +226,72 @@ function CreateUserModal({ visible, onClose, profiles }: { visible: boolean; onC
 
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <View style={modalStyles.overlay}>
-        <View style={modalStyles.container}>
-          <View style={modalStyles.header}>
-            <Text style={modalStyles.title}>Novo Usuário</Text>
-            <TouchableOpacity onPress={resetAndClose}>
-              <Ionicons name="close" size={24} color={colors.textLight} />
+      <KeyboardAvoidingView
+        style={modalStyles.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1, justifyContent: 'flex-end' }}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={modalStyles.container}>
+            <View style={modalStyles.header}>
+              <Text style={modalStyles.title}>Novo Usuário</Text>
+              <TouchableOpacity onPress={resetAndClose}>
+                <Ionicons name="close" size={24} color={colors.textLight} />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={modalStyles.label}>Nome</Text>
+            <TextInput
+              style={modalStyles.input}
+              placeholder="Nome completo"
+              value={name}
+              onChangeText={setName}
+            />
+
+            <Text style={modalStyles.label}>Email</Text>
+            <TextInput
+              style={modalStyles.input}
+              placeholder="email@exemplo.com"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+
+            <Text style={modalStyles.label}>Perfil</Text>
+            <View style={modalStyles.chipRow}>
+              {[1, 3, 4, 5, 6, 7].map((pid) => (
+                <TouchableOpacity
+                  key={pid}
+                  style={[
+                    modalStyles.chip,
+                    profileId === pid && { backgroundColor: PROFILE_COLORS[pid] + '20', borderColor: PROFILE_COLORS[pid] },
+                  ]}
+                  onPress={() => setProfileId(pid)}
+                >
+                  <Text style={[modalStyles.chipText, profileId === pid && { color: PROFILE_COLORS[pid], fontWeight: '600' }]}>
+                    {PROFILE_LABELS[pid]}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <TouchableOpacity
+              style={[modalStyles.createBtn, mutation.isPending && { opacity: 0.6 }]}
+              onPress={handleCreate}
+              disabled={mutation.isPending}
+            >
+              {mutation.isPending ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text style={modalStyles.createBtnText}>Criar Usuário</Text>
+              )}
             </TouchableOpacity>
           </View>
-
-          <Text style={modalStyles.label}>Nome</Text>
-          <TextInput
-            style={modalStyles.input}
-            placeholder="Nome completo"
-            value={name}
-            onChangeText={setName}
-          />
-
-          <Text style={modalStyles.label}>Email</Text>
-          <TextInput
-            style={modalStyles.input}
-            placeholder="email@exemplo.com"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-
-          <Text style={modalStyles.label}>Perfil</Text>
-          <View style={modalStyles.chipRow}>
-            {[1, 3, 4, 5, 6, 7].map((pid) => (
-              <TouchableOpacity
-                key={pid}
-                style={[
-                  modalStyles.chip,
-                  profileId === pid && { backgroundColor: PROFILE_COLORS[pid] + '20', borderColor: PROFILE_COLORS[pid] },
-                ]}
-                onPress={() => setProfileId(pid)}
-              >
-                <Text style={[modalStyles.chipText, profileId === pid && { color: PROFILE_COLORS[pid], fontWeight: '600' }]}>
-                  {PROFILE_LABELS[pid]}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <TouchableOpacity
-            style={[modalStyles.createBtn, mutation.isPending && { opacity: 0.6 }]}
-            onPress={handleCreate}
-            disabled={mutation.isPending}
-          >
-            {mutation.isPending ? (
-              <ActivityIndicator color="#FFF" />
-            ) : (
-              <Text style={modalStyles.createBtnText}>Criar Usuário</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

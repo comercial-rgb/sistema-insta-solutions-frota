@@ -27,7 +27,7 @@ class OrderService < ApplicationRecord
       :order_service_type,
       :provider,
       :order_service_proposals
-    ).order(:order_service_status_id, {updated_at: :asc})
+    ).order(:order_service_status_id, {updated_at: :desc})
   }
 
   scope :by_id, lambda { |value| where("order_services.id = ?", value) if !value.nil? && !value.blank? }

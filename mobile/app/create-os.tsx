@@ -10,6 +10,7 @@ import {
   Modal,
   FlatList,
   Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -45,7 +46,10 @@ function SearchablePicker({
   }, [items, search]);
   return (
     <Modal visible={visible} animationType="slide" transparent>
-      <View style={pk.overlay}>
+      <KeyboardAvoidingView
+        style={pk.overlay}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <View style={pk.container}>
           <View style={pk.header}>
             <Text style={pk.title}>{title}</Text>
@@ -56,9 +60,12 @@ function SearchablePicker({
           <TextInput
             style={pk.searchInput} placeholder={searchPlaceholder || 'Buscar...'}
             value={search} onChangeText={setSearch} placeholderTextColor={colors.placeholder} autoFocus
+            returnKeyType="search"
           />
           <FlatList
             data={filtered} keyExtractor={(item) => String(item.id)}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             renderItem={({ item }) => (
               <TouchableOpacity style={pk.item} onPress={() => { onSelect(item); onClose(); setSearch(''); }}>
                 {customRender ? customRender(item) : <Text style={pk.itemText}>{item.name || item.board}</Text>}
@@ -67,8 +74,114 @@ function SearchablePicker({
             ListEmptyComponent={<Text style={pk.empty}>Nenhum resultado</Text>}
           />
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
+  );
+}
+
+type PSItem = { service_id: number; name: string; quantity: string; observation: string };
+
+function PartServiceBlock({
+  title, catalog, items, setItems, pickerKey, activePicker, setActivePicker,
+}: {
+  title: string;
+  catalog: Array<{ id: number; name: string }>;
+  items: PSItem[];
+  setItems: React.Dispatch<React.SetStateAction<PSItem[]>>;
+  pickerKey: string;
+  activePicker: string | null;
+  setActivePicker: (p: string | null) => void;
+}) {
+  const [quantity, setQuantity] = useState('1');
+  const [observation, setObservation] = useState('');
+
+  const handleSelect = (svc: { id: number; name: string }) => {
+    if (items.some((it) => it.service_id === svc.id)) return;
+    setItems((prev) => [...prev, { service_id: svc.id, name: svc.name, quantity: quantity || '1', observation: observation || '' }]);
+    setQuantity('1');
+    setObservation('');
+  };
+
+  const handleRemove = (service_id: number) => {
+    setItems((prev) => prev.filter((it) => it.service_id !== service_id));
+  };
+
+  const updateField = (service_id: number, field: 'quantity' | 'observation', value: string) => {
+    setItems((prev) => prev.map((it) => it.service_id === service_id ? { ...it, [field]: value } : it));
+  };
+
+  return (
+    <View style={s.commitSection}>
+      <Text style={s.sectionTitle}>{title}</Text>
+
+      <Text style={s.label}>Qtd</Text>
+      <View style={s.inputRow}>
+        <Ionicons name="pricetag-outline" size={18} color={colors.textSecondary} />
+        <TextInput
+          style={s.input}
+          placeholder="Ex: 1, 2-3"
+          value={quantity}
+          onChangeText={setQuantity}
+          placeholderTextColor={colors.placeholder}
+        />
+      </View>
+
+      <Text style={s.label}>Observação</Text>
+      <View style={s.inputRow}>
+        <Ionicons name="create-outline" size={18} color={colors.textSecondary} />
+        <TextInput
+          style={s.input}
+          placeholder="Códigos ou complementos..."
+          value={observation}
+          onChangeText={setObservation}
+          placeholderTextColor={colors.placeholder}
+        />
+      </View>
+
+      <TouchableOpacity style={s.picker} onPress={() => setActivePicker(pickerKey)}>
+        <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
+        <Text style={[s.pickerText, { color: colors.primary }]}>Incluir {title.toLowerCase()}</Text>
+      </TouchableOpacity>
+      <SearchablePicker
+        visible={activePicker === pickerKey}
+        onClose={() => setActivePicker(null)}
+        title={`Selecionar ${title}`}
+        items={catalog}
+        searchPlaceholder={`Buscar ${title.toLowerCase()}...`}
+        onSelect={handleSelect}
+      />
+
+      {items.length > 0 && (
+        <View style={{ marginTop: spacing.sm }}>
+          {items.map((it) => (
+            <View key={it.service_id} style={psStyles.item}>
+              <View style={{ flex: 1 }}>
+                <Text style={psStyles.itemName}>{it.name}</Text>
+                <View style={psStyles.row}>
+                  <TextInput
+                    style={psStyles.qty}
+                    value={it.quantity}
+                    onChangeText={(v) => updateField(it.service_id, 'quantity', v)}
+                    placeholder="Qtd"
+                    placeholderTextColor={colors.placeholder}
+                  />
+                  <TextInput
+                    style={psStyles.obs}
+                    value={it.observation}
+                    onChangeText={(v) => updateField(it.service_id, 'observation', v)}
+                    placeholder="Observação"
+                    placeholderTextColor={colors.placeholder}
+                  />
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => handleRemove(it.service_id)} style={psStyles.remove}>
+                <Ionicons name="trash-outline" size={18} color={colors.danger} />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+    </View>
   );
 }
 
@@ -101,6 +214,10 @@ export default function CreateOSScreen() {
   const [serviceGroupId, setServiceGroupId] = useState<number | null>(null);
   const [serviceGroupName, setServiceGroupName] = useState('');
 
+  // Peças e Serviços (mesma estrutura da web: PartServiceOrderService)
+  const [parts, setParts] = useState<PSItem[]>([]);
+  const [services, setServices] = useState<PSItem[]>([]);
+
   const [activePicker, setActivePicker] = useState<string | null>(null);
 
   const { data: vehiclesData, isLoading: vehiclesLoading } = useQuery({
@@ -115,6 +232,21 @@ export default function CreateOSScreen() {
   const { data: managersData } = useQuery({ queryKey: ['managers'], queryFn: orderServicesApi.getManagers });
   const { data: providersData } = useQuery({ queryKey: ['providers'], queryFn: orderServicesApi.getProviders, enabled: osTypeId === OS_TYPE_DIAGNOSTICO });
   const { data: serviceGroupsData } = useQuery({ queryKey: ['service-groups'], queryFn: orderServicesApi.getServiceGroups, enabled: osTypeId === OS_TYPE_REQUISICAO });
+
+  // Peças e serviços — carregados quando tipo de OS for Cotações ou Requisição
+  const enablePartsServices = osTypeId === OS_TYPE_COTACOES || osTypeId === OS_TYPE_REQUISICAO;
+  const { data: partsCatalog } = useQuery({
+    queryKey: ['os-parts', serviceGroupId],
+    queryFn: () => orderServicesApi.getParts(serviceGroupId ? { service_group_id: serviceGroupId } : undefined),
+    enabled: enablePartsServices,
+  });
+  const { data: servicesCatalog } = useQuery({
+    queryKey: ['os-services', serviceGroupId],
+    queryFn: () => orderServicesApi.getServicesList(serviceGroupId ? { service_group_id: serviceGroupId } : undefined),
+    enabled: enablePartsServices,
+  });
+  const partsList = partsCatalog?.parts ?? [];
+  const servicesList = servicesCatalog?.services ?? [];
 
   const vehicles = vehiclesData?.vehicles ?? [];
   const selectedVehicle = vehicles.find((v) => v.id === vehicleId);
@@ -163,6 +295,14 @@ export default function CreateOSScreen() {
     if (commitmentServicesId) params.commitment_services_id = commitmentServicesId;
     if (providerId) params.provider_id = providerId;
     if (serviceGroupId) params.service_group_id = serviceGroupId;
+    if (enablePartsServices) {
+      if (parts.length > 0) {
+        params.parts = parts.map((p) => ({ service_id: p.service_id, quantity: p.quantity || '1', observation: p.observation || '' }));
+      }
+      if (services.length > 0) {
+        params.services = services.map((p) => ({ service_id: p.service_id, quantity: p.quantity || '1', observation: p.observation || '' }));
+      }
+    }
     createMutation.mutate(params);
   };
 
@@ -315,6 +455,30 @@ export default function CreateOSScreen() {
         </View>
       )}
 
+      {/* Peças e Serviços (Cotações / Requisição) — mesma estrutura da web */}
+      {enablePartsServices && (
+        <>
+          <PartServiceBlock
+            title="Peças"
+            catalog={partsList}
+            items={parts}
+            setItems={setParts}
+            pickerKey="parts"
+            activePicker={activePicker}
+            setActivePicker={setActivePicker}
+          />
+          <PartServiceBlock
+            title="Serviços"
+            catalog={servicesList}
+            items={services}
+            setItems={setServices}
+            pickerKey="services"
+            activePicker={activePicker}
+            setActivePicker={setActivePicker}
+          />
+        </>
+      )}
+
       {/* Submit */}
       <TouchableOpacity style={[s.submitBtn, createMutation.isPending && { opacity: 0.7 }]} onPress={handleSubmit} disabled={createMutation.isPending}>
         {createMutation.isPending ? <ActivityIndicator color="#fff" /> : (
@@ -408,4 +572,41 @@ const s = StyleSheet.create({
     marginTop: spacing.xl,
   },
   submitText: { color: '#fff', fontSize: fontSize.lg, fontWeight: '700' },
+});
+
+const psStyles = StyleSheet.create({
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.surface,
+    borderRadius: borderRadius.sm,
+    padding: spacing.sm,
+    marginBottom: spacing.xs,
+    ...shadows.sm,
+  },
+  itemName: { fontSize: fontSize.sm, fontWeight: '600', color: colors.text, marginBottom: 4 },
+  row: { flexDirection: 'row', gap: spacing.sm },
+  qty: {
+    width: 64,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.sm,
+    height: 32,
+    fontSize: fontSize.sm,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  obs: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacing.sm,
+    height: 32,
+    fontSize: fontSize.sm,
+    color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  remove: { padding: spacing.xs, marginLeft: spacing.sm },
 });

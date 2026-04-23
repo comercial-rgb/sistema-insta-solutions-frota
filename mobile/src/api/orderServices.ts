@@ -53,6 +53,8 @@ export const orderServicesApi = {
     manager_id?: number;
     provider_id?: number;
     service_group_id?: number;
+    parts?: Array<{ service_id: number; quantity?: string; observation?: string }>;
+    services?: Array<{ service_id: number; quantity?: string; observation?: string }>;
   }): Promise<{ order_service: OrderServiceDetail; message: string }> => {
     const { data } = await api.post('/api/v2/order_services', {
       ...params,
@@ -120,6 +122,16 @@ export const orderServicesApi = {
 
   getProviders: async (): Promise<{ providers: OSFormOption[] }> => {
     const { data } = await api.get('/api/v2/order_services/providers/all');
+    return data;
+  },
+
+  getParts: async (params?: { service_group_id?: number }): Promise<{ parts: OSFormOption[] }> => {
+    const { data } = await api.get('/api/v2/order_services/parts/all', { params });
+    return data;
+  },
+
+  getServicesList: async (params?: { service_group_id?: number }): Promise<{ services: OSFormOption[] }> => {
+    const { data } = await api.get('/api/v2/order_services/services/all', { params });
     return data;
   },
 };

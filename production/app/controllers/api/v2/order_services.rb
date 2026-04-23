@@ -128,6 +128,16 @@ module Api
           optional :provider_id, type: Integer
           optional :service_group_id, type: Integer
           optional :origin_type, type: String, default: 'mobile'
+          optional :parts, type: Array do
+            requires :service_id, type: Integer
+            optional :quantity, type: String, default: '1'
+            optional :observation, type: String, default: ''
+          end
+          optional :services, type: Array do
+            requires :service_id, type: Integer
+            optional :quantity, type: String, default: '1'
+            optional :observation, type: String, default: ''
+          end
         end
         post do
           user = current_user
@@ -196,6 +206,19 @@ module Api
                 order_service_id: os.id,
                 km: params[:km],
                 origin: 'order_service'
+              )
+            end
+
+            # Criar peças e serviços pré-selecionados (estrutura da web)
+            parts_payload = params[:parts] || []
+            services_payload = params[:services] || []
+            (parts_payload + services_payload).each do |item|
+              next if item[:service_id].blank?
+              PartServiceOrderService.create(
+                order_service_id: os.id,
+                service_id: item[:service_id],
+                quantity: item[:quantity].presence || '1',
+                observation: item[:observation].to_s
               )
             end
 
@@ -353,6 +376,46 @@ module Api
         get 'providers/all' do
           providers = User.provider.active.order(:fantasy_name)
           { providers: providers.map { |p| { id: p.id, name: p.fantasy_name.present? ? p.fantasy_name : p.name } } }
+        end
+
+        desc 'Lista peças do cliente'
+        params do
+          optional :client_id, type: Integer
+          optional :service_group_id, type: Integer
+        end
+        get 'parts/all' do
+          user = current_user
+          if params[:service_group_id].present?
+            grp = ServiceGroup.find_by(id: params[:service_group_id])
+            scope = grp ? grp.services.where(category_id: Category::SERVICOS_PECAS_ID) : Service.none
+          else
+            scope = Service.where(category_id: Category::SERVICOS_PECAS_ID)
+          end
+          scope = scope.order(:name)
+          { parts: scope.limit(1000).map { |s| { id: s.id, name: s.name } } }
+        rescue => e
+          Rails.logger.error "parts/all: #{e.message}"
+          { parts: [] }
+        end
+
+        desc 'Lista serviços do cliente'
+        params do
+          optional :client_id, type: Integer
+          optional :service_group_id, type: Integer
+        end
+        get 'services/all' do
+          user = current_user
+          if params[:service_group_id].present?
+            grp = ServiceGroup.find_by(id: params[:service_group_id])
+            scope = grp ? grp.services.where(category_id: Category::SERVICOS_SERVICOS_ID) : Service.none
+          else
+            scope = Service.where(category_id: Category::SERVICOS_SERVICOS_ID)
+          end
+          scope = scope.order(:name)
+          { services: scope.limit(1000).map { |s| { id: s.id, name: s.name } } }
+        rescue => e
+          Rails.logger.error "services/all: #{e.message}"
+          { services: [] }
         end
       end
 

@@ -11,6 +11,8 @@ import {
   Switch,
   Modal,
   FlatList,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -484,7 +486,10 @@ export default function MaintenancePlanDetailScreen() {
 
       {/* Service Picker Modal */}
       <Modal visible={servicePickerVisible} animationType="slide" transparent>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        >
           <View style={styles.modalContainer}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Selecionar Peça/Serviço</Text>
@@ -499,10 +504,13 @@ export default function MaintenancePlanDetailScreen() {
               onChangeText={setServiceSearch}
               placeholderTextColor={colors.placeholder}
               autoFocus
+              returnKeyType="search"
             />
             <FlatList
               data={servicesData?.services ?? []}
               keyExtractor={(s) => s.id.toString()}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
               renderItem={({ item: svc }) => (
                 <TouchableOpacity
                   style={styles.modalItem}
@@ -525,7 +533,7 @@ export default function MaintenancePlanDetailScreen() {
               ListEmptyComponent={<Text style={styles.noServicesList}>Nenhum resultado</Text>}
             />
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ScrollView>
   );
