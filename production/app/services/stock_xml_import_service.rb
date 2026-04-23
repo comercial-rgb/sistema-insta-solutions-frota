@@ -149,53 +149,6 @@ class StockXmlImportService
     result
   end
 
-
-    result = { success: false, imported: 0, updated: 0, errors: [] }
-
-    begin
-      xml_content = xml_file.read
-      doc = Nokogiri::XML(xml_content) { |config| config.strict.nonet }
-
-      # Remove namespaces para facilitar a navegação
-      doc.remove_namespaces!
-
-      # Extrair dados do emitente (fornecedor)
-      emit = doc.at_xpath('//emit')
-      supplier_name = extract_text(emit, 'xNome')
-      supplier_cnpj = extract_text(emit, 'CNPJ')
-      document_number = extract_text(doc, '//ide/nNF')
-      xml_file_name = xml_file.respond_to?(:original_filename) ? xml_file.original_filename : 'import.xml'
-
-      # Processar cada item da nota
-      items = doc.xpath('//det')
-
-      if items.empty?
-        result[:errors] << 'Nenhum item encontrado no XML.'
-        return result
-      end
-
-      ActiveRecord::Base.transaction do
-        items.each do |item|
-          begin
-            process_item(item, supplier_name, supplier_cnpj, document_number, xml_file_name, result)
-          rescue StandardError => e
-            prod = item.at_xpath('prod')
-            item_name = extract_text(prod, 'xProd') rescue 'Desconhecido'
-            result[:errors] << "Erro no item '#{item_name}': #{e.message}"
-          end
-        end
-      end
-
-      result[:success] = result[:errors].empty? || result[:imported] > 0 || result[:updated] > 0
-    rescue Nokogiri::XML::SyntaxError => e
-      result[:errors] << "XML inválido: #{e.message}"
-    rescue StandardError => e
-      result[:errors] << "Erro ao processar arquivo: #{e.message}"
-    end
-
-    result
-  end
-
   private
 
   def process_item(item_node, supplier_name, supplier_cnpj, document_number, xml_file_name, result)
