@@ -396,7 +396,8 @@
                 end
             end
         %>
-        <%= f.input :km, disabled: disabled_basic_fields, required: client_needs_km %>
+        <%= f.input :km, disabled: disabled_basic_fields, required: client_needs_km,
+            input_html: { class: 'km-number-format', inputmode: 'numeric', placeholder: 'Ex: 10.000' } %>
         <% if client_needs_km %>
             <small class="text-danger d-block" style="margin-top: -8px; font-size: 0.75rem;">
                 <i class="bi bi-exclamation-circle-fill"></i> <strong>KM obrigatório</strong> para este cliente

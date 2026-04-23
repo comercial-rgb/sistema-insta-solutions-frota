@@ -70,6 +70,19 @@
         <%= f.input :training_declined, label: 'Declinou do Treinamento' %>
     </div>
 
+    <div class="col-12 col-md-3 mb-3 checkbox-input-center">
+        <%= f.input :manual_enviado, label: 'Manual Enviado' %>
+    </div>
+
+    <% if f.object.manual_enviado_at.present? %>
+    <div class="col-12 col-md-3 mb-3">
+        <div class="form-group">
+            <label class="form-label">Enviado em</label>
+            <p class="form-control-plaintext"><%= f.object.manual_enviado_at.strftime('%d/%m/%Y %H:%M') %></p>
+        </div>
+    </div>
+    <% end %>
+
     <div class="col-12 col-md-3 mb-3">
         <%= f.input :training_date, as: :string, label: 'Data do Treinamento',
             input_html: { class: 'datepicker', value: CustomHelper.get_text_date(f.object.training_date, 'date', :default), autocomplete: :off, type: "tel" } %>

@@ -134,5 +134,42 @@ $(document).ready( () => {
 
 });
 
+// KM input: formato brasileiro (pontos como separador de milhar)
+document.addEventListener('DOMContentLoaded', function() {
+  function formatKmField(input) {
+    // Get raw digits only
+    var raw = input.value.replace(/\D/g, '');
+    if (raw === '') { input.setAttribute('data-raw-km', ''); return; }
+    var num = parseInt(raw, 10);
+    input.setAttribute('data-raw-km', num);
+    input.value = num.toLocaleString('pt-BR');
+  }
+
+  function setupKmFields() {
+    document.querySelectorAll('.km-number-format').forEach(function(input) {
+      // Display existing value formatted
+      if (input.value && !isNaN(parseInt(input.value.replace(/\D/g,''), 10))) {
+        formatKmField(input);
+      }
+      input.addEventListener('input', function() { formatKmField(this); });
+      // Before form submit, replace formatted value with raw number
+      var form = input.closest('form');
+      if (form && !form._kmListenerAdded) {
+        form._kmListenerAdded = true;
+        form.addEventListener('submit', function() {
+          form.querySelectorAll('.km-number-format').forEach(function(f) {
+            var raw = f.getAttribute('data-raw-km');
+            if (raw !== null && raw !== '') f.value = raw;
+          });
+        });
+      }
+    });
+  }
+
+  setupKmFields();
+  // Re-run if Turbo or other dynamic content loads
+  document.addEventListener('turbo:load', setupKmFields);
+});
+
 // End of file masks.js
 // Path: ./app/assets/javascripts/masks.js

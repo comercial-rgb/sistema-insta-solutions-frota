@@ -274,4 +274,41 @@ breadcrumbs = [
       </div>
     </div>
   <% end %>
+
+  <!-- Variações vinculadas -->
+  <% if @stock_item.variant_stock_items.any? %>
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-secondary text-white">
+        <i class="bi bi-diagram-3 me-2"></i>Variações Vinculadas (<%= @stock_item.variant_stock_items.count %>)
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Nome</th>
+                <th>Código</th>
+                <th>Marca</th>
+                <th>Quantidade</th>
+                <th>Preço Unit.</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% @stock_item.variant_stock_items.active.order(:name).each do |variant| %>
+                <tr>
+                  <td><%= variant.name %></td>
+                  <td><small><%= variant.code %></small></td>
+                  <td><%= variant.brand %></td>
+                  <td><%= variant.quantity %> <%= variant.unit_measure %></td>
+                  <td><%= number_to_currency(variant.unit_price, unit: 'R$ ') %></td>
+                  <td><%= link_to 'Ver', stock_item_path(variant), class: 'btn btn-outline-secondary btn-sm' %></td>
+                </tr>
+              <% end %>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  <% end %>
 </div>

@@ -151,7 +151,66 @@ class StockItemsController < ApplicationController
       user: @current_user
     )
 
-    result = service.call
+    result = service.parse
+
+    if result[:success] && result[:items].any?
+      session[:xml_import_preview] = {
+        items: result[:items],
+        supplier_name: result[:supplier_name],
+        supplier_cnpj: result[:supplier_cnpj],
+        document_number: result[:document_number],
+        xml_file_name: result[:xml_file_name],
+        cost_center_id: params[:cost_center_id],
+        sub_unit_id: params[:sub_unit_id]
+      }.to_json
+      @preview = result
+      @cost_center_id = params[:cost_center_id]
+      @available_parents = StockItem.active.where(client_id: resolve_client_id, cost_center_id: params[:cost_center_id]).order(:name)
+      render :preview_import_xml
+    else
+      errors = result[:errors].any? ? result[:errors].join(', ') : 'Nenhum item encontrado no XML.'
+      redirect_to new_import_xml_stock_items_path, alert: "Erro na importação: #{errors}"
+    end
+  end
+
+  def confirm_import_xml
+    authorize StockItem, :create?
+
+    preview_json = session[:xml_import_preview]
+    if preview_json.blank?
+      redirect_to new_import_xml_stock_items_path, alert: 'Sessão expirada. Por favor, reimporte o arquivo.'
+      return
+    end
+
+    preview = JSON.parse(preview_json, symbolize_names: true)
+    items_params = params[:items]&.values || []
+
+    # Merge item data from session with user inputs (minimum_quantity, parent_stock_item_id)
+    merged_items = preview[:items].each_with_index.map do |item, idx|
+      user_input = items_params[idx] || {}
+      item.merge(
+        minimum_quantity: user_input[:minimum_quantity].presence || item[:minimum_quantity],
+        parent_stock_item_id: user_input[:parent_stock_item_id].presence
+      )
+    end
+
+    service = StockXmlImportService.new(
+      xml_file: nil,
+      client_id: resolve_client_id,
+      cost_center_id: preview[:cost_center_id],
+      sub_unit_id: preview[:sub_unit_id],
+      user: @current_user
+    )
+
+    result = service.confirm(
+      items_params: merged_items,
+      supplier_name: preview[:supplier_name],
+      supplier_cnpj: preview[:supplier_cnpj],
+      document_number: preview[:document_number],
+      xml_file_name: preview[:xml_file_name]
+    )
+
+    session.delete(:xml_import_preview)
 
     if result[:success]
       redirect_to stock_items_path, notice: "Importação concluída: #{result[:imported]} itens importados, #{result[:updated]} atualizados."

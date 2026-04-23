@@ -267,6 +267,7 @@ export interface MaintenanceAlert {
     plan_type: string;
   } | null;
   acknowledged_at?: string;
+  order_service_id?: number;
   created_at: string;
 }
 

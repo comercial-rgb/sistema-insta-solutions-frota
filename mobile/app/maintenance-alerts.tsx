@@ -15,6 +15,7 @@ import { maintenanceAlertsApi } from '../src/api/maintenanceAlerts';
 import { colors, spacing, borderRadius, fontSize, shadows } from '../src/theme/colors';
 import { Ionicons } from '@expo/vector-icons';
 import { MaintenanceAlert } from '../src/types';
+import { useAuth } from '../src/contexts/AuthContext';
 
 const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
   pending: { color: colors.warning, label: 'Pendente' },
@@ -25,6 +26,8 @@ const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
 
 export default function MaintenanceAlertsScreen() {
   const queryClient = useQueryClient();
+  const { isAdmin, isGestor, isAdicional } = useAuth();
+  const canCreateOs = isAdmin || isGestor || isAdicional;
 
   const { data, fetchNextPage, hasNextPage, isLoading, refetch, isRefetching } =
     useInfiniteQuery({
@@ -45,6 +48,17 @@ export default function MaintenanceAlertsScreen() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] }),
   });
 
+  const createOsMutation = useMutation({
+    mutationFn: maintenanceAlertsApi.createOs,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['maintenance-alerts'] });
+      Alert.alert('OS Criada', `OS criada com sucesso! ID: ${data.order_service_id}`);
+    },
+    onError: (error: any) => {
+      Alert.alert('Erro', error?.response?.data?.message || 'Não foi possível criar a OS.');
+    },
+  });
+
   const allAlerts = data?.pages.flatMap((p) => p.alerts) ?? [];
 
   const handleAcknowledge = (id: number) => {
@@ -56,6 +70,17 @@ export default function MaintenanceAlertsScreen() {
       { text: 'Cancelar', style: 'cancel' },
       { text: 'Dispensar', onPress: () => dismissMutation.mutate(id) },
     ]);
+  };
+
+  const handleCreateOs = (id: number) => {
+    Alert.alert(
+      'Confirmar Abertura de OS',
+      'Deseja criar uma Ordem de Serviço a partir deste alerta? Os itens do plano serão incluídos automaticamente.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Criar OS', onPress: () => createOsMutation.mutate(id) },
+      ]
+    );
   };
 
   return (
@@ -72,6 +97,7 @@ export default function MaintenanceAlertsScreen() {
               alert={item}
               onAcknowledge={handleAcknowledge}
               onDismiss={handleDismiss}
+              onCreateOs={canCreateOs ? handleCreateOs : undefined}
             />
           )}
           keyExtractor={(item) => item.id.toString()}
@@ -94,10 +120,12 @@ function AlertCard({
   alert,
   onAcknowledge,
   onDismiss,
+  onCreateOs,
 }: {
   alert: MaintenanceAlert;
   onAcknowledge: (id: number) => void;
   onDismiss: (id: number) => void;
+  onCreateOs?: (id: number) => void;
 }) {
   const status = STATUS_CONFIG[alert.status] ?? STATUS_CONFIG.pending;
   const isKm = alert.alert_type === 'km';
@@ -155,10 +183,24 @@ function AlertCard({
             <Ionicons name="checkmark-circle-outline" size={16} color={colors.info} />
             <Text style={styles.ackBtnText}>Ciente</Text>
           </TouchableOpacity>
+          {onCreateOs && (
+            <TouchableOpacity style={styles.createOsBtn} onPress={() => onCreateOs(alert.id)}>
+              <Ionicons name="construct-outline" size={16} color={colors.success} />
+              <Text style={styles.createOsBtnText}>Criar OS</Text>
+            </TouchableOpacity>
+          )}
           <TouchableOpacity style={styles.dismissBtn} onPress={() => onDismiss(alert.id)}>
             <Ionicons name="close-circle-outline" size={16} color={colors.textLight} />
             <Text style={styles.dismissBtnText}>Dispensar</Text>
           </TouchableOpacity>
+        </View>
+      )}
+      {alert.status === 'completed' && alert.order_service_id && (
+        <View style={styles.actionsRow}>
+          <View style={styles.ackBtn}>
+            <Ionicons name="checkmark-done-circle-outline" size={16} color={colors.success} />
+            <Text style={[styles.ackBtnText, { color: colors.success }]}>OS #{alert.order_service_id} aberta</Text>
+          </View>
         </View>
       )}
     </View>
@@ -190,6 +232,8 @@ const styles = StyleSheet.create({
   actionsRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm, paddingTop: spacing.sm, borderTopWidth: 1, borderTopColor: colors.border },
   ackBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   ackBtnText: { fontSize: fontSize.sm, color: colors.info, fontWeight: '600' },
+  createOsBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  createOsBtnText: { fontSize: fontSize.sm, color: colors.success, fontWeight: '600' },
   dismissBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   dismissBtnText: { fontSize: fontSize.sm, color: colors.textLight },
 

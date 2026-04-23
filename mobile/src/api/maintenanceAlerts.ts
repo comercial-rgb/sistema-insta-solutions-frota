@@ -26,4 +26,9 @@ export const maintenanceAlertsApi = {
     const { data } = await api.post('/api/v2/maintenance_alerts/check');
     return data;
   },
+
+  createOs: async (id: number): Promise<{ alert: MaintenanceAlert; order_service_id: number; message: string }> => {
+    const { data } = await api.post(`/api/v2/maintenance_alerts/${id}/create_os`);
+    return data;
+  },
 };

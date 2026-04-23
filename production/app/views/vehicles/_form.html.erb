@@ -1,6 +1,6 @@
 <%
     # Gerentes e Adicionais podem visualizar mas não editar
-    disabled = @current_user.manager? || @current_user.additional?
+    disabled = @view_only || @current_user.manager? || @current_user.additional?
 %>
 <%= simple_form_for(@vehicle) do |f| %>
 
@@ -104,6 +104,21 @@
                 <%= f.input :active, as: :select, collection: CustomHelper.return_select_options_true_false, include_blank: false, label: Vehicle.human_attribute_name(:active) %>
             <% end %>
         </div>
+        <% if @current_user.admin? %>
+          <div class="col-12 col-md-6">
+            <%= f.association :vehicle_model,
+              collection: VehicleModel.active.ordered.map { |vm| [vm.display_name, vm.id] },
+              as: :select,
+              include_blank: 'Selecione o modelo vinculado',
+              label: 'Modelo Vinculado (Ref. Preço Cilia)',
+              input_html: { class: 'form-control' } %>
+            <% if f.object.vehicle_model.present? %>
+              <small class="text-success"><i class="bi bi-check-circle"></i> Vinculado: <%= f.object.vehicle_model.display_name %></small>
+            <% else %>
+              <small class="text-warning"><i class="bi bi-exclamation-triangle"></i> Sem modelo vinculado - necessário para precificação Cilia</small>
+            <% end %>
+          </div>
+        <% end %>
     </div>
 
     <% unless disabled %>
@@ -117,9 +132,10 @@
     <% end %>
 
     <% if f.object.persisted? %>
-        <% if @warranty_items_vehicle.present? %>
+        <% if @warranty_items_vehicle.present? && !@current_user.provider? %>
             <%= render 'vehicles/warranty_panel', warranty_items: @warranty_items_vehicle %>
         <% end %>
+        <%= render 'vehicles/checklists_panel', vehicle: f.object %>
         <%= render 'vehicles/order_services_list', order_services_for_vehicle: @order_services_for_vehicle %>
     <% end %>
 

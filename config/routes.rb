@@ -413,6 +413,7 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
       get :dashboard
       get :new_import_xml
       post :import_xml
+      post :confirm_import_xml
       get :by_cost_center
     end
   end

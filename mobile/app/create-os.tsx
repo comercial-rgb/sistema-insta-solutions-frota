@@ -284,7 +284,7 @@ export default function CreateOSScreen() {
       provider_service_type_id: serviceTypeId,
       order_service_type_id: osTypeId,
       details: details.trim(),
-      km: km ? parseInt(km, 10) : undefined,
+      km: km ? parseInt(km.replace(/\D/g, ''), 10) : undefined,
       driver: driver.trim() || undefined,
     };
     if (isAdmin && clientId) params.client_id = clientId;
@@ -415,7 +415,7 @@ export default function CreateOSScreen() {
       <Text style={s.label}>Quilometragem Atual</Text>
       <View style={s.inputRow}>
         <Ionicons name="speedometer-outline" size={18} color={colors.textSecondary} />
-        <TextInput style={s.input} placeholder="Ex: 45000" value={km} onChangeText={setKm} keyboardType="numeric" placeholderTextColor={colors.placeholder} />
+        <TextInput style={s.input} placeholder="Ex: 45.000" value={km} onChangeText={(text) => { const digits = text.replace(/\D/g, ''); setKm(digits ? parseInt(digits, 10).toLocaleString('pt-BR') : ''); }} keyboardType="numeric" placeholderTextColor={colors.placeholder} />
         <Text style={s.inputSuffix}>km</Text>
       </View>
 

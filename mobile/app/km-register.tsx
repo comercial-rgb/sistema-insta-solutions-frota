@@ -69,14 +69,14 @@ export default function KmRegisterScreen() {
       Toast.show({ type: 'error', text1: 'Selecione um veículo' });
       return;
     }
-    if (!km || parseInt(km, 10) <= 0) {
+    if (!km || parseInt(km.replace(/\D/g, ''), 10) <= 0) {
       Toast.show({ type: 'error', text1: 'Informe um KM válido' });
       return;
     }
 
     registerMutation.mutate({
       vehicle_id: selectedVehicleId,
-      km: parseInt(km, 10),
+      km: parseInt(km.replace(/\D/g, ''), 10),
       origin: params.vehicle_id ? 'vehicle_page' : 'manual',
       observation: observation.trim() || undefined,
     });
@@ -155,9 +155,15 @@ export default function KmRegisterScreen() {
         <Ionicons name="speedometer-outline" size={18} color={colors.textSecondary} />
         <TextInput
           style={styles.input}
-          placeholder={kmData?.current_km ? `Mínimo: ${kmData.current_km.toLocaleString()}` : 'Ex: 45000'}
+          placeholder={kmData?.current_km ? `Mínimo: ${kmData.current_km.toLocaleString('pt-BR')}` : 'Ex: 45.000'}
           value={km}
-          onChangeText={setKm}
+          onChangeText={(text) => {
+            // Allow only digits and dots (user types with pt-BR format)
+            const digits = text.replace(/\D/g, '');
+            if (digits === '') { setKm(''); return; }
+            const formatted = parseInt(digits, 10).toLocaleString('pt-BR');
+            setKm(formatted);
+          }}
           keyboardType="numeric"
           placeholderTextColor={colors.placeholder}
         />

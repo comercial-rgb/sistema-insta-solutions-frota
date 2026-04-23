@@ -59,6 +59,7 @@ class VehiclesController < ApplicationController
 
   def show
     authorize @vehicle, :show?
+    @view_only = true
     build_initial_relations
     render :edit
   end

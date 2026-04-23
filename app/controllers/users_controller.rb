@@ -1196,7 +1196,7 @@ class UsersController < ApplicationController
       :registration, :optante_simples, :needs_km, :is_gerente,
         :require_vehicle_photos, :os_blocked, :government_sphere,
         :cnh_number, :cnh_category, :cnh_expiration, :cnh_issued_at,
-        :training_completed, :training_date, :training_participants, :training_location, :training_notes, :training_declined,
+        :training_completed, :training_date, :training_participants, :training_location, :training_notes, :training_declined, :manual_enviado,
       phones_attributes: [:id, :is_whatsapp, :phone_code, :phone, :phone_type_id, :responsible],
       emails_attributes: [:id, :email, :email_type_id],
       attachment_attributes: [:id, :attachment, :attachment_type],

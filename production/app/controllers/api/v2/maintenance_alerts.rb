@@ -62,6 +62,51 @@ module Api
           MaintenanceAlertService.check_all_vehicles(client_id)
           { message: 'Verificação de alertas concluída' }
         end
+
+        desc 'Criar OS a partir do alerta (aprovação do gestor)'
+        post ':id/create_os' do
+          user = current_user
+          unless [Profile::MANAGER_ID, Profile::ADDITIONAL_ID, Profile::ADMIN_ID].include?(user.profile_id)
+            error!('Acesso negado', 403)
+          end
+
+          client_id = user.profile_id == Profile::CLIENT_ID ? user.id : user.client_id
+          alert = MaintenanceAlert.where(client_id: client_id).find(params[:id])
+
+          if alert.status == 'completed' && alert.order_service_id.present?
+            return { alert: serialize_alert(alert), order_service_id: alert.order_service_id, message: 'OS já foi criada para este alerta' }
+          end
+
+          plan_item = alert.maintenance_plan_item
+          vehicle = alert.vehicle
+
+          os = OrderService.new(
+            vehicle_id: vehicle.id,
+            client_id: vehicle.client_id,
+            order_service_type_id: OrderServiceType::REQUISICAO_ID,
+            order_service_status_id: OrderServiceStatus::EM_ABERTO_ID,
+            maintenance_plan_id: plan_item.maintenance_plan_id,
+            details: "OS gerada a partir do alerta de manutenção: #{alert.message}",
+            km: alert.current_km || 0
+          )
+
+          unless os.save
+            error!(os.errors.full_messages.join(', '), 422)
+          end
+
+          plan_item.maintenance_plan_item_services.each do |item_service|
+            PartServiceOrderService.create(
+              order_service_id: os.id,
+              service_id: item_service.service_id,
+              quantity: item_service.quantity,
+              observation: item_service.observation
+            )
+          end
+
+          alert.update!(status: 'completed', order_service_id: os.id)
+
+          { alert: serialize_alert(alert), order_service_id: os.id, message: 'OS criada com sucesso' }
+        end
       end
 
       helpers do
@@ -85,6 +130,7 @@ module Api
               plan_type: a.maintenance_plan_item.plan_type
             } : nil,
             acknowledged_at: a.acknowledged_at,
+            order_service_id: a.order_service_id,
             created_at: a.created_at
           }
         end

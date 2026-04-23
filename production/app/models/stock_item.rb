@@ -10,6 +10,9 @@ class StockItem < ApplicationRecord
   has_many :stock_movements, dependent: :destroy
   has_many :stock_order_service_items, dependent: :restrict_with_error
 
+  belongs_to :parent_stock_item, class_name: 'StockItem', optional: true
+  has_many :variant_stock_items, class_name: 'StockItem', foreign_key: :parent_stock_item_id, dependent: :nullify
+
   # Enums
   enum status: { active: 0, inactive: 1, below_minimum: 2 }
 

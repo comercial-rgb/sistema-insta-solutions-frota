@@ -19,7 +19,7 @@
       <li><strong><%= OrderService.human_attribute_name(:vehicle_id) %>:</strong><span><%= os.vehicle&.getting_vehicle_data %></span></li>
       <li><strong><%= Vehicle.human_attribute_name(:cost_center_id) %>:</strong><span><%= os.vehicle&.cost_center&.get_text_name %></span></li>
       <li><strong><%= Vehicle.human_attribute_name(:sub_unit_id) %>:</strong><span><%= os.vehicle&.sub_unit&.get_text_name %></span></li>
-      <li><strong><%= OrderService.human_attribute_name(:km) %>:</strong><span><%= os.km %></span></li>
+      <li><strong><%= OrderService.human_attribute_name(:km) %>:</strong><span><%= number_with_delimiter(os.km) %></span></li>
       <li><strong><%= OrderService.human_attribute_name(:driver) %>:</strong><span><%= os.driver %></span></li>
     </ul>
   </div>

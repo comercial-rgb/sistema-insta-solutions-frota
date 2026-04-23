@@ -268,9 +268,9 @@ export default function MaintenancePlanDetailScreen() {
                     {item.name || 'Novo serviço'}
                   </Text>
                   <Text style={styles.itemCardMeta}>
-                    {item.plan_type === 'km' ? `A cada ${item.km_interval || '?'} km` :
+                    {item.plan_type === 'km' ? `A cada ${item.km_interval ? item.km_interval.toLocaleString('pt-BR') : '?'} km` :
                      item.plan_type === 'days' ? `A cada ${item.days_interval || '?'} dias` :
-                     `${item.km_interval || '?'} km / ${item.days_interval || '?'} dias`}
+                     `${item.km_interval ? item.km_interval.toLocaleString('pt-BR') : '?'} km / ${item.days_interval || '?'} dias`}
                     {item.services_count ? ` · ${item.services_count} peças/serviços` : ''}
                   </Text>
                 </View>
@@ -303,10 +303,10 @@ export default function MaintenancePlanDetailScreen() {
                         <Text style={styles.itemLabel}>Intervalo KM</Text>
                         <TextInput
                           style={styles.itemInput}
-                          value={item.km_interval?.toString() || ''}
-                          onChangeText={(v) => updateItem(index, 'km_interval', v ? parseInt(v) : null)}
+                          value={item.km_interval ? item.km_interval.toLocaleString('pt-BR') : ''}
+                          onChangeText={(v) => { const digits = v.replace(/\D/g, ''); updateItem(index, 'km_interval', digits ? parseInt(digits) : null); }}
                           keyboardType="numeric"
-                          placeholder="10000"
+                          placeholder="10.000"
                           placeholderTextColor={colors.placeholder}
                         />
                       </View>
@@ -332,10 +332,10 @@ export default function MaintenancePlanDetailScreen() {
                         <Text style={styles.itemLabel}>Alerta KM antes</Text>
                         <TextInput
                           style={styles.itemInput}
-                          value={item.km_alert_threshold?.toString() || ''}
-                          onChangeText={(v) => updateItem(index, 'km_alert_threshold', v ? parseInt(v) : null)}
+                          value={item.km_alert_threshold ? item.km_alert_threshold.toLocaleString('pt-BR') : ''}
+                          onChangeText={(v) => { const digits = v.replace(/\D/g, ''); updateItem(index, 'km_alert_threshold', digits ? parseInt(digits) : null); }}
                           keyboardType="numeric"
-                          placeholder="1000"
+                          placeholder="1.000"
                           placeholderTextColor={colors.placeholder}
                         />
                       </View>

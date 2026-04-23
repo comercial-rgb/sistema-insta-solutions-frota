@@ -1,6 +1,6 @@
 <%
     # Gerentes e Adicionais podem visualizar mas não editar
-    disabled = @current_user.manager? || @current_user.additional?
+    disabled = @view_only || @current_user.manager? || @current_user.additional?
 %>
 <%= simple_form_for(@vehicle) do |f| %>
 
