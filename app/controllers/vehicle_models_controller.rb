@@ -30,6 +30,7 @@ class VehicleModelsController < ApplicationController
         reference_price.assign_attributes(
           reference_price: price_data[:reference_price],
           max_percentage: price_data[:max_percentage] || 110,
+          reference_code: price_data[:reference_code],
           source: price_data[:source],
           active: price_data[:active] == '1'
         )

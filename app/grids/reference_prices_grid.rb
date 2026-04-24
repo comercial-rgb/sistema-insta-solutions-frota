@@ -22,6 +22,10 @@ class ReferencePricesGrid
   column :reference_price, header: 'Preço Ref. Cilia' do |record|
     record.formatted_reference_price
   end
+
+  column :reference_code, header: 'Código de Referência' do |record|
+    record.reference_code.presence || '-'
+  end
   
   column :max_percentage, header: '% Máx.' do |record|
     "#{record.max_percentage}%"

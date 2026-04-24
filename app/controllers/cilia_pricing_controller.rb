@@ -131,12 +131,14 @@ class CiliaPricingController < ApplicationController
 
         if sem_tabela
           reference_price.assign_attributes(sem_tabela: true, reference_price: nil, max_percentage: nil, active: true,
+            reference_code: price_data[:reference_code].presence,
             source: price_data[:source].presence || "Sem ref. tabela #{Date.current.strftime('%m/%Y')}")
         else
           reference_price.assign_attributes(
             sem_tabela: false,
             reference_price: price_data[:reference_price].to_s.gsub(',', '.'),
             max_percentage: price_data[:max_percentage].presence || 110,
+            reference_code: price_data[:reference_code].presence,
             source: price_data[:source].presence || "Cilia #{Date.current.strftime('%m/%Y')}",
             active: true
           )

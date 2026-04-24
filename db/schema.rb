@@ -841,10 +841,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_05_02_110000) do
   create_table "reference_prices", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "vehicle_model_id", null: false
     t.bigint "service_id", null: false
-    t.decimal "reference_price", precision: 15, scale: 2, null: false
+    t.decimal "reference_price", precision: 15, scale: 2
     t.decimal "max_percentage", precision: 5, scale: 2, default: "110.0"
     t.text "observation"
     t.string "source"
+    t.string "reference_code"
     t.boolean "active", default: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false

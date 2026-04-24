@@ -195,6 +195,7 @@ can_complete = policy(:cilia_pricing).mark_complete?
                         Ref. Tabela (Cilia)
                         <br><small class="text-muted fw-normal">ou marcar Sem Ref.</small>
                       </th>
+                      <th style="width: 130px;">Código de Referência</th>
                       <th class="text-center" style="width: 70px;">% Máx.</th>
                       <th style="width: 130px;">Fonte</th>
                       <th class="text-center" style="width: 90px;">Status</th>
@@ -311,6 +312,16 @@ can_complete = policy(:cilia_pricing).mark_complete?
                           <% else %>
                             <span class="text-muted">-</span>
                           <% end %>
+                        </td>
+                        <td>
+                          <% if service_id.present? && @vehicle_model.present? && can_edit %>
+                            <%= text_field_tag "reference_prices[#{service_id}][reference_code]",
+                              ref&.reference_code,
+                              class: 'form-control form-control-sm',
+                              placeholder: 'Código' %>
+                          <% elsif ref.present? %>
+                            <small><%= ref.reference_code.presence || '-' %></small>
+                          <% else %>-<% end %>
                         </td>
                         <td class="text-center">
                           <% if service_id.present? && @vehicle_model.present? && can_edit %>

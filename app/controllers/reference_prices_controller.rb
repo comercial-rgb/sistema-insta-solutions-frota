@@ -52,7 +52,7 @@ class ReferencePricesController < ApplicationController
   def reference_price_params
     params.require(:reference_price).permit(
       :vehicle_model_id, :service_id, :reference_price, 
-      :max_percentage, :observation, :source, :active
+      :max_percentage, :reference_code, :observation, :source, :active
     )
   end
 end
