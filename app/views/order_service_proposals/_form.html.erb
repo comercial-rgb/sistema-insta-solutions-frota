@@ -5,6 +5,7 @@
 
     <%= hidden_field_tag 'order_service_proposal_client_id', f.object.order_service.client_id %>
     <%= hidden_field_tag 'order_service_proposal_vehicle_id', f.object.order_service.vehicle_id %>
+    <%= hidden_field_tag 'order_service_proposal_vehicle_model_id', f.object.order_service.vehicle&.vehicle_model_id %>
     <div class="row">
         <div class="col-12">
             <%= f.error_notification %>

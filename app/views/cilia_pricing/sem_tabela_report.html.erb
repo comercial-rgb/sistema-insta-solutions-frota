@@ -1,0 +1,113 @@
+<%
+breadcrumbs = [
+  {active: false, href: root_path, text: t('menu.initial_page')},
+  {active: false, href: cilia_pricing_index_path, text: 'Precificação Cilia'},
+  {active: true, href: '#', text: 'Itens Sem Referência de Tabela'},
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+
+  <div class="row mb-3 align-items-center">
+    <div class="col">
+      <h4 class="mb-0">
+        <i class="bi bi-slash-circle text-warning"></i>
+        Itens Sem Referência de Tabela
+      </h4>
+      <p class="text-muted mb-0">
+        Peças e serviços marcados como <em>Sem ref. tabela</em> — subsidiam negociação com Cilia/Audatex
+      </p>
+    </div>
+    <div class="col-auto">
+      <%= link_to cilia_pricing_index_path, class: 'btn btn-outline-secondary btn-sm' do %>
+        <i class="bi bi-arrow-left"></i> Voltar
+      <% end %>
+    </div>
+  </div>
+
+  <% if @by_model.any? %>
+    <%# Resumo estatístico %>
+    <div class="row g-3 mb-4">
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-center">
+          <div class="card-body py-3">
+            <div class="text-warning mb-1"><i class="bi bi-slash-circle" style="font-size:1.8rem;"></i></div>
+            <h3 class="fw-bold mb-0"><%= @by_model.values.flatten.size %></h3>
+            <small class="text-muted">Itens sem referência</small>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-center">
+          <div class="card-body py-3">
+            <div class="text-info mb-1"><i class="bi bi-car-front" style="font-size:1.8rem;"></i></div>
+            <h3 class="fw-bold mb-0"><%= @by_model.keys.size %></h3>
+            <small class="text-muted">Modelos de veículo</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <% @by_model.each do |vehicle_model, items| %>
+      <div class="card shadow-sm mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <div>
+            <i class="bi bi-car-front me-2 text-primary"></i>
+            <strong><%= vehicle_model.display_name %></strong>
+            <% if vehicle_model.code_cilia.present? %>
+              <small class="text-muted ms-2">Cód. Cilia: <%= vehicle_model.code_cilia %></small>
+            <% end %>
+          </div>
+          <span class="badge bg-warning text-dark">
+            <%= items.size %> <%= items.size == 1 ? 'item' : 'itens' %> sem tabela
+          </span>
+        </div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0 align-middle">
+              <thead class="table-light">
+                <tr>
+                  <th class="ps-3">Peça / Serviço</th>
+                  <th>Código</th>
+                  <th>Fonte registrada</th>
+                  <th class="text-end pe-3">Atualizado em</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% items.each do |rp| %>
+                  <tr>
+                    <td class="ps-3">
+                      <strong><%= rp.service&.name || '—' %></strong>
+                    </td>
+                    <td>
+                      <% if rp.service&.code.present? %>
+                        <code class="small"><%= rp.service.code %></code>
+                      <% else %>
+                        <span class="text-muted">—</span>
+                      <% end %>
+                    </td>
+                    <td>
+                      <span class="text-muted small"><%= rp.source.presence || '—' %></span>
+                    </td>
+                    <td class="text-end pe-3">
+                      <small class="text-muted"><%= rp.updated_at.strftime('%d/%m/%Y') %></small>
+                    </td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="card shadow-sm">
+      <div class="card-body text-center py-5">
+        <i class="bi bi-check-circle text-success" style="font-size:3rem;"></i>
+        <h5 class="mt-3 text-muted">Nenhum item sem referência de tabela</h5>
+        <p class="text-muted">Todos os itens precificados possuem referência na tabela Cilia.</p>
+      </div>
+    </div>
+  <% end %>
+</div>

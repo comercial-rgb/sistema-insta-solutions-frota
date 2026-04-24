@@ -33,12 +33,21 @@
   validates_presence_of :brand, if: Proc.new { |obj| obj.order_service_proposal.skip_validation != true && obj.category_id == Category::SERVICOS_PECAS_ID }
   
   # Validação de limites do grupo de serviços (para Requisições)
-  validate :validate_service_group_limits, if: Proc.new { |obj| 
-    obj.order_service_proposal.present? && 
+  validate :validate_service_group_limits, if: Proc.new { |obj|
+    obj.order_service_proposal.present? &&
     obj.order_service_proposal.order_service.present? &&
     obj.order_service_proposal.order_service.order_service_type_id == OrderServiceType::REQUISICAO_ID &&
     obj.order_service_proposal.order_service.service_group_id.present? &&
     obj.order_service_proposal.skip_validation != true
+  }
+
+  # Bloqueia criação de novo item (sem service_id) para peças já precificadas no modelo do veículo
+  validate :validate_no_duplicate_catalogued_part, if: Proc.new { |obj|
+    obj.order_service_proposal.present? &&
+    obj.order_service_proposal.skip_validation != true &&
+    obj.service_id.blank? &&
+    obj.category_id == Category::SERVICOS_PECAS_ID &&
+    obj.name.present?
   }
 
   def get_text_name
@@ -91,6 +100,25 @@
     self.discount ||= 0
     self.total_value ||= 0
     self.category_id ||= Category::SERVICOS_PECAS_ID
+  end
+
+  def validate_no_duplicate_catalogued_part
+    os = order_service_proposal&.order_service
+    return unless os&.vehicle&.vehicle_model_id.present?
+
+    vehicle_model_id = os.vehicle.vehicle_model_id
+    normalized = name.to_s.strip.downcase
+
+    # Buscar serviços do catálogo com nome similar que já tenham referência de preço para este modelo
+    matching_service = Service
+      .where(category_id: Category::SERVICOS_PECAS_ID)
+      .where('LOWER(TRIM(name)) = ?', normalized)
+      .joins("INNER JOIN reference_prices ON reference_prices.service_id = services.id AND reference_prices.vehicle_model_id = #{vehicle_model_id.to_i} AND reference_prices.active = 1")
+      .first
+
+    if matching_service.present?
+      errors.add(:name, "\"#{name}\" já existe no catálogo com preço de referência Cilia para este modelo de veículo. Use a opção \"#{matching_service.name}\" do banco de peças ao invés de criar um novo item.")
+    end
   end
 
   def validate_service_group_limits

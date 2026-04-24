@@ -8,6 +8,7 @@ var Faturamento = (function() {
   var _clientSphere = 0;   // 0=Municipal, 1=Estadual, 2=Federal
   var _contractsInfo = [];  // contract saldo info
   var _commitmentNumbers = []; // commitment numbers used
+  var _osObservacoes = {};  // { osId: 'text' } per-OS observations
 
   // ========== UTILITY FUNCTIONS ==========
 
@@ -651,6 +652,12 @@ var Faturamento = (function() {
     var prevVenc = document.getElementById('previaVencimento');
     var savedVenc = prevVenc ? prevVenc.value : '';
 
+    // Preservar observações por OS já digitadas
+    document.querySelectorAll('.os-obs-input').forEach(function(el) {
+      var osId = parseInt(el.getAttribute('data-os-id'));
+      if (osId) _osObservacoes[osId] = el.value;
+    });
+
     var selectedOSData = _osAbertosData.filter(function(os) { return ids.indexOf(os.id) >= 0; });
 
     // Totais - usando valores BRUTO da proposta (sem desconto)
@@ -809,12 +816,17 @@ var Faturamento = (function() {
       html += '</tr>';
 
       // Supplier detail row
+      var savedOsObs = _osObservacoes[os.id] || '';
       html += '<tr style="background:#f8f9fa; font-size:0.8em;">';
-      html += '<td colspan="9" class="py-1 ps-4 text-muted">';
-      html += '<i class="bi bi-person-vcard me-1"></i>';
+      html += '<td colspan="9" class="py-1 ps-4">';
+      html += '<span class="text-muted"><i class="bi bi-person-vcard me-1"></i>';
       html += '<strong>CNPJ:</strong> ' + escapeHtml(os.provider_cnpj || '-');
       html += ' &nbsp;|&nbsp; <strong>Regime:</strong> ' + (isSimples ? 'Simples Nacional (Isento de Retenção)' : 'Não-Simples (Retenção Aplicável)');
       html += ' &nbsp;|&nbsp; <strong>Contato:</strong> ' + escapeHtml(os.provider_phone || os.provider_email || '-');
+      html += '</span>';
+      html += ' &nbsp; <input type="text" class="os-obs-input form-control form-control-sm d-inline-block ms-2"';
+      html += ' data-os-id="' + os.id + '" placeholder="Observação..." style="width:calc(100% - 600px); min-width:180px;"';
+      html += ' value="' + escapeHtml(savedOsObs) + '">';
       html += '</td></tr>';
     });
 
@@ -945,6 +957,12 @@ var Faturamento = (function() {
     var aplicarRetencao = chkRetencao ? chkRetencao.checked : true;
     var vencimento = document.getElementById('previaVencimento') ? document.getElementById('previaVencimento').value : '';
 
+    // Coletar observações por OS antes de confirmar
+    document.querySelectorAll('.os-obs-input').forEach(function(el) {
+      var osId = parseInt(el.getAttribute('data-os-id'));
+      if (osId) _osObservacoes[osId] = el.value;
+    });
+
     if (ids.length === 0 || !clienteId) return;
 
     // Disable button
@@ -958,6 +976,7 @@ var Faturamento = (function() {
         client_id: clienteId,
         order_service_ids: ids,
         observacoes: obs,
+        os_observacoes: _osObservacoes,
         tipo_valor: tipoValor,
         aplicar_retencao: aplicarRetencao,
         vencimento: vencimento
@@ -998,6 +1017,7 @@ var Faturamento = (function() {
     document.getElementById('successSection').style.display = 'none';
     document.getElementById('abertosContent').style.display = '';
     _selectedOS = {};
+    _osObservacoes = {};
     carregarOSAbertos(); // Refresh list
   }
 

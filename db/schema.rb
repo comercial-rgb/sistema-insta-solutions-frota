@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_20_150000) do
+ActiveRecord::Schema[7.1].define(version: 2026_05_02_110000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -399,6 +399,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_20_150000) do
     t.string "centro_custo_nome"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.text "observacoes"
     t.index ["fatura_id"], name: "index_fatura_itens_on_fatura_id"
     t.index ["order_service_id"], name: "index_fatura_itens_on_order_service_id"
     t.index ["order_service_proposal_id"], name: "index_fatura_itens_on_order_service_proposal_id"
@@ -476,10 +477,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_20_150000) do
     t.bigint "acknowledged_by_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "order_service_id"
     t.index ["acknowledged_by_id"], name: "index_maintenance_alerts_on_acknowledged_by_id"
     t.index ["alert_type"], name: "index_maintenance_alerts_on_alert_type"
     t.index ["client_id"], name: "index_maintenance_alerts_on_client_id"
     t.index ["maintenance_plan_item_id"], name: "index_maintenance_alerts_on_maintenance_plan_item_id"
+    t.index ["order_service_id"], name: "index_maintenance_alerts_on_order_service_id"
     t.index ["status"], name: "index_maintenance_alerts_on_status"
     t.index ["vehicle_id", "status"], name: "index_maintenance_alerts_on_vehicle_id_and_status"
     t.index ["vehicle_id"], name: "index_maintenance_alerts_on_vehicle_id"
@@ -845,6 +848,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_20_150000) do
     t.boolean "active", default: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "sem_tabela", default: false, null: false
     t.index ["active"], name: "index_reference_prices_on_active"
     t.index ["service_id"], name: "index_reference_prices_on_service_id"
     t.index ["vehicle_model_id", "service_id"], name: "index_reference_prices_on_model_and_service", unique: true
@@ -964,12 +968,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_20_150000) do
     t.bigint "updated_by_id"
     t.datetime "created_at", precision: nil, null: false
     t.datetime "updated_at", precision: nil, null: false
+    t.bigint "parent_stock_item_id"
     t.index ["category_id"], name: "index_stock_items_on_category_id"
     t.index ["client_id", "cost_center_id", "code"], name: "idx_stock_items_unique_code", unique: true
     t.index ["client_id", "cost_center_id", "name"], name: "idx_stock_items_client_cc_name"
     t.index ["client_id"], name: "index_stock_items_on_client_id"
     t.index ["cost_center_id"], name: "index_stock_items_on_cost_center_id"
     t.index ["created_by_id"], name: "index_stock_items_on_created_by_id"
+    t.index ["parent_stock_item_id"], name: "index_stock_items_on_parent_stock_item_id"
     t.index ["part_number"], name: "index_stock_items_on_part_number"
     t.index ["status"], name: "index_stock_items_on_status"
     t.index ["sub_unit_id"], name: "index_stock_items_on_sub_unit_id"
@@ -1211,6 +1217,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_20_150000) do
     t.boolean "training_declined", default: false, null: false
     t.datetime "training_declined_at", precision: nil
     t.boolean "is_gerente", default: false, null: false
+    t.boolean "manual_enviado", default: false, null: false
+    t.datetime "manual_enviado_at"
     t.index ["city_id"], name: "index_users_on_city_id"
     t.index ["client_id"], name: "index_users_on_client_id"
     t.index ["cnh_number"], name: "index_users_on_cnh_number", unique: true
@@ -1401,6 +1409,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_20_150000) do
   add_foreign_key "faturas", "cost_centers"
   add_foreign_key "faturas", "users", column: "client_id"
   add_foreign_key "maintenance_alerts", "maintenance_plan_items"
+  add_foreign_key "maintenance_alerts", "order_services"
   add_foreign_key "maintenance_alerts", "users", column: "acknowledged_by_id"
   add_foreign_key "maintenance_alerts", "users", column: "client_id"
   add_foreign_key "maintenance_alerts", "vehicles"
@@ -1459,6 +1468,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_20_150000) do
   add_foreign_key "states", "countries"
   add_foreign_key "stock_items", "categories"
   add_foreign_key "stock_items", "cost_centers"
+  add_foreign_key "stock_items", "stock_items", column: "parent_stock_item_id"
   add_foreign_key "stock_items", "sub_units"
   add_foreign_key "stock_items", "users", column: "client_id"
   add_foreign_key "stock_items", "users", column: "created_by_id"

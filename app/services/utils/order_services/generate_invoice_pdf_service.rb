@@ -224,7 +224,8 @@ module Utils
         grouped = @items.select { |i| i.order_service_id.present? }.group_by(&:order_service_id)
 
         grouped.each do |_os_id, items|
-          os = items.first.order_service
+          fatura_item = items.first
+          os = fatura_item.order_service
           next unless os
 
           proposal = find_approved_proposal(os)
@@ -313,6 +314,10 @@ module Utils
           # Sub-row: CNPJ + regime + retention info
           regime_txt = is_simples ? 'Optante Simples (Isento)' : "Não Optante - Ret. Peças #{fmt_pct(pct_pecas_ret)}% / Serviços #{fmt_pct(pct_serv_ret)}% = #{money(ret_provider)}"
           rows << [{ content: "#{provider_name}  |  CNPJ: #{provider&.cnpj || '-'}  |  #{regime_txt}", colspan: 11, text_color: '888888', size: 7 }]
+
+          if fatura_item.observacoes.present?
+            rows << [{ content: "Obs: #{fatura_item.observacoes}", colspan: 11, text_color: '555555', size: 7, font_style: :italic }]
+          end
         end
 
         rows << [
@@ -326,12 +331,13 @@ module Utils
 
         if rows.length > 2
           col_widths = [40, 100, 50, 60, 60, 65, 60, 70, 60, 60, 60]
+          target_w = @pdf.bounds.width.floor
           total_w = col_widths.sum
-          scale = @pdf.bounds.width / total_w.to_f
+          scale = target_w.to_f / total_w
           col_widths = col_widths.map { |w| (w * scale).floor }
-          col_widths[-1] += (@pdf.bounds.width - col_widths.sum).to_i
+          col_widths[-1] += target_w - col_widths.sum
 
-          @pdf.table(rows, header: true, width: @pdf.bounds.width,
+          @pdf.table(rows, header: true, width: target_w,
                      column_widths: col_widths,
                      cell_style: { size: 7, padding: [3, 3], borders: [:bottom], border_color: 'DDDDDD' }) do |t|
             t.row(0).background_color = HEADER_BG

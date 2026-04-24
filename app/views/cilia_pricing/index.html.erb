@@ -8,14 +8,19 @@ breadcrumbs = [
 <div class="container-fluid">
   <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
 
-  <div class="row mb-3">
-    <div class="col-12">
+  <div class="row mb-3 align-items-start">
+    <div class="col">
       <h3>
         <i class="bi bi-currency-dollar"></i> Precificação Cilia
       </h3>
-      <p class="text-muted">
+      <p class="text-muted mb-0">
         Ordens de Serviço com peças que precisam de precificação de referência Cilia.
       </p>
+    </div>
+    <div class="col-auto">
+      <%= link_to cilia_pricing_sem_tabela_report_path, class: 'btn btn-outline-warning btn-sm' do %>
+        <i class="bi bi-slash-circle me-1"></i> Itens Sem Ref. Tabela
+      <% end %>
     </div>
   </div>
 

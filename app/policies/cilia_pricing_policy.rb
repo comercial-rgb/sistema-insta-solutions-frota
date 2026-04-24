@@ -14,4 +14,8 @@ class CiliaPricingPolicy < Struct.new(:user, :cilia_pricing)
   def mark_complete?
     user.admin?
   end
+
+  def sem_tabela_report?
+    user.admin?
+  end
 end

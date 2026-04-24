@@ -517,12 +517,6 @@ class OrderServiceProposalsController < ApplicationController
   def approve_order_service_proposal
     authorize @order_service_proposal
     reason = params[:reason_approved].to_s.strip
-    justification_required = @order_service_proposal.requires_approval_justification?
-
-    if justification_required && reason.blank?
-      flash[:error] = "É necessário justificar a aprovação para itens com preços acima da tabela de referência."
-      return redirect_back(fallback_location: :back)
-    end
 
     # ✅ Verificar saldo nos empenhos antes de aprovar (validação movida do update)
     order_service = @order_service_proposal.order_service

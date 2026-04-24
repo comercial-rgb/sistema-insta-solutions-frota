@@ -529,18 +529,41 @@ $(document).on('click', '.add-provider-service-temp', function(e) {
     // Determinar se é peça (1) ou serviço (2)
     let isPeca = (categoryId == 1);
     
+    // Capturar vehicle_model_id do form
+    let vehicleModelId = $('#order_service_proposal_vehicle_model_id').val() || '';
+
     // Buscar serviços disponíveis via AJAX
     $.ajax({
         url: '/services/by_category',
         method: 'GET',
-        data: { category_id: categoryId },
+        data: { category_id: categoryId, vehicle_model_id: vehicleModelId },
         dataType: 'json',
         success: function(services) {
-            // Gerar options do select
+            // Gerar options do select — "Criar novo item" bloqueado para peças já precificadas
             let optionsHtml = '<option value="">Selecionar do banco...</option>';
-            optionsHtml += '<option value="novo" data-name="">➕ Criar novo item</option>';
+            if (isPeca) {
+                // Contar peças que ainda NÃO têm referência e NÃO são sem_tabela
+                let semRefCount = services.filter(s => !s.has_reference_price && !s.sem_tabela).length;
+                if (semRefCount > 0 || !vehicleModelId) {
+                    // Permitir "novo" apenas quando não há modelo vinculado ou há peças sem ref
+                    optionsHtml += '<option value="novo" data-name="" data-sem-ref="true">➕ Criar novo item (sem ref. Cilia)</option>';
+                }
+                // Com modelo vinculado: mostrar aviso em vez de opção livre
+            } else {
+                optionsHtml += '<option value="novo" data-name="">➕ Criar novo item</option>';
+            }
             services.forEach(function(service) {
-                optionsHtml += `<option value="${service.id}" data-name="${service.name}">${service.name}</option>`;
+                let label = service.name;
+                let badge = '';
+                if (isPeca && service.has_reference_price) {
+                    if (service.sem_tabela) {
+                        badge = ' ⚠️ [Sem ref. tabela]';
+                    } else {
+                        let maxStr = service.max_allowed_price ? ` / máx R$ ${parseFloat(service.max_allowed_price).toFixed(2).replace('.', ',')}` : '';
+                        badge = ` ✔ [Cilia: R$ ${parseFloat(service.reference_price).toFixed(2).replace('.', ',')}${maxStr}]`;
+                    }
+                }
+                optionsHtml += `<option value="${service.id}" data-name="${service.name}" data-has-ref="${service.has_reference_price}" data-sem-tabela="${service.sem_tabela}" data-ref-price="${service.reference_price || ''}" data-max-price="${service.max_allowed_price || ''}" data-source="${service.reference_source || ''}">${label}${badge}</option>`;
             });
             
             // Template do novo item com SELECT e campo de texto condicional
@@ -681,25 +704,49 @@ $(document).on('change', '.provider-service-select', function() {
     let nameContainer = $(`#new-item-name-container-${index}`);
     let nameInput = $(`#order_service_proposal_provider_service_temps_attributes_${index}_name`);
     
+    // Remover badge de referência anterior
+    $(`#cilia-ref-badge-${index}`).remove();
+
     if (selectedValue === 'novo') {
-        // Mostrar campo de texto para criar novo item
         nameContainer.show();
         nameInput.prop('required', true);
         select.prop('required', false);
     } else if (selectedValue) {
-        // Item do banco selecionado
         nameContainer.hide();
         nameInput.prop('required', false).val('');
         select.prop('required', true);
-        
+
         // Verificar duplicados
         if (checkDuplicateService(selectedValue, index)) {
             alert('Este item já foi adicionado!');
             select.val('').trigger('change');
             return;
         }
+
+        // Mostrar badge de referência Cilia se disponível (visível apenas internamente, não para fornecedor)
+        let hasRef   = selectedOption.data('has-ref');
+        let semTab   = selectedOption.data('sem-tabela');
+        let refPrice = selectedOption.data('ref-price');
+        let maxPrice = selectedOption.data('max-price');
+        let source   = selectedOption.data('source');
+        let catId    = select.data('category');
+
+        if (catId == 1 && hasRef) {
+            let badgeHtml = '';
+            if (semTab) {
+                badgeHtml = `<div id="cilia-ref-badge-${index}" class="alert alert-warning py-1 px-2 mt-1 small">
+                  <i class="bi bi-exclamation-triangle"></i> <strong>Sem ref. tabela</strong> — preço baseado em pesquisa de mercado
+                </div>`;
+            } else {
+                let fmt = v => v ? 'R$ ' + parseFloat(v).toLocaleString('pt-BR', {minimumFractionDigits:2}) : '-';
+                badgeHtml = `<div id="cilia-ref-badge-${index}" class="alert alert-info py-1 px-2 mt-1 small">
+                  <i class="bi bi-check-circle"></i> <strong>Ref. ${source || 'Cilia'}:</strong> ${fmt(refPrice)}
+                  &nbsp;|&nbsp; Máx. permitido: <strong>${fmt(maxPrice)}</strong>
+                </div>`;
+            }
+            select.closest('.col-md-12').after(badgeHtml);
+        }
     } else {
-        // Nenhuma opção selecionada
         nameContainer.hide();
         nameInput.prop('required', false).val('');
         select.prop('required', true);

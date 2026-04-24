@@ -14,7 +14,9 @@ class FaturamentoController < ApplicationController
     @faturas = @faturas.order(created_at: :desc).page(params[:page]).per(25)
 
     # Últimas faturas (resumo tab)
-    @ultimas_faturas = Fatura.order(created_at: :desc).limit(5)
+    @ultimas_faturas = Fatura.all
+    @ultimas_faturas = @ultimas_faturas.where(client_id: @current_user.id) if @current_user.client?
+    @ultimas_faturas = @ultimas_faturas.order(created_at: :desc).limit(5)
 
     # Clients & cost_centers for filter dropdowns
     @clients = User.client.active.name_ordered
@@ -31,11 +33,13 @@ class FaturamentoController < ApplicationController
 
   def show
     authorize :faturamento, :show?
-    @fatura = Fatura.includes(
+    scope = Fatura.includes(
       fatura_itens: { order_service: [:vehicle, :cost_center, :sub_unit,
         { order_service_proposals: [:provider, :order_service_invoices] }] },
       client: [], cost_center: [], contract: []
-    ).find(params[:id])
+    )
+    scope = scope.where(client_id: @current_user.id) if @current_user.client?
+    @fatura = scope.find(params[:id])
 
     respond_to do |format|
       format.html
@@ -48,6 +52,7 @@ class FaturamentoController < ApplicationController
 
     client = User.find(params[:client_id])
     os_ids = Array(params[:order_service_ids]).map(&:to_i).uniq
+    os_observacoes = (params[:os_observacoes] || {}).to_h { |k, v| [k.to_i, v.to_s] }
 
     # Somente OS em status Autorizada e não faturadas
     order_services = OrderService.where(id: os_ids, client_id: client.id, invoiced: false)
@@ -91,7 +96,8 @@ class FaturamentoController < ApplicationController
         valor: os_bruto,
         quantidade: 1,
         veiculo_placa: os.vehicle&.board,
-        centro_custo_nome: os.cost_center&.name
+        centro_custo_nome: os.cost_center&.name,
+        observacoes: os_observacoes[os.id].presence
       }
     end
 

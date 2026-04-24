@@ -186,11 +186,18 @@ can_complete = policy(:cilia_pricing).mark_complete?
                     <tr>
                       <th>Peça</th>
                       <th>Marca</th>
-                      <th class="text-end">Preço Fornecedor (R$)</th>
-                      <th class="text-end" style="width: 160px;">Preço Ref. Cilia (R$)</th>
-                      <th class="text-center" style="width: 80px;">% Máx.</th>
-                      <th style="width: 140px;">Fonte</th>
-                      <th class="text-center" style="width: 100px;">Status</th>
+                      <th class="text-end">Preço Fornecedor</th>
+                      <th class="text-end text-muted small" style="width:120px;">
+                        Média 3 Cot. anteriores
+                        <i class="bi bi-info-circle" data-bs-toggle="tooltip" title="Média das últimas 3 OS aprovadas deste veículo para o mesmo item"></i>
+                      </th>
+                      <th class="text-end" style="width: 160px;">
+                        Ref. Tabela (Cilia)
+                        <br><small class="text-muted fw-normal">ou marcar Sem Ref.</small>
+                      </th>
+                      <th class="text-center" style="width: 70px;">% Máx.</th>
+                      <th style="width: 130px;">Fonte</th>
+                      <th class="text-center" style="width: 90px;">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -200,16 +207,22 @@ can_complete = policy(:cilia_pricing).mark_complete?
                         ref = part_data[:reference_price]
                         service_id = item.service_id
                         provider_price = item.unity_value.to_f
-                        
-                        # Calcular diferença se houver referência
-                        if ref.present?
-                          diff_percent = ref.reference_price.to_f > 0 ? 
-                            (((provider_price - ref.reference_price.to_f) / ref.reference_price.to_f) * 100).round(0) : 0
+                        hist_avg = part_data[:historical_avg]
+                        hist_count = part_data[:historical_count]
+                        hist_prices = part_data[:historical_prices] || []
+                        is_sem_tabela = part_data[:sem_tabela]
+
+                        exceeded = false
+                        diff_percent = 0
+                        if ref.present? && !is_sem_tabela && ref.reference_price.to_f > 0
                           max_allowed = ref.max_allowed_price
-                          exceeded = provider_price > max_allowed
+                          if max_allowed
+                            exceeded = provider_price > max_allowed
+                            diff_percent = (((provider_price - ref.reference_price.to_f) / ref.reference_price.to_f) * 100).round(0)
+                          end
                         end
                       %>
-                      <tr class="<%= 'table-danger' if ref.present? && exceeded %>">
+                      <tr>
                         <td>
                           <strong><%= item.service_name.presence || item.service&.name || '-' %></strong>
                           <% if item.service&.code.present? %>
@@ -223,22 +236,77 @@ can_complete = policy(:cilia_pricing).mark_complete?
                             <br><small class="text-muted">x<%= item.quantity %> = <%= CustomHelper.to_currency(item.total_value) %></small>
                           <% end %>
                         </td>
+                        <%# Coluna histórico / pesquisa de mercado %>
+                        <td>
+                          <% if is_sem_tabela && hist_count > 0 %>
+                            <%
+                              hist_diff = provider_price - hist_avg
+                              hist_color = hist_diff.abs <= 10 ? 'success' : (hist_diff > 10 ? 'danger' : 'info')
+                              hist_arrow = hist_diff > 10 ? '↑' : (hist_diff < -10 ? '↓' : '≈')
+                            %>
+                            <div class="border border-info rounded p-2 small bg-light">
+                              <div class="fw-bold text-info mb-1">
+                                <i class="bi bi-search"></i> Pesquisa de Mercado
+                              </div>
+                              <div>Média: <strong><%= CustomHelper.to_currency(hist_avg) %></strong>
+                                <span class="text-<%= hist_color %> ms-1"><%= hist_arrow %></span>
+                              </div>
+                              <% if hist_prices.any? %>
+                                <div class="text-muted mt-1">
+                                  Cotações: <%= hist_prices.map { |p| CustomHelper.to_currency(p) }.join(' · ') %>
+                                </div>
+                              <% end %>
+                              <div class="text-muted">(<%= hist_count %> OS anterior<%= hist_count > 1 ? 'es' : '' %>)</div>
+                            </div>
+                          <% elsif hist_count > 0 %>
+                            <%
+                              hist_diff = provider_price - hist_avg
+                              hist_color = hist_diff.abs <= 10 ? 'success' : (hist_diff > 10 ? 'danger' : 'info')
+                              hist_arrow = hist_diff > 10 ? '↑' : (hist_diff < -10 ? '↓' : '≈')
+                            %>
+                            <div class="text-end">
+                              <span class="text-<%= hist_color %> fw-bold" data-bs-toggle="tooltip"
+                                title="Média de <%= hist_count %> cotação(ões) anterior(es): <%= CustomHelper.to_currency(hist_avg) %>">
+                                <%= hist_arrow %> <%= CustomHelper.to_currency(hist_avg) %>
+                              </span>
+                              <br><small class="text-muted">(<%= hist_count %> cot.)</small>
+                            </div>
+                          <% else %>
+                            <small class="text-muted">Sem histórico</small>
+                          <% end %>
+                        </td>
+                        <%# Coluna Ref. Tabela %>
                         <td class="text-end">
                           <% if service_id.present? && @vehicle_model.present? && can_edit %>
-                            <div class="input-group input-group-sm">
-                              <span class="input-group-text">R$</span>
-                              <%= text_field_tag "reference_prices[#{service_id}][reference_price]",
-                                ref.present? ? number_with_precision(ref.reference_price, precision: 2) : nil,
-                                class: "form-control form-control-sm text-end cilia-price-input",
-                                placeholder: '0,00',
-                                data: { provider_price: provider_price } %>
+                            <%# Botão toggle Sem referência na tabela %>
+                            <div class="mb-2">
+                              <%= check_box_tag "reference_prices[#{service_id}][sem_tabela]", '1',
+                                is_sem_tabela,
+                                class: 'btn-check sem-tabela-check',
+                                id: "sem_tabela_#{service_id}",
+                                autocomplete: 'off',
+                                data: { service_id: service_id } %>
+                              <label class="btn btn-sm <%= is_sem_tabela ? 'btn-warning' : 'btn-outline-secondary' %>"
+                                     for="sem_tabela_<%= service_id %>">
+                                <i class="bi bi-slash-circle"></i> Sem ref. tabela
+                              </label>
                             </div>
+                            <div id="price-input-<%= service_id %>" class="<%= is_sem_tabela ? 'd-none' : '' %>">
+                              <div class="input-group input-group-sm">
+                                <span class="input-group-text">R$</span>
+                                <%= text_field_tag "reference_prices[#{service_id}][reference_price]",
+                                  (!is_sem_tabela && ref.present?) ? number_with_precision(ref.reference_price, precision: 2) : nil,
+                                  class: "form-control form-control-sm text-end cilia-price-input",
+                                  placeholder: '0,00',
+                                  data: { provider_price: provider_price } %>
+                              </div>
+                            </div>
+                          <% elsif is_sem_tabela %>
+                            <span class="badge bg-warning text-dark"><i class="bi bi-slash-circle"></i> Sem ref. tabela</span>
                           <% elsif ref.present? %>
                             <strong><%= CustomHelper.to_currency(ref.reference_price) %></strong>
                             <% if exceeded %>
-                              <br><span class="text-danger small">
-                                <i class="bi bi-exclamation-triangle"></i> +<%= diff_percent %>% acima
-                              </span>
+                              <br><small class="text-warning"><i class="bi bi-info-circle"></i> +<%= diff_percent %>% vs tabela</small>
                             <% end %>
                           <% else %>
                             <span class="text-muted">-</span>
@@ -246,39 +314,41 @@ can_complete = policy(:cilia_pricing).mark_complete?
                         </td>
                         <td class="text-center">
                           <% if service_id.present? && @vehicle_model.present? && can_edit %>
-                            <%= number_field_tag "reference_prices[#{service_id}][max_percentage]",
-                              ref.present? ? ref.max_percentage : 110,
-                              class: 'form-control form-control-sm text-center',
-                              min: 100, step: 0.1, style: 'width: 70px' %>
-                          <% elsif ref.present? %>
+                            <div id="pct-input-<%= service_id %>" class="<%= is_sem_tabela ? 'd-none' : '' %>">
+                              <%= number_field_tag "reference_prices[#{service_id}][max_percentage]",
+                                (!is_sem_tabela && ref.present?) ? ref.max_percentage : 110,
+                                class: 'form-control form-control-sm text-center',
+                                min: 100, step: 0.1, style: 'width: 65px' %>
+                            </div>
+                            <% if is_sem_tabela %>—<% end %>
+                          <% elsif ref.present? && !is_sem_tabela %>
                             <%= ref.max_percentage %>%
-                          <% else %>
-                            -
-                          <% end %>
+                          <% else %>-<% end %>
                         </td>
                         <td>
                           <% if service_id.present? && @vehicle_model.present? && can_edit %>
                             <%= text_field_tag "reference_prices[#{service_id}][source]",
-                              ref.present? ? ref.source : "Cilia #{Date.current.strftime('%m/%Y')}",
+                              ref.present? ? ref.source : (is_sem_tabela ? "Sem ref. tabela #{Date.current.strftime('%m/%Y')}" : "Cilia #{Date.current.strftime('%m/%Y')}"),
                               class: 'form-control form-control-sm',
+                              id: "source_#{service_id}",
                               placeholder: 'Fonte' %>
                           <% elsif ref.present? %>
                             <small><%= ref.source || '-' %></small>
-                          <% else %>
-                            -
-                          <% end %>
+                          <% else %>-<% end %>
                         </td>
                         <td class="text-center">
-                          <% if ref.present? %>
+                          <% if is_sem_tabela %>
+                            <span class="badge bg-warning text-dark" data-bs-toggle="tooltip" title="Sem referência de tabela. Pesquisa de mercado registrada com <%= hist_count %> cotação(ões).">
+                              <i class="bi bi-search"></i> Pesq. Mercado
+                            </span>
+                          <% elsif ref.present? %>
                             <% if exceeded %>
-                              <span class="badge bg-danger" data-bs-toggle="tooltip"
-                                title="Fornecedor: #{CustomHelper.to_currency(provider_price)} | Máx: #{CustomHelper.to_currency(max_allowed)}">
-                                <i class="bi bi-exclamation-circle"></i> +<%= diff_percent %>%
+                              <span class="badge bg-warning text-dark" data-bs-toggle="tooltip"
+                                title="Cobrado: <%= CustomHelper.to_currency(provider_price) %> | Máx. tabela: <%= CustomHelper.to_currency(ref.max_allowed_price) %>">
+                                <i class="bi bi-info-circle"></i> +<%= diff_percent %>% vs tabela
                               </span>
                             <% else %>
-                              <span class="badge bg-success">
-                                <i class="bi bi-check-circle"></i> OK
-                              </span>
+                              <span class="badge bg-success"><i class="bi bi-check-circle"></i> OK</span>
                             <% end %>
                           <% elsif service_id.blank? %>
                             <span class="badge bg-secondary" data-bs-toggle="tooltip" title="Item sem serviço vinculado">
@@ -289,9 +359,7 @@ can_complete = policy(:cilia_pricing).mark_complete?
                               <i class="bi bi-link"></i> Sem modelo
                             </span>
                           <% else %>
-                            <span class="badge bg-warning text-dark">
-                              <i class="bi bi-clock"></i> Pendente
-                            </span>
+                            <span class="badge bg-warning text-dark"><i class="bi bi-clock"></i> Pendente</span>
                           <% end %>
                         </td>
                       </tr>
@@ -374,8 +442,32 @@ can_complete = policy(:cilia_pricing).mark_complete?
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-  // Inicializar tooltips
   var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
   tooltipTriggerList.forEach(function(el) { new bootstrap.Tooltip(el); });
+
+  // Toggle sem_tabela: oculta/exibe campos de preço e % ao marcar
+  document.querySelectorAll('.sem-tabela-check').forEach(function(chk) {
+    chk.addEventListener('change', function() {
+      var sid = this.dataset.serviceId;
+      var priceDiv = document.getElementById('price-input-' + sid);
+      var pctDiv   = document.getElementById('pct-input-' + sid);
+      var sourceEl = document.getElementById('source_' + sid);
+      var lbl = document.querySelector('label[for="sem_tabela_' + sid + '"]');
+
+      if (this.checked) {
+        if (priceDiv) priceDiv.classList.add('d-none');
+        if (pctDiv)   pctDiv.classList.add('d-none');
+        if (sourceEl) sourceEl.value = 'Sem ref. tabela <%= Date.current.strftime("%m/%Y") %>';
+        if (lbl) { lbl.classList.remove('btn-outline-secondary'); lbl.classList.add('btn-warning'); }
+      } else {
+        if (priceDiv) priceDiv.classList.remove('d-none');
+        if (pctDiv)   pctDiv.classList.remove('d-none');
+        if (sourceEl && sourceEl.value.startsWith('Sem ref.')) {
+          sourceEl.value = 'Cilia <%= Date.current.strftime("%m/%Y") %>';
+        }
+        if (lbl) { lbl.classList.remove('btn-warning'); lbl.classList.add('btn-outline-secondary'); }
+      }
+    });
+  });
 });
 </script>

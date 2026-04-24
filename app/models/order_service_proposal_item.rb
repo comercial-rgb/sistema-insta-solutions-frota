@@ -61,11 +61,14 @@
     )
     
     return result unless ref_price
-    
+    return result if ref_price.sem_tabela?
+
     max_allowed = ref_price.max_allowed_price
+    return result unless max_allowed
+
     result[:reference_price] = ref_price.reference_price.to_f
     result[:max_allowed] = max_allowed.to_f
-    
+
     if unity_value > max_allowed
       percentage_over = (((unity_value - ref_price.reference_price) / ref_price.reference_price) * 100).round(0)
       result[:exceeded] = true

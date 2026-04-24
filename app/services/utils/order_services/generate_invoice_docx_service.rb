@@ -65,7 +65,8 @@ module Utils
         grouped = @items.select { |i| i.order_service_id.present? }.group_by(&:order_service_id)
 
         grouped.each do |_os_id, items|
-          os = items.first.order_service
+          fatura_item = items.first
+          os = fatura_item.order_service
           next unless os
 
           proposal = find_approved_proposal(os)
@@ -138,7 +139,7 @@ module Utils
             bruto: bruto, desconto: desc_val, com_desc: com_desc,
             pct_desc: bruto > 0 ? ((desc_val / bruto) * 100).round(2) : 0,
             ret: ret_provider.round(2), pct_pecas_ret: pct_pecas_ret, pct_serv_ret: pct_serv_ret,
-            is_simples: is_simples
+            is_simples: is_simples, observacoes: fatura_item.observacoes.presence
           }
         end
 
@@ -256,6 +257,10 @@ module Utils
           regime_txt = r[:is_simples] ? 'Optante Simples (Isento)' : "Não Optante - Ret. Peças #{fmt_pct(r[:pct_pecas_ret])}% / Serviços #{fmt_pct(r[:pct_serv_ret])}% = #{money(r[:ret])}"
           item_rows << :sub_row
           item_rows << { sub: true, text: "#{r[:provider]}  |  CNPJ: #{r[:provider_cnpj]}  |  #{regime_txt}" }
+          if r[:observacoes].present?
+            item_rows << :sub_row
+            item_rows << { sub: true, text: "Obs: #{r[:observacoes]}" }
+          end
         end
 
         item_rows << [
