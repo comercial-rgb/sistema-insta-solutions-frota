@@ -149,6 +149,7 @@ can_complete = policy(:cilia_pricing).mark_complete?
   <!-- Propostas e Itens -->
   <% if @proposals_data.any? %>
     <%= form_tag update_prices_cilia_pricing_path(@order_service), method: :patch do %>
+      <% rendered_service_ids = [] %>
       <% @proposals_data.each_with_index do |pd, idx| %>
         <% proposal = pd[:proposal] %>
         <div class="card mb-3">
@@ -212,6 +213,8 @@ can_complete = policy(:cilia_pricing).mark_complete?
                         hist_count = part_data[:historical_count]
                         hist_prices = part_data[:historical_prices] || []
                         is_sem_tabela = part_data[:sem_tabela]
+                        already_rendered = service_id.present? && rendered_service_ids.include?(service_id)
+                        rendered_service_ids << service_id if service_id.present? && !already_rendered
 
                         exceeded = false
                         diff_percent = 0
@@ -278,7 +281,7 @@ can_complete = policy(:cilia_pricing).mark_complete?
                         </td>
                         <%# Coluna Ref. Tabela %>
                         <td class="text-end">
-                          <% if service_id.present? && @vehicle_model.present? && can_edit %>
+                          <% if service_id.present? && @vehicle_model.present? && can_edit && !already_rendered %>
                             <%# Botão toggle Sem referência na tabela %>
                             <div class="mb-2">
                               <%= check_box_tag "reference_prices[#{service_id}][sem_tabela]", '1',
@@ -302,6 +305,8 @@ can_complete = policy(:cilia_pricing).mark_complete?
                                   data: { provider_price: provider_price } %>
                               </div>
                             </div>
+                          <% elsif already_rendered %>
+                            <small class="text-muted fst-italic">Ver acima</small>
                           <% elsif is_sem_tabela %>
                             <span class="badge bg-warning text-dark"><i class="bi bi-slash-circle"></i> Sem ref. tabela</span>
                           <% elsif ref.present? %>
@@ -314,7 +319,7 @@ can_complete = policy(:cilia_pricing).mark_complete?
                           <% end %>
                         </td>
                         <td>
-                          <% if service_id.present? && @vehicle_model.present? && can_edit %>
+                          <% if service_id.present? && @vehicle_model.present? && can_edit && !already_rendered %>
                             <%= text_field_tag "reference_prices[#{service_id}][reference_code]",
                               ref&.reference_code,
                               class: 'form-control form-control-sm',
@@ -324,7 +329,7 @@ can_complete = policy(:cilia_pricing).mark_complete?
                           <% else %>-<% end %>
                         </td>
                         <td class="text-center">
-                          <% if service_id.present? && @vehicle_model.present? && can_edit %>
+                          <% if service_id.present? && @vehicle_model.present? && can_edit && !already_rendered %>
                             <div id="pct-input-<%= service_id %>" class="<%= is_sem_tabela ? 'd-none' : '' %>">
                               <%= number_field_tag "reference_prices[#{service_id}][max_percentage]",
                                 (!is_sem_tabela && ref.present?) ? ref.max_percentage : 110,
@@ -337,7 +342,7 @@ can_complete = policy(:cilia_pricing).mark_complete?
                           <% else %>-<% end %>
                         </td>
                         <td>
-                          <% if service_id.present? && @vehicle_model.present? && can_edit %>
+                          <% if service_id.present? && @vehicle_model.present? && can_edit && !already_rendered %>
                             <%= text_field_tag "reference_prices[#{service_id}][source]",
                               ref.present? ? ref.source : (is_sem_tabela ? "Sem ref. tabela #{Date.current.strftime('%m/%Y')}" : "Cilia #{Date.current.strftime('%m/%Y')}"),
                               class: 'form-control form-control-sm',
