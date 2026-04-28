@@ -136,7 +136,7 @@ class CiliaPricingController < ApplicationController
         else
           reference_price.assign_attributes(
             sem_tabela: false,
-            reference_price: price_data[:reference_price].to_s.gsub(',', '.'),
+            reference_price: parse_price_input(price_data[:reference_price]),
             max_percentage: price_data[:max_percentage].presence || 110,
             reference_code: price_data[:reference_code].presence,
             source: price_data[:source].presence || "Cilia #{Date.current.strftime('%m/%Y')}",
@@ -205,6 +205,18 @@ class CiliaPricingController < ApplicationController
   end
 
   private
+
+  # Converte string de preço em formato brasileiro ("5.500,00") para decimal ("5500.00").
+  # Quando há vírgula, trata pontos como separadores de milhar e vírgula como decimal.
+  def parse_price_input(value)
+    str = value.to_s.strip
+    return str if str.blank?
+    if str.include?(',')
+      str.gsub('.', '').gsub(',', '.')
+    else
+      str
+    end
+  end
 
   def set_order_service
     @order_service = OrderService.includes(:vehicle, :order_service_type, :order_service_status)

@@ -1303,12 +1303,27 @@ class OrderServiceProposalsController < ApplicationController
               .where("LOWER(name) LIKE ?", nome_sem_acento)
               .first
           end
-          service = existing_service || Service.create!(
-            name: service_name,
-            category_id: category_id,
-            price: temp_attrs[:price],
-            provider_id: @current_user&.id
-          )
+          service = existing_service
+          if service.nil?
+            begin
+              service = Service.create!(
+                name: service_name,
+                category_id: category_id,
+                price: temp_attrs[:price],
+                provider_id: @current_user&.id
+              )
+            rescue ActiveRecord::RecordInvalid
+              # Nome similar já existe (validação check_similar_names) — reutilizar o serviço existente
+              normalized = I18n.transliterate(service_name.downcase.strip.gsub(/\s+/, ' '))
+              service = Service.where(category_id: category_id).find do |s|
+                existing_normalized = I18n.transliterate(s.name.to_s.downcase.strip.gsub(/\s+/, ' '))
+                normalized == existing_normalized ||
+                  (normalized.length > 3 && existing_normalized.length > 3 &&
+                   (normalized.include?(existing_normalized) || existing_normalized.include?(normalized)) &&
+                   (normalized.length - existing_normalized.length).abs <= 2)
+              end
+            end
+          end
           temp_attrs[:service_id] = service.id
           temp_attrs[:name] = service.name
 

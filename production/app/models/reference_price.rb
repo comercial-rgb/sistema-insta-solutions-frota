@@ -4,8 +4,8 @@ class ReferencePrice < ApplicationRecord
   belongs_to :service
   
   # Validações
-  validates :reference_price, presence: true, numericality: { greater_than: 0 }
-  validates :max_percentage, presence: true, numericality: { greater_than_or_equal_to: 100 }
+  validates :reference_price, presence: true, numericality: { greater_than: 0 }, unless: :sem_tabela?
+  validates :max_percentage, presence: true, numericality: { greater_than_or_equal_to: 100 }, unless: :sem_tabela?
   validates :service_id, uniqueness: { scope: :vehicle_model_id, message: 'já possui preço de referência para este modelo de veículo' }
   
   # Scopes
@@ -19,6 +19,7 @@ class ReferencePrice < ApplicationRecord
   
   # Métodos de instância
   def max_allowed_price
+    return nil if sem_tabela?
     return 0 if reference_price.nil? || max_percentage.nil?
     (reference_price * max_percentage / 100.0).round(2)
   end
@@ -52,7 +53,11 @@ class ReferencePrice < ApplicationRecord
   private
   
   def set_defaults
-    self.max_percentage ||= 110.0
+    self.max_percentage ||= 110.0 unless sem_tabela?
     self.active = true if active.nil?
+    if sem_tabela?
+      self.reference_price = nil
+      self.max_percentage = nil
+    end
   end
 end
