@@ -128,39 +128,34 @@ RESTART_RESULT=$($SSH_CMD "
     PUMA_PID_FILE='tmp/pids/puma.pid'
     PUMA_SOCK='tmp/sockets/puma.sock'
 
-    # Tentar hot restart primeiro (zero downtime)
+    # preload_app! está ativo: USR2 reinicia workers mas herdam código antigo do master.
+    # Full restart garante que o master carregue o código novo.
+    echo 'FULL_RESTART'
+
+    # Matar master (graceful) e esperar
     if [ -f \"\$PUMA_PID_FILE\" ]; then
         OLD_PID=\$(cat \$PUMA_PID_FILE)
         if kill -0 \$OLD_PID 2>/dev/null; then
-            echo 'HOT_RESTART'
-            kill -USR2 \$OLD_PID
-            sleep 8
-            # Verificar se novo processo assumiu
-            if [ -S \"\$PUMA_SOCK\" ]; then
-                echo 'SUCCESS'
-                exit 0
-            fi
+            kill -TERM \$OLD_PID 2>/dev/null || true
+            sleep 6
+            kill -9 \$OLD_PID 2>/dev/null || true
         fi
     fi
 
-    # Se hot restart falhou, fazer restart completo
-    echo 'FULL_RESTART'
-
-    # Matar processos antigos
+    # Matar qualquer processo puma residual do app
     pkill -f 'puma.*frotainstasolutions' 2>/dev/null || true
-    # Também matar qualquer Puma na porta 3000 (config errada)
     pkill -f 'puma.*tcp.*3000.*production' 2>/dev/null || true
-    sleep 3
+    sleep 2
 
-    # Limpar socket antigo
-    rm -f \$PUMA_SOCK
+    # Limpar artefatos antigos
+    rm -f \$PUMA_SOCK \$PUMA_PID_FILE tmp/pids/puma.state
 
-    # Iniciar com config CORRETA de produção (Unix socket)
+    # Iniciar novo master com código novo
     RAILS_ENV=production nohup bundle exec puma -C $PUMA_CONFIG >> log/puma.log 2>&1 &
     disown
 
-    # Aguardar socket ser criado
-    for i in 1 2 3 4 5 6 7 8 9 10; do
+    # Aguardar socket ser criado (até 30s)
+    for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
         if [ -S \"\$PUMA_SOCK\" ]; then
             echo 'SUCCESS'
             exit 0
@@ -172,11 +167,7 @@ RESTART_RESULT=$($SSH_CMD "
 " 2>/dev/null)
 
 if echo "$RESTART_RESULT" | grep -q "SUCCESS"; then
-    if echo "$RESTART_RESULT" | grep -q "HOT_RESTART"; then
-        log_ok "Puma reiniciado (hot restart - zero downtime)"
-    else
-        log_ok "Puma reiniciado (restart completo)"
-    fi
+    log_ok "Puma reiniciado (restart completo — preload_app! recarregado)"
 else
     log_error "Puma pode não ter iniciado corretamente. Verificar logs."
     log_warn "Comando para debug: ssh -i $SSH_KEY $SERVER_USER@$SERVER_HOST 'tail -50 $APP_DIR/log/puma_error.log'"
