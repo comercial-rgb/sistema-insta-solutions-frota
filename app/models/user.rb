@@ -4,6 +4,7 @@
 	after_initialize :default_values
 	before_validation :insert_profile_image
 	before_save :set_manual_enviado_at
+	before_save :set_treinamento_apenas_manual_at
 
 	ADMIN_FIRST_ID = 1
 
@@ -563,13 +564,22 @@
 		end
 	end
 
-	# Define automaticamente manual_enviado_at quando manual_enviado muda para true
 	def set_manual_enviado_at
 		if self.has_attribute?(:manual_enviado) && self.manual_enviado_changed?
 			if self.manual_enviado
 				self.manual_enviado_at ||= Time.current
 			else
 				self.manual_enviado_at = nil
+			end
+		end
+	end
+
+	def set_treinamento_apenas_manual_at
+		if self.has_attribute?(:treinamento_apenas_manual) && self.treinamento_apenas_manual_changed?
+			if self.treinamento_apenas_manual
+				self.treinamento_apenas_manual_at ||= Time.current
+			else
+				self.treinamento_apenas_manual_at = nil
 			end
 		end
 	end

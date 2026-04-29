@@ -43,11 +43,15 @@ class OrderServiceProposalPolicy < ApplicationPolicy
   end
 
   def can_insert_invoices?
-    # Permite fornecedor, admin, gestor e adicional inserir/editar notas fiscais
-    # Fornecedor pode em APROVADA e NOTA_FISCAL_INSERIDA (para trocar PDFs)
-    (general_can_access? && record.provider_id == user.id && ([OrderServiceStatus::APROVADA_ID, OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID].include?(record.order_service.order_service_status_id))) || 
-    user.admin? || 
-    ((user.manager? || user.additional?) && user.client_id == record.order_service.client_id)
+    # Fornecedor pode inserir NF quando proposta está APROVADA ou NOTA_FISCAL_INSERIDA.
+    # Verifica também o status da proposta para cobrir inconsistências onde o status da OS
+    # não foi atualizado corretamente no momento da aprovação.
+    provider_can = general_can_access? && record.provider_id == user.id && (
+      [OrderServiceStatus::APROVADA_ID, OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID].include?(record.order_service.order_service_status_id) ||
+      record.order_service_proposal_status_id == OrderServiceProposalStatus::APROVADA_ID
+    )
+
+    provider_can || user.admin? || ((user.manager? || user.additional?) && user.client_id == record.order_service.client_id)
   end
 
   def edit?

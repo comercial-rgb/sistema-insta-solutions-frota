@@ -373,8 +373,26 @@ class OrderServiceProposalsController < ApplicationController
         redirect_to edit_order_service_proposal_path(id: @order_service_proposal.id)
       else
         # Transição de status ao inserir NF: APROVADA → NOTA_FISCAL_INSERIDA
-        # Aplica para TODOS os usuários (admin, gestor, fornecedor)
-        if @order_service_proposal.order_service.order_service_status_id == OrderServiceStatus::APROVADA_ID
+        # Aplica para TODOS os usuários (admin, gestor, fornecedor).
+        # Também trata inconsistências onde a proposta foi aprovada mas o status da OS
+        # ficou como AGUARDANDO_AVALIACAO (corrige automaticamente ao inserir a NF).
+        os_status = @order_service_proposal.order_service.order_service_status_id
+        proposal_aprovada = @order_service_proposal.order_service_proposal_status_id == OrderServiceProposalStatus::APROVADA_ID
+
+        if os_status == OrderServiceStatus::APROVADA_ID ||
+           (proposal_aprovada && os_status == OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID)
+
+          # Corrige OS para APROVADA primeiro se havia inconsistência
+          if os_status == OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID
+            OrderService.generate_historic(
+              @order_service_proposal.order_service,
+              @current_user,
+              os_status,
+              OrderServiceStatus::APROVADA_ID
+            )
+            @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::APROVADA_ID, updated_at: Time.current)
+          end
+
           @order_service_proposal.audits.create!(
             user: @current_user,
             action: 'update',
@@ -386,11 +404,10 @@ class OrderServiceProposalsController < ApplicationController
           OrderService.generate_historic(
             @order_service_proposal.order_service,
             @current_user,
-            @order_service_proposal.order_service.order_service_status_id,
+            OrderServiceStatus::APROVADA_ID,
             OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID
           )
           @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID, updated_at: Time.current)
-          # Atualizar também o status da proposta para refletir no menu do fornecedor
           @order_service_proposal.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::NOTAS_INSERIDAS_ID)
         end
         flash[:success] = t('flash.update')
