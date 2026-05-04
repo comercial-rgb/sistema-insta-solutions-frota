@@ -703,9 +703,10 @@ var Faturamento = (function() {
     var totalRetencoes = aplicarRetencao ? totalRetNaoSimples : 0;
 
     var valorLiquido = totalComDesconto;
-    // bruto = valor c/ desconto antes de reter impostos (valor da NF)
-    // liquido = valor que o fornecedor efetivamente recebe (após retenções)
-    var valorDevido = (savedTipo === 'liquido') ? (valorLiquido - totalRetencoes) : valorLiquido;
+    // bruto = total sem desconto; liquido = total com desconto
+    // retenções incidem sobre o valor escolhido
+    var valorBase = (savedTipo === 'liquido') ? valorLiquido : totalBruto;
+    var valorDevido = valorBase - totalRetencoes;
 
     // Percentual de desconto efetivo (com precisão)
     var pctDesconto = totalBruto > 0 ? ((totalDesconto / totalBruto) * 100) : 0;
@@ -782,7 +783,7 @@ var Faturamento = (function() {
     html += '</div>';
 
     // VALOR DEVIDO bar
-    var labelValorDevido = savedTipo === 'liquido' ? 'VALOR LÍQUIDO (após Retenções)' : 'VALOR BRUTO (valor da NF)';
+    var labelValorDevido = savedTipo === 'liquido' ? 'VALOR LÍQUIDO (c/ Desconto e Retenções)' : 'VALOR BRUTO (s/ Desconto, c/ Retenções)';
     html += '<div class="rounded-3 mb-4 p-3 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #251C59, #005BED); color: #fff;">';
     html += '<h5 class="mb-0 fw-bold"><i class="bi bi-cash-stack me-2"></i>' + labelValorDevido + '</h5>';
     html += '<h4 class="mb-0 fw-bold">' + money(valorDevido) + '</h4>';

@@ -141,8 +141,10 @@ class FaturamentoController < ApplicationController
     total_retencao = 0.0 unless aplicar_retencao
 
     valor_liquido = total_com_desconto
-    # bruto = valor NF (com desconto, antes de reter); liquido = após retenções
-    valor_final = tipo_valor == 'liquido' ? (valor_liquido - total_retencao) : valor_liquido
+    # bruto = total sem desconto; liquido = total com desconto
+    # retenções incidem sobre o valor escolhido pelo usuário
+    valor_base = tipo_valor == 'liquido' ? valor_liquido : total_bruto
+    valor_final = valor_base - total_retencao
 
     # Build fatura
     vencimento = params[:vencimento].present? ? Date.parse(params[:vencimento]) : (Date.current + 30.days)
