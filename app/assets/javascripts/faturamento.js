@@ -793,13 +793,16 @@ var Faturamento = (function() {
     html += '<div class="table-responsive mb-3"><table class="table table-sm table-bordered mb-0">';
     html += '<thead class="table-light"><tr>';
     html += '<th>OS</th><th>Fornecedor</th><th>Veículo</th><th>C.Custo</th>';
-    html += '<th>Peças Bruto</th><th>Serviços Bruto</th><th>Valor Bruto</th>';
-    html += '<th>Desc.</th><th>V. c/ Desc.</th>';
+    html += '<th>Peças<br><small class="fw-normal text-muted">Bruto / Líq.</small></th>';
+    html += '<th>Serviços<br><small class="fw-normal text-muted">Bruto / Líq.</small></th>';
+    html += '<th>Valor Bruto</th><th>Desc.</th><th>V. c/ Desc.</th>';
     html += '</tr></thead><tbody>';
 
     selectedOSData.forEach(function(os) {
       var isSimples = !os.provider_optante_simples;
       var osPctDesc = os.total_bruto > 0 ? ((os.total_desconto / os.total_bruto) * 100) : 0;
+      var liqPecas = os.bruto_pecas - os.desc_pecas;
+      var liqServicos = os.bruto_servicos - os.desc_servicos;
       html += '<tr>';
       html += '<td><strong>#' + escapeHtml(os.code) + '</strong></td>';
       html += '<td><small>' + escapeHtml(os.provider || '-') + '</small>';
@@ -808,11 +811,11 @@ var Faturamento = (function() {
       html += '</td>';
       html += '<td>' + escapeHtml(os.vehicle_plate) + '</td>';
       html += '<td>' + escapeHtml(os.cost_center || '-') + '</td>';
-      html += '<td>' + money(os.bruto_pecas);
-      if (os.nf_pecas) html += ' <small class="text-muted">(NF ' + escapeHtml(os.nf_pecas) + ')</small>';
+      html += '<td>' + money(os.bruto_pecas) + '<br><small class="text-success">' + money(liqPecas) + '</small>';
+      if (os.nf_pecas) html += '<br><small class="text-muted">NF ' + escapeHtml(os.nf_pecas) + '</small>';
       html += '</td>';
-      html += '<td>' + money(os.bruto_servicos);
-      if (os.nf_servicos) html += ' <small class="text-muted">(NF ' + escapeHtml(os.nf_servicos) + ')</small>';
+      html += '<td>' + money(os.bruto_servicos) + '<br><small class="text-success">' + money(liqServicos) + '</small>';
+      if (os.nf_servicos) html += '<br><small class="text-muted">NF ' + escapeHtml(os.nf_servicos) + '</small>';
       html += '</td>';
       html += '<td>' + money(os.total_bruto) + '</td>';
       html += '<td class="text-danger">- ' + money(os.total_desconto) + ' <small class="text-muted">(' + osPctDesc.toFixed(2).replace('.', ',') + '%)</small></td>';
@@ -835,8 +838,8 @@ var Faturamento = (function() {
     });
 
     html += '<tr class="table-light fw-bold"><td colspan="4" class="text-end">SUBTOTAIS:</td>';
-    html += '<td>' + money(totalBrutoPecas) + '</td>';
-    html += '<td>' + money(totalBrutoServicos) + '</td>';
+    html += '<td>' + money(totalBrutoPecas) + '<br><small class="fw-normal text-success">' + money(totalBrutoPecas - totalDescPecas) + '</small></td>';
+    html += '<td>' + money(totalBrutoServicos) + '<br><small class="fw-normal text-success">' + money(totalBrutoServicos - totalDescServicos) + '</small></td>';
     html += '<td>' + money(totalBruto) + '</td>';
     html += '<td class="text-danger">- ' + money(totalDesconto) + '</td>';
     html += '<td class="text-success">' + money(totalComDesconto) + '</td></tr>';
@@ -929,6 +932,7 @@ var Faturamento = (function() {
     html += '<option value="bruto"' + (savedTipo === 'bruto' ? ' selected' : '') + '>Valor Bruto (' + money(totalBruto) + ')</option>';
     html += '<option value="liquido"' + (savedTipo === 'liquido' ? ' selected' : '') + '>Valor Líquido (' + money(valorLiquido) + ')</option>';
     html += '</select>';
+    html += '<small class="text-muted d-block mt-1"><i class="bi bi-info-circle me-1"></i>Retenções incidem sobre o valor selecionado</small>';
     html += '</div>';
     html += '</div>';
 

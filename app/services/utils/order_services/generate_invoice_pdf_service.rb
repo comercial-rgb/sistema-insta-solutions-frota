@@ -216,6 +216,7 @@ module Utils
         @total_pecas = 0; @total_servicos = 0; @total_bruto = 0
         @total_desconto = 0; @total_com_desc = 0
         @total_pecas_display = 0; @total_servicos_display = 0
+        @total_bruto_pecas = 0; @total_bruto_servicos = 0
         @providers_detail = []
 
         client_discount_pct = (@client&.discount_percent || 0).to_d / 100
@@ -264,9 +265,11 @@ module Utils
           is_simples = provider ? !provider.optante_simples : true
 
           nf_total_os = pecas_val + servicos_val
+          bruto_pecas_val = nf_total_os > 0 ? (bruto * (pecas_val / nf_total_os)).round(2) : bruto
+          bruto_servicos_val = bruto - bruto_pecas_val
           if @tipo_valor == 'bruto' && nf_total_os > 0
-            pecas_display = (bruto * (pecas_val / nf_total_os)).round(2)
-            servicos_display = (bruto - pecas_display).round(2)
+            pecas_display = bruto_pecas_val
+            servicos_display = bruto_servicos_val
           else
             pecas_display = pecas_val
             servicos_display = servicos_val
@@ -275,6 +278,7 @@ module Utils
           @total_pecas += pecas_val; @total_servicos += servicos_val
           @total_bruto += bruto; @total_desconto += desc_val; @total_com_desc += com_desc
           @total_pecas_display += pecas_display; @total_servicos_display += servicos_display
+          @total_bruto_pecas += bruto_pecas_val; @total_bruto_servicos += bruto_servicos_val
 
           pct_pecas_ret = 0; pct_serv_ret = 0; ret_provider = 0
           unless is_simples
@@ -303,9 +307,9 @@ module Utils
             os.vehicle&.board || '-',
             (os.cost_center&.name || '-').truncate(14),
             pecas_nums.presence || '-',
-            money(pecas_display),
+            { content: "#{money(bruto_pecas_val)}\nLiq: #{money(pecas_val)}", align: :right },
             servicos_nums.presence || '-',
-            money(servicos_display),
+            { content: "#{money(bruto_servicos_val)}\nLiq: #{money(servicos_val)}", align: :right },
             money(bruto),
             "-#{money(desc_val)}",
             money(com_desc)
@@ -322,8 +326,8 @@ module Utils
 
         rows << [
           { content: 'SUBTOTAIS:', colspan: 4, font_style: :bold, align: :right },
-          '', { content: money(@total_pecas_display), font_style: :bold, align: :right },
-          '', { content: money(@total_servicos_display), font_style: :bold, align: :right },
+          '', { content: "#{money(@total_bruto_pecas)}\nLiq: #{money(@total_pecas)}", font_style: :bold, align: :right },
+          '', { content: "#{money(@total_bruto_servicos)}\nLiq: #{money(@total_servicos)}", font_style: :bold, align: :right },
           { content: money(@total_bruto), font_style: :bold, align: :right },
           { content: "-#{money(@total_desconto)}", font_style: :bold, align: :right, text_color: RED },
           { content: money(@total_com_desc), font_style: :bold, align: :right, text_color: GREEN }
