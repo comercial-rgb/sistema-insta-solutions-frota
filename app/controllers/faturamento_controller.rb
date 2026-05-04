@@ -51,7 +51,9 @@ class FaturamentoController < ApplicationController
 
     client = User.find(params[:client_id])
     os_ids = Array(params[:order_service_ids]).map(&:to_i).uniq
-    os_observacoes = (params[:os_observacoes] || {}).to_h { |k, v| [k.to_i, v.to_s] }
+    raw_obs = params[:os_observacoes]
+    raw_obs = raw_obs.to_unsafe_h if raw_obs.respond_to?(:to_unsafe_h)
+    os_observacoes = (raw_obs || {}).to_h { |k, v| [k.to_i, v.to_s] }
 
     # Somente OS em status Autorizada e não faturadas
     order_services = OrderService.where(id: os_ids, client_id: client.id, invoiced: false)
