@@ -9,13 +9,12 @@ class FaturamentoController < ApplicationController
 
     # Faturas list with filters
     @faturas = Fatura.includes(:client, :cost_center, :contract)
-    @faturas = @faturas.where(client_id: @current_user.id) if @current_user.client?
+    @faturas = apply_user_client_scope(@faturas)
     @faturas = apply_filters(@faturas)
     @faturas = @faturas.order(created_at: :desc).page(params[:page]).per(25)
 
     # Últimas faturas (resumo tab)
-    @ultimas_faturas = Fatura.all
-    @ultimas_faturas = @ultimas_faturas.where(client_id: @current_user.id) if @current_user.client?
+    @ultimas_faturas = apply_user_client_scope(Fatura.all)
     @ultimas_faturas = @ultimas_faturas.order(created_at: :desc).limit(5)
 
     # Clients & cost_centers for filter dropdowns
@@ -38,7 +37,7 @@ class FaturamentoController < ApplicationController
         { order_service_proposals: [:provider, :order_service_invoices] }] },
       client: [], cost_center: [], contract: []
     )
-    scope = scope.where(client_id: @current_user.id) if @current_user.client?
+    scope = apply_user_client_scope(scope)
     @fatura = scope.find(params[:id])
 
     respond_to do |format|
@@ -196,10 +195,27 @@ class FaturamentoController < ApplicationController
       format.json { render json: { success: true, fatura_id: @fatura.id, numero: @fatura.numero, docx_url: docx_filename ? "/#{docx_filename}" : nil } }
     end
 
+  rescue ActiveRecord::RecordNotFound => e
+    respond_to do |format|
+      format.html { redirect_to faturamento_index_path, alert: "Cliente ou OS não encontrado: #{e.message}" }
+      format.json { render json: { error: "Cliente ou OS não encontrado: #{e.message}" }, status: :not_found }
+    end
+  rescue ActiveRecord::RecordNotUnique => e
+    Rails.logger.error "Fatura RecordNotUnique: #{e.message}"
+    respond_to do |format|
+      format.html { redirect_to faturamento_index_path, alert: "Número de fatura duplicado. Tente novamente." }
+      format.json { render json: { error: "Número de fatura duplicado. Tente novamente." }, status: :unprocessable_entity }
+    end
   rescue ActiveRecord::RecordInvalid => e
     respond_to do |format|
       format.html { redirect_to faturamento_index_path, alert: e.message }
       format.json { render json: { error: e.message }, status: :unprocessable_entity }
+    end
+  rescue => e
+    Rails.logger.error "Erro inesperado ao criar fatura: #{e.class} - #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}"
+    respond_to do |format|
+      format.html { redirect_to faturamento_index_path, alert: "Erro ao criar fatura: #{e.message}" }
+      format.json { render json: { error: "Erro ao criar fatura: #{e.message}" }, status: :internal_server_error }
     end
   end
 
@@ -305,11 +321,11 @@ class FaturamentoController < ApplicationController
 
   def gerar_docx
     authorize :faturamento, :show?
-    @fatura = Fatura.includes(
+    @fatura = apply_user_client_scope(Fatura.includes(
       fatura_itens: { order_service: [:vehicle, :cost_center, :sub_unit,
         { order_service_proposals: [:provider, :order_service_invoices] }] },
       client: [], cost_center: [], contract: []
-    ).find(params[:id])
+    )).find(params[:id])
 
     service = Utils::OrderServices::GenerateInvoiceDocxService.new(@fatura, invoice_split: params[:split])
     docx_path = service.call
@@ -323,11 +339,11 @@ class FaturamentoController < ApplicationController
 
   def gerar_pdf
     authorize :faturamento, :show?
-    @fatura = Fatura.includes(
+    @fatura = apply_user_client_scope(Fatura.includes(
       fatura_itens: { order_service: [:vehicle, :cost_center, :sub_unit,
         { order_service_proposals: [:provider, :order_service_invoices] }] },
       client: [], cost_center: [], contract: []
-    ).find(params[:id])
+    )).find(params[:id])
 
     service = Utils::OrderServices::GenerateInvoicePdfService.new(@fatura, invoice_split: params[:split])
     pdf_path = service.call
@@ -341,7 +357,7 @@ class FaturamentoController < ApplicationController
 
   def gerar_excel
     authorize :faturamento, :show?
-    @fatura = Fatura.includes(:fatura_itens, :client, :cost_center, :contract).find(params[:id])
+    @fatura = apply_user_client_scope(Fatura.includes(:fatura_itens, :client, :cost_center, :contract)).find(params[:id])
 
     service = Utils::OrderServices::GenerateInvoiceExcelService.new(@fatura)
     excel_path = service.call
@@ -521,13 +537,13 @@ class FaturamentoController < ApplicationController
   # JSON endpoints for AJAX tab loading
   def resumo_json
     authorize :faturamento, :resumo?
-    render json: { resumo: calcular_resumo, ultimas_faturas: Fatura.order(created_at: :desc).limit(5) }
+    render json: { resumo: calcular_resumo, ultimas_faturas: apply_user_client_scope(Fatura).order(created_at: :desc).limit(5) }
   end
 
   def faturas_json_endpoint
     authorize :faturamento, :faturas?
     faturas = Fatura.includes(:client, :cost_center)
-    faturas = faturas.where(client_id: @current_user.id) if @current_user.client?
+    faturas = apply_user_client_scope(faturas)
     faturas = apply_filters(faturas)
     page = (params[:page] || 1).to_i
     total = faturas.count
@@ -541,6 +557,16 @@ class FaturamentoController < ApplicationController
 
   private
 
+  def apply_user_client_scope(scope)
+    if @current_user.client?
+      scope.where(client_id: @current_user.id)
+    elsif @current_user.manager? || @current_user.additional?
+      scope.where(client_id: @current_user.client_id)
+    else
+      scope
+    end
+  end
+
   def find_approved_proposal(order_service)
     approved_statuses = OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES
     order_service.order_service_proposals
@@ -551,8 +577,7 @@ class FaturamentoController < ApplicationController
   end
 
   def calcular_resumo
-    faturas = Fatura.all
-    faturas = faturas.where(client_id: @current_user.id) if @current_user.client?
+    faturas = apply_user_client_scope(Fatura.all)
 
     {
       total_faturas: faturas.count,

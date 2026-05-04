@@ -239,7 +239,11 @@ class VehiclesController < ApplicationController
   end
 
   def vehicles_by_client_id
-    vehicles = Vehicle.by_active(params[:active]).by_client_ids([params[:client_id]]).includes(:vehicle_type)
+    authorize Vehicle
+    client_id = @current_user.admin? ? params[:client_id]
+              : @current_user.client? ? @current_user.id
+              : @current_user.client_id
+    vehicles = Vehicle.by_active(params[:active]).by_client_ids([client_id]).includes(:vehicle_type)
     data = {
       result: vehicles.map { |v| v.as_json.merge(display_name: v.label_for_os_select) }
     }
@@ -360,7 +364,13 @@ class VehiclesController < ApplicationController
 
   # Use callbacks to share common setup or constraints between actions.
   def set_vehicle
-    @vehicle = Vehicle.find(params[:id])
+    scope = Vehicle.all
+    if @current_user.client?
+      scope = scope.where(client_id: @current_user.id)
+    elsif @current_user.manager? || @current_user.additional?
+      scope = scope.where(client_id: @current_user.client_id)
+    end
+    @vehicle = scope.find(params[:id])
   end
 
   # Never trust parameters from the scary internet, only allow the white.

@@ -225,7 +225,13 @@ class CommitmentsController < ApplicationController
 
   # Use callbacks to share common setup or constraints between actions.
   def set_commitment
-    @commitment = Commitment.find(params[:id])
+    scope = Commitment.all
+    if @current_user.client?
+      scope = scope.where(client_id: @current_user.id)
+    elsif @current_user.manager? || @current_user.additional?
+      scope = scope.where(client_id: @current_user.client_id)
+    end
+    @commitment = scope.find(params[:id])
   end
 
   # Never trust parameters from the scary internet, only allow the white.

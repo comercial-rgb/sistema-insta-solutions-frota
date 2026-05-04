@@ -96,7 +96,13 @@ class MaintenancePlansController < ApplicationController
   # JSON: veículos disponíveis para vincular
   def available_vehicles
     authorize MaintenancePlan, :index?
-    plan = MaintenancePlan.find(params[:id])
+    scope = MaintenancePlan.all
+    if @current_user.client?
+      scope = scope.where(client_id: @current_user.id)
+    elsif @current_user.manager? || @current_user.additional?
+      scope = scope.where(client_id: @current_user.client_id)
+    end
+    plan = scope.find(params[:id])
     client_id = plan.client_id
 
     if client_id.present?
@@ -111,7 +117,13 @@ class MaintenancePlansController < ApplicationController
   private
 
   def set_maintenance_plan
-    @maintenance_plan = MaintenancePlan.find(params[:id])
+    scope = MaintenancePlan.all
+    if @current_user.client?
+      scope = scope.where(client_id: @current_user.id)
+    elsif @current_user.manager? || @current_user.additional?
+      scope = scope.where(client_id: @current_user.client_id)
+    end
+    @maintenance_plan = scope.find(params[:id])
   end
 
   def maintenance_plan_params

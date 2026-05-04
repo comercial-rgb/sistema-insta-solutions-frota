@@ -36,7 +36,13 @@ class VehicleChecklistsController < ApplicationController
   private
 
   def set_checklist
-    @checklist = VehicleChecklist.find(params[:id])
+    scope = VehicleChecklist.all
+    if @current_user.client?
+      scope = scope.where(client_id: @current_user.id)
+    elsif @current_user.manager? || @current_user.additional?
+      scope = scope.where(client_id: @current_user.client_id)
+    end
+    @checklist = scope.find(params[:id])
   end
 
   def build_os_description(checklist)
