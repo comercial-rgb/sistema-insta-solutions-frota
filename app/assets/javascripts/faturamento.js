@@ -703,7 +703,8 @@ var Faturamento = (function() {
     var totalRetencoes = aplicarRetencao ? totalRetNaoSimples : 0;
 
     var valorLiquido = totalComDesconto;
-    var valorDevido = valorLiquido - totalRetencoes;
+    var valorBase = (savedTipo === 'liquido') ? valorLiquido : totalBruto;
+    var valorDevido = valorBase - totalRetencoes;
 
     // Percentual de desconto efetivo (com precisão)
     var pctDesconto = totalBruto > 0 ? ((totalDesconto / totalBruto) * 100) : 0;
@@ -780,8 +781,9 @@ var Faturamento = (function() {
     html += '</div>';
 
     // VALOR DEVIDO bar
+    var labelValorDevido = savedTipo === 'liquido' ? 'VALOR LÍQUIDO (c/ Desc. e Ret.)' : 'VALOR BRUTO (c/ Retenções)';
     html += '<div class="rounded-3 mb-4 p-3 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #251C59, #005BED); color: #fff;">';
-    html += '<h5 class="mb-0 fw-bold"><i class="bi bi-cash-stack me-2"></i>VALOR DEVIDO</h5>';
+    html += '<h5 class="mb-0 fw-bold"><i class="bi bi-cash-stack me-2"></i>' + labelValorDevido + '</h5>';
     html += '<h4 class="mb-0 fw-bold">' + money(valorDevido) + '</h4>';
     html += '</div>';
 
@@ -921,7 +923,7 @@ var Faturamento = (function() {
     html += '</div>';
     html += '<div class="col-md-3">';
     html += '<label class="form-label fw-bold">Tipo de Valor da Fatura</label>';
-    html += '<select class="form-select" id="previaTipoValor">';
+    html += '<select class="form-select" id="previaTipoValor" onchange="Faturamento.recalcularPrevia()">';
     html += '<option value="bruto"' + (savedTipo === 'bruto' ? ' selected' : '') + '>Valor Bruto (' + money(totalBruto) + ')</option>';
     html += '<option value="liquido"' + (savedTipo === 'liquido' ? ' selected' : '') + '>Valor Líquido (' + money(valorLiquido) + ')</option>';
     html += '</select>';
