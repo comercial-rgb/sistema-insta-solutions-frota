@@ -34,15 +34,17 @@ class Fatura < ApplicationRecord
   end
 
   def calcular_retencoes!
-    base = valor_bruto || 0
-    desc = desconto || 0
-    base_liquida = base - desc
-    ir   = base_liquida * (ir_percentual || 0) / 100
-    pis  = base_liquida * (pis_percentual || 0) / 100
-    cof  = base_liquida * (cofins_percentual || 0) / 100
-    csll = base_liquida * (csll_percentual || 0) / 100
+    bruto = valor_bruto.to_f
+    desc = desconto.to_f
+    # Com tipo_valor "bruto", retenções incidem sobre o valor bruto (sem abater desconto).
+    # Com "liquido", a base é bruto − desconto (valor após desconto do contrato).
+    base_tributavel = tipo_valor.to_s == 'liquido' ? (bruto - desc) : bruto
+    ir   = base_tributavel * (ir_percentual || 0) / 100
+    pis  = base_tributavel * (pis_percentual || 0) / 100
+    cof  = base_tributavel * (cofins_percentual || 0) / 100
+    csll = base_tributavel * (csll_percentual || 0) / 100
     self.total_retencoes = ir + pis + cof + csll
-    self.valor_liquido   = base_liquida - total_retencoes
+    self.valor_liquido   = base_tributavel - total_retencoes
     self.valor_final     = valor_liquido - (taxa_administracao || 0)
   end
 

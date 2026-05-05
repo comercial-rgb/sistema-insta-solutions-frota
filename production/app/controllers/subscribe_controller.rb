@@ -1,5 +1,6 @@
 class SubscribeController < ApplicationController
   before_action :set_subscription, only: [:subscription, :cancel_subscription, :delete_subscription, :subscription_payment, :generate_new_payment_subscription]
+  before_action :ensure_subscription_feature_available
 
   skip_before_action :authenticate_user, only: [:subscribe, :add_plan_to_subscribe, :subscribe_plan]
 
@@ -202,6 +203,15 @@ class SubscribeController < ApplicationController
   end
 
   private
+
+  def ensure_subscription_feature_available
+    required_constants = %w[Subscription Order PaymentTransaction]
+    missing = required_constants.reject { |name| Object.const_defined?(name) }
+    return if missing.empty?
+
+    Rails.logger.error("[SubscribeController] Feature unavailable. Missing constants: #{missing.join(', ')}")
+    redirect_to root_path, alert: 'Modulo de assinatura temporariamente indisponivel.'
+  end
 
   def set_subscription
     @subscription = Subscription.find(params[:id])

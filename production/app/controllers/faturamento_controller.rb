@@ -124,9 +124,7 @@ class FaturamentoController < ApplicationController
       # optante_simples=false = IS simples = ISENTO
       next unless prop.provider&.optante_simples  # true = NÃO simples = aplicar retenção
 
-      invoices = prop.order_service_invoices.to_a
-      sum_parts = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }.sum(&:value).to_f
-      sum_services = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }.sum(&:value).to_f
+      sum_parts, sum_services = parts_services_for_retention(prop, tipo_valor)
 
       if is_federal
         total_retencao += sum_parts * 0.0585    # 5,85%
@@ -423,15 +421,15 @@ class FaturamentoController < ApplicationController
       nf_parts_value = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }.sum(&:value).to_f
       nf_services_value = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }.sum(&:value).to_f
 
-      # Valores BRUTO por tipo (sem desconto) - calculados a partir dos itens da proposta
+      # Valores BRUTO por tipo (sem desconto) - itens da proposta (incl. linhas manuais via category_id_for_commitment)
       items = OrderServiceProposal.items_for_totals(proposal)
-      bruto_pecas = items.select { |i| i.service&.category_id == Category::SERVICOS_PECAS_ID }
+      bruto_pecas = items.select { |i| i.category_id_for_commitment == Category::SERVICOS_PECAS_ID }
                          .sum { |i| (i.total_value_without_discount.presence || (i.unity_value.to_d * i.quantity.to_d)).to_f }
-      bruto_servicos = items.select { |i| i.service&.category_id == Category::SERVICOS_SERVICOS_ID }
+      bruto_servicos = items.select { |i| i.category_id_for_commitment == Category::SERVICOS_SERVICOS_ID }
                             .sum { |i| (i.total_value_without_discount.presence || (i.unity_value.to_d * i.quantity.to_d)).to_f }
-      desc_pecas = items.select { |i| i.service&.category_id == Category::SERVICOS_PECAS_ID }
+      desc_pecas = items.select { |i| i.category_id_for_commitment == Category::SERVICOS_PECAS_ID }
                         .sum { |i| i.discount.to_f }
-      desc_servicos = items.select { |i| i.service&.category_id == Category::SERVICOS_SERVICOS_ID }
+      desc_servicos = items.select { |i| i.category_id_for_commitment == Category::SERVICOS_SERVICOS_ID }
                            .sum { |i| i.discount.to_f }
 
       # Provider details
@@ -579,6 +577,23 @@ class FaturamentoController < ApplicationController
       .where(order_service_proposal_status_id: approved_statuses)
       .order(updated_at: :desc)
       .first
+  end
+
+  # Bases para retenção por tipo (peças vs serviços): com tipo_valor "liquido" usa valores das NFs (com desconto);
+  # com "bruto" usa soma dos itens da proposta sem desconto, por categoria (alinhado ao valor bruto da fatura).
+  def parts_services_for_retention(proposal, tipo_valor)
+    invoices = proposal.order_service_invoices.to_a
+    nf_parts = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }.sum(&:value).to_f
+    nf_services = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }.sum(&:value).to_f
+
+    return [nf_parts, nf_services] if tipo_valor.to_s == 'liquido'
+
+    items = OrderServiceProposal.items_for_totals(proposal)
+    gross_parts = items.select { |i| i.category_id_for_commitment == Category::SERVICOS_PECAS_ID }
+                       .sum { |i| (i.total_value_without_discount.presence || (i.unity_value.to_d * i.quantity.to_d)).to_f }
+    gross_services = items.select { |i| i.category_id_for_commitment == Category::SERVICOS_SERVICOS_ID }
+                          .sum { |i| (i.total_value_without_discount.presence || (i.unity_value.to_d * i.quantity.to_d)).to_f }
+    [gross_parts, gross_services]
   end
 
   def calcular_resumo

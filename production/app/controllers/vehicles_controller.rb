@@ -229,27 +229,27 @@ class VehiclesController < ApplicationController
   end
 
   def vehicles_by_cost_center_id
+    authorize Vehicle, :index?
+
     vehicles = Vehicle.by_cost_center_ids([params[:cost_center_id]]).includes(:vehicle_type)
-    data = {
-      result: vehicles.map { |v| v.as_json.merge(display_name: v.label_for_os_select) }
-    }
-    respond_to do |format|
-      format.json {render :json => data, :status => 200}
-    end
+    result_payload = vehicles.map { |v| v.as_json.merge(display_name: v.label_for_os_select) }
+    render json: { result: result_payload }, status: :ok
+  rescue => e
+    Rails.logger.error("[Vehicles#vehicles_by_cost_center_id] ERROR user_id=#{@current_user&.id} cost_center_id=#{params[:cost_center_id]} #{e.class}: #{e.message}")
+    render json: { result: [] }, status: :ok
   end
 
   def vehicles_by_client_id
-    authorize Vehicle
+    authorize Vehicle, :index?
     client_id = @current_user.admin? ? params[:client_id]
               : @current_user.client? ? @current_user.id
               : @current_user.client_id
     vehicles = Vehicle.by_active(params[:active]).by_client_ids([client_id]).includes(:vehicle_type)
-    data = {
-      result: vehicles.map { |v| v.as_json.merge(display_name: v.label_for_os_select) }
-    }
-    respond_to do |format|
-      format.json {render :json => data, :status => 200}
-    end
+    result_payload = vehicles.map { |v| v.as_json.merge(display_name: v.label_for_os_select) }
+    render json: { result: result_payload }, status: :ok
+  rescue => e
+    Rails.logger.error("[Vehicles#vehicles_by_client_id] ERROR user_id=#{@current_user&.id} client_id=#{params[:client_id]} #{e.class}: #{e.message}")
+    render json: { result: [] }, status: :ok
   end
 
   def commitments_by_vehicle_id

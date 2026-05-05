@@ -1105,12 +1105,14 @@ class UsersController < ApplicationController
   end
 
   def managers_by_client_id
-    data = {
-      result: User.manager.by_client_id([params[:client_id]])
-    }
-    respond_to do |format|
-      format.json {render :json => data, :status => 200}
-    end
+    authorize User, :users_manager?
+    client_id = @current_user.admin? ? params[:client_id] : @current_user.client_id
+    managers = User.manager.by_client_id([client_id]).order(:name)
+    result_payload = managers.pluck(:id, :name).map { |id, name| { id: id, name: name } }
+    render json: { result: result_payload }, status: :ok
+  rescue => e
+    Rails.logger.error("[Users#managers_by_client_id] ERROR user_id=#{@current_user&.id} client_id=#{params[:client_id]} #{e.class}: #{e.message}")
+    render json: { result: [] }, status: :ok
   end
 
   private

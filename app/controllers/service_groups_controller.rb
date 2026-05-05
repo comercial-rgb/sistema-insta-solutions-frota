@@ -44,8 +44,8 @@ class ServiceGroupsController < ApplicationController
 
   # Retorna os IDs dos serviços permitidos em um grupo
   def services
-    authorize ServiceGroup
     @service_group = ServiceGroup.find(params[:id])
+    authorize @service_group, :show?
     service_ids = @service_group.service_group_items.pluck(:service_id)
     
     respond_to do |format|

@@ -150,21 +150,21 @@ class CostCentersController < ApplicationController
   end
 
   def sub_units_by_cost_center_id
+    authorize CostCenter, :index?
+
     if @current_user.manager? || @current_user.additional?
-      cost_center_ids = @current_user.associated_cost_centers.map(&:id)
-      sub_unit_ids = @current_user.associated_sub_units.map(&:id)
-      data = {
-        result: SubUnit.by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids).by_cost_center_ids([params[:cost_center_id]])
-      }
+      cost_center_ids = @current_user.associated_cost_centers.pluck(:id)
+      sub_unit_ids = @current_user.associated_sub_units.pluck(:id)
+      relation = SubUnit.by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids).by_cost_center_ids([params[:cost_center_id]])
     else
-      data = {
-        result: SubUnit.by_cost_center_ids([params[:cost_center_id]])
-      }
+      relation = SubUnit.by_cost_center_ids([params[:cost_center_id]])
     end
 
-    respond_to do |format|
-      format.json {render :json => data, :status => 200}
-    end
+    result_payload = relation.order(:name).pluck(:id, :name).map { |id, name| { id: id, name: name } }
+    render json: { result: result_payload }, status: :ok
+  rescue => e
+    Rails.logger.error("[CostCenters#sub_units_by_cost_center_id] ERROR user_id=#{@current_user&.id} cost_center_id=#{params[:cost_center_id]} #{e.class}: #{e.message}")
+    render json: { result: [] }, status: :ok
   end
 
   def sub_units_by_client_id
@@ -172,14 +172,13 @@ class CostCentersController < ApplicationController
     client_id = @current_user.admin? ? params[:client_id]
               : @current_user.client? ? @current_user.id
               : @current_user.client_id
-    cost_centers = CostCenter.by_client_id(client_id)
+    cost_centers = CostCenter.unscoped.where(client_id: client_id)
     sub_units = SubUnit.where(cost_center_id: cost_centers.pluck(:id)).order(:name)
-    data = {
-      result: sub_units
-    }
-    respond_to do |format|
-      format.json { render json: data, status: 200 }
-    end
+    result_payload = sub_units.pluck(:id, :name).map { |id, name| { id: id, name: name } }
+    render json: { result: result_payload }, status: :ok
+  rescue => e
+    Rails.logger.error("[CostCenters#sub_units_by_client_id] ERROR user_id=#{@current_user&.id} client_id=#{params[:client_id]} #{e.class}: #{e.message}")
+    render json: { result: [] }, status: :ok
   end
 
   private

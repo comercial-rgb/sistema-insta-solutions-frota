@@ -127,17 +127,16 @@ class ContractsController < ApplicationController
   end
 
   def by_client_id
-    authorize Contract
+    authorize Contract, :index?
     client_id = @current_user.admin? ? params[:client_id]
               : @current_user.client? ? @current_user.id
               : @current_user.client_id
     contracts = Contract.where(client_id: client_id, active: true).order(:name)
-    data = {
-      result: contracts.map { |c| { id: c.id, name: c.get_formatted_name_with_disponible_value } }
-    }
-    respond_to do |format|
-      format.json { render json: data, status: 200 }
-    end
+    result_payload = contracts.map { |c| { id: c.id, name: c.get_formatted_name_with_disponible_value } }
+    render json: { result: result_payload }, status: :ok
+  rescue => e
+    Rails.logger.error("[Contracts#by_client_id] ERROR user_id=#{@current_user&.id} client_id=#{params[:client_id]} #{e.class}: #{e.message}")
+    render json: { result: [] }, status: :ok
   end
 
   private
