@@ -134,9 +134,12 @@ class CostCentersController < ApplicationController
     end
 
     result = result.reorder('cost_centers.name ASC').select('cost_centers.id, cost_centers.name')
+    result_payload = result.map { |cc| { id: cc.id, name: cc.name } }
+
+    Rails.logger.info("[CostCenters#by_client_id] user_id=#{@current_user.id} profile_id=#{@current_user.profile_id} client_id=#{client_id} count=#{result_payload.size}")
 
     data = {
-      result: result
+      result: result_payload
     }
     respond_to do |format|
       format.json {render :json => data, :status => 200}

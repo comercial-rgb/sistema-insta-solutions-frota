@@ -28,8 +28,8 @@ function bindVehicleCostCenterEvents() {
         findCostCentersByClients(client_id, '#vehicles_grid_cost_center_id', '#vehicles_grid_sub_unit_id');
     });
 
-    $(document).off('change.vehicleClient', '#vehicle_client_id');
-    $(document).on('change.vehicleClient', '#vehicle_client_id', function () {
+    $(document).off('change.vehicleClient select2:select.vehicleClient', '#vehicle_client_id, #vehicle_client');
+    $(document).on('change.vehicleClient select2:select.vehicleClient', '#vehicle_client_id, #vehicle_client', function () {
         var client_id = $(this).find(":selected").val();
         findCostCentersByClients(client_id, '#vehicle_cost_center_id', '#vehicle_sub_unit_id');
     });
@@ -47,7 +47,7 @@ function bindVehicleCostCenterEvents() {
     });
 
     // Em edição/criação com cliente já selecionado, carrega automaticamente os centros.
-    var initial_client_id = $('#vehicle_client_id').val();
+    var initial_client_id = $('#vehicle_client_id').val() || $('#vehicle_client').val();
     if (initial_client_id) {
         findCostCentersByClients(initial_client_id, '#vehicle_cost_center_id', '#vehicle_sub_unit_id');
     }
