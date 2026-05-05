@@ -1,26 +1,25 @@
 FactoryBot.define do
-    factory :address do
-        association :ownertable, factory: :country
-        country_id {33}
-        state_id {13}
-        city_id {rand(1597..2449)}
-        address_type_id {rand(1..44)}
-        address_area_id {1}
+  factory :address do
+    association :ownertable, factory: :country
+    association :city
+    association :address_type
+    association :address_area
 
-        name {Faker::Lorem.sentence(word_count: 2)}
-        zipcode {Faker::Address.zip_code}
-        address {Faker::Address.street_address}
-        district {Faker::Address.street_name}
-        number {Faker::Number.number(digits: 3)}
-        complement {Faker::Address.secondary_address}
-        reference {Faker::Lorem.paragraph}
-        remove_validate {true}
+    remove_validate { true }
 
-        after(:create) do |object|
-            # city = City.where(state_id: object.state_id).order("RAND()").limit(1).first
-            # if city
-            #     object.update_columns(city_id: city.id)
-            # end
-        end
+    name { Faker::Lorem.words(number: 2).join(" ") }
+    zipcode { "01310100" }
+    address { Faker::Address.street_address }
+    district { Faker::Address.street_name }
+    number { Faker::Number.number(digits: 3).to_s }
+    complement { "Apto 1" }
+    reference { "Ref" }
+
+    after(:build) do |addr|
+      next unless addr.city
+
+      addr.state_id = addr.city.state_id
+      addr.country_id = addr.city.state&.country_id
     end
+  end
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
+ActiveRecord::Schema[7.1].define(version: 2026_05_05_120000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -101,6 +101,40 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
     t.index ["country_id"], name: "index_addresses_on_country_id"
     t.index ["ownertable_type", "ownertable_id"], name: "index_addresses_on_ownertable"
     t.index ["state_id"], name: "index_addresses_on_state_id"
+  end
+
+  create_table "anomalies", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "vehicle_id", null: false
+    t.bigint "user_id", null: false
+    t.bigint "client_id"
+    t.bigint "cost_center_id"
+    t.string "title", null: false
+    t.text "description", size: :long
+    t.string "severity", default: "medium"
+    t.string "status", default: "open"
+    t.string "category"
+    t.datetime "resolved_at", precision: nil
+    t.bigint "resolved_by_id"
+    t.text "resolution_notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["client_id"], name: "index_anomalies_on_client_id"
+    t.index ["cost_center_id"], name: "index_anomalies_on_cost_center_id"
+    t.index ["resolved_by_id"], name: "index_anomalies_on_resolved_by_id"
+    t.index ["severity"], name: "index_anomalies_on_severity"
+    t.index ["status"], name: "index_anomalies_on_status"
+    t.index ["user_id"], name: "index_anomalies_on_user_id"
+    t.index ["vehicle_id"], name: "index_anomalies_on_vehicle_id"
+  end
+
+  create_table "api_keys", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "access_token", null: false
+    t.datetime "expires_at", precision: nil
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["access_token"], name: "index_api_keys_on_access_token", unique: true
+    t.index ["user_id"], name: "index_api_keys_on_user_id"
   end
 
   create_table "attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -340,16 +374,180 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
     t.index ["ownertable_type", "ownertable_id"], name: "index_data_banks_on_ownertable"
   end
 
+  create_table "driver_vehicle_assignments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "user_id", null: false, comment: "Motorista"
+    t.bigint "vehicle_id", null: false
+    t.boolean "active", default: true
+    t.date "assigned_at"
+    t.date "unassigned_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["user_id", "vehicle_id", "active"], name: "idx_driver_vehicle_active", unique: true
+    t.index ["user_id"], name: "index_driver_vehicle_assignments_on_user_id"
+    t.index ["vehicle_id"], name: "index_driver_vehicle_assignments_on_vehicle_id"
+  end
+
+  create_table "fatura_itens", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "fatura_id", null: false
+    t.bigint "order_service_id"
+    t.bigint "order_service_proposal_id"
+    t.string "descricao"
+    t.string "tipo", default: "servico"
+    t.decimal "valor", precision: 15, scale: 2, default: "0.0"
+    t.decimal "quantidade", precision: 10, scale: 3, default: "1.0"
+    t.string "veiculo_placa"
+    t.string "centro_custo_nome"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.text "observacoes"
+    t.index ["fatura_id"], name: "index_fatura_itens_on_fatura_id"
+    t.index ["order_service_id"], name: "index_fatura_itens_on_order_service_id"
+    t.index ["order_service_proposal_id"], name: "index_fatura_itens_on_order_service_proposal_id"
+    t.index ["tipo"], name: "index_fatura_itens_on_tipo"
+  end
+
+  create_table "faturas", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.string "numero", null: false
+    t.bigint "client_id"
+    t.bigint "cost_center_id"
+    t.bigint "contract_id"
+    t.date "data_emissao", null: false
+    t.date "data_envio_empresa"
+    t.date "data_recebimento"
+    t.date "data_vencimento"
+    t.integer "prazo_recebimento", default: 30
+    t.string "status", default: "aberta", null: false
+    t.decimal "valor_bruto", precision: 15, scale: 2, default: "0.0"
+    t.decimal "valor_liquido", precision: 15, scale: 2, default: "0.0"
+    t.decimal "total_retencoes", precision: 15, scale: 2, default: "0.0"
+    t.decimal "taxa_administracao", precision: 15, scale: 2, default: "0.0"
+    t.decimal "valor_final", precision: 15, scale: 2, default: "0.0"
+    t.integer "total_itens", default: 0
+    t.decimal "ir_percentual", precision: 5, scale: 2, default: "0.0"
+    t.decimal "pis_percentual", precision: 5, scale: 2, default: "0.0"
+    t.decimal "cofins_percentual", precision: 5, scale: 2, default: "0.0"
+    t.decimal "csll_percentual", precision: 5, scale: 2, default: "0.0"
+    t.string "nota_fiscal_numero"
+    t.string "nota_fiscal_serie"
+    t.text "observacoes"
+    t.text "admin_observacoes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.decimal "desconto", precision: 15, scale: 2, default: "0.0"
+    t.date "data_pagamento"
+    t.bigint "pago_por_id"
+    t.bigint "sub_unit_id"
+    t.string "tipo_valor", default: "bruto", null: false
+    t.string "nota_fiscal_numero_pecas"
+    t.string "nota_fiscal_numero_servicos"
+    t.string "nota_fiscal_serie_pecas"
+    t.string "nota_fiscal_serie_servicos"
+    t.string "numero_pecas"
+    t.string "numero_servicos"
+    t.index ["client_id"], name: "index_faturas_on_client_id"
+    t.index ["contract_id"], name: "index_faturas_on_contract_id"
+    t.index ["cost_center_id"], name: "index_faturas_on_cost_center_id"
+    t.index ["data_emissao"], name: "index_faturas_on_data_emissao"
+    t.index ["data_vencimento"], name: "index_faturas_on_data_vencimento"
+    t.index ["numero"], name: "index_faturas_on_numero", unique: true
+    t.index ["numero_pecas"], name: "index_faturas_on_numero_pecas", unique: true
+    t.index ["numero_servicos"], name: "index_faturas_on_numero_servicos", unique: true
+    t.index ["pago_por_id"], name: "index_faturas_on_pago_por_id"
+    t.index ["status"], name: "index_faturas_on_status"
+    t.index ["sub_unit_id"], name: "index_faturas_on_sub_unit_id"
+  end
+
   create_table "fuel_types", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
 
+  create_table "maintenance_alerts", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "vehicle_id", null: false
+    t.bigint "maintenance_plan_item_id", null: false
+    t.bigint "client_id"
+    t.string "alert_type", null: false
+    t.string "status", default: "pending"
+    t.integer "current_km"
+    t.integer "target_km"
+    t.date "target_date"
+    t.text "message"
+    t.datetime "acknowledged_at", precision: nil
+    t.bigint "acknowledged_by_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "order_service_id"
+    t.index ["acknowledged_by_id"], name: "index_maintenance_alerts_on_acknowledged_by_id"
+    t.index ["alert_type"], name: "index_maintenance_alerts_on_alert_type"
+    t.index ["client_id"], name: "index_maintenance_alerts_on_client_id"
+    t.index ["maintenance_plan_item_id"], name: "index_maintenance_alerts_on_maintenance_plan_item_id"
+    t.index ["order_service_id"], name: "index_maintenance_alerts_on_order_service_id"
+    t.index ["status"], name: "index_maintenance_alerts_on_status"
+    t.index ["vehicle_id", "status"], name: "index_maintenance_alerts_on_vehicle_id_and_status"
+    t.index ["vehicle_id"], name: "index_maintenance_alerts_on_vehicle_id"
+  end
+
+  create_table "maintenance_plan_item_services", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "maintenance_plan_item_id", null: false
+    t.bigint "service_id", null: false
+    t.decimal "quantity", precision: 10, scale: 2, default: "1.0"
+    t.text "observation"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["maintenance_plan_item_id", "service_id"], name: "idx_plan_item_services_unique", unique: true
+    t.index ["maintenance_plan_item_id"], name: "index_maintenance_plan_item_services_on_maintenance_plan_item_id"
+    t.index ["service_id"], name: "index_maintenance_plan_item_services_on_service_id"
+  end
+
+  create_table "maintenance_plan_items", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "maintenance_plan_id", null: false
+    t.bigint "client_id"
+    t.string "name", null: false
+    t.string "plan_type", default: "km", null: false
+    t.integer "km_interval"
+    t.integer "days_interval"
+    t.integer "km_alert_threshold", default: 1000
+    t.integer "days_alert_threshold", default: 15
+    t.text "description"
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["active"], name: "index_maintenance_plan_items_on_active"
+    t.index ["client_id"], name: "index_maintenance_plan_items_on_client_id"
+    t.index ["maintenance_plan_id"], name: "index_maintenance_plan_items_on_maintenance_plan_id"
+    t.index ["plan_type"], name: "index_maintenance_plan_items_on_plan_type"
+  end
+
+  create_table "maintenance_plan_vehicles", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "maintenance_plan_id", null: false
+    t.bigint "vehicle_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["maintenance_plan_id", "vehicle_id"], name: "idx_mp_vehicles_unique", unique: true
+    t.index ["maintenance_plan_id"], name: "index_maintenance_plan_vehicles_on_maintenance_plan_id"
+    t.index ["vehicle_id"], name: "index_maintenance_plan_vehicles_on_vehicle_id"
+  end
+
   create_table "maintenance_plans", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "client_id"
+    t.text "description"
+    t.boolean "active", default: true
+    t.index ["active"], name: "index_maintenance_plans_on_active"
+    t.index ["client_id"], name: "index_maintenance_plans_on_client_id"
+  end
+
+  create_table "notification_acknowledgments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "notification_id", null: false
+    t.bigint "user_id", null: false
+    t.datetime "acknowledged_at", precision: nil, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["notification_id", "user_id"], name: "idx_notif_ack_notification_user", unique: true
+    t.index ["user_id"], name: "idx_notif_ack_user"
   end
 
   create_table "notifications", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -362,7 +560,10 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
     t.bigint "state_id"
     t.bigint "city_id"
     t.boolean "is_important", default: false, null: false
+    t.integer "display_type", default: 0, null: false
+    t.boolean "requires_acknowledgment", default: false, null: false
     t.index ["city_id"], name: "index_notifications_on_city_id"
+    t.index ["display_type", "created_at"], name: "idx_notifications_display_created"
     t.index ["profile_id"], name: "index_notifications_on_profile_id"
     t.index ["state_id"], name: "index_notifications_on_state_id"
   end
@@ -455,7 +656,9 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
     t.text "justification"
     t.index ["approved_by_additional_id"], name: "index_order_service_proposals_on_approved_by_additional_id"
     t.index ["authorized_by_additional_id"], name: "index_order_service_proposals_on_authorized_by_additional_id"
+    t.index ["order_service_id", "order_service_proposal_status_id"], name: "idx_osp_os_status"
     t.index ["order_service_id"], name: "index_order_service_proposals_on_order_service_id"
+    t.index ["order_service_proposal_status_id", "updated_at"], name: "idx_osp_status_updated"
     t.index ["order_service_proposal_status_id"], name: "idx_on_order_service_proposal_status_id_a50919f65f"
     t.index ["parent_proposal_id"], name: "index_order_service_proposals_on_parent_proposal_id"
     t.index ["pending_manager_approval"], name: "index_order_service_proposals_on_pending_manager_approval"
@@ -513,13 +716,17 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
     t.boolean "directed_to_specific_providers", default: false
     t.datetime "cilia_priced_at"
     t.bigint "cilia_priced_by_id"
+    t.boolean "invoiced", default: false, null: false
+    t.datetime "invoiced_at", precision: nil
     t.boolean "proposals_blocked", default: false, null: false
     t.index ["cilia_priced_at"], name: "index_order_services_on_cilia_priced_at"
     t.index ["cilia_priced_by_id"], name: "index_order_services_on_cilia_priced_by_id"
+    t.index ["client_id", "order_service_status_id"], name: "idx_os_client_status"
     t.index ["client_id"], name: "index_order_services_on_client_id"
     t.index ["commitment_id"], name: "index_order_services_on_commitment_id"
     t.index ["commitment_parts_id"], name: "fk_rails_8411f8cafd"
     t.index ["commitment_services_id"], name: "fk_rails_c723b846de"
+    t.index ["invoiced"], name: "index_order_services_on_invoiced"
     t.index ["maintenance_plan_id"], name: "index_order_services_on_maintenance_plan_id"
     t.index ["manager_id"], name: "index_order_services_on_manager_id"
     t.index ["order_service_status_id"], name: "index_order_services_on_order_service_status_id"
@@ -530,6 +737,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
     t.index ["provider_service_type_id"], name: "index_order_services_on_provider_service_type_id"
     t.index ["reevaluation_requested_by_id"], name: "index_order_services_on_reevaluation_requested_by_id"
     t.index ["service_group_id"], name: "index_order_services_on_service_group_id"
+    t.index ["vehicle_id", "order_service_status_id"], name: "idx_os_vehicle_status"
     t.index ["vehicle_id"], name: "index_order_services_on_vehicle_id"
   end
 
@@ -538,6 +746,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
     t.text "description"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "mobile_banner_enabled", default: false, null: false
+    t.string "mobile_banner_type", default: "tip"
+    t.string "mobile_banner_title"
+    t.text "mobile_banner_text"
+    t.integer "mobile_banner_order", default: 0
   end
 
   create_table "orientation_manuals_profiles", id: false, charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -552,6 +765,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
     t.datetime "updated_at", null: false
     t.text "observation"
     t.decimal "quantity", precision: 10, scale: 2, default: "1.0"
+    t.bigint "category_id"
+    t.index ["category_id"], name: "index_part_service_order_services_on_category_id"
     t.index ["order_service_id"], name: "index_part_service_order_services_on_order_service_id"
     t.index ["service_id"], name: "index_part_service_order_services_on_service_id"
   end
@@ -628,13 +843,15 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
   create_table "reference_prices", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.bigint "vehicle_model_id", null: false
     t.bigint "service_id", null: false
-    t.decimal "reference_price", precision: 15, scale: 2, null: false
+    t.decimal "reference_price", precision: 15, scale: 2
     t.decimal "max_percentage", precision: 5, scale: 2, default: "110.0"
     t.text "observation"
     t.string "source"
     t.boolean "active", default: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.boolean "sem_tabela", default: false, null: false
+    t.string "reference_code"
     t.index ["active"], name: "index_reference_prices_on_active"
     t.index ["service_id"], name: "index_reference_prices_on_service_id"
     t.index ["vehicle_model_id", "service_id"], name: "index_reference_prices_on_model_and_service", unique: true
@@ -754,12 +971,14 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
     t.bigint "updated_by_id"
     t.datetime "created_at", precision: nil, null: false
     t.datetime "updated_at", precision: nil, null: false
+    t.bigint "parent_stock_item_id"
     t.index ["category_id"], name: "index_stock_items_on_category_id"
     t.index ["client_id", "cost_center_id", "code"], name: "idx_stock_items_unique_code", unique: true
     t.index ["client_id", "cost_center_id", "name"], name: "idx_stock_items_client_cc_name"
     t.index ["client_id"], name: "index_stock_items_on_client_id"
     t.index ["cost_center_id"], name: "index_stock_items_on_cost_center_id"
     t.index ["created_by_id"], name: "index_stock_items_on_created_by_id"
+    t.index ["parent_stock_item_id"], name: "index_stock_items_on_parent_stock_item_id"
     t.index ["part_number"], name: "index_stock_items_on_part_number"
     t.index ["status"], name: "index_stock_items_on_status"
     t.index ["sub_unit_id"], name: "index_stock_items_on_sub_unit_id"
@@ -835,6 +1054,34 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
     t.bigint "user_id", null: false
   end
 
+  create_table "support_ticket_messages", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "support_ticket_id", null: false
+    t.bigint "user_id", null: false
+    t.text "message", null: false
+    t.datetime "created_at", precision: nil, null: false
+    t.datetime "updated_at", precision: nil, null: false
+    t.index ["support_ticket_id"], name: "index_support_ticket_messages_on_support_ticket_id"
+    t.index ["user_id"], name: "index_support_ticket_messages_on_user_id"
+  end
+
+  create_table "support_tickets", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "user_id"
+    t.string "title", null: false
+    t.text "description", null: false
+    t.integer "ticket_type", default: 0, null: false
+    t.integer "criticality", default: 0, null: false
+    t.integer "status", default: 0, null: false
+    t.bigint "resolved_by_id"
+    t.datetime "resolved_at", precision: nil
+    t.datetime "created_at", precision: nil, null: false
+    t.datetime "updated_at", precision: nil, null: false
+    t.index ["criticality"], name: "index_support_tickets_on_criticality"
+    t.index ["resolved_by_id"], name: "index_support_tickets_on_resolved_by_id"
+    t.index ["status"], name: "index_support_tickets_on_status"
+    t.index ["ticket_type"], name: "index_support_tickets_on_ticket_type"
+    t.index ["user_id"], name: "index_support_tickets_on_user_id"
+  end
+
   create_table "system_configurations", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "notification_mail"
     t.string "contact_mail"
@@ -869,6 +1116,30 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
     t.text "about_product", size: :long
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "traffic_violations", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "user_id", null: false, comment: "Motorista infrator"
+    t.bigint "vehicle_id", null: false
+    t.bigint "client_id", null: false
+    t.string "auto_number", comment: "Número do auto de infração"
+    t.date "violation_date", null: false
+    t.string "violation_type", comment: "Tipo da infração (leve/media/grave/gravissima)"
+    t.text "description"
+    t.decimal "fine_value", precision: 10, scale: 2
+    t.integer "points", default: 0
+    t.string "status", default: "pending", comment: "pending/paid/appealed/cancelled"
+    t.date "due_date"
+    t.date "paid_at"
+    t.text "notes"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["auto_number"], name: "index_traffic_violations_on_auto_number"
+    t.index ["client_id"], name: "index_traffic_violations_on_client_id"
+    t.index ["status"], name: "index_traffic_violations_on_status"
+    t.index ["user_id"], name: "index_traffic_violations_on_user_id"
+    t.index ["vehicle_id"], name: "index_traffic_violations_on_vehicle_id"
+    t.index ["violation_date"], name: "index_traffic_violations_on_violation_date"
   end
 
   create_table "user_email_settings", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -934,13 +1205,87 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
     t.boolean "needs_km", default: false
     t.boolean "require_vehicle_photos", default: false, null: false
     t.boolean "os_blocked", default: false, null: false
+    t.boolean "qr_nfc_enabled", default: false, null: false
+    t.string "qr_code_token"
+    t.integer "government_sphere", default: 2, null: false
+    t.string "cnh_number"
+    t.string "cnh_category"
+    t.date "cnh_expiration"
+    t.date "cnh_issued_at"
+    t.boolean "training_completed", default: false, null: false
+    t.date "training_date"
+    t.text "training_participants"
+    t.string "training_location"
+    t.text "training_notes"
+    t.boolean "training_declined", default: false, null: false
+    t.datetime "training_declined_at", precision: nil
+    t.boolean "is_gerente", default: false, null: false
+    t.boolean "manual_enviado", default: false, null: false
+    t.datetime "manual_enviado_at"
+    t.boolean "treinamento_apenas_manual", default: false, null: false
+    t.datetime "treinamento_apenas_manual_at", precision: nil
     t.index ["city_id"], name: "index_users_on_city_id"
     t.index ["client_id"], name: "index_users_on_client_id"
+    t.index ["cnh_number"], name: "index_users_on_cnh_number", unique: true
     t.index ["person_type_id"], name: "index_users_on_person_type_id"
     t.index ["profile_id"], name: "index_users_on_profile_id"
+    t.index ["qr_code_token"], name: "index_users_on_qr_code_token", unique: true
     t.index ["sex_id"], name: "index_users_on_sex_id"
     t.index ["state_id"], name: "index_users_on_state_id"
     t.index ["user_status_id"], name: "index_users_on_user_status_id"
+  end
+
+  create_table "vehicle_checklist_items", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "vehicle_checklist_id", null: false
+    t.string "category", null: false, comment: "motor/freios/pneus/eletrica/carroceria/interior/luzes/fluidos/documentacao/outros"
+    t.string "item_name", null: false, comment: "Nome do item verificado"
+    t.string "condition", null: false, comment: "ok/attention/critical/na"
+    t.text "observation"
+    t.boolean "has_anomaly", default: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["category"], name: "index_vehicle_checklist_items_on_category"
+    t.index ["condition"], name: "index_vehicle_checklist_items_on_condition"
+    t.index ["has_anomaly"], name: "index_vehicle_checklist_items_on_has_anomaly"
+    t.index ["vehicle_checklist_id"], name: "index_vehicle_checklist_items_on_vehicle_checklist_id"
+  end
+
+  create_table "vehicle_checklists", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "vehicle_id", null: false
+    t.bigint "user_id", null: false, comment: "Quem realizou o checklist"
+    t.bigint "client_id", null: false
+    t.bigint "cost_center_id"
+    t.integer "current_km"
+    t.string "status", default: "pending", null: false, comment: "pending/acknowledged/os_created/closed"
+    t.text "general_notes"
+    t.datetime "acknowledged_at"
+    t.bigint "acknowledged_by_id"
+    t.bigint "order_service_id", comment: "OS gerada a partir deste checklist"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["acknowledged_by_id"], name: "index_vehicle_checklists_on_acknowledged_by_id"
+    t.index ["client_id"], name: "index_vehicle_checklists_on_client_id"
+    t.index ["cost_center_id"], name: "index_vehicle_checklists_on_cost_center_id"
+    t.index ["created_at"], name: "index_vehicle_checklists_on_created_at"
+    t.index ["order_service_id"], name: "index_vehicle_checklists_on_order_service_id"
+    t.index ["status"], name: "index_vehicle_checklists_on_status"
+    t.index ["user_id"], name: "index_vehicle_checklists_on_user_id"
+    t.index ["vehicle_id"], name: "index_vehicle_checklists_on_vehicle_id"
+  end
+
+  create_table "vehicle_km_records", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "vehicle_id", null: false
+    t.bigint "user_id", null: false
+    t.bigint "order_service_id"
+    t.integer "km", null: false
+    t.string "origin", default: "manual"
+    t.text "observation"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["order_service_id"], name: "index_vehicle_km_records_on_order_service_id"
+    t.index ["user_id"], name: "index_vehicle_km_records_on_user_id"
+    t.index ["vehicle_id", "created_at"], name: "index_vehicle_km_records_on_vehicle_id_and_created_at"
+    t.index ["vehicle_id"], name: "index_vehicle_km_records_on_vehicle_id"
   end
 
   create_table "vehicle_models", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -965,21 +1310,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
     t.string "name"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-  end
-
-  create_table "webhook_logs", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
-    t.bigint "order_service_id", null: false
-    t.integer "status", default: 0, null: false
-    t.integer "attempts", default: 0, null: false
-    t.string "last_error"
-    t.string "last_http_code"
-    t.datetime "last_attempt_at"
-    t.datetime "succeeded_at"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["order_service_id", "status"], name: "idx_webhook_logs_os_status"
-    t.index ["order_service_id"], name: "index_webhook_logs_on_order_service_id"
-    t.index ["status"], name: "index_webhook_logs_on_status"
   end
 
   create_table "vehicles", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
@@ -1026,6 +1356,23 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
     t.index ["vehicle_type_id"], name: "index_vehicles_on_vehicle_type_id"
   end
 
+  create_table "webhook_logs", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
+    t.bigint "order_service_id", null: false
+    t.integer "status", default: 0, null: false
+    t.integer "attempts", default: 0, null: false
+    t.string "last_error"
+    t.string "last_http_code"
+    t.datetime "last_attempt_at", precision: nil
+    t.datetime "succeeded_at", precision: nil
+    t.datetime "created_at", precision: nil, null: false
+    t.datetime "updated_at", precision: nil, null: false
+    t.datetime "skipped_at", precision: nil
+    t.string "skipped_reason"
+    t.index ["order_service_id", "status"], name: "idx_webhook_logs_os_status"
+    t.index ["order_service_id"], name: "index_webhook_logs_on_order_service_id"
+    t.index ["status"], name: "index_webhook_logs_on_status"
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "addendum_commitments", "commitments"
   add_foreign_key "addendum_commitments", "contracts"
@@ -1035,6 +1382,12 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
   add_foreign_key "addresses", "cities"
   add_foreign_key "addresses", "countries"
   add_foreign_key "addresses", "states"
+  add_foreign_key "anomalies", "cost_centers"
+  add_foreign_key "anomalies", "users"
+  add_foreign_key "anomalies", "users", column: "client_id"
+  add_foreign_key "anomalies", "users", column: "resolved_by_id"
+  add_foreign_key "anomalies", "vehicles"
+  add_foreign_key "api_keys", "users"
   add_foreign_key "cancel_commitments", "commitments"
   add_foreign_key "categories", "category_types"
   add_foreign_key "cities", "countries"
@@ -1052,6 +1405,28 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
   add_foreign_key "cost_centers", "users", column: "client_id"
   add_foreign_key "data_banks", "banks"
   add_foreign_key "data_banks", "data_bank_types"
+  add_foreign_key "driver_vehicle_assignments", "users"
+  add_foreign_key "driver_vehicle_assignments", "vehicles"
+  add_foreign_key "fatura_itens", "faturas"
+  add_foreign_key "fatura_itens", "order_service_proposals"
+  add_foreign_key "fatura_itens", "order_services"
+  add_foreign_key "faturas", "contracts"
+  add_foreign_key "faturas", "cost_centers"
+  add_foreign_key "faturas", "users", column: "client_id"
+  add_foreign_key "maintenance_alerts", "maintenance_plan_items"
+  add_foreign_key "maintenance_alerts", "order_services"
+  add_foreign_key "maintenance_alerts", "users", column: "acknowledged_by_id"
+  add_foreign_key "maintenance_alerts", "users", column: "client_id"
+  add_foreign_key "maintenance_alerts", "vehicles"
+  add_foreign_key "maintenance_plan_item_services", "maintenance_plan_items"
+  add_foreign_key "maintenance_plan_item_services", "services"
+  add_foreign_key "maintenance_plan_items", "maintenance_plans"
+  add_foreign_key "maintenance_plan_items", "users", column: "client_id"
+  add_foreign_key "maintenance_plan_vehicles", "maintenance_plans"
+  add_foreign_key "maintenance_plan_vehicles", "vehicles"
+  add_foreign_key "maintenance_plans", "users", column: "client_id"
+  add_foreign_key "notification_acknowledgments", "notifications"
+  add_foreign_key "notification_acknowledgments", "users"
   add_foreign_key "notifications", "cities"
   add_foreign_key "notifications", "profiles"
   add_foreign_key "notifications", "states"
@@ -1080,6 +1455,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
   add_foreign_key "order_services", "users", column: "provider_id"
   add_foreign_key "order_services", "users", column: "reevaluation_requested_by_id", on_delete: :nullify
   add_foreign_key "order_services", "vehicles"
+  add_foreign_key "part_service_order_services", "categories"
   add_foreign_key "part_service_order_services", "order_services"
   add_foreign_key "part_service_order_services", "services"
   add_foreign_key "provider_service_temps", "categories"
@@ -1098,6 +1474,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
   add_foreign_key "states", "countries"
   add_foreign_key "stock_items", "categories"
   add_foreign_key "stock_items", "cost_centers"
+  add_foreign_key "stock_items", "stock_items", column: "parent_stock_item_id"
   add_foreign_key "stock_items", "sub_units"
   add_foreign_key "stock_items", "users", column: "client_id"
   add_foreign_key "stock_items", "users", column: "created_by_id"
@@ -1111,6 +1488,13 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
   add_foreign_key "sub_categories", "categories"
   add_foreign_key "sub_units", "budget_types"
   add_foreign_key "sub_units", "cost_centers"
+  add_foreign_key "support_ticket_messages", "support_tickets"
+  add_foreign_key "support_ticket_messages", "users"
+  add_foreign_key "support_tickets", "users"
+  add_foreign_key "support_tickets", "users", column: "resolved_by_id"
+  add_foreign_key "traffic_violations", "users"
+  add_foreign_key "traffic_violations", "users", column: "client_id"
+  add_foreign_key "traffic_violations", "vehicles"
   add_foreign_key "user_email_settings", "users"
   add_foreign_key "users", "cities"
   add_foreign_key "users", "person_types"
@@ -1119,6 +1503,16 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_01_130000) do
   add_foreign_key "users", "states"
   add_foreign_key "users", "user_statuses"
   add_foreign_key "users", "users", column: "client_id"
+  add_foreign_key "vehicle_checklist_items", "vehicle_checklists"
+  add_foreign_key "vehicle_checklists", "cost_centers"
+  add_foreign_key "vehicle_checklists", "order_services"
+  add_foreign_key "vehicle_checklists", "users"
+  add_foreign_key "vehicle_checklists", "users", column: "acknowledged_by_id"
+  add_foreign_key "vehicle_checklists", "users", column: "client_id"
+  add_foreign_key "vehicle_checklists", "vehicles"
+  add_foreign_key "vehicle_km_records", "order_services"
+  add_foreign_key "vehicle_km_records", "users"
+  add_foreign_key "vehicle_km_records", "vehicles"
   add_foreign_key "vehicle_models", "vehicle_types"
   add_foreign_key "vehicles", "categories"
   add_foreign_key "vehicles", "cities"

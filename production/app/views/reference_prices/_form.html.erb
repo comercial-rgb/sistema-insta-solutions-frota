@@ -18,9 +18,12 @@
       <%= f.input :reference_price, label: 'Preço Ref. Cilia (R$)', as: :string %>
     </div>
     <div class="col-md-4">
-      <%= f.input :max_percentage, label: 'Percentual Máximo (%)', hint: 'Ex: 110 = permite até 10% acima' %>
+      <%= f.input :reference_code, label: 'Código de Referência', placeholder: 'Ex: CILIA-123456' %>
     </div>
     <div class="col-md-4">
+      <%= f.input :max_percentage, label: 'Percentual Máximo (%)', hint: 'Ex: 110 = permite até 10% acima' %>
+    </div>
+    <div class="col-md-12">
       <%= f.input :active, as: :boolean, label: 'Ativo' %>
     </div>
   </div>

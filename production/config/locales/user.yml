@@ -42,6 +42,8 @@ pt-BR:
         additional_users: 'Adicionais'
         provider_user: 'Fornecedor'
         provider_users: 'Fornecedores'
+        driver_user: 'Motorista'
+        driver_users: 'Motoristas'
         client: "Cliente"
         client_id: "Cliente"
         reactived: 'Reativado'
@@ -122,7 +124,7 @@ pt-BR:
         state_city: "Estado/Cidade"
         states: "Estados para recebimento de propostas"
         registration: "Matrícula"
-        optante_simples: "Optante pelo SIMPLES"
+        optante_simples: "Não optante pelo SIMPLES"
         needs_km: "Necessita controle de KM"
       user/cards:
         id: 'ID'
@@ -178,6 +180,8 @@ en:
         additional_users: 'Adicionais'
         provider_user: 'Fornecedor'
         provider_users: 'Fornecedores'
+        driver_user: 'Motorista'
+        driver_users: 'Motoristas'
         client: "Cliente"
         client_id: "Cliente"
         reactived: 'Reativado'
@@ -259,7 +263,7 @@ en:
         state_city: "Estado/Cidade"
         states: "Estados para recebimento de propostas"
         registration: "Matrícula"
-        optante_simples: "Optante pelo SIMPLES"
+        optante_simples: "Não optante pelo SIMPLES"
         needs_km: "Necessita controle de KM"
       user/cards:
         id: 'ID'

@@ -83,6 +83,19 @@
     </div>
     <% end %>
 
+    <div class="col-12 col-md-3 mb-3 checkbox-input-center">
+        <%= f.input :treinamento_apenas_manual, label: 'Apenas Manuais (cliente aceitou)' %>
+    </div>
+
+    <% if f.object.treinamento_apenas_manual_at.present? %>
+    <div class="col-12 col-md-3 mb-3">
+        <div class="form-group">
+            <label class="form-label">Aceito em</label>
+            <p class="form-control-plaintext"><%= f.object.treinamento_apenas_manual_at.strftime('%d/%m/%Y %H:%M') %></p>
+        </div>
+    </div>
+    <% end %>
+
     <div class="col-12 col-md-3 mb-3">
         <%= f.input :training_date, as: :string, label: 'Data do Treinamento',
             input_html: { class: 'datepicker', value: CustomHelper.get_text_date(f.object.training_date, 'date', :default), autocomplete: :off, type: "tel" } %>

@@ -82,6 +82,7 @@ pt-BR:
         service_group_id: "Grupo de serviço"
         service_group: "Grupo de serviço"
         origin_type: "Origem"
+        directed_to_specific_providers: "Enviado para fornecedores específicos"
         only_save: 'Salvar apenas'
         save_and_insert_values: "Salvar e inserir valores/preços"
         save_and_submit_to_approve: 'Salvar e enviar para aprovação'

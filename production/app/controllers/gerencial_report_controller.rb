@@ -18,6 +18,7 @@ class GerencialReportController < ApplicationController
     @start_date = params[:start_date].present? ? Date.parse(params[:start_date]) : Date.current.beginning_of_month
     @end_date = params[:end_date].present? ? Date.parse(params[:end_date]) : Date.current.end_of_month
     @metrics = build_metrics(@start_date, @end_date)
+    @observacoes = params[:observacoes].presence
 
     respond_to do |format|
       format.xlsx { render_excel }
@@ -223,6 +224,13 @@ class GerencialReportController < ApplicationController
         end
       end
 
+      # Observações livres
+      if @observacoes.present?
+        sheet.add_row []
+        sheet.add_row ['Observações'], style: header_style
+        sheet.add_row [@observacoes]
+      end
+
       sheet.column_widths 35, 20, 20, 20, 20, 20, 15
     end
 
@@ -341,6 +349,16 @@ class GerencialReportController < ApplicationController
         t.cells.padding = [3, 6]
         t.cells.size = 8
       end
+    end
+
+    # Observações livres
+    if @observacoes.present?
+      pdf.move_down 15
+      pdf.font_size 12
+      pdf.text "Observações", style: :bold
+      pdf.move_down 5
+      pdf.font_size 10
+      pdf.text @observacoes
     end
 
     send_data pdf.render,

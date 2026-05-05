@@ -26,14 +26,35 @@
   def get_category_id
     if self.service.present?
       self.service.category_id
-    else
-      # Para itens criados manualmente, tentar identificar pela proposta
-      # Verifica se há um provider_service_temp correspondente pelo service_name
-      if self.order_service_proposal.present?
-        pst = self.order_service_proposal.provider_service_temps.find_by(name: self.service_name)
-        pst&.category_id
+    elsif self.order_service_proposal.present?
+      matching_temp = self.order_service_proposal.provider_service_temps.find do |t|
+        t.name.to_s.strip.casecmp?(self.service_name.to_s.strip)
       end
+      matching_temp&.category_id
     end
+  end
+
+  # Empenho / aprovação: não perder itens sem service_id (joins(:service) os excluiria).
+  # Sem categoria resolvível, assume peças — alinhado ao default de ProviderServiceTemp.
+  def category_id_for_commitment
+    cid = get_category_id
+    return cid if cid.present?
+
+    Category::SERVICOS_PECAS_ID
+  end
+
+  def self.sum_parts_total_value(relation)
+    sum_total_value_for_category(relation, Category::SERVICOS_PECAS_ID)
+  end
+
+  def self.sum_services_total_value(relation)
+    sum_total_value_for_category(relation, Category::SERVICOS_SERVICOS_ID)
+  end
+
+  def self.sum_total_value_for_category(relation, category_id)
+    relation
+      .includes(:service, order_service_proposal: :provider_service_temps)
+      .sum { |item| item.category_id_for_commitment == category_id ? item.total_value.to_d : 0.to_d }
   end
 
   def get_text_name

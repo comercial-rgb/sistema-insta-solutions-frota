@@ -127,7 +127,10 @@ class ContractsController < ApplicationController
   end
 
   def by_client_id
-    client_id = params[:client_id]
+    authorize Contract
+    client_id = @current_user.admin? ? params[:client_id]
+              : @current_user.client? ? @current_user.id
+              : @current_user.client_id
     contracts = Contract.where(client_id: client_id, active: true).order(:name)
     data = {
       result: contracts.map { |c| { id: c.id, name: c.get_formatted_name_with_disponible_value } }
@@ -141,7 +144,13 @@ class ContractsController < ApplicationController
 
   # Use callbacks to share common setup or constraints between actions.
   def set_contract
-    @contract = Contract.find(params[:id])
+    scope = Contract.all
+    if @current_user.client?
+      scope = scope.where(client_id: @current_user.id)
+    elsif @current_user.manager? || @current_user.additional?
+      scope = scope.where(client_id: @current_user.client_id)
+    end
+    @contract = scope.find(params[:id])
   end
 
   # Never trust parameters from the scary internet, only allow the white.

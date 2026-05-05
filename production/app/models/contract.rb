@@ -1,4 +1,4 @@
-class Contract < ApplicationRecord
+﻿class Contract < ApplicationRecord
   after_initialize :default_values
 
   default_scope {
@@ -11,8 +11,8 @@ class Contract < ApplicationRecord
   scope :by_name, lambda { |value| where("LOWER(contracts.name) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
   scope :by_number, lambda { |value| where("contracts.number = ?", value) if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("contracts.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("contracts.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("contracts.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("contracts.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
   #  scope :by_total_value_range, lambda { |min_value, max_value|
   #   subquery = Contract.joins("LEFT JOIN addendum_contracts ON addendum_contracts.contract_id = contracts.id")
@@ -75,18 +75,38 @@ class Contract < ApplicationRecord
   end
 
   def get_total_value
+    # Retorna 0 se o contrato estiver inativo
+    return 0 unless self.active
     @total_value ||= self.total_value + self.addendum_contracts.select { |item| item.active }.sum(&:total_value)
   end
 
   def get_used_value(exclude_commitment_id = nil)
-    commitments = self.commitments
-    commitments = commitments.where.not(id: exclude_commitment_id) if exclude_commitment_id.present?
-    commitments.sum(:commitment_value)
+    commitments_query = self.commitments
+    commitments_query = commitments_query.where.not(id: exclude_commitment_id) if exclude_commitment_id.present?
+    
+    # Valor dos empenhos
+    commitment_values = commitments_query.sum(:commitment_value).to_f
+    
+    # Valor dos aditivos de empenho ativos
+    addendum_values = AddendumCommitment
+      .where(commitment_id: commitments_query.select(:id))
+      .where(active: true)
+      .sum(:total_value).to_f
+    
+    commitment_values + addendum_values
   end
 
   def get_disponible_value(exclude_commitment_id = nil)
     total_value = self.get_total_value
     used_value = self.get_used_value(exclude_commitment_id)
+    
+    Rails.logger.debug "=== get_disponible_value DEBUG ==="
+    Rails.logger.debug "Contract ID: #{self.id}"
+    Rails.logger.debug "Exclude Commitment ID: #{exclude_commitment_id}"
+    Rails.logger.debug "Total Value: #{total_value}"
+    Rails.logger.debug "Used Value: #{used_value}"
+    Rails.logger.debug "Available: #{total_value - used_value}"
+    
     return (total_value - used_value)
   end
 
@@ -95,11 +115,11 @@ class Contract < ApplicationRecord
 	end
 
   def get_formatted_name
-    return self.name += ' / ' + self.number + ' - ' + CustomHelper.to_currency(self.get_total_value)
+    return self.name.to_s + ' / ' + self.number.to_s + ' - ' + CustomHelper.to_currency(self.get_total_value)
   end
 
   def get_formatted_name_with_disponible_value
-    return self.name += ' / ' + self.number + ' - Disponível: ' + CustomHelper.to_currency(self.get_disponible_value)
+    return self.name.to_s + ' / ' + self.number.to_s + ' - Disponível: ' + CustomHelper.to_currency(self.get_disponible_value)
   end
 
   def self.getting_by_client_id(current_user, client_id)

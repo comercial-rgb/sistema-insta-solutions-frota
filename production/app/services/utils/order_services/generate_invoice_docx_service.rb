@@ -65,7 +65,8 @@ module Utils
         grouped = @items.select { |i| i.order_service_id.present? }.group_by(&:order_service_id)
 
         grouped.each do |_os_id, items|
-          os = items.first.order_service
+          fatura_item = items.first
+          os = fatura_item.order_service
           next unless os
 
           proposal = find_approved_proposal(os)
@@ -101,9 +102,11 @@ module Utils
           is_simples = provider ? !provider.optante_simples : true
 
           nf_total_os = pecas_val + servicos_val
+          bruto_pecas_val = nf_total_os > 0 ? (bruto * (pecas_val / nf_total_os)).round(2) : bruto
+          bruto_servicos_val = bruto - bruto_pecas_val
           if @tipo_valor == 'bruto' && nf_total_os > 0
-            pecas_display = (bruto * (pecas_val / nf_total_os)).round(2)
-            servicos_display = (bruto - pecas_display).round(2)
+            pecas_display = bruto_pecas_val
+            servicos_display = bruto_servicos_val
           else
             pecas_display = pecas_val
             servicos_display = servicos_val
@@ -133,12 +136,12 @@ module Utils
             code: os.code, provider: provider&.get_name || '-', provider_cnpj: provider&.cnpj || '-',
             regime: is_simples ? 'Simples Nacional' : 'Nao Optante Simples', vehicle: os.vehicle&.board || '-',
             cost_center: os.cost_center&.name || '-',
-            pecas: pecas_val, pecas_display: pecas_display, nf_pecas: nf_pecas.map(&:number).compact.join(', '),
-            servicos: servicos_val, servicos_display: servicos_display, nf_servicos: nf_servicos.map(&:number).compact.join(', '),
+            pecas: pecas_val, pecas_display: pecas_display, bruto_pecas: bruto_pecas_val, nf_pecas: nf_pecas.map(&:number).compact.join(', '),
+            servicos: servicos_val, servicos_display: servicos_display, bruto_servicos: bruto_servicos_val, nf_servicos: nf_servicos.map(&:number).compact.join(', '),
             bruto: bruto, desconto: desc_val, com_desc: com_desc,
             pct_desc: bruto > 0 ? ((desc_val / bruto) * 100).round(2) : 0,
             ret: ret_provider.round(2), pct_pecas_ret: pct_pecas_ret, pct_serv_ret: pct_serv_ret,
-            is_simples: is_simples
+            is_simples: is_simples, observacoes: fatura_item.observacoes.presence
           }
         end
 
@@ -249,18 +252,25 @@ module Utils
           item_rows << [
             "##{r[:code]}", r[:provider].to_s[0..24], r[:vehicle],
             r[:cost_center].to_s[0..14],
-            r[:nf_pecas].presence || '-', money(r[:pecas_display]),
-            r[:nf_servicos].presence || '-', money(r[:servicos_display]),
+            r[:nf_pecas].presence || '-', [money(r[:bruto_pecas]), "Liq: #{money(r[:pecas])}"],
+            r[:nf_servicos].presence || '-', [money(r[:bruto_servicos]), "Liq: #{money(r[:servicos])}"],
             money(r[:bruto]), "-#{money(r[:desconto])}", money(r[:com_desc])
           ]
           regime_txt = r[:is_simples] ? 'Optante Simples (Isento)' : "Não Optante - Ret. Peças #{fmt_pct(r[:pct_pecas_ret])}% / Serviços #{fmt_pct(r[:pct_serv_ret])}% = #{money(r[:ret])}"
           item_rows << :sub_row
           item_rows << { sub: true, text: "#{r[:provider]}  |  CNPJ: #{r[:provider_cnpj]}  |  #{regime_txt}" }
+          if r[:observacoes].present?
+            item_rows << :sub_row
+            item_rows << { sub: true, text: "Obs: #{r[:observacoes]}" }
+          end
         end
 
+        total_bruto_pecas = os_rows.sum { |r| r[:bruto_pecas] }
+        total_bruto_servicos = os_rows.sum { |r| r[:bruto_servicos] }
         item_rows << [
           '', '', '', 'SUBTOTAIS:',
-          '', money(total_pecas_display), '', money(total_servicos_display),
+          '', [money(total_bruto_pecas), "Liq: #{money(total_pecas)}"],
+          '', [money(total_bruto_servicos), "Liq: #{money(total_servicos)}"],
           money(total_bruto), "-#{money(total_desconto)}", money(total_com_desc)
         ]
 
@@ -645,9 +655,19 @@ module Utils
             w = col_widths[ci] || 1000
 
             xml += '<w:tc><w:tcPr><w:tcW w:w="' + w.to_s + '" w:type="dxa"/>' + shd + '</w:tcPr>'
-            xml += '<w:p><w:pPr><w:spacing w:after="10" w:line="240" w:lineRule="auto"/></w:pPr>'
-            xml += '<w:r><w:rPr>' + bold_tag + '<w:sz w:val="' + fsz + '"/><w:szCs w:val="' + fsz + '"/></w:rPr>'
-            xml += '<w:t xml:space="preserve">' + esc(cell.to_s) + '</w:t></w:r></w:p></w:tc>'
+            if cell.is_a?(Array)
+              cell.each_with_index do |line, li|
+                rpr = li == 0 ? bold_tag + '<w:sz w:val="' + fsz + '"/><w:szCs w:val="' + fsz + '"/>' : '<w:sz w:val="16"/><w:szCs w:val="16"/><w:color w:val="339933"/>'
+                xml += '<w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr>'
+                xml += '<w:r><w:rPr>' + rpr + '</w:rPr>'
+                xml += '<w:t xml:space="preserve">' + esc(line.to_s) + '</w:t></w:r></w:p>'
+              end
+            else
+              xml += '<w:p><w:pPr><w:spacing w:after="10" w:line="240" w:lineRule="auto"/></w:pPr>'
+              xml += '<w:r><w:rPr>' + bold_tag + '<w:sz w:val="' + fsz + '"/><w:szCs w:val="' + fsz + '"/></w:rPr>'
+              xml += '<w:t xml:space="preserve">' + esc(cell.to_s) + '</w:t></w:r></w:p>'
+            end
+            xml += '</w:tc>'
           end
 
           xml += '</w:tr>'

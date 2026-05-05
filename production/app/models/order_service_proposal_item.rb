@@ -1,5 +1,8 @@
-class OrderServiceProposalItem < ApplicationRecord
+﻿class OrderServiceProposalItem < ApplicationRecord
+  include PadronizaNome
+
   after_initialize :default_values
+  before_validation :padronizar_nome_item
   before_validation :recalculate_totals
   # validate :check_reference_price, if: :should_validate_price?
   # ⚠️ Validação desabilitada - agora apenas mostra aviso visual (não bloqueia)
@@ -13,8 +16,8 @@ class OrderServiceProposalItem < ApplicationRecord
   scope :by_id, lambda { |value| where("order_service_proposal_items.id = ?", value) if !value.nil? && !value.blank? }
   # scope :by_name, lambda { |value| where("LOWER(order_service_proposal_items.name) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("order_service_proposal_items.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("order_service_proposal_items.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("order_service_proposal_items.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("order_service_proposal_items.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
   belongs_to :order_service_proposal, optional: true
   belongs_to :service, optional: true
@@ -23,14 +26,35 @@ class OrderServiceProposalItem < ApplicationRecord
   def get_category_id
     if self.service.present?
       self.service.category_id
-    else
-      # Para itens criados manualmente, tentar identificar pela proposta
-      # Verifica se há um provider_service_temp correspondente pelo service_name
-      if self.order_service_proposal.present?
-        pst = self.order_service_proposal.provider_service_temps.find_by(name: self.service_name)
-        pst&.category_id
+    elsif self.order_service_proposal.present?
+      matching_temp = self.order_service_proposal.provider_service_temps.find do |t|
+        t.name.to_s.strip.casecmp?(self.service_name.to_s.strip)
       end
+      matching_temp&.category_id
     end
+  end
+
+  # Empenho / aprovação: não perder itens sem service_id (joins(:service) os excluiria).
+  # Sem categoria resolvível, assume peças — alinhado ao default de ProviderServiceTemp.
+  def category_id_for_commitment
+    cid = get_category_id
+    return cid if cid.present?
+
+    Category::SERVICOS_PECAS_ID
+  end
+
+  def self.sum_parts_total_value(relation)
+    sum_total_value_for_category(relation, Category::SERVICOS_PECAS_ID)
+  end
+
+  def self.sum_services_total_value(relation)
+    sum_total_value_for_category(relation, Category::SERVICOS_SERVICOS_ID)
+  end
+
+  def self.sum_total_value_for_category(relation, category_id)
+    relation
+      .includes(:service, order_service_proposal: :provider_service_temps)
+      .sum { |item| item.category_id_for_commitment == category_id ? item.total_value.to_d : 0.to_d }
   end
 
   def get_text_name
@@ -58,11 +82,14 @@ class OrderServiceProposalItem < ApplicationRecord
     )
     
     return result unless ref_price
-    
+    return result if ref_price.sem_tabela?
+
     max_allowed = ref_price.max_allowed_price
+    return result unless max_allowed
+
     result[:reference_price] = ref_price.reference_price.to_f
     result[:max_allowed] = max_allowed.to_f
-    
+
     if unity_value > max_allowed
       percentage_over = (((unity_value - ref_price.reference_price) / ref_price.reference_price) * 100).round(0)
       result[:exceeded] = true
@@ -79,10 +106,15 @@ class OrderServiceProposalItem < ApplicationRecord
     return false unless get_category_id == Category::SERVICOS_PECAS_ID
     
     vehicle = order_service_proposal.order_service.vehicle
-    vehicle.vehicle_model_id.present?
+    # Verifica se o veículo tem vehicle_model_id (coluna pode não existir em versões antigas do DB)
+    vehicle.respond_to?(:vehicle_model_id) && vehicle.vehicle_model_id.present?
   end
 
   private
+
+  def padronizar_nome_item
+    self.service_name = self.class.padronizar_nome_peca(service_name) if service_name.present? && service_name_changed?
+  end
 
   def recalculate_totals
     quantity = (self.quantity.presence || 0).to_d

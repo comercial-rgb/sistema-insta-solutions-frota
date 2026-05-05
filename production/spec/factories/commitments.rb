@@ -1,16 +1,21 @@
 FactoryBot.define do
   factory :commitment do
-    client { User.client.order("RAND()").first }
-    cost_center_id { CostCenter.all.map(&:id).sample } # Mantido para compatibilidade
-    contract_id { Contract.all.map(&:id).sample }
-    commitment_number { Faker::Number.number(digits: 6) }
-    commitment_value { Faker::Commerce.price(range: 10000..20000) }
-    
-    # Trait para criar empenho com múltiplos centros de custo
+    association :client, factory: [:user, :client]
+    cost_center { association :cost_center, :minimal, client: client }
+    contract { association :contract, :minimal, client: client }
+    commitment_number { "EMP-#{SecureRandom.hex(3)}" }
+    commitment_value { 10_000 }
+
+    after(:create) do |commitment|
+      CommitmentCostCenter.find_or_create_by!(
+        commitment: commitment,
+        cost_center: commitment.cost_center
+      )
+    end
+
     trait :with_multiple_cost_centers do
       after(:create) do |commitment|
-        cost_centers = CostCenter.all.sample(rand(2..3))
-        cost_centers.each do |cc|
+        CostCenter.where(client_id: commitment.client_id).limit(3).each do |cc|
           CommitmentCostCenter.find_or_create_by!(commitment: commitment, cost_center: cc)
         end
       end

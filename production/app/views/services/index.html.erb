@@ -6,26 +6,30 @@ breadcrumbs = [
 ]
 %>
 
-<div class="container">
-	<div class="row mb-3">
-		<div class="d-none d-md-block col-md-12 text-center">
-			<%= render 'common_pages/breadcrumb', links: breadcrumbs %>
-		</div>
+<%= 
+	render 'common_pages/index/first_container',
+	attributes: {
+		breadcrumbs: breadcrumbs,
+		objects: @services,
+		objects_path: services_path,
+		policy_true: policy(Service).new?,
+		url_new_path: new_service_path,
+		add_new_text: raw('<i class="bi bi-plus-circle"></i> ' + t('model.add_new'))
+	}
+%>
 
-		<!-- Botões de Ação -->
-		<div class="col-12 text-end">
-			<% if policy(Service).create? %>
-				<%= link_to new_services_import_path, class: 'btn btn-success me-2' do %>
+<!-- Botão adicional de importação -->
+<% if policy(Service).create? %>
+	<div class="container mb-3">
+		<div class="row">
+			<div class="col-12 text-end">
+				<%= link_to new_services_import_path, class: 'btn btn-success' do %>
 					<i class="bi bi-upload"></i> Importação em Massa
 				<% end %>
-				
-				<%= link_to new_service_path, class: 'btn btn-primary text-white' do %>
-					<i class="bi bi-plus-circle"></i> <%= t('model.add_new') %>
-				<% end %>
-			<% end %>
+			</div>
 		</div>
 	</div>
-</div>
+<% end %>
 
 <%= 
 	render 'common_pages/index/second_container',

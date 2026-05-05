@@ -1,14 +1,24 @@
 FactoryBot.define do
   factory :contract do
-    client { User.client.order("RAND()").first }
-    name {Faker::Lorem.sentence(word_count: 1)}
-    number {Faker::Number.number(digits: 7)}
-    initial_date {Faker::Date.between(from: 2.years.ago, to: 1.years.ago)}
-    total_value {Faker::Commerce.price(range: 10000..20000)}
-    active {1}
+    transient do
+      with_addenda { true }
+    end
 
-    after(:create) do |object|
-      create_list(:addendum_contract, 3, contract: object)
+    association :client, factory: [:user, :client]
+    name { "Contrato #{SecureRandom.hex(2)}" }
+    number { Faker::Number.number(digits: 7).to_s }
+    initial_date { 2.years.ago.to_date }
+    total_value { 50_000 }
+    active { 1 }
+
+    trait :minimal do
+      with_addenda { false }
+    end
+
+    after(:create) do |object, evaluator|
+      next unless evaluator.with_addenda
+
+      create_list(:addendum_contract, 1, contract: object)
     end
   end
 end

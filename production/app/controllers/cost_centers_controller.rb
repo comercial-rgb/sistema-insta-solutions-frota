@@ -115,10 +115,14 @@ class CostCentersController < ApplicationController
   end
 
   def by_client_id
+    authorize CostCenter
+    client_id = @current_user.admin? ? params[:client_id]
+              : @current_user.client? ? @current_user.id
+              : @current_user.client_id
     if params[:only_order_services].present? && params[:only_order_services].to_i == 1
-      result = CostCenter.by_client_id(params[:client_id]).joins(:order_services).distinct
+      result = CostCenter.by_client_id(client_id).joins(:order_services).distinct
     else
-      result = CostCenter.by_client_id(params[:client_id])
+      result = CostCenter.by_client_id(client_id)
     end
     data = {
       result: result
@@ -147,7 +151,10 @@ class CostCentersController < ApplicationController
   end
 
   def sub_units_by_client_id
-    client_id = params[:client_id]
+    authorize CostCenter
+    client_id = @current_user.admin? ? params[:client_id]
+              : @current_user.client? ? @current_user.id
+              : @current_user.client_id
     cost_centers = CostCenter.by_client_id(client_id)
     sub_units = SubUnit.where(cost_center_id: cost_centers.pluck(:id)).order(:name)
     data = {
@@ -162,7 +169,13 @@ class CostCentersController < ApplicationController
 
   # Use callbacks to share common setup or constraints between actions.
   def set_cost_center
-    @cost_center = CostCenter.find(params[:id])
+    scope = CostCenter.all
+    if @current_user.client?
+      scope = scope.where(client_id: @current_user.id)
+    elsif @current_user.manager? || @current_user.additional?
+      scope = scope.where(client_id: @current_user.client_id)
+    end
+    @cost_center = scope.find(params[:id])
   end
 
   # Never trust parameters from the scary internet, only allow the white.

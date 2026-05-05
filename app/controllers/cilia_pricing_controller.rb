@@ -254,13 +254,46 @@ class CiliaPricingController < ApplicationController
     { prices: prices, avg: avg, count: prices.size }
   end
 
-  # Query base: OS que possuem propostas com itens que são peças
+  # Query base: OS que possuem propostas com itens que são peças.
+  # Não usar INNER JOIN em services: itens sem service_id (linha manual) sumiriam da lista,
+  # embora get_category_id / provider_service_temps tratem como peças quando aplicável.
   def base_query
+    pecas_id = Category::SERVICOS_PECAS_ID
+
     OrderService
       .joins(:vehicle)
-      .joins(order_service_proposals: { order_service_proposal_items: :service })
-      .where(services: { category_id: Category::SERVICOS_PECAS_ID })
-      .where('order_services.created_at >= ?', '2026-03-06 00:00:00')
+      .joins(:order_service_proposals)
+      .joins(<<~SQL.squish)
+        INNER JOIN order_service_proposal_items
+          ON order_service_proposal_items.order_service_proposal_id = order_service_proposals.id
+      SQL
+      .joins(<<~SQL.squish)
+        LEFT JOIN services
+          ON services.id = order_service_proposal_items.service_id
+      SQL
+      .where(<<~SQL.squish, pecas_id: pecas_id)
+        (
+          order_service_proposal_items.service_id IS NOT NULL
+          AND services.category_id = :pecas_id
+        )
+        OR (
+          order_service_proposal_items.service_id IS NULL
+          AND (
+            NOT EXISTS (
+              SELECT 1 FROM provider_service_temps pst
+              WHERE pst.order_service_proposal_id = order_service_proposals.id
+                AND LOWER(TRIM(pst.name)) = LOWER(TRIM(COALESCE(order_service_proposal_items.service_name, '')))
+            )
+            OR EXISTS (
+              SELECT 1 FROM provider_service_temps pst
+              WHERE pst.order_service_proposal_id = order_service_proposals.id
+                AND LOWER(TRIM(pst.name)) = LOWER(TRIM(COALESCE(order_service_proposal_items.service_name, '')))
+                AND (pst.category_id = :pecas_id OR pst.category_id IS NULL)
+            )
+          )
+        )
+      SQL
+      .where("order_services.created_at >= ?", "2026-03-06 00:00:00")
       .includes(:order_service_type, :order_service_status, vehicle: :vehicle_model)
       .distinct
   end

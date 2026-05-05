@@ -10,8 +10,7 @@ Rails.application.configure do
   # Rake tasks automatically ignore this option for performance.
   config.eager_load = true
 
-  # Full error reports are ENABLED for debugging - CHANGE BACK TO false AFTER DEBUG
-  config.consider_all_requests_local       = true
+  config.consider_all_requests_local       = false
   config.action_controller.perform_caching = true
 
   # Enable Rack::Cache to put a simple HTTP cache in front of your application
@@ -42,8 +41,8 @@ Rails.application.configure do
   # config.action_dispatch.x_sendfile_header = 'X-Sendfile' # for Apache
   # config.action_dispatch.x_sendfile_header = 'X-Accel-Redirect' # for NGINX
 
-  # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
-  # config.force_ssl = true
+  # TLS no balanceador costuma bastar; habilite no Rails com RAILS_FORCE_SSL=true se o app for servido direto em HTTPS.
+  config.force_ssl = ActiveModel::Type::Boolean.new.cast(ENV.fetch('RAILS_FORCE_SSL', 'false'))
 
   # Use the lowest log level to ensure availability of diagnostic information
   # when problems arise.
@@ -72,26 +71,23 @@ Rails.application.configure do
   config.active_support.deprecation = :notify
 
   # Use default logging formatter so that PID and timestamp are not suppressed.
-  config.log_level = :debug
-  config.active_record.logger = ActiveSupport::Logger.new(STDOUT)
+  config.log_level = :info
   config.log_tags = [:request_id]
   config.logger = ActiveSupport::Logger.new("log/production.log")
 
   # Do not dump schema after migrations.
   config.active_record.dump_schema_after_migration = false
 
-  # Websocket
-  config.action_cable.allowed_request_origins = [
-    /http:\/\/*/,
-    /https:\/\/*/,
-    /file:\/\/*/,
-    'file://',
-    /ionic:\/\/*/,
-    'ionic://',
-    /capacitor:\/\/*/,
-    'capacitor://',
-    nil
-  ]
+  # Websocket — lista explícita (override: ACTION_CABLE_ALLOWED_ORIGINS=url1,url2)
+  config.action_cable.allowed_request_origins =
+    if ENV['ACTION_CABLE_ALLOWED_ORIGINS'].present?
+      ENV['ACTION_CABLE_ALLOWED_ORIGINS'].split(',').map(&:strip)
+    else
+      %w[
+        https://app.frotainstasolutions.com.br
+        https://frotainstasolutions.com.br
+      ]
+    end
 
   # Armazenamento na AWS S3
   config.active_storage.service = :amazon

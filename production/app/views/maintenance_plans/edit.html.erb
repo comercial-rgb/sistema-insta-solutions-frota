@@ -1,0 +1,16 @@
+<%
+breadcrumbs = [
+	{active: false, href: root_path, text: t('menu.initial_page')},
+	{active: false, href: maintenance_plans_path, text: "Planos de Manutenção"},
+	{active: false, href: edit_maintenance_plan_path(@maintenance_plan), text: @maintenance_plan.get_text_name},
+	{active: true, href: '#', text: t('model.edit')},
+]
+%>
+
+<%= 
+render 'common_pages/edit', 
+objects_path: maintenance_plans_path, 
+page_title: "Planos de Manutenção", 
+form_to_render: 'maintenance_plans/form',
+breadcrumbs: breadcrumbs
+%>

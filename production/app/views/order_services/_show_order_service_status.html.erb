@@ -25,4 +25,21 @@
 	<% span_text = record.order_service_status&.name || 'Status não definido' %>
 	<span class="badge <%= span_class %>"><%= span_text %></span>
 
+	<% 
+		# Verifica se está em "Aguardando avaliação de proposta" e se há propostas em cadastro (sem status ainda)
+		if record.order_service_status_id == OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID
+			# Conta quantas propostas estão em cadastro (nenhum status definido ou NULL)
+			proposals_in_draft = record.order_service_proposals.where(order_service_proposal_status_id: nil).count
+			
+			if proposals_in_draft > 0
+				%>
+				<br>
+				<span class="badge bg-warning text-dark" style="font-size: 0.7rem; margin-top: 4px;">
+					<i class="bi bi-pencil-square"></i> <%= proposals_in_draft %> proposta<%= proposals_in_draft > 1 ? 's' : '' %> em cadastro
+				</span>
+				<%
+			end
+		end
+	%>
+
 </div>

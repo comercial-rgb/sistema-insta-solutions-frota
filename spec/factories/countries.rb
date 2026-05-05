@@ -1,5 +1,5 @@
 FactoryBot.define do
-	factory :country do
-		name {Faker::Lorem.paragraph}
-	end
+  factory :country do
+    name { Faker::Address.country }
+  end
 end

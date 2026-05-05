@@ -1,0 +1,128 @@
+<div class="nested-fields card mb-3 border-primary">
+    <div class="card-header bg-primary bg-opacity-10 d-flex justify-content-between align-items-center">
+        <strong><i class="bi bi-gear"></i> Serviço do Plano</strong>
+        <div>
+            <% if f.object.persisted? %>
+                <%= f.hidden_field :_destroy, class: 'destroy-field' %>
+                <button type="button" class="btn btn-outline-danger btn-sm remove-item" onclick="markForDestroy(this)">
+                    <i class="bi bi-trash"></i> Remover
+                </button>
+            <% else %>
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="this.closest('.nested-fields').remove()">
+                    <i class="bi bi-trash"></i> Remover
+                </button>
+            <% end %>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-12 col-md-4">
+                <%= f.input :name, label: "Nome do Serviço", placeholder: "Ex: Troca de óleo linha leve" %>
+            </div>
+            <div class="col-12 col-md-2">
+                <%= f.input :plan_type, as: :select, collection: [['Por KM', 'km'], ['Por Dias', 'days'], ['Ambos', 'both']], label: "Tipo de Alerta", include_blank: false %>
+            </div>
+            <div class="col-12 col-md-2">
+                <%= f.input :km_interval, label: "Intervalo KM", placeholder: "Ex: 10000", input_html: { min: 0 } %>
+            </div>
+            <div class="col-12 col-md-2">
+                <%= f.input :days_interval, label: "Intervalo Dias", placeholder: "Ex: 180", input_html: { min: 0 } %>
+            </div>
+            <div class="col-12 col-md-2">
+                <%= f.input :active, as: :boolean, label: "Ativo" %>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12 col-md-3">
+                <%= f.input :km_alert_threshold, label: "Alerta KM antes", placeholder: "Ex: 1000", input_html: { min: 0 } %>
+            </div>
+            <div class="col-12 col-md-3">
+                <%= f.input :days_alert_threshold, label: "Alerta dias antes", placeholder: "Ex: 15", input_html: { min: 0 } %>
+            </div>
+        </div>
+
+        <% if f.object.persisted? %>
+        <hr>
+        <h6 class="mb-2"><i class="bi bi-box-seam"></i> Peças e Serviços pré-configurados</h6>
+        <p class="text-muted small mb-2">Ao gerar alerta, a OS será criada com estes itens já incluídos.</p>
+
+        <% item_id = f.object.id %>
+        <div id="item-services-<%= item_id %>">
+            <% if f.object.maintenance_plan_item_services.any? %>
+            <table class="table table-sm table-bordered mb-2">
+                <thead class="table-light">
+                    <tr>
+                        <th>Tipo</th>
+                        <th>Peça/Serviço</th>
+                        <th>Qtd</th>
+                        <th>Observação</th>
+                        <th style="width: 60px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <%= f.simple_fields_for :maintenance_plan_item_services do |sf| %>
+                    <tr class="item-service-row">
+                        <td>
+                            <% cat = sf.object.service&.category_id %>
+                            <span class="badge <%= cat == Category::SERVICOS_PECAS_ID ? 'bg-info' : 'bg-warning' %>">
+                                <%= cat == Category::SERVICOS_PECAS_ID ? 'Peça' : 'Serviço' %>
+                            </span>
+                        </td>
+                        <td>
+                            <%= sf.object.service&.name %>
+                            <%= sf.hidden_field :service_id %>
+                            <%= sf.hidden_field :id %>
+                        </td>
+                        <td style="width: 80px;">
+                            <%= sf.input :quantity, label: false, input_html: { class: 'form-control form-control-sm', style: 'width:80px', min: 0.01, step: 0.01 } %>
+                        </td>
+                        <td>
+                            <%= sf.input :observation, label: false, input_html: { class: 'form-control form-control-sm', placeholder: 'Obs...' } %>
+                        </td>
+                        <td>
+                            <%= sf.hidden_field :_destroy, class: 'destroy-service-field' %>
+                            <button type="button" class="btn btn-outline-danger btn-sm" onclick="var row=this.closest('tr'); row.querySelector('.destroy-service-field').value='1'; row.style.display='none';">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    <% end %>
+                </tbody>
+            </table>
+            <% end %>
+        </div>
+
+        <div class="row mb-2">
+            <div class="col-12 col-md-5">
+                <select class="form-select form-select-sm" id="new-service-select-<%= item_id %>">
+                    <option value="">-- Selecionar Peça/Serviço --</option>
+                    <optgroup label="Peças">
+                        <% Service.where(category_id: Category::SERVICOS_PECAS_ID).order(:name).each do |s| %>
+                            <option value="<%= s.id %>" data-name="<%= s.name %>" data-type="Peça" data-badge="bg-info"><%= s.name %></option>
+                        <% end %>
+                    </optgroup>
+                    <optgroup label="Serviços">
+                        <% Service.where(category_id: Category::SERVICOS_SERVICOS_ID).order(:name).each do |s| %>
+                            <option value="<%= s.id %>" data-name="<%= s.name %>" data-type="Serviço" data-badge="bg-warning"><%= s.name %></option>
+                        <% end %>
+                    </optgroup>
+                </select>
+            </div>
+            <div class="col-12 col-md-2">
+                <input type="number" class="form-control form-control-sm" id="new-service-qty-<%= item_id %>" value="1" min="0.01" step="0.01" placeholder="Qtd">
+            </div>
+            <div class="col-12 col-md-3">
+                <input type="text" class="form-control form-control-sm" id="new-service-obs-<%= item_id %>" placeholder="Observação (opcional)">
+            </div>
+            <div class="col-12 col-md-2">
+                <button type="button" class="btn btn-outline-primary btn-sm w-100" onclick="addServiceToItem(<%= item_id %>, '<%= f.object_name %>')">
+                    <i class="bi bi-plus"></i> Incluir
+                </button>
+            </div>
+        </div>
+        <% else %>
+        <hr>
+        <p class="text-muted small mb-0"><i class="bi bi-info-circle"></i> Salve o plano primeiro para adicionar peças e serviços a este item.</p>
+        <% end %>
+    </div>
+</div>

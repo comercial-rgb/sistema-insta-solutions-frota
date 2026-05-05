@@ -1,6 +1,5 @@
 ﻿class PartServiceOrderService < ApplicationRecord
   after_initialize :default_values
-  attr_accessor :category_id
 
   default_scope {
     order(:id)
@@ -14,14 +13,26 @@
 
   belongs_to :order_service, optional: true
   belongs_to :service, optional: true
+  belongs_to :category, optional: true
 
   def get_text_name
     self.id.to_s
   end
   
-  # Retorna a categoria do item (usa attr_accessor se definido, caso contrário pega do serviço)
+  # Categoria persistida na linha (category_id) ou derivada do serviço do catálogo
   def effective_category_id
-    category_id.presence || service&.category_id
+    read_attribute(:category_id).presence || service&.category_id
+  end
+
+  # Empenho na OS: itens sem service_id não podem sumir do joins(:service).
+  # Sem categoria explícita, assume peças (alinhado à proposta / ProviderServiceTemp).
+  def category_id_for_commitment
+    cid = effective_category_id
+    return cid if cid.present?
+
+    return Category::SERVICOS_PECAS_ID if service_id.blank?
+
+    service&.category_id || Category::SERVICOS_PECAS_ID
   end
 
   private

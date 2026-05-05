@@ -11,8 +11,8 @@ RSpec.describe State, type: :model do
 	end
 
 	describe 'Relations' do
-		it { should belong_to :country }
-		it { should have_many :cities }
+		it { should belong_to(:country).optional }
+		it { should have_many(:cities) }
 	end
 
 end

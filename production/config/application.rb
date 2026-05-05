@@ -25,11 +25,33 @@ module SistemaInstaSolutions
 
     config.active_storage.track_variants = true
 
+    config.middleware.use Rack::Attack
+
+    cors_origins =
+      if ENV['CORS_ORIGINS'].present?
+        ENV['CORS_ORIGINS'].split(',').map(&:strip).reject(&:blank?)
+      elsif Rails.env.production?
+        %w[https://app.frotainstasolutions.com.br https://frotainstasolutions.com.br]
+      elsif Rails.env.staging?
+        h = ENV['STAGING_HOST'].presence || 'staging.frotainstasolutions.com.br'
+        ["https://#{h}", "http://#{h}"]
+      else
+        %w[
+          http://localhost:3000 http://127.0.0.1:3000
+          http://localhost:3001 http://127.0.0.1:3001
+          http://localhost:8081 http://127.0.0.1:8081
+        ]
+      end
+
     config.middleware.use Rack::Cors do
       allow do
-        origins "*"
-        resource "*", headers: :any, 
-        methods: [:get, :post, :put, :delete, :options]
+        if Rails.env.test?
+          origins '*'
+        else
+          origins(*cors_origins)
+        end
+        resource "*", headers: :any,
+          methods: [:get, :post, :put, :delete, :options]
       end
     end
 

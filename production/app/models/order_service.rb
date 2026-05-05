@@ -90,7 +90,10 @@ class OrderService < ApplicationRecord
 
   scope :by_proposal_provider_id, lambda { |value|
     left_outer_joins(:order_service_proposals)
-      .where("order_service_proposals.provider_id = ? OR order_services.provider_id = ?", value, value)
+      .where(
+        "(order_service_proposals.provider_id = ? AND order_service_proposals.order_service_proposal_status_id IN (?)) OR order_services.provider_id = ?",
+        value, OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES, value
+      )
       .distinct
   }
 
@@ -611,6 +614,8 @@ class OrderService < ApplicationRecord
   end
 
   def getting_order_service_proposal_approved
+    return @_approved_proposal if defined?(@_approved_proposal)
+
     approved_statuses = [
       OrderServiceProposalStatus::APROVADA_ID,
       OrderServiceProposalStatus::NOTAS_INSERIDAS_ID,
@@ -628,7 +633,7 @@ class OrderService < ApplicationRecord
       .first
     if result.present?
       OrderServiceProposal.ensure_total_values(result)
-      return result
+      return @_approved_proposal = result
     end
 
     result = order_service_proposals
@@ -636,7 +641,7 @@ class OrderService < ApplicationRecord
       .order(updated_at: :desc)
       .first
     OrderServiceProposal.ensure_total_values(result) if result.present?
-    result
+    @_approved_proposal = result
   end
 
   def total_value_by_category(category_id)
@@ -813,25 +818,21 @@ class OrderService < ApplicationRecord
       return { 'Peças' => 0.0, 'Serviços' => 0.0 }
     end
 
-    # SQL agregado: soma total_value dos items agrupado por category_id do service
-    # Usa SQL explícito para evitar conflito com default_scope do OrderService
-    totals = OrderServiceProposalItem
+    # Soma por categoria incluindo itens sem service_id (inner join com services os omitia)
+    items_scope = OrderServiceProposalItem.unscoped
       .joins("INNER JOIN order_service_proposals ON order_service_proposals.id = order_service_proposal_items.order_service_proposal_id")
       .joins("INNER JOIN order_services ON order_services.id = order_service_proposals.order_service_id")
       .joins("INNER JOIN vehicles ON vehicles.id = order_services.vehicle_id")
-      .joins("INNER JOIN services ON services.id = order_service_proposal_items.service_id")
       .where(order_services: { order_service_status_id: required_order_service_statuses })
       .where(order_service_proposals: { order_service_proposal_status_id: required_proposal_statuses })
       .where(
         "vehicles.cost_center_id IN (?) OR vehicles.sub_unit_id IN (?)",
         Array(selected_cost_center_ids), Array(sub_unit_ids)
       )
-      .group("services.category_id")
-      .sum("order_service_proposal_items.total_value")
 
     {
-      'Peças' => (totals[Category::SERVICOS_PECAS_ID] || 0).to_f.round(2),
-      'Serviços' => (totals[Category::SERVICOS_SERVICOS_ID] || 0).to_f.round(2)
+      'Peças' => OrderServiceProposalItem.sum_parts_total_value(items_scope).to_f.round(2),
+      'Serviços' => OrderServiceProposalItem.sum_services_total_value(items_scope).to_f.round(2)
     }
   end
 
@@ -1088,13 +1089,15 @@ class OrderService < ApplicationRecord
   end
   
   def has_parts?
-    # Verifica se há itens de peças na OS
-    part_service_order_services.joins(:service).where(services: { category_id: Category::SERVICOS_PECAS_ID }).any?
+    part_service_order_services.includes(:service).any? do |item|
+      item.category_id_for_commitment == Category::SERVICOS_PECAS_ID
+    end
   end
-  
+
   def has_services?
-    # Verifica se há itens de serviços na OS
-    part_service_order_services.joins(:service).where(services: { category_id: Category::SERVICOS_SERVICOS_ID }).any?
+    part_service_order_services.includes(:service).any? do |item|
+      item.category_id_for_commitment == Category::SERVICOS_SERVICOS_ID
+    end
   end
 
   def validate_provider_for_diagnostico

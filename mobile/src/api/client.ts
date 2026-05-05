@@ -1,8 +1,10 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
+import Toast from 'react-native-toast-message';
 import { storage } from '../utils/storage';
+import { authSessionEvents } from './authSessionEvents';
 
 const BASE_URL = __DEV__
-  ? 'http://localhost:3000'
+  ? (process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000')
   : 'https://app.frotainstasolutions.com.br';
 
 const api: AxiosInstance = axios.create({
@@ -30,8 +32,17 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    if (error.response?.status === 401) {
+    const status = error.response?.status;
+    if (status === 401) {
       await storage.clear();
+      authSessionEvents.notifySessionInvalid();
+    }
+    if (status === 429) {
+      Toast.show({
+        type: 'error',
+        text1: 'Limite de tentativas',
+        text2: 'Aguarde um minuto e tente novamente.',
+      });
     }
     return Promise.reject(error);
   }

@@ -31,8 +31,12 @@ export default function ForgotPasswordScreen() {
       await authApi.recoverPassword(email.trim());
       setSent(true);
       Toast.show({ type: 'success', text1: 'Email de recuperação enviado' });
-    } catch (error: any) {
-      Toast.show({ type: 'error', text1: 'Erro', text2: 'Email não encontrado' });
+    } catch {
+      Toast.show({
+        type: 'error',
+        text1: 'Erro ao enviar',
+        text2: 'Verifique a conexão e tente novamente.',
+      });
     } finally {
       setLoading(false);
     }

@@ -13,19 +13,10 @@ class OrderServicePolicy < ApplicationPolicy
   end
 
   def show?
-    Rails.logger.debug "=== OrderServicePolicy#show? ==="
-    Rails.logger.debug "User: #{user.id} - #{user.email}"
-    Rails.logger.debug "User Type: Admin=#{user.admin?} Manager=#{user.manager?} Additional=#{user.additional?} Provider=#{user.provider?}"
-    Rails.logger.debug "OS: #{record.id} - Code: #{record.code} - Client: #{record.client_id}"
-    Rails.logger.debug "OS Status: #{record.order_service_status_id}"
-    Rails.logger.debug "Admin? #{user.admin?}"
-    Rails.logger.debug "Manager/Additional + ClientMatch? #{(user.manager? || user.additional?) && record.client_id == user.client_id}"
-    
     return true if user.admin?
     return true if (user.manager? || user.additional?) && record.client_id == user.client_id
     return true if user.provider? && (record.provider_id == user.id || record.order_service_proposals.exists?(provider_id: user.id))
-    
-    Rails.logger.debug "Access DENIED!"
+
     false
   end
 

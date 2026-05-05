@@ -136,14 +136,49 @@ breadcrumbs = [
           <h6 class="text-muted border-bottom pb-2 mb-3"><i class="bi bi-file-earmark-text me-1"></i> Dados da Nota Fiscal</h6>
           <div class="row">
             <div class="col-md-6 mb-3">
-              <label for="editNfNumero" class="form-label">N° Nota Fiscal</label>
+              <label for="editNfNumero" class="form-label">N° Nota Fiscal (consolidado)</label>
               <input type="text" class="form-control" id="editNfNumero" placeholder="Número da NF">
             </div>
             <div class="col-md-6 mb-3">
-              <label for="editNfSerie" class="form-label">Série</label>
+              <label for="editNfSerie" class="form-label">Série (consolidado)</label>
               <input type="text" class="form-control" id="editNfSerie" placeholder="Série da NF">
             </div>
           </div>
+
+          <h6 class="text-muted mt-2 mb-2"><i class="bi bi-gear me-1"></i> NF de Peças</h6>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label for="editNfNumeroPecas" class="form-label">N° NF Peças</label>
+              <input type="text" class="form-control" id="editNfNumeroPecas" placeholder="Número da NF de peças">
+            </div>
+            <div class="col-md-2 mb-3">
+              <label for="editNfSeriePecas" class="form-label">Série</label>
+              <input type="text" class="form-control" id="editNfSeriePecas" placeholder="Série">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="editNfPecasFile" class="form-label">Anexar NF Peças (PDF/Imagem)</label>
+              <input type="file" class="form-control" id="editNfPecasFile" accept=".pdf,.jpg,.jpeg,.png">
+              <small id="editNfPecasFileExistente" class="form-text text-muted"></small>
+            </div>
+          </div>
+
+          <h6 class="text-muted mt-2 mb-2"><i class="bi bi-tools me-1"></i> NF de Serviços</h6>
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label for="editNfNumeroServicos" class="form-label">N° NF Serviços</label>
+              <input type="text" class="form-control" id="editNfNumeroServicos" placeholder="Número da NF de serviços">
+            </div>
+            <div class="col-md-2 mb-3">
+              <label for="editNfSerieServicos" class="form-label">Série</label>
+              <input type="text" class="form-control" id="editNfSerieServicos" placeholder="Série">
+            </div>
+            <div class="col-md-6 mb-3">
+              <label for="editNfServicosFile" class="form-label">Anexar NF Serviços (PDF/Imagem)</label>
+              <input type="file" class="form-control" id="editNfServicosFile" accept=".pdf,.jpg,.jpeg,.png">
+              <small id="editNfServicosFileExistente" class="form-text text-muted"></small>
+            </div>
+          </div>
+
           <div class="row">
             <div class="col-md-6 mb-3">
               <label for="editDesconto" class="form-label">Desconto (R$)</label>

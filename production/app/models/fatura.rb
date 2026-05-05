@@ -7,11 +7,16 @@ class Fatura < ApplicationRecord
 
   has_many :fatura_itens, class_name: 'FaturaItem', dependent: :destroy
 
+  has_one_attached :nota_fiscal_pecas_file
+  has_one_attached :nota_fiscal_servicos_file
+
   STATUSES = %w[aberta enviada paga cancelada].freeze
 
   validates :numero, presence: true, uniqueness: true
   validates :data_emissao, presence: true
   validates :status, inclusion: { in: STATUSES }
+
+  before_validation :ensure_split_numeros
 
   scope :abertas,    -> { where(status: 'aberta') }
   scope :enviadas,   -> { where(status: 'enviada') }
@@ -45,5 +50,14 @@ class Fatura < ApplicationRecord
     ultimo = order(created_at: :desc).first
     seq = ultimo ? ultimo.numero.to_s.scan(/\d+/).last.to_i + 1 : 1
     "FAT-#{Date.current.strftime('%Y%m')}-#{seq.to_s.rjust(4, '0')}"
+  end
+
+  private
+
+  def ensure_split_numeros
+    return if numero.blank?
+
+    self.numero_pecas = "#{numero}-P" if numero_pecas.blank?
+    self.numero_servicos = "#{numero}-S" if numero_servicos.blank?
   end
 end

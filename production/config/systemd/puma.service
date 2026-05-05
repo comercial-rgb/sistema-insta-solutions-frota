@@ -1,0 +1,54 @@
+# =========================================================
+# Puma Systemd Service - Frota Insta Solutions
+# =========================================================
+# Instalar no servidor com:
+#   sudo cp config/systemd/puma.service /etc/systemd/system/puma-frotainstasolutions.service
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable puma-frotainstasolutions
+#   sudo systemctl start puma-frotainstasolutions
+#
+# Comandos úteis:
+#   sudo systemctl status puma-frotainstasolutions
+#   sudo systemctl restart puma-frotainstasolutions
+#   sudo journalctl -u puma-frotainstasolutions -f
+# =========================================================
+
+[Unit]
+Description=Puma HTTP Server - Frota Insta Solutions (Production)
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/var/www/frotainstasolutions/production
+
+# Ambiente
+Environment=RAILS_ENV=production
+Environment=PATH=/home/ubuntu/.rbenv/shims:/home/ubuntu/.rbenv/bin:/usr/local/bin:/usr/bin:/bin
+
+# Comando de inicio - SEMPRE usa config de produção com Unix socket
+ExecStart=/home/ubuntu/.rbenv/shims/bundle exec puma -C config/puma/production.rb
+
+# Restart automático se cair
+Restart=always
+RestartSec=5
+
+# Timeout
+TimeoutStartSec=60
+TimeoutStopSec=30
+
+# Logs
+StandardOutput=append:/var/www/frotainstasolutions/production/log/puma_access.log
+StandardError=append:/var/www/frotainstasolutions/production/log/puma_error.log
+
+# Pré-início: garante que diretórios existem
+ExecStartPre=/bin/mkdir -p /var/www/frotainstasolutions/production/tmp/sockets
+ExecStartPre=/bin/mkdir -p /var/www/frotainstasolutions/production/tmp/pids
+ExecStartPre=/bin/rm -f /var/www/frotainstasolutions/production/tmp/sockets/puma.sock
+
+# Reload sem downtime (phased restart)
+ExecReload=/bin/kill -USR2 $MAINPID
+
+[Install]
+WantedBy=multi-user.target

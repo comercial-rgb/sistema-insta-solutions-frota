@@ -12,6 +12,36 @@
             </div>
         </div>
 
+        <!-- Clientes que podem utilizar este grupo -->
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-info text-white">
+                        <i class="bi bi-people"></i> Clientes Permitidos
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3">
+                            <strong>Importante:</strong> Se nenhum cliente for selecionado, este grupo estará disponível para <u>todos os clientes</u>. 
+                            Selecione clientes específicos apenas se quiser restringir o acesso ao grupo.
+                        </p>
+                        <%= f.association :clients, 
+                            collection: User.where(profile_id: Profile::CLIENT_ID).order(:social_name), 
+                            label_method: lambda { |c| c.social_name.presence || c.fantasy_name.presence || c.name.presence || "Cliente ##{c.id}" },
+                            value_method: :id,
+                            label: false,
+                            input_html: { 
+                                class: 'select2', 
+                                multiple: true,
+                                data: { 
+                                    placeholder: 'Selecione os clientes que podem utilizar este grupo (deixe vazio para todos)'
+                                }
+                            } 
+                        %>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Peças e Serviços do Grupo -->
         <div class="row mt-4">
             <div class="col-12">

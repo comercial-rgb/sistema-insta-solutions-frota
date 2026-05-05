@@ -40,7 +40,13 @@ Rails.application.configure do
   
   # Inserts middleware to report failures
   config.active_support.report_deprecations = true
-  
-  # Uncomment if you wish to allow Action Cable access from any origin
-  # config.action_cable.disable_request_forgery_protection = true
+
+  staging_host = ENV['STAGING_HOST'].presence || 'staging.frotainstasolutions.com.br'
+  config.action_cable.allowed_request_origins =
+    if ENV['ACTION_CABLE_ALLOWED_ORIGINS'].present?
+      ENV['ACTION_CABLE_ALLOWED_ORIGINS'].split(',').map(&:strip)
+    else
+      ["https://#{staging_host}", "http://#{staging_host}",
+       'http://localhost:3000', 'http://127.0.0.1:3000']
+    end
 end

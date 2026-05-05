@@ -1,4 +1,4 @@
-class Commitment < ApplicationRecord
+﻿class Commitment < ApplicationRecord
   after_initialize :default_values
 
   attr_accessor :skip_validations
@@ -30,21 +30,26 @@ class Commitment < ApplicationRecord
   scope :by_contract_id, lambda { |value| where("commitments.contract_id = ?", value) if !value.nil? && !value.blank? }
   scope :by_commitment_number, lambda { |value| where("LOWER(commitments.commitment_number) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("commitments.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("commitments.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("commitments.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("commitments.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
-  scope :by_initial_commitment_value, lambda { |value| where("commitments.commitment_value >= '#{value}'") if !value.nil? && !value.blank? }
-	scope :by_final_commitment_value, lambda { |value| where("commitments.commitment_value <= '#{value}'") if !value.nil? && !value.blank? }
+  scope :by_initial_commitment_value, lambda { |value| where("commitments.commitment_value >= ?", value) if !value.nil? && !value.blank? }
+	scope :by_final_commitment_value, lambda { |value| where("commitments.commitment_value <= ?", value) if !value.nil? && !value.blank? }
 
   # Scope atualizado para buscar por múltiplos centros de custo e/ou subunidades
+  # Quando sub_unit_id está presente, prioriza empenhos vinculados a essa subunidade
+  # + empenhos do centro de custo que NÃO estão vinculados a nenhuma subunidade específica
   scope :by_cost_center_or_sub_unit_ids, lambda { |cost_center_ids, sub_unit_ids|
     cost_center_ids = Array(cost_center_ids).compact
     sub_unit_ids = Array(sub_unit_ids).compact
     
     if cost_center_ids.present? && sub_unit_ids.present?
+      # Quando temos ambos: mostra empenhos da subunidade específica
+      # + empenhos do centro de custo que NÃO estão vinculados a nenhuma subunidade
       joins("LEFT JOIN commitment_cost_centers ON commitment_cost_centers.commitment_id = commitments.id")
         .where(
-          "commitment_cost_centers.cost_center_id IN (:cost_center_ids) OR commitments.cost_center_id IN (:cost_center_ids) OR commitments.sub_unit_id IN (:sub_unit_ids)",
+          "(commitments.sub_unit_id IN (:sub_unit_ids)) OR " \
+          "((commitment_cost_centers.cost_center_id IN (:cost_center_ids) OR commitments.cost_center_id IN (:cost_center_ids)) AND (commitments.sub_unit_id IS NULL))",
           cost_center_ids: cost_center_ids, sub_unit_ids: sub_unit_ids
         )
         .distinct
@@ -78,6 +83,9 @@ class Commitment < ApplicationRecord
 
   has_many :cancel_commitments, validate: false, dependent: :destroy
   accepts_nested_attributes_for :cancel_commitments, reject_if: ->(attributes){ attributes['number'].blank? }, allow_destroy: true
+
+  has_many :addendum_commitments, dependent: :destroy
+  accepts_nested_attributes_for :addendum_commitments, reject_if: ->(attributes){ attributes['number'].blank? }, allow_destroy: true
 
   validates_presence_of :client_id
   # category_id pode ser nil para empenhos "Global" (Peças e Serviços)
@@ -137,6 +145,9 @@ class Commitment < ApplicationRecord
     
     # Base query: active commitments with value, for the client
     base_query = Commitment.where(active: true).where.not(commitment_value: [nil])
+    
+    # Inicializar commitments com valor padrão para evitar nil
+    commitments = base_query.none
     
     if current_user.admin?
       # Admin vê todos os empenhos do cliente
@@ -235,22 +246,18 @@ class Commitment < ApplicationRecord
     # Se o empenho tem categoria, calcular consumo específico por tipo.
     # Usar total_value dos itens (COM desconto aplicado) para calcular o consumo real
     if commitment.category_id == Category::SERVICOS_PECAS_ID
-      return OrderServiceProposalItem
-        .joins(:service)
+      scope = OrderServiceProposalItem
         .joins(order_service_proposal: :order_service)
         .where(order_services: { commitment_parts_id: commitment.id, order_service_status_id: required_order_service_statuses })
         .where(order_service_proposals: { order_service_proposal_status_id: required_proposal_statuses, is_complement: [false, nil] })
-        .where(services: { category_id: Category::SERVICOS_PECAS_ID })
-        .sum('order_service_proposal_items.total_value')
+      return OrderServiceProposalItem.sum_parts_total_value(scope)
 
     elsif commitment.category_id == Category::SERVICOS_SERVICOS_ID
-      return OrderServiceProposalItem
-        .joins(:service)
+      scope = OrderServiceProposalItem
         .joins(order_service_proposal: :order_service)
         .where(order_services: { commitment_services_id: commitment.id, order_service_status_id: required_order_service_statuses })
         .where(order_service_proposals: { order_service_proposal_status_id: required_proposal_statuses, is_complement: [false, nil] })
-        .where(services: { category_id: Category::SERVICOS_SERVICOS_ID })
-        .sum('order_service_proposal_items.total_value')
+      return OrderServiceProposalItem.sum_services_total_value(scope)
     end
     
     # Fallback: se categoria desconhecida
@@ -275,11 +282,12 @@ class Commitment < ApplicationRecord
   end
 
   def self.sum_budget_value(commitment)
-    # Commitment value - Cancel commitment value
+    # Commitment value + Addendum values - Cancel commitment value
     return 0 if commitment.nil?
     commitment_value = commitment.commitment_value.to_f
+    addendum_value = commitment.addendum_commitments.where(active: true).sum(:total_value).to_f
     cancel_commitment_value = commitment.cancel_commitments.sum('cancel_commitments.value').to_f
-    result = commitment_value - cancel_commitment_value
+    result = commitment_value + addendum_value - cancel_commitment_value
     return result
   end
 

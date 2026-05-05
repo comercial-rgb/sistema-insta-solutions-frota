@@ -50,11 +50,11 @@ class ClientsGrid
   end
 
   column(:social_name, order: :social_name, if: :check_user, header: User.human_attribute_name(:social_name) ) do |record, grid|
-    record.social_name
+    record.social_name.to_s.force_encoding('UTF-8')
   end
 
   column(:fantasy_name, order: :fantasy_name, if: :check_user, header: User.human_attribute_name(:fantasy_name) ) do |record, grid|
-    record.fantasy_name
+    record.fantasy_name.to_s.force_encoding('UTF-8')
   end
 
   column(:state_city, order: :state_city, if: :check_user, header: User.human_attribute_name(:state_city) ) do |record, grid|

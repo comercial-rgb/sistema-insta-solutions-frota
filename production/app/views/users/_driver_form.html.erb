@@ -1,0 +1,174 @@
+<%= simple_form_for @user, validate: false do |f| %>
+
+	<!-- ID do perfil de usuário -->
+	<%= f.input :profile_id, as: :hidden, input_html: {value: Profile::DRIVER_ID} %>
+
+	<%= render 'users/renders/client_selection', f: f %>
+
+	<%= render 'users/forms/personal_data', f: f %>
+
+	<div class="row mt-4">
+		<div class="col-12 mb-2">
+			<h5><i class="bi bi-card-text"></i> DADOS DA CNH</h5>
+		</div>
+		<div class="col-12 col-md-3">
+			<%= f.input :cnh_number, label: 'Número da CNH' %>
+		</div>
+		<div class="col-12 col-md-3">
+			<%= f.input :cnh_category, label: 'Categoria', placeholder: 'Ex: AB, C, D, E' %>
+		</div>
+		<div class="col-12 col-md-3">
+			<%= f.input :cnh_expiration, as: :date, label: 'Vencimento CNH', html5: true %>
+		</div>
+		<div class="col-12 col-md-3">
+			<%= f.input :cnh_issued_at, as: :date, label: 'Data de Emissão', html5: true %>
+		</div>
+	</div>
+
+	<% if f.object.persisted? %>
+		<div class="row mt-4">
+			<div class="col-12 mb-2">
+				<h5><i class="bi bi-car-front"></i> VEÍCULOS VINCULADOS</h5>
+			</div>
+			<div class="col-12">
+				<% assignments = f.object.driver_vehicle_assignments.includes(:vehicle).where(active: true) %>
+				<% if assignments.any? %>
+					<table class="table table-sm table-striped">
+						<thead>
+							<tr>
+								<th>Placa</th>
+								<th>Marca/Modelo</th>
+								<th>Ano</th>
+								<th>Centro de Custo</th>
+							</tr>
+						</thead>
+						<tbody>
+							<% assignments.each do |assignment| %>
+								<tr>
+									<td><strong><%= assignment.vehicle.board %></strong></td>
+									<td><%= assignment.vehicle.brand %> <%= assignment.vehicle.model %></td>
+									<td><%= assignment.vehicle.year %></td>
+									<td><%= assignment.vehicle.cost_center&.name %></td>
+								</tr>
+							<% end %>
+						</tbody>
+					</table>
+				<% else %>
+					<p class="text-muted">Nenhum veículo vinculado a este motorista.</p>
+				<% end %>
+			</div>
+		</div>
+
+		<div class="row mt-4">
+			<div class="col-12 mb-2">
+				<h5><i class="bi bi-exclamation-triangle"></i> MULTAS REGISTRADAS</h5>
+			</div>
+			<div class="col-12">
+				<% violations = f.object.traffic_violations.recent.limit(10) %>
+				<% if violations.any? %>
+					<table class="table table-sm table-striped">
+						<thead>
+							<tr>
+								<th>Data</th>
+								<th>Auto Nº</th>
+								<th>Veículo</th>
+								<th>Tipo</th>
+								<th>Valor</th>
+								<th>Pontos</th>
+								<th>Status</th>
+							</tr>
+						</thead>
+						<tbody>
+							<% violations.each do |v| %>
+								<tr>
+									<td><%= v.violation_date&.strftime('%d/%m/%Y') %></td>
+									<td><%= v.auto_number %></td>
+									<td><%= v.vehicle&.board %></td>
+									<td><%= v.violation_type&.capitalize %></td>
+									<td><%= number_to_currency(v.fine_value, unit: 'R$ ') %></td>
+									<td><%= v.points %></td>
+									<td>
+										<% badge_class = case v.status
+											when 'pending' then 'bg-warning text-dark'
+											when 'paid' then 'bg-success'
+											when 'appealed' then 'bg-info'
+											when 'cancelled' then 'bg-secondary'
+											else 'bg-light text-dark'
+										end %>
+										<span class="badge <%= badge_class %>"><%= v.status&.capitalize %></span>
+									</td>
+								</tr>
+							<% end %>
+						</tbody>
+					</table>
+				<% else %>
+					<p class="text-muted">Nenhuma multa registrada.</p>
+				<% end %>
+			</div>
+		</div>
+	<% end %>
+
+	<!-- Treinamento -->
+	<div class="row">
+		<div class="col-12">
+			<h5 class="mt-4"><i class="bi bi-mortarboard me-2"></i>TREINAMENTO</h5>
+			<hr class="mt-0">
+		</div>
+
+		<div class="col-12 col-md-3 mb-3 checkbox-input-center">
+			<%= f.input :training_completed, label: 'Treinamento Realizado' %>
+		</div>
+
+		<div class="col-12 col-md-3 mb-3 checkbox-input-center">
+			<%= f.input :training_declined, label: 'Declinou do Treinamento' %>
+		</div>
+
+		<div class="col-12 col-md-3 mb-3 checkbox-input-center">
+			<%= f.input :manual_enviado, label: 'Manual Enviado' %>
+		</div>
+
+		<% if f.object.manual_enviado_at.present? %>
+		<div class="col-12 col-md-3 mb-3">
+			<div class="form-group">
+				<label class="form-label">Enviado em</label>
+				<p class="form-control-plaintext"><%= f.object.manual_enviado_at.strftime('%d/%m/%Y %H:%M') %></p>
+			</div>
+		</div>
+		<% end %>
+
+		<div class="col-12 col-md-3 mb-3 checkbox-input-center">
+			<%= f.input :treinamento_apenas_manual, label: 'Apenas Manuais (cliente aceitou)' %>
+		</div>
+
+		<% if f.object.treinamento_apenas_manual_at.present? %>
+		<div class="col-12 col-md-3 mb-3">
+			<div class="form-group">
+				<label class="form-label">Aceito em</label>
+				<p class="form-control-plaintext"><%= f.object.treinamento_apenas_manual_at.strftime('%d/%m/%Y %H:%M') %></p>
+			</div>
+		</div>
+		<% end %>
+
+		<div class="col-12 col-md-3 mb-3">
+			<%= f.input :training_date, as: :string, label: 'Data do Treinamento',
+				input_html: { class: 'datepicker', value: CustomHelper.get_text_date(f.object.training_date, 'date', :default), autocomplete: :off, type: "tel" } %>
+		</div>
+
+		<div class="col-12 col-md-3 mb-3">
+			<%= f.input :training_location, label: 'Local do Treinamento', placeholder: 'Ex: Sede do cliente, Online...' %>
+		</div>
+
+		<div class="col-12 col-md-6 mb-3">
+			<%= f.input :training_participants, as: :text, label: 'Participantes',
+				input_html: { rows: 3, placeholder: 'Nomes dos participantes, separados por vírgula ou em linhas' } %>
+		</div>
+
+		<div class="col-12 col-md-6 mb-3">
+			<%= f.input :training_notes, as: :text, label: 'Observações do Treinamento',
+				input_html: { rows: 3, placeholder: 'Informações adicionais sobre o treinamento...' } %>
+		</div>
+	</div>
+
+	<%= render 'common_pages/save', f: f, return_path: (@current_user.id != @user.id) ? users_driver_path : nil %>
+
+<% end %>

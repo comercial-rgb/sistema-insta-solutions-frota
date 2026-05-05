@@ -1,6 +1,6 @@
 class FaturamentoPolicy < ApplicationPolicy
   def index?
-    user.admin? || user.manager? || user.additional? || user.provider? || user.client?
+    user.admin? || user.manager? || user.additional? || user.client?
   end
 
   def show?

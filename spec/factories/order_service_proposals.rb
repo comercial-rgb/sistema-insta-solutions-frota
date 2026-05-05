@@ -1,5 +1,6 @@
 FactoryBot.define do
   factory :order_service_proposal do
+    skip_validation { true }
     order_service { nil }
     provider { nil }
     order_service_proposal_status { nil }

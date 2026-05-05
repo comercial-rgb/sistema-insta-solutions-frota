@@ -92,15 +92,14 @@
   end
 
   def self.getting_current_unread(current_user)
-    result = Notification.is_to_me(current_user.profile_id, current_user.id, current_user.state_id, current_user.city_id)
-    .unread_by(current_user)
-    .unscope(:limit, :offset)
-    .length
-    return result
+    Notification.is_to_me(current_user.profile_id, current_user.id, current_user.effective_state_id, current_user.effective_city_id)
+      .unread_by(current_user)
+      .unscope(:limit, :offset)
+      .count
   end
 
   def self.important_unread_for(current_user)
-    Notification.is_to_me(current_user.profile_id, current_user.id, current_user.state_id, current_user.city_id)
+    Notification.is_to_me(current_user.profile_id, current_user.id, current_user.effective_state_id, current_user.effective_city_id)
     .important
     .unread_by(current_user)
     .unscope(:limit, :offset)
@@ -108,7 +107,7 @@
 
   # Notificações popup não reconhecidas pelo usuário
   def self.popup_unread_for(current_user)
-    Notification.is_to_me(current_user.profile_id, current_user.id, current_user.state_id, current_user.city_id)
+    Notification.is_to_me(current_user.profile_id, current_user.id, current_user.effective_state_id, current_user.effective_city_id)
     .popup
     .where.not(id: NotificationAcknowledgment.where(user_id: current_user.id).select(:notification_id))
     .unscope(:limit, :offset)

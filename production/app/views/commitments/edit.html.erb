@@ -6,7 +6,8 @@ breadcrumbs = [
 	{active: true, href: '#', text: t('model.edit')},
 ]
 
-if @current_user.admin? && @commitment.invalid?
+if @current_user.admin?
+	# Admin pode editar qualquer empenho (válido ou inválido)
 	form_to_render = 'commitments/form'
 else
 	form_to_render = 'commitments/form_cancel_commitment'

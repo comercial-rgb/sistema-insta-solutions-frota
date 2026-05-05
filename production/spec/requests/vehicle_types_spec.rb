@@ -42,9 +42,9 @@ RSpec.describe "/vehicle_types", type: :request do
   end
 
   describe "GET /new" do
-    it "renders a successful response" do
+    it "redirects when policy denies access" do
       get new_vehicle_type_url
-      expect(response).to be_successful
+      expect(response).to redirect_to(root_path)
     end
   end
 

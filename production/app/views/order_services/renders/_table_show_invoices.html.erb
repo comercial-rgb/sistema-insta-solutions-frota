@@ -11,6 +11,13 @@
               client_banks = current_client_for_bank&.data_banks || []
               grid_params_hash = params[:order_services_invoice_grid].to_enum.to_h
             %>
+
+            <!-- Demonstrativo Simplificado PDF -->
+            <a href="<%= show_invoices_path(format: "pdf", report_type: "demonstrativo", order_services_invoice_grid: grid_params_hash) %>" class="btn btn-danger text-white btn-sm" target="_blank">
+                <i class="bi bi-file-pdf"></i>
+                Demonstrativo PDF
+            </a>
+
             <% if client_banks.any? %>
               <select id="bank-account-select" class="form-select form-select-sm" style="width: auto; min-width: 200px;">
                 <option value="">Sem conta bancária</option>

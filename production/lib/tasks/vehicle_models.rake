@@ -77,6 +77,95 @@ namespace :vehicle_models do
     puts "  Use este arquivo para revisar e criar VehicleModels em massa\n"
   end
 
+  desc "Vinculação inteligente: matching flexível brand+modelo (DRY_RUN=1 para simular)"
+  task smart_link: :environment do
+    dry_run = ENV['DRY_RUN'] == '1'
+    
+    puts "\n=========================================="
+    puts dry_run ? "  SMART LINK (DRY RUN - sem alterações)" : "  SMART LINK - Vinculação Inteligente"
+    puts "==========================================\n"
+    
+    # Cache de todos os VehicleModels ativos
+    all_models = VehicleModel.active.to_a
+    
+    unlinked = Vehicle.unscoped.where(vehicle_model_id: nil)
+                       .where.not(brand: [nil, ''])
+                       .where.not(model: [nil, ''])
+    total = unlinked.count
+    linked = 0
+    not_linked = 0
+    unmatched = []
+    
+    puts "Processando #{total} veículos sem vínculo...\n"
+    
+    unlinked.find_each.with_index do |vehicle, index|
+      brand_norm = vehicle.brand.to_s.upcase.strip
+      model_norm = vehicle.model.to_s.upcase.strip
+      
+      vm = nil
+      
+      # 1) Match exato: brand + VehicleModel.model contido no Vehicle.model
+      vm = all_models.find do |candidate|
+        candidate.brand.to_s.upcase.strip == brand_norm &&
+          model_norm.include?(candidate.model.to_s.upcase.strip) &&
+          candidate.model.to_s.strip.length > 2
+      end
+      
+      # 2) Match por full_name normalizado contido no "BRAND MODEL" do veículo
+      unless vm
+        vehicle_full = "#{brand_norm} #{model_norm}"
+        vm = all_models.find do |candidate|
+          cand_full = "#{candidate.brand} #{candidate.model}".upcase.strip
+          cand_full.length > 4 && vehicle_full.include?(cand_full)
+        end
+      end
+      
+      # 3) Match sem brand - modelo do VehicleModel contido no modelo do veículo
+      unless vm
+        vm = all_models.find do |candidate|
+          cand_model = candidate.model.to_s.upcase.strip
+          cand_model.length > 5 && model_norm.include?(cand_model)
+        end
+      end
+      
+      if vm
+        unless dry_run
+          vehicle.update_column(:vehicle_model_id, vm.id)
+        end
+        linked += 1
+        print "✓"
+      else
+        not_linked += 1
+        unmatched << { id: vehicle.id, board: vehicle.board, brand: brand_norm, model: model_norm } if unmatched.size < 30
+        print "·"
+      end
+      
+      puts " #{index + 1}/#{total}" if (index + 1) % 50 == 0
+    end
+    
+    puts "\n\n=========================================="
+    puts "RESULTADO#{' (DRY RUN)' if dry_run}:"
+    puts "  Vinculados: #{linked}"
+    puts "  Sem match: #{not_linked}"
+    puts "  Total: #{total}"
+    if total > 0
+      puts "  Taxa: #{(linked.to_f / total * 100).round(1)}%"
+    end
+    puts "==========================================\n"
+    
+    if unmatched.any?
+      puts "\nVeículos sem match (#{[unmatched.size, 30].min} primeiros):"
+      unmatched.each do |v|
+        puts "  ID:#{v[:id]} | #{v[:board]} | #{v[:brand]} | #{v[:model]}"
+      end
+    end
+    
+    if dry_run
+      puts "\n⚠️  DRY RUN - nenhuma alteração foi feita."
+      puts "Execute sem DRY_RUN=1 para aplicar: rake vehicle_models:smart_link"
+    end
+  end
+
   desc "Mostra estatísticas de vinculação"
   task stats: :environment do
     total_vehicles = Vehicle.count

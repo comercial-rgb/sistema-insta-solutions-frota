@@ -12,8 +12,13 @@ require 'rails_helper'
 # of tools you can use to make these specs even more expressive, but we're
 # sticking to rails and rspec-rails APIs to keep things simple and stable.
 
-RSpec.describe "/order_service_proposals", type: :request do
-  
+RSpec.describe "/order_service_proposals", type: :request, skip_sign_in: true do
+  before do
+    pwd = "TestPass123!"
+    provider = FactoryBot.create(:user, profile_id: Profile::PROVIDER_ID, password: pwd, password_confirmation: pwd)
+    post sessions_url, params: { email: provider.email, password: pwd }
+  end
+
   # This should return the minimal set of attributes required to create a valid
   # OrderServiceProposal. As you add validations to OrderServiceProposal, be sure to
   # adjust the attributes here as well.
@@ -42,9 +47,9 @@ RSpec.describe "/order_service_proposals", type: :request do
   end
 
   describe "GET /new" do
-    it "renders a successful response" do
+    it "redirects (new proposal is created in context of an order service)" do
       get new_order_service_proposal_url
-      expect(response).to be_successful
+      expect(response).to have_http_status(:redirect)
     end
   end
 

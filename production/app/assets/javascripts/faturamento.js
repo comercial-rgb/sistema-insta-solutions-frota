@@ -8,6 +8,7 @@ var Faturamento = (function() {
   var _clientSphere = 0;   // 0=Municipal, 1=Estadual, 2=Federal
   var _contractsInfo = [];  // contract saldo info
   var _commitmentNumbers = []; // commitment numbers used
+  var _osObservacoes = {};  // { osId: 'text' } per-OS observations
 
   // ========== UTILITY FUNCTIONS ==========
 
@@ -172,6 +173,31 @@ var Faturamento = (function() {
         document.getElementById('editDtVenc').value = f.data_vencimento ? f.data_vencimento.substring(0, 10) : '';
         document.getElementById('editNfNumero').value = f.nota_fiscal_numero || '';
         document.getElementById('editNfSerie').value = f.nota_fiscal_serie || '';
+        var setVal = function(id, v) { var el = document.getElementById(id); if (el) el.value = v || ''; };
+        setVal('editNfNumeroPecas', f.nota_fiscal_numero_pecas);
+        setVal('editNfSeriePecas', f.nota_fiscal_serie_pecas);
+        setVal('editNfNumeroServicos', f.nota_fiscal_numero_servicos);
+        setVal('editNfSerieServicos', f.nota_fiscal_serie_servicos);
+
+        var pecasInfo = document.getElementById('editNfPecasFileExistente');
+        if (pecasInfo) {
+          if (f.nota_fiscal_pecas_file_url) {
+            pecasInfo.innerHTML = 'Arquivo atual: <a href="' + f.nota_fiscal_pecas_file_url + '" target="_blank">' + (f.nota_fiscal_pecas_file_name || 'baixar') + '</a>';
+          } else {
+            pecasInfo.textContent = 'Nenhum arquivo anexado.';
+          }
+        }
+        var servInfo = document.getElementById('editNfServicosFileExistente');
+        if (servInfo) {
+          if (f.nota_fiscal_servicos_file_url) {
+            servInfo.innerHTML = 'Arquivo atual: <a href="' + f.nota_fiscal_servicos_file_url + '" target="_blank">' + (f.nota_fiscal_servicos_file_name || 'baixar') + '</a>';
+          } else {
+            servInfo.textContent = 'Nenhum arquivo anexado.';
+          }
+        }
+        var fileP = document.getElementById('editNfPecasFile'); if (fileP) fileP.value = '';
+        var fileS = document.getElementById('editNfServicosFile'); if (fileS) fileS.value = '';
+
         document.getElementById('editDesconto').value = f.desconto || 0;
         document.getElementById('editObs').value = f.admin_observacoes || '';
         var modal = new bootstrap.Modal(document.getElementById('modalEditFatura'));
@@ -185,25 +211,38 @@ var Faturamento = (function() {
 
   function salvarEdicao() {
     var id = document.getElementById('editFaturaId').value;
-    var data = {
-      fatura: {
-        status: document.getElementById('editStatus').value,
-        data_envio_empresa: document.getElementById('editDtEnvio').value || null,
-        data_recebimento: document.getElementById('editDtReceb').value || null,
-        data_vencimento: document.getElementById('editDtVenc').value || null,
-        nota_fiscal_numero: document.getElementById('editNfNumero').value || null,
-        nota_fiscal_serie: document.getElementById('editNfSerie').value || null,
-        desconto: document.getElementById('editDesconto').value || 0,
-        admin_observacoes: document.getElementById('editObs').value
-      }
-    };
+    var fd = new FormData();
+    var getVal = function(id) { var el = document.getElementById(id); return el ? el.value : ''; };
+    fd.append('fatura[status]', getVal('editStatus'));
+    fd.append('fatura[data_envio_empresa]', getVal('editDtEnvio') || '');
+    fd.append('fatura[data_recebimento]', getVal('editDtReceb') || '');
+    fd.append('fatura[data_vencimento]', getVal('editDtVenc') || '');
+    fd.append('fatura[nota_fiscal_numero]', getVal('editNfNumero') || '');
+    fd.append('fatura[nota_fiscal_serie]', getVal('editNfSerie') || '');
+    fd.append('fatura[nota_fiscal_numero_pecas]', getVal('editNfNumeroPecas') || '');
+    fd.append('fatura[nota_fiscal_serie_pecas]', getVal('editNfSeriePecas') || '');
+    fd.append('fatura[nota_fiscal_numero_servicos]', getVal('editNfNumeroServicos') || '');
+    fd.append('fatura[nota_fiscal_serie_servicos]', getVal('editNfSerieServicos') || '');
+    fd.append('fatura[desconto]', getVal('editDesconto') || 0);
+    fd.append('fatura[admin_observacoes]', getVal('editObs') || '');
+
+    var pecasFile = document.getElementById('editNfPecasFile');
+    if (pecasFile && pecasFile.files && pecasFile.files[0]) {
+      fd.append('fatura[nota_fiscal_pecas_file]', pecasFile.files[0]);
+    }
+    var servFile = document.getElementById('editNfServicosFile');
+    if (servFile && servFile.files && servFile.files[0]) {
+      fd.append('fatura[nota_fiscal_servicos_file]', servFile.files[0]);
+    }
+    fd.append('_method', 'patch');
 
     $.ajax({
       url: '/faturamento/' + id,
-      method: 'PATCH',
-      data: JSON.stringify(data),
-      contentType: 'application/json',
-      headers: { 'X-CSRF-Token': csrfToken() },
+      method: 'POST',
+      data: fd,
+      processData: false,
+      contentType: false,
+      headers: { 'X-CSRF-Token': csrfToken(), 'Accept': 'application/json' },
       dataType: 'json',
       success: function() {
         bootstrap.Modal.getInstance(document.getElementById('modalEditFatura')).hide();
@@ -212,7 +251,10 @@ var Faturamento = (function() {
       },
       error: function(xhr) {
         var msg = 'Erro ao atualizar fatura';
-        try { msg = JSON.parse(xhr.responseText).error.join(', '); } catch(e) {}
+        try {
+          var err = JSON.parse(xhr.responseText).error;
+          msg = Array.isArray(err) ? err.join(', ') : (err || msg);
+        } catch(e) {}
         showAlert(msg, 'danger');
       }
     });
@@ -610,6 +652,12 @@ var Faturamento = (function() {
     var prevVenc = document.getElementById('previaVencimento');
     var savedVenc = prevVenc ? prevVenc.value : '';
 
+    // Preservar observações por OS já digitadas
+    document.querySelectorAll('.os-obs-input').forEach(function(el) {
+      var osId = parseInt(el.getAttribute('data-os-id'));
+      if (osId) _osObservacoes[osId] = el.value;
+    });
+
     var selectedOSData = _osAbertosData.filter(function(os) { return ids.indexOf(os.id) >= 0; });
 
     // Totais - usando valores BRUTO da proposta (sem desconto)
@@ -655,7 +703,10 @@ var Faturamento = (function() {
     var totalRetencoes = aplicarRetencao ? totalRetNaoSimples : 0;
 
     var valorLiquido = totalComDesconto;
-    var valorDevido = valorLiquido - totalRetencoes;
+    // bruto = total sem desconto; liquido = total com desconto
+    // retenções incidem sobre o valor escolhido
+    var valorBase = (savedTipo === 'liquido') ? valorLiquido : totalBruto;
+    var valorDevido = valorBase - totalRetencoes;
 
     // Percentual de desconto efetivo (com precisão)
     var pctDesconto = totalBruto > 0 ? ((totalDesconto / totalBruto) * 100) : 0;
@@ -732,8 +783,9 @@ var Faturamento = (function() {
     html += '</div>';
 
     // VALOR DEVIDO bar
+    var labelValorDevido = savedTipo === 'liquido' ? 'VALOR LÍQUIDO (c/ Desconto e Retenções)' : 'VALOR BRUTO (s/ Desconto, c/ Retenções)';
     html += '<div class="rounded-3 mb-4 p-3 d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #251C59, #005BED); color: #fff;">';
-    html += '<h5 class="mb-0 fw-bold"><i class="bi bi-cash-stack me-2"></i>VALOR DEVIDO</h5>';
+    html += '<h5 class="mb-0 fw-bold"><i class="bi bi-cash-stack me-2"></i>' + labelValorDevido + '</h5>';
     html += '<h4 class="mb-0 fw-bold">' + money(valorDevido) + '</h4>';
     html += '</div>';
 
@@ -741,13 +793,16 @@ var Faturamento = (function() {
     html += '<div class="table-responsive mb-3"><table class="table table-sm table-bordered mb-0">';
     html += '<thead class="table-light"><tr>';
     html += '<th>OS</th><th>Fornecedor</th><th>Veículo</th><th>C.Custo</th>';
-    html += '<th>Peças Bruto</th><th>Serviços Bruto</th><th>Valor Bruto</th>';
-    html += '<th>Desc.</th><th>V. c/ Desc.</th>';
+    html += '<th>Peças<br><small class="fw-normal text-muted">Bruto / Líq.</small></th>';
+    html += '<th>Serviços<br><small class="fw-normal text-muted">Bruto / Líq.</small></th>';
+    html += '<th>Valor Bruto</th><th>Desc.</th><th>V. c/ Desc.</th>';
     html += '</tr></thead><tbody>';
 
     selectedOSData.forEach(function(os) {
       var isSimples = !os.provider_optante_simples;
       var osPctDesc = os.total_bruto > 0 ? ((os.total_desconto / os.total_bruto) * 100) : 0;
+      var liqPecas = os.bruto_pecas - os.desc_pecas;
+      var liqServicos = os.bruto_servicos - os.desc_servicos;
       html += '<tr>';
       html += '<td><strong>#' + escapeHtml(os.code) + '</strong></td>';
       html += '<td><small>' + escapeHtml(os.provider || '-') + '</small>';
@@ -756,11 +811,11 @@ var Faturamento = (function() {
       html += '</td>';
       html += '<td>' + escapeHtml(os.vehicle_plate) + '</td>';
       html += '<td>' + escapeHtml(os.cost_center || '-') + '</td>';
-      html += '<td>' + money(os.bruto_pecas);
-      if (os.nf_pecas) html += ' <small class="text-muted">(NF ' + escapeHtml(os.nf_pecas) + ')</small>';
+      html += '<td>' + money(os.bruto_pecas) + '<br><small class="text-success">' + money(liqPecas) + '</small>';
+      if (os.nf_pecas) html += '<br><small class="text-muted">NF ' + escapeHtml(os.nf_pecas) + '</small>';
       html += '</td>';
-      html += '<td>' + money(os.bruto_servicos);
-      if (os.nf_servicos) html += ' <small class="text-muted">(NF ' + escapeHtml(os.nf_servicos) + ')</small>';
+      html += '<td>' + money(os.bruto_servicos) + '<br><small class="text-success">' + money(liqServicos) + '</small>';
+      if (os.nf_servicos) html += '<br><small class="text-muted">NF ' + escapeHtml(os.nf_servicos) + '</small>';
       html += '</td>';
       html += '<td>' + money(os.total_bruto) + '</td>';
       html += '<td class="text-danger">- ' + money(os.total_desconto) + ' <small class="text-muted">(' + osPctDesc.toFixed(2).replace('.', ',') + '%)</small></td>';
@@ -768,18 +823,23 @@ var Faturamento = (function() {
       html += '</tr>';
 
       // Supplier detail row
+      var savedOsObs = _osObservacoes[os.id] || '';
       html += '<tr style="background:#f8f9fa; font-size:0.8em;">';
-      html += '<td colspan="9" class="py-1 ps-4 text-muted">';
-      html += '<i class="bi bi-person-vcard me-1"></i>';
+      html += '<td colspan="9" class="py-1 ps-4">';
+      html += '<span class="text-muted"><i class="bi bi-person-vcard me-1"></i>';
       html += '<strong>CNPJ:</strong> ' + escapeHtml(os.provider_cnpj || '-');
       html += ' &nbsp;|&nbsp; <strong>Regime:</strong> ' + (isSimples ? 'Simples Nacional (Isento de Retenção)' : 'Não-Simples (Retenção Aplicável)');
       html += ' &nbsp;|&nbsp; <strong>Contato:</strong> ' + escapeHtml(os.provider_phone || os.provider_email || '-');
+      html += '</span>';
+      html += ' &nbsp; <input type="text" class="os-obs-input form-control form-control-sm d-inline-block ms-2"';
+      html += ' data-os-id="' + os.id + '" placeholder="Observação..." style="width:calc(100% - 600px); min-width:180px;"';
+      html += ' value="' + escapeHtml(savedOsObs) + '">';
       html += '</td></tr>';
     });
 
     html += '<tr class="table-light fw-bold"><td colspan="4" class="text-end">SUBTOTAIS:</td>';
-    html += '<td>' + money(totalBrutoPecas) + '</td>';
-    html += '<td>' + money(totalBrutoServicos) + '</td>';
+    html += '<td>' + money(totalBrutoPecas) + '<br><small class="fw-normal text-success">' + money(totalBrutoPecas - totalDescPecas) + '</small></td>';
+    html += '<td>' + money(totalBrutoServicos) + '<br><small class="fw-normal text-success">' + money(totalBrutoServicos - totalDescServicos) + '</small></td>';
     html += '<td>' + money(totalBruto) + '</td>';
     html += '<td class="text-danger">- ' + money(totalDesconto) + '</td>';
     html += '<td class="text-success">' + money(totalComDesconto) + '</td></tr>';
@@ -868,10 +928,11 @@ var Faturamento = (function() {
     html += '</div>';
     html += '<div class="col-md-3">';
     html += '<label class="form-label fw-bold">Tipo de Valor da Fatura</label>';
-    html += '<select class="form-select" id="previaTipoValor">';
+    html += '<select class="form-select" id="previaTipoValor" onchange="Faturamento.recalcularPrevia()">';
     html += '<option value="bruto"' + (savedTipo === 'bruto' ? ' selected' : '') + '>Valor Bruto (' + money(totalBruto) + ')</option>';
     html += '<option value="liquido"' + (savedTipo === 'liquido' ? ' selected' : '') + '>Valor Líquido (' + money(valorLiquido) + ')</option>';
     html += '</select>';
+    html += '<small class="text-muted d-block mt-1"><i class="bi bi-info-circle me-1"></i>Retenções incidem sobre o valor selecionado</small>';
     html += '</div>';
     html += '</div>';
 
@@ -904,6 +965,12 @@ var Faturamento = (function() {
     var aplicarRetencao = chkRetencao ? chkRetencao.checked : true;
     var vencimento = document.getElementById('previaVencimento') ? document.getElementById('previaVencimento').value : '';
 
+    // Coletar observações por OS antes de confirmar
+    document.querySelectorAll('.os-obs-input').forEach(function(el) {
+      var osId = parseInt(el.getAttribute('data-os-id'));
+      if (osId) _osObservacoes[osId] = el.value;
+    });
+
     if (ids.length === 0 || !clienteId) return;
 
     // Disable button
@@ -917,6 +984,7 @@ var Faturamento = (function() {
         client_id: clienteId,
         order_service_ids: ids,
         observacoes: obs,
+        os_observacoes: _osObservacoes,
         tipo_valor: tipoValor,
         aplicar_retencao: aplicarRetencao,
         vencimento: vencimento
@@ -957,6 +1025,7 @@ var Faturamento = (function() {
     document.getElementById('successSection').style.display = 'none';
     document.getElementById('abertosContent').style.display = '';
     _selectedOS = {};
+    _osObservacoes = {};
     carregarOSAbertos(); // Refresh list
   }
 

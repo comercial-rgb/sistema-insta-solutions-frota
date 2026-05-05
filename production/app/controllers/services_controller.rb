@@ -132,21 +132,37 @@ class ServicesController < ApplicationController
 
   def by_category
     authorize Service, :by_category?
-    
+
     category_id = params[:category_id]
-    
+    vehicle_model_id = params[:vehicle_model_id].presence
+
     begin
       services = Service.where(category_id: category_id).order(:name)
-      
+
+      # Pre-load reference prices for this vehicle model if provided
+      ref_prices_by_service = {}
+      if vehicle_model_id.present?
+        ReferencePrice.active
+          .where(vehicle_model_id: vehicle_model_id)
+          .each { |rp| ref_prices_by_service[rp.service_id] = rp }
+      end
+
       data = services.map do |service|
-        {
+        rp = ref_prices_by_service[service.id]
+        entry = {
           id: service.id,
           name: service.name,
           price: service.price,
-          category_id: service.category_id
+          category_id: service.category_id,
+          has_reference_price: rp.present?,
+          sem_tabela: rp&.sem_tabela? || false,
+          reference_price: rp&.reference_price,
+          max_allowed_price: rp&.max_allowed_price,
+          reference_source: rp&.source
         }
+        entry
       end
-      
+
       render json: data, status: 200
     rescue => e
       Rails.logger.error "Erro em by_category: #{e.message}"

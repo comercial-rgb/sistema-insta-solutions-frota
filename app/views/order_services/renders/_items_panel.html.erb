@@ -25,9 +25,10 @@
     </div>
     <div class="collapse" id="itemsPanel<%= os.id %>">
       <div class="card-body">
-      <% # Separar itens por categoria %>
-      <% parts = os.part_service_order_services.joins(:service).where(services: { category_id: Category::SERVICOS_PECAS_ID }) %>
-      <% services = os.part_service_order_services.joins(:service).where(services: { category_id: Category::SERVICOS_SERVICOS_ID }) %>
+      <% # Separar itens por categoria (inclui linhas sem service_id — joins(:service) omitia) %>
+      <% _os_items = os.part_service_order_services.includes(:service).to_a %>
+      <% parts = _os_items.select { |item| item.category_id_for_commitment == Category::SERVICOS_PECAS_ID } %>
+      <% services = _os_items.select { |item| item.category_id_for_commitment == Category::SERVICOS_SERVICOS_ID } %>
       
       <% if parts.any? %>
         <h5 class="border-bottom pb-2 mb-3">
@@ -46,7 +47,7 @@
               <% parts.each do |item| %>
                 <tr>
                   <td>
-                    <strong><%= item.service&.name || '-' %></strong>
+                    <strong><%= item.service&.name || item.observation.to_s.truncate(120).presence || '—' %></strong>
                     <% if item.service&.description.present? %>
                       <br><small class="text-muted"><%= item.service.description %></small>
                     <% end %>
@@ -85,7 +86,7 @@
               <% services.each do |item| %>
                 <tr>
                   <td>
-                    <strong><%= item.service&.name || '-' %></strong>
+                    <strong><%= item.service&.name || item.observation.to_s.truncate(120).presence || '—' %></strong>
                     <% if item.service&.description.present? %>
                       <br><small class="text-muted"><%= item.service.description %></small>
                     <% end %>

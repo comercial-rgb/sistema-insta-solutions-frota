@@ -1,0 +1,96 @@
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-clipboard-check"></i> Checklists do Veículo</h5>
+                <span class="badge bg-light text-primary"><%= vehicle.vehicle_checklists.count %> registro(s)</span>
+            </div>
+            <div class="card-body p-0">
+                <% checklists = vehicle.vehicle_checklists.includes(:user, :items, :acknowledged_by, :order_service).recent.limit(20) %>
+                <% if checklists.any? %>
+                    <div class="table-responsive">
+                        <table class="table table-hover table-sm mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Data</th>
+                                    <th>Realizado por</th>
+                                    <th>KM</th>
+                                    <th>Itens</th>
+                                    <th>Anomalias</th>
+                                    <th>Status</th>
+                                    <th>Ciência</th>
+                                    <th>OS</th>
+                                    <th class="text-center">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% checklists.each do |checklist| %>
+                                    <tr>
+                                        <td><%= checklist.created_at.strftime('%d/%m/%Y %H:%M') %></td>
+                                        <td><%= checklist.user&.name %></td>
+                                        <td><%= checklist.current_km %></td>
+                                        <td><%= checklist.items.count %></td>
+                                        <td>
+                                            <% anomaly_count = checklist.anomaly_count %>
+                                            <% if anomaly_count > 0 %>
+                                                <span class="badge bg-danger"><%= anomaly_count %> anomalia(s)</span>
+                                            <% else %>
+                                                <span class="badge bg-success">OK</span>
+                                            <% end %>
+                                        </td>
+                                        <td>
+                                            <% case checklist.status
+                                            when 'pending' %>
+                                                <span class="badge bg-warning text-dark">Pendente</span>
+                                            <% when 'acknowledged' %>
+                                                <span class="badge bg-info">Ciente</span>
+                                            <% when 'os_created' %>
+                                                <span class="badge bg-primary">OS Criada</span>
+                                            <% when 'closed' %>
+                                                <span class="badge bg-secondary">Fechado</span>
+                                            <% end %>
+                                        </td>
+                                        <td>
+                                            <% if checklist.acknowledged_by %>
+                                                <small><%= checklist.acknowledged_by.name %><br><%= checklist.acknowledged_at&.strftime('%d/%m/%Y') %></small>
+                                            <% else %>
+                                                <small class="text-muted">-</small>
+                                            <% end %>
+                                        </td>
+                                        <td>
+                                            <% if checklist.order_service %>
+                                                <a href="<%= edit_order_service_path(checklist.order_service) %>"><%= checklist.order_service.code %></a>
+                                            <% else %>
+                                                <small class="text-muted">-</small>
+                                            <% end %>
+                                        </td>
+                                        <td class="text-center">
+                                            <a href="<%= vehicle_checklist_path(checklist) %>" class="btn btn-sm btn-outline-primary" title="Ver detalhes">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            <% if checklist.status == 'pending' && (@current_user.admin? || @current_user.manager? || @current_user.additional?) %>
+                                                <%= link_to acknowledge_vehicle_checklist_path(checklist), method: :put, class: 'btn btn-sm btn-outline-success', title: 'Dar ciência', data: { confirm: 'Confirma dar ciência neste checklist?' } do %>
+                                                    <i class="bi bi-check-circle"></i>
+                                                <% end %>
+                                            <% end %>
+                                            <% if checklist.has_anomalies? && checklist.order_service.nil? && (@current_user.admin? || @current_user.manager? || @current_user.additional?) %>
+                                                <%= link_to create_os_vehicle_checklist_path(checklist), method: :post, class: 'btn btn-sm btn-outline-danger', title: 'Criar OS', data: { confirm: 'Deseja criar uma OS a partir deste checklist?' } do %>
+                                                    <i class="bi bi-file-earmark-plus"></i> OS
+                                                <% end %>
+                                            <% end %>
+                                        </td>
+                                    </tr>
+                                <% end %>
+                            </tbody>
+                        </table>
+                    </div>
+                <% else %>
+                    <div class="text-center py-4">
+                        <i class="bi bi-clipboard-x text-muted" style="font-size: 2rem;"></i>
+                        <p class="text-muted mt-2">Nenhum checklist realizado para este veículo.</p>
+                    </div>
+                <% end %>
+            </div>
+        </div>
+    </div>
+</div>

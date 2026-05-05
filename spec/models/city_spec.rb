@@ -11,6 +11,6 @@ RSpec.describe City, type: :model do
 	end
 
 	describe 'Relations' do
-		it { should belong_to :state }
+		it { should belong_to(:state).optional }
 	end
 end

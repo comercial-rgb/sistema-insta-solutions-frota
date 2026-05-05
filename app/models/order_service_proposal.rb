@@ -49,7 +49,8 @@
   has_many :complement_proposals, class_name: 'OrderServiceProposal', foreign_key: 'parent_proposal_id', dependent: :nullify
 
   has_many :order_service_proposal_items, validate: false, dependent: :destroy
-  accepts_nested_attributes_for :order_service_proposal_items, :reject_if  => proc { |attrs| attrs[:service_id].blank? }
+  accepts_nested_attributes_for :order_service_proposal_items,
+    reject_if: proc { |attrs| attrs[:service_id].blank? && attrs[:service_name].blank? }
 
   has_many :provider_service_temps, inverse_of: :order_service_proposal, validate: true, dependent: :destroy
   accepts_nested_attributes_for :provider_service_temps, 
@@ -368,7 +369,6 @@
         Rails.logger.warn "Não foi possível gerar histórico para OS #{order_service.id}: #{e.message}"
       end
       
-      Rails.logger.info "✓ Status da OS ##{order_service.id} sincronizado automaticamente: #{old_status} → #{new_os_status}"
     end
   end
 

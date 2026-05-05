@@ -203,9 +203,11 @@ class OrderServiceProposalsController < ApplicationController
     end
     
     @order_service_proposal = OrderServiceProposal
-    .where(order_service_id: params[:order_service_id])
-    .where(provider_id: @current_user.id, order_service_proposal_status_id: OrderServiceProposalStatus::EM_CADASTRO_ID)
-    .first
+      .unscoped
+      .where(order_service_id: params[:order_service_id])
+      .where(provider_id: @current_user.id, order_service_proposal_status_id: OrderServiceProposalStatus::EM_CADASTRO_ID)
+      .order(id: :desc)
+      .first
     if @order_service_proposal
       redirect_to edit_order_service_proposal_path(id: @order_service_proposal.id)
     else
@@ -220,13 +222,6 @@ class OrderServiceProposalsController < ApplicationController
       @order_service_proposal = OrderServiceProposal.new
       @order_service_proposal.order_service_id = params[:order_service_id]
       @order_service_proposal.provider_id = @current_user.id
-      
-      # 📊 Debug: verificar part_service_order_services da OS
-      Rails.logger.info "🔍 [PROPOSTA NEW DEBUG] OS ID: #{os.id}"
-      Rails.logger.info "🔍 [PROPOSTA NEW DEBUG] Total part_service_order_services: #{os.part_service_order_services.count}"
-      os.part_service_order_services.each_with_index do |ps, idx|
-        Rails.logger.info "  [#{idx}] ID=#{ps.id}, service_id=#{ps.service_id}, service_name=#{ps.service&.name}, category_id=#{ps.service&.category_id}"
-      end
       
       # Carregar limites do grupo de serviços (para Requisição)
       @service_max_values = {}
@@ -282,8 +277,6 @@ class OrderServiceProposalsController < ApplicationController
     end
 
     if @order_service_proposal.save
-      Rails.logger.info "✅ [CREATE DEBUG] Provider Service Temps após save: #{@order_service_proposal.provider_service_temps.count}"
-      
       save_files
       if params[:save_and_submit].present?
         generate_order_service_proposal_items
@@ -337,16 +330,10 @@ class OrderServiceProposalsController < ApplicationController
       pst.order_service_proposal = @order_service_proposal
     end
 
-    # � Log para debug - quantos provider_service_temps antes do save
-    Rails.logger.info "🔍 [DEBUG] Provider Service Temps antes do save: #{@order_service_proposal.provider_service_temps.count}"
-    Rails.logger.info "🔍 [DEBUG] Provider Service Temps detalhes: #{@order_service_proposal.provider_service_temps.map { |pst| { id: pst.id, service_id: pst.service_id, name: pst.name, price: pst.price } }}"
-
-    # �🔍 Validação forçada para debug
     proposal_valid = @order_service_proposal.valid? && @order_service_proposal.provider_service_temps.all?(&:valid?)
 
-    if proposal_valid && @order_service_proposal.save      # 📊 Log após save bem-sucedido
-      Rails.logger.info "✅ [DEBUG] Provider Service Temps após save: #{@order_service_proposal.provider_service_temps.reload.count}"
-            save_files
+    if proposal_valid && @order_service_proposal.save
+      save_files
 
       if params[:save_and_submit].present?
         # Gerar itens da proposta para submissão
@@ -538,16 +525,10 @@ class OrderServiceProposalsController < ApplicationController
     # ✅ Verificar saldo nos empenhos antes de aprovar (validação movida do update)
     order_service = @order_service_proposal.order_service
     
-    # Calcula valores totais DA PROPOSTA COM DESCONTO APLICADO
-    parts_value = @order_service_proposal.order_service_proposal_items
-                    .joins(:service)
-                    .where(services: { category_id: Category::SERVICOS_PECAS_ID })
-                    .sum(:total_value)
-    
-    services_value = @order_service_proposal.order_service_proposal_items
-                       .joins(:service)
-                       .where(services: { category_id: Category::SERVICOS_SERVICOS_ID })
-                       .sum(:total_value)
+    # Calcula valores totais DA PROPOSTA COM DESCONTO APLICADO (inclui itens sem service_id)
+    items_scope = @order_service_proposal.order_service_proposal_items
+    parts_value = OrderServiceProposalItem.sum_parts_total_value(items_scope)
+    services_value = OrderServiceProposalItem.sum_services_total_value(items_scope)
     
     balance_check = order_service.check_commitment_balance(parts_value, services_value)
     
@@ -1448,18 +1429,10 @@ class OrderServiceProposalsController < ApplicationController
     end
 
     if complement_proposal.order_service_proposal_items.any?
-      # Usa total_value (já com desconto) para bater com o que será incorporado na proposta pai
-      parts_total = complement_proposal.order_service_proposal_items
-        .joins(:service)
-        .where(services: { category_id: Category::SERVICOS_PECAS_ID })
-        .sum(:total_value)
-        .to_f
-
-      services_total = complement_proposal.order_service_proposal_items
-        .joins(:service)
-        .where(services: { category_id: Category::SERVICOS_SERVICOS_ID })
-        .sum(:total_value)
-        .to_f
+      # Usa total_value (já com desconto); inclui itens sem service_id
+      items_scope = complement_proposal.order_service_proposal_items
+      parts_total = OrderServiceProposalItem.sum_parts_total_value(items_scope).to_f
+      services_total = OrderServiceProposalItem.sum_services_total_value(items_scope).to_f
 
       # Se não conseguiu classificar por categoria, mas existe valor, ainda assim não pode "passar" sem validar.
       total = complement_proposal.order_service_proposal_items.sum(:total_value).to_f

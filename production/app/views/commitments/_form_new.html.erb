@@ -7,7 +7,23 @@
         </div>
     </div>
 
-    <%= render 'users/renders/client_selection', f: f %>
+    <div class="row">
+        <%= render 'users/renders/client_selection', f: f %>
+        
+        <div class="col-12 col-md-3">
+            <% 
+              # Obtém os centros de custo disponíveis filtrados pelo cliente
+              available_cost_centers = CostCenter.getting_by_client_id(@current_user, f.object.client_id)
+            %>
+            <%= f.input :cost_center_ids, 
+                collection: available_cost_centers, 
+                label_method: :get_text_name, 
+                value_method: :id,
+                input_html: { multiple: true, class: 'select2', data: { placeholder: t('model.select_option') } },
+                label: CostCenter.model_name.human(count: 2),
+                include_blank: false %>
+        </div>
+    </div>
 
     <%= render 'common_pages/save', f: f, return_path: commitments_path %>
 

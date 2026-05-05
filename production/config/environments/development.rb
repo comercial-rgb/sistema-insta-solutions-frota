@@ -71,18 +71,18 @@ Rails.application.configure do
     ActiveStorage::Current.url_options = { host: 'localhost', port: 3000, protocol: 'http' }
   end
   
-  # Websocket
-  config.action_cable.allowed_request_origins = [
-    /http:\/\/*/,
-    /https:\/\/*/,
-    /file:\/\/*/,
-    'file://',
-    /ionic:\/\/*/,
-    'ionic://',
-    /capacitor:\/\/*/,
-    'capacitor://', 
-    nil
-  ]
+  # Websocket — origens locais e apps híbridos (override: ACTION_CABLE_ALLOWED_ORIGINS)
+  config.action_cable.allowed_request_origins =
+    if ENV['ACTION_CABLE_ALLOWED_ORIGINS'].present?
+      ENV['ACTION_CABLE_ALLOWED_ORIGINS'].split(',').map(&:strip)
+    else
+      %w[
+        http://localhost:3000 http://127.0.0.1:3000
+        http://localhost:8081 http://127.0.0.1:8081
+        http://localhost:19006 http://127.0.0.1:19006
+        file:// capacitor://localhost ionic://localhost
+      ]
+    end
 
   config.action_mailer.delivery_method = :smtp
   config.action_mailer.smtp_settings = {

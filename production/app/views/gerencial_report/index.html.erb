@@ -40,10 +40,10 @@ breadcrumbs = [
         </div>
         <% if @metrics.present? %>
           <div class="col-md-4 text-end">
-            <%= link_to gerencial_report_export_path(start_date: @start_date, end_date: @end_date, format: :xlsx), class: 'btn btn-success me-2' do %>
+            <%= link_to gerencial_report_export_path(start_date: @start_date, end_date: @end_date, format: :xlsx), id: 'btn-export-xlsx', class: 'btn btn-success me-2' do %>
               <i class="bi bi-file-earmark-excel me-1"></i>Exportar Excel
             <% end %>
-            <%= link_to gerencial_report_export_path(start_date: @start_date, end_date: @end_date, format: :pdf), class: 'btn btn-danger' do %>
+            <%= link_to gerencial_report_export_path(start_date: @start_date, end_date: @end_date, format: :pdf), id: 'btn-export-pdf', class: 'btn btn-danger' do %>
               <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
             <% end %>
           </div>
@@ -262,6 +262,18 @@ breadcrumbs = [
       </div>
     <% end %>
 
+    <!-- Observações -->
+    <div class="card shadow-sm mb-4">
+      <div class="card-header">
+        <i class="bi bi-pencil-square me-2"></i>Observações
+      </div>
+      <div class="card-body">
+        <textarea id="gerencial-observacoes" class="form-control" rows="4"
+          placeholder="Adicione observações livres que serão incluídas no relatório exportado..."><%= params[:observacoes] %></textarea>
+        <small class="text-muted mt-1 d-block">O conteúdo será incluído nos arquivos PDF e Excel ao exportar.</small>
+      </div>
+    </div>
+
   <% else %>
     <div class="card shadow-sm">
       <div class="card-body text-center py-5">
@@ -271,4 +283,29 @@ breadcrumbs = [
       </div>
     </div>
   <% end %>
+
+<script>
+  (function () {
+    var obs     = document.getElementById('gerencial-observacoes');
+    var xlsxBtn = document.getElementById('btn-export-xlsx');
+    var pdfBtn  = document.getElementById('btn-export-pdf');
+    if (!obs || !xlsxBtn || !pdfBtn) return;
+
+    function updateLinks() {
+      var val = obs.value.trim();
+      [xlsxBtn, pdfBtn].forEach(function (btn) {
+        var url = new URL(btn.href, window.location.origin);
+        if (val) {
+          url.searchParams.set('observacoes', val);
+        } else {
+          url.searchParams.delete('observacoes');
+        }
+        btn.href = url.toString();
+      });
+    }
+
+    obs.addEventListener('input', updateLinks);
+    updateLinks();
+  })();
+</script>
 </div>

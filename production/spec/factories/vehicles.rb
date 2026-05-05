@@ -1,22 +1,24 @@
 FactoryBot.define do
   factory :vehicle do
-    client { User.client.order("RAND()").first }
-    cost_center { CostCenter.all.order("RAND()").first }
-    sub_unit { SubUnit.all.order("RAND()").first }
-    board { (('a'..'z').to_a.sample(3).join + (0..9).to_a.sample(4).join).upcase }
-    brand {Faker::Lorem.sentence(word_count: 1)}
-    model {Faker::Lorem.sentence(word_count: 1)}
-    year { rand(1990..2024) }
-    color { Faker::Color.color_name }
-    renavam {Faker::Number.number(digits: 11)}
-    chassi {Faker::Number.number(digits: 11)}
-    market_value {Faker::Commerce.price(range: 10000..200000)}
-    acquisition_date {Faker::Date.between(from: 2.years.ago, to: 1.years.ago)}
-    vehicle_type { VehicleType.all.order("RAND()").first }
-    category { Category.by_category_type_id(CategoryType::VEICULOS_ID).order("RAND()").first }
-    state_id {13}
-    city_id {rand(1597..2449)}
-    fuel_type { FuelType.all.order("RAND()").first }
-    active { rand(0..1) }
+    association :client, factory: [:user, :client]
+    cost_center { association :cost_center, :minimal, client: client }
+    association :fuel_type
+    association :vehicle_type
+    association :city
+
+    sequence(:board) { |n| "BRX#{n}#{SecureRandom.hex(1).upcase}" }
+    brand { "Brand" }
+    model { "Model" }
+    year { 2020 }
+    color { "Black" }
+    renavam { Faker::Number.number(digits: 11).to_s }
+    chassi { Faker::Number.number(digits: 11).to_s }
+    market_value { 50_000 }
+    acquisition_date { 1.year.ago.to_date }
+    active { true }
+
+    after(:build) do |vehicle|
+      vehicle.state_id = vehicle.city.state_id if vehicle.city
+    end
   end
 end

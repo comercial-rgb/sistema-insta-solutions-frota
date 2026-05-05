@@ -166,15 +166,6 @@ group :default do
   # gem 'bigdecimal'
 end
 
-# -- MEMORY MANAGEMENT --
-gem 'rack-mini-profiler'
-
-# For memory profiling
-gem 'memory_profiler'
-
-# For call-stack profiling flamegraphs
-# gem 'stackprof'  # Comentado temporariamente devido a problemas de compilação no Windows
-
 # Gemfile
 # gem 'aws-sdk-rekognition'
 
@@ -217,6 +208,8 @@ group :development do
 end
 
 group :development do
+  gem 'rack-mini-profiler'
+  gem 'memory_profiler'
   gem 'better_errors'
   gem 'guard-bundler'
   gem 'guard-rails'
@@ -233,11 +226,10 @@ end
 # Web Server
 gem 'puma'
 
-gem 'cpf_faker'
-gem 'factory_bot_rails'
-gem 'faker'
-
 group :development, :test do
+  gem 'cpf_faker'
+  gem 'factory_bot_rails'
+  gem 'faker'
   gem 'pry-rails'
   gem 'pry-rescue'
   gem 'rspec-rails'

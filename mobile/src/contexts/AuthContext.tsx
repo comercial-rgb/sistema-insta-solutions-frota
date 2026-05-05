@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { authApi } from '../api/auth';
+import { authSessionEvents } from '../api/authSessionEvents';
 import { storage } from '../utils/storage';
 import { ProfileId } from '../types';
 
@@ -37,6 +38,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     loadStoredAuth();
+  }, []);
+
+  useEffect(() => {
+    authSessionEvents.setSessionInvalidListener(() => {
+      setState({
+        token: null,
+        userId: null,
+        profileId: null,
+        isLoading: false,
+        isAuthenticated: false,
+      });
+    });
+    return () => authSessionEvents.setSessionInvalidListener(null);
   }, []);
 
   const loadStoredAuth = async () => {

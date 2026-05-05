@@ -1,0 +1,201 @@
+<% content_for(:breadcrumb) do %>
+  <li class="breadcrumb-item"><a href="<%= vehicles_path %>">Veículos</a></li>
+  <li class="breadcrumb-item"><a href="<%= edit_vehicle_path(@vehicle) %>"><%= @vehicle.license_plate %></a></li>
+  <li class="breadcrumb-item active">Checklist #<%= @checklist.id %></li>
+<% end %>
+
+<div class="container-fluid">
+  <div class="row mb-3">
+    <div class="col-12">
+      <h4>
+        <i class="bi bi-clipboard-check"></i> Checklist Veicular #<%= @checklist.id %>
+        <% case @checklist.status
+        when 'pending' %>
+          <span class="badge bg-warning text-dark">Pendente</span>
+        <% when 'acknowledged' %>
+          <span class="badge bg-info">Ciente</span>
+        <% when 'os_created' %>
+          <span class="badge bg-primary">OS Criada</span>
+        <% when 'closed' %>
+          <span class="badge bg-secondary">Fechado</span>
+        <% end %>
+      </h4>
+    </div>
+  </div>
+
+  <div class="row mb-3">
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header"><strong>Informações Gerais</strong></div>
+        <div class="card-body">
+          <table class="table table-sm table-borderless mb-0">
+            <tr>
+              <th width="35%">Veículo:</th>
+              <td><a href="<%= edit_vehicle_path(@vehicle) %>"><%= @vehicle.license_plate %></a> - <%= @vehicle.model_name rescue '' %></td>
+            </tr>
+            <tr>
+              <th>Realizado por:</th>
+              <td><%= @checklist.user&.name %></td>
+            </tr>
+            <tr>
+              <th>Data:</th>
+              <td><%= @checklist.created_at.strftime('%d/%m/%Y %H:%M') %></td>
+            </tr>
+            <tr>
+              <th>KM Atual:</th>
+              <td><%= @checklist.current_km %></td>
+            </tr>
+            <tr>
+              <th>Cliente:</th>
+              <td><%= @checklist.client&.name %></td>
+            </tr>
+            <% if @checklist.cost_center %>
+              <tr>
+                <th>Centro de Custo:</th>
+                <td><%= @checklist.cost_center&.name %></td>
+              </tr>
+            <% end %>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="card">
+        <div class="card-header"><strong>Status e Ações</strong></div>
+        <div class="card-body">
+          <table class="table table-sm table-borderless mb-0">
+            <% if @checklist.acknowledged_by %>
+              <tr>
+                <th width="35%">Ciência por:</th>
+                <td><%= @checklist.acknowledged_by.name %> em <%= @checklist.acknowledged_at&.strftime('%d/%m/%Y %H:%M') %></td>
+              </tr>
+            <% end %>
+            <% if @checklist.order_service %>
+              <tr>
+                <th>OS Vinculada:</th>
+                <td><a href="<%= edit_order_service_path(@checklist.order_service) %>"><%= @checklist.order_service.code %></a></td>
+              </tr>
+            <% end %>
+            <tr>
+              <th>Total de Itens:</th>
+              <td><%= @checklist.items.count %></td>
+            </tr>
+            <tr>
+              <th>Anomalias:</th>
+              <td>
+                <% if @checklist.has_anomalies? %>
+                  <span class="badge bg-danger"><%= @checklist.anomaly_count %> anomalia(s)</span>
+                <% else %>
+                  <span class="badge bg-success">Nenhuma</span>
+                <% end %>
+              </td>
+            </tr>
+          </table>
+
+          <div class="mt-3">
+            <% if @checklist.status == 'pending' && (@current_user.admin? || @current_user.manager? || @current_user.additional?) %>
+              <%= link_to acknowledge_vehicle_checklist_path(@checklist), method: :put, class: 'btn btn-success me-2', data: { confirm: 'Confirma dar ciência neste checklist?' } do %>
+                <i class="bi bi-check-circle"></i> Dar Ciência
+              <% end %>
+            <% end %>
+            <% if @checklist.has_anomalies? && @checklist.order_service.nil? && (@current_user.admin? || @current_user.manager? || @current_user.additional?) %>
+              <%= link_to create_os_vehicle_checklist_path(@checklist), method: :post, class: 'btn btn-danger', data: { confirm: 'Deseja criar uma OS a partir deste checklist?' } do %>
+                <i class="bi bi-file-earmark-plus"></i> Criar OS
+              <% end %>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <% if @checklist.general_notes.present? %>
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header"><strong>Notas Gerais</strong></div>
+          <div class="card-body"><%= @checklist.general_notes %></div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header bg-primary text-white"><strong>Itens do Checklist</strong></div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Categoria</th>
+                  <th>Item</th>
+                  <th>Condição</th>
+                  <th>Anomalia</th>
+                  <th>Observação</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% @checklist.items.order(:category, :item_name).each do |item| %>
+                  <tr class="<%= 'table-danger' if item.has_anomaly %>">
+                    <td><span class="badge bg-secondary"><%= item.category.upcase %></span></td>
+                    <td><%= item.item_name %></td>
+                    <td>
+                      <% case item.condition
+                      when 'ok' %>
+                        <span class="badge bg-success">OK</span>
+                      <% when 'attention' %>
+                        <span class="badge bg-warning text-dark">Atenção</span>
+                      <% when 'critical' %>
+                        <span class="badge bg-danger">Crítico</span>
+                      <% when 'na' %>
+                        <span class="badge bg-secondary">N/A</span>
+                      <% end %>
+                    </td>
+                    <td>
+                      <% if item.has_anomaly %>
+                        <i class="bi bi-exclamation-triangle-fill text-danger"></i> Sim
+                      <% else %>
+                        -
+                      <% end %>
+                    </td>
+                    <td><%= item.observation %></td>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <% if @checklist.photos.attached? %>
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header"><strong>Fotos</strong></div>
+          <div class="card-body">
+            <div class="row">
+              <% @checklist.photos.each do |photo| %>
+                <div class="col-md-3 col-sm-4 col-6 mb-3">
+                  <%= image_tag url_for(photo), class: 'img-fluid rounded shadow-sm', style: 'cursor: pointer;', onclick: "window.open('#{url_for(photo)}', '_blank')" %>
+                </div>
+              <% end %>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="row">
+    <div class="col-12">
+      <a href="<%= edit_vehicle_path(@vehicle) %>" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Voltar ao Veículo
+      </a>
+    </div>
+  </div>
+</div>

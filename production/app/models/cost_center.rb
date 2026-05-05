@@ -1,4 +1,4 @@
-class CostCenter < ApplicationRecord
+﻿class CostCenter < ApplicationRecord
   after_initialize :default_values
 
   attr_accessor :already_consumed_value, :skip_validations
@@ -17,17 +17,17 @@ class CostCenter < ApplicationRecord
   scope :by_contract_number, lambda { |value| where("LOWER(cost_centers.contract_number) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
   scope :by_commitment_number, lambda { |value| where("LOWER(cost_centers.commitment_number) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
-  scope :by_initial_initial_consumed_balance, lambda { |value| where("cost_centers.initial_consumed_balance >= '#{value}'") if !value.nil? && !value.blank? }
-  scope :by_final_initial_consumed_balance, lambda { |value| where("cost_centers.initial_consumed_balance <= '#{value}'") if !value.nil? && !value.blank? }
+  scope :by_initial_initial_consumed_balance, lambda { |value| where("cost_centers.initial_consumed_balance >= ?", value) if !value.nil? && !value.blank? }
+  scope :by_final_initial_consumed_balance, lambda { |value| where("cost_centers.initial_consumed_balance <= ?", value) if !value.nil? && !value.blank? }
 
-  scope :by_initial_initial_budget_value, lambda { |value| where("cost_centers.initial_budget_value >= '#{value}'") if !value.nil? && !value.blank? }
-  scope :by_final_initial_budget_value, lambda { |value| where("cost_centers.initial_budget_value <= '#{value}'") if !value.nil? && !value.blank? }
+  scope :by_initial_initial_budget_value, lambda { |value| where("cost_centers.initial_budget_value >= ?", value) if !value.nil? && !value.blank? }
+  scope :by_final_initial_budget_value, lambda { |value| where("cost_centers.initial_budget_value <= ?", value) if !value.nil? && !value.blank? }
 
-  scope :by_initial_contract_initial_date, lambda { |value| where("cost_centers.contract_initial_date >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_contract_initial_date, lambda { |value| where("cost_centers.contract_initial_date <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_contract_initial_date, lambda { |value| where("cost_centers.contract_initial_date >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_contract_initial_date, lambda { |value| where("cost_centers.contract_initial_date <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("cost_centers.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("cost_centers.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("cost_centers.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("cost_centers.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
   belongs_to :client, :class_name => 'User', foreign_key: 'client_id', optional: true
   belongs_to :budget_type, optional: true
@@ -120,17 +120,31 @@ class CostCenter < ApplicationRecord
   end
 
   def self.sum_budget_value(cost_center)
-    # Commitment value - Cancel commitment value
-    commitment_value = cost_center.commitments.sum(:commitment_value).to_f
-    cancel_commitment_value = cost_center.commitments.joins(:cancel_commitments).sum('cancel_commitments.value').to_f
-    result = commitment_value - cancel_commitment_value
-    return result
+    # Combina empenhos diretos (via cost_center_id) e vinculados (via tabela N:N commitment_cost_centers)
+    # Remove duplicatas para não contar o mesmo empenho duas vezes
+    direct_ids = cost_center.commitments.pluck(:id)
+    linked_ids = cost_center.linked_commitments.pluck(:id)
+    all_ids = (direct_ids + linked_ids).uniq
+
+    return 0.0 if all_ids.empty?
+
+    # Reutiliza Commitment.sum_budget_value que já calcula corretamente:
+    # commitment_value + aditivos (addendum_commitments) - cancelamentos (cancel_commitments)
+    Commitment.where(id: all_ids).sum do |commitment|
+      Commitment.sum_budget_value(commitment)
+    end.to_f
   end
 
   def self.sum_budget_value_contract(cost_center)
-    # Commitment value - Cancel commitment value
-    commitments = cost_center.commitments.includes(:contract)
-    contracts = commitments.map(&:contract).compact.uniq
+    # Combina empenhos diretos e vinculados (N:N), sem duplicatas
+    direct_ids = cost_center.commitments.pluck(:id)
+    linked_ids = cost_center.linked_commitments.pluck(:id)
+    all_ids = (direct_ids + linked_ids).uniq
+
+    return 0.0 if all_ids.empty?
+
+    all_commitments = Commitment.where(id: all_ids).includes(:contract)
+    contracts = all_commitments.map(&:contract).compact.uniq.select(&:active)
     result = contracts.map { |contract| contract.get_total_value }.sum.to_f
     return result
   end

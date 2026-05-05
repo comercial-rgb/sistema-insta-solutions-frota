@@ -50,7 +50,7 @@
             </span>
           <% end %>
           <%= item.service_name.presence || item.service&.name || '-' %>
-          <%= reference_price_badge(item, order_service_proposal.order_service) %>
+          <%= reference_price_badge(item, order_service_proposal.order_service, @current_user) %>
           <br>
           <% if is_part %>
             <small class="text-muted"><b><%= OrderServiceProposalItem.human_attribute_name(:brand) %>: </b><%= item.brand %></small>

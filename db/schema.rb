@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_05_02_110000) do
+ActiveRecord::Schema[7.1].define(version: 2026_05_05_120000) do
   create_table "active_storage_attachments", charset: "utf8mb4", collation: "utf8mb4_unicode_ci", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -765,6 +765,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_05_02_110000) do
     t.datetime "updated_at", null: false
     t.text "observation"
     t.decimal "quantity", precision: 10, scale: 2, default: "1.0"
+    t.bigint "category_id"
+    t.index ["category_id"], name: "index_part_service_order_services_on_category_id"
     t.index ["order_service_id"], name: "index_part_service_order_services_on_order_service_id"
     t.index ["service_id"], name: "index_part_service_order_services_on_service_id"
   end
@@ -845,11 +847,11 @@ ActiveRecord::Schema[7.1].define(version: 2026_05_02_110000) do
     t.decimal "max_percentage", precision: 5, scale: 2, default: "110.0"
     t.text "observation"
     t.string "source"
-    t.string "reference_code"
     t.boolean "active", default: true
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.boolean "sem_tabela", default: false, null: false
+    t.string "reference_code"
     t.index ["active"], name: "index_reference_prices_on_active"
     t.index ["service_id"], name: "index_reference_prices_on_service_id"
     t.index ["vehicle_model_id", "service_id"], name: "index_reference_prices_on_model_and_service", unique: true
@@ -1220,6 +1222,8 @@ ActiveRecord::Schema[7.1].define(version: 2026_05_02_110000) do
     t.boolean "is_gerente", default: false, null: false
     t.boolean "manual_enviado", default: false, null: false
     t.datetime "manual_enviado_at"
+    t.boolean "treinamento_apenas_manual", default: false, null: false
+    t.datetime "treinamento_apenas_manual_at", precision: nil
     t.index ["city_id"], name: "index_users_on_city_id"
     t.index ["client_id"], name: "index_users_on_client_id"
     t.index ["cnh_number"], name: "index_users_on_cnh_number", unique: true
@@ -1451,6 +1455,7 @@ ActiveRecord::Schema[7.1].define(version: 2026_05_02_110000) do
   add_foreign_key "order_services", "users", column: "provider_id"
   add_foreign_key "order_services", "users", column: "reevaluation_requested_by_id", on_delete: :nullify
   add_foreign_key "order_services", "vehicles"
+  add_foreign_key "part_service_order_services", "categories"
   add_foreign_key "part_service_order_services", "order_services"
   add_foreign_key "part_service_order_services", "services"
   add_foreign_key "provider_service_temps", "categories"

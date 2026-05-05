@@ -174,15 +174,6 @@ class OrderServicesController < ApplicationController
       # Para admin/manager/additional, mostra todas as propostas
       @order_service_proposals = proposals_base.reorder(total_value: :asc)
     end
-    
-    # Debug temporário - pode remover depois
-    Rails.logger.debug "=== DEBUG PROPOSTAS ==="
-    @order_service_proposals.each do |p|
-      Rails.logger.debug "Proposta #{p.code} - Status ID: #{p.order_service_proposal_status_id} - Status Nome: #{p.order_service_proposal_status&.name}"
-      # Verificar se tem complementos
-      complements_count = p.complement_proposals.count
-      Rails.logger.debug "  -> Tem #{complements_count} complemento(s)"
-    end
   end
 
   def print_no_values
@@ -1289,23 +1280,7 @@ class OrderServicesController < ApplicationController
 
   def update
     authorize @order_service
-    
-    # 📊 Log para debug - part_service_order_services antes do update
-    Rails.logger.info "🔍 [OS UPDATE DEBUG] Params recebidos para part_service_order_services:"
-    if params[:order_service][:part_service_order_services_attributes].present?
-      params[:order_service][:part_service_order_services_attributes].each do |key, attrs|
-        Rails.logger.info "  [#{key}] id=#{attrs[:id]}, service_id=#{attrs[:service_id]}, _destroy=#{attrs[:_destroy]}"
-      end
-    end
-    Rails.logger.info "🔍 [OS UPDATE DEBUG] Part Services antes do update: #{@order_service.part_service_order_services.count}"
-    
-    # Verificar quantos estão marcados para destruição
-    destroy_count = 0
-    if params[:order_service][:part_service_order_services_attributes].present?
-      destroy_count = params[:order_service][:part_service_order_services_attributes].values.count { |v| v[:_destroy] == "true" || v[:_destroy] == true || v[:_destroy] == "1" }
-    end
-    Rails.logger.info "🔍 [OS UPDATE DEBUG] Itens marcados para destruição: #{destroy_count}"
-    
+
     # Verificar se houve alteração nas peças/serviços (para Cotações e Requisições)
     parts_services_changed = false
     if [OrderServiceType::COTACOES_ID, OrderServiceType::REQUISICAO_ID].include?(@order_service.order_service_type_id)
@@ -1326,14 +1301,7 @@ class OrderServicesController < ApplicationController
       end
     end
     update_success = @order_service.update(order_service_params)
-    
-    # 📊 Log após update
-    Rails.logger.info "✅ [OS UPDATE DEBUG] Update success: #{update_success}"
-    Rails.logger.info "✅ [OS UPDATE DEBUG] Part Services após update: #{@order_service.part_service_order_services.reload.count}"
-    @order_service.part_service_order_services.each do |ps|
-      Rails.logger.info "  - id=#{ps.id}, service_id=#{ps.service_id}, category=#{ps.service&.category_id}"
-    end
-    
+
     if update_success
       # Se peças/serviços foram alterados em Cotações/Requisições, cancelar propostas existentes
       if parts_services_changed && @order_service.has_active_proposals?
@@ -1946,7 +1914,7 @@ class OrderServicesController < ApplicationController
     :service_group_id,
     :origin_type,
     :directed_to_specific_providers,
-    part_service_order_services_attributes: [:id, :order_service_id, :service_id, :observation, :quantity, :_destroy],
+    part_service_order_services_attributes: [:id, :order_service_id, :service_id, :category_id, :observation, :quantity, :_destroy],
     stock_order_service_items_attributes: [:id, :stock_item_id, :quantity, :unit_price, :labor_type, :observation, :added_by_id, :_destroy],
     files: [],
     vehicle_photos: [],

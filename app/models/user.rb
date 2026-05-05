@@ -592,6 +592,8 @@
 
 	# Validando se o nome possui ao menos 2 palavras
 	def name_is_less_than_2
+		return if name.blank?
+
 		errors[:name] << "inválido" if name.split.size < 2
 	end
 

@@ -33,6 +33,15 @@ DATABASE_HOST_PRODUCTION: "localhost"
 DATABASE_PORT_PRODUCTION: "3306"
 HOST: "app.frotainstasolutions.com.br"
 
+# Origens CORS permitidas (separadas por vírgula). Se vazio, o Rails usa os defaults por ambiente.
+# CORS_ORIGINS: "https://app.frotainstasolutions.com.br,https://outro-dominio.com"
+
+# Origens do Action Cable (WebSocket), mesma sintaxe vírgula. Opcional; há defaults por ambiente.
+# ACTION_CABLE_ALLOWED_ORIGINS: "https://app.frotainstasolutions.com.br"
+
+# Forçar redirect HTTPS no Rails (use true só se o Puma receber HTTPS direto ou souber dos proxies).
+# RAILS_FORCE_SSL: "false"
+
 # AWS S3 (para armazenar arquivos - logos, anexos, etc)
 AWS_ACCESS_KEY_ID: "sua_aws_access_key"
 AWS_SECRET_ACCESS_KEY: "sua_aws_secret_key"

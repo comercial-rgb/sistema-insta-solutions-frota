@@ -32,6 +32,67 @@
 
 	<%= render 'users/forms/user_email_settings', f: f %>
 
+	<!-- Treinamento -->
+	<div class="row">
+		<div class="col-12">
+			<h5 class="mt-4"><i class="bi bi-mortarboard me-2"></i>TREINAMENTO</h5>
+			<hr class="mt-0">
+		</div>
+
+		<div class="col-12 col-md-3 mb-3 checkbox-input-center">
+			<%= f.input :training_completed, label: 'Treinamento Realizado' %>
+		</div>
+
+		<div class="col-12 col-md-3 mb-3 checkbox-input-center">
+			<%= f.input :training_declined, label: 'Declinou do Treinamento' %>
+		</div>
+
+		<div class="col-12 col-md-3 mb-3 checkbox-input-center">
+			<%= f.input :manual_enviado, label: 'Manual Enviado' %>
+		</div>
+
+		<% if f.object.manual_enviado_at.present? %>
+		<div class="col-12 col-md-3 mb-3">
+			<div class="form-group">
+				<label class="form-label">Enviado em</label>
+				<p class="form-control-plaintext"><%= f.object.manual_enviado_at.strftime('%d/%m/%Y %H:%M') %></p>
+			</div>
+		</div>
+		<% end %>
+
+		<div class="col-12 col-md-3 mb-3 checkbox-input-center">
+			<%= f.input :treinamento_apenas_manual, label: 'Apenas Manuais (cliente aceitou)' %>
+		</div>
+
+		<% if f.object.treinamento_apenas_manual_at.present? %>
+		<div class="col-12 col-md-3 mb-3">
+			<div class="form-group">
+				<label class="form-label">Aceito em</label>
+				<p class="form-control-plaintext"><%= f.object.treinamento_apenas_manual_at.strftime('%d/%m/%Y %H:%M') %></p>
+			</div>
+		</div>
+		<% end %>
+
+		<div class="col-12 col-md-3 mb-3">
+			<%= f.input :training_date, as: :string, label: 'Data do Treinamento',
+				input_html: { class: 'datepicker', value: CustomHelper.get_text_date(f.object.training_date, 'date', :default), autocomplete: :off, type: "tel" } %>
+		</div>
+
+		<div class="col-12 col-md-3 mb-3">
+			<%= f.input :training_location, label: 'Local do Treinamento', placeholder: 'Ex: Sede do cliente, Online...' %>
+		</div>
+
+		<div class="col-12 col-md-6 mb-3">
+			<%= f.input :training_participants, as: :text, label: 'Participantes',
+				input_html: { rows: 3, placeholder: 'Nomes dos participantes, separados por vírgula ou em linhas' } %>
+		</div>
+
+		<div class="col-12 col-md-6 mb-3">
+			<%= f.input :training_notes, as: :text, label: 'Observações do Treinamento',
+				input_html: { rows: 3, placeholder: 'Informações adicionais sobre o treinamento...' } %>
+		</div>
+	</div>
+
 	<%= render 'common_pages/save', f: f, return_path: (@current_user.id != @user.id) ? users_additional_path : nil %>
 
 <% end %>

@@ -84,15 +84,19 @@ breadcrumbs = [
     </div>
     <div class="card-body">
       <div class="row">
-        <div class="col-md-4 mb-3">
-          <label class="fw-bold text-muted small">Valor do Empenho</label>
+        <div class="col-md-3 mb-3">
+          <label class="fw-bold text-muted small">Valor do Empenho Inicial</label>
           <p class="mb-0 fs-5 text-primary"><%= CustomHelper.to_currency(@commitment.commitment_value) %></p>
         </div>
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
+          <label class="fw-bold text-muted small">Valor Aditivo</label>
+          <p class="mb-0 fs-5 text-success"><%= CustomHelper.to_currency(@commitment.addendum_commitments.where(active: true).sum(:total_value)) %></p>
+        </div>
+        <div class="col-md-3 mb-3">
           <label class="fw-bold text-muted small">Valor Consumido</label>
           <p class="mb-0 fs-5 text-warning"><%= CustomHelper.to_currency(@total_consumed) %></p>
         </div>
-        <div class="col-md-4 mb-3">
+        <div class="col-md-3 mb-3">
           <label class="fw-bold text-muted small">Valor Restante</label>
           <p class="mb-0 fs-5 <%= @remaining_value > 0 ? 'text-success' : 'text-danger' %>">
             <%= CustomHelper.to_currency(@remaining_value) %>
@@ -155,6 +159,9 @@ breadcrumbs = [
       <% end %>
     </div>
   </div>
+
+  <!-- Aditivos -->
+  <%= render 'commitments/show_addendum_commitments' %>
 
   <!-- OSs Aprovadas -->
   <div class="card shadow-sm mb-4" id="ordens-servico-aprovadas">
@@ -220,6 +227,12 @@ breadcrumbs = [
       <% if policy(@commitment).edit? %>
         <%= link_to edit_commitment_path(@commitment), class: 'btn btn-primary' do %>
           <i class="bi bi-pencil"></i> Editar Empenho
+        <% end %>
+      <% end %>
+
+      <% if policy(@commitment).edit? %>
+        <%= link_to new_commitment_addendum_commitment_path(@commitment), class: 'btn btn-success' do %>
+          <i class="bi bi-plus-circle"></i> Adicionar Aditivo
         <% end %>
       <% end %>
       

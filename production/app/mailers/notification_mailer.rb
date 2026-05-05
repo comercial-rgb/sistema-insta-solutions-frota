@@ -107,22 +107,15 @@ class NotificationMailer < ApplicationMailer
 	def webhook_failure_alert(order_service, error_message)
 		@order_service = order_service
 		@error_message = error_message
-		@os_code = order_service&.code || "N/A"
-		@client_name = order_service&.client&.fantasy_name || order_service&.client&.social_name || "N/A"
+		@os_code = order_service&.code || 'N/A'
+		@client_name = order_service&.client&.fantasy_name || order_service&.client&.social_name || 'N/A'
 
-		# Envia para no maximo 2 admins principais (excluindo emails fictícios que causam bounce)
-		admin_emails = User.admin
-			.where(user_status_id: UserStatus::APROVADO_ID)
-			.order(:id)
-			.pluck(:email)
-			.compact
-			.select { |e| CustomHelper.address_valid?(e) && CustomHelper.email_not_blocked?(e) }
-			.first(2)
+		# Envia para todos os admins aprovados (excluindo emails fictícios que causam bounce)
+		admin_emails = User.admin.where(user_status_id: UserStatus::APROVADO_ID).pluck(:email).compact.select { |e| CustomHelper.address_valid?(e) && CustomHelper.email_not_blocked?(e) }
 
 		if admin_emails.any?
 			mail(
-				to: admin_emails.first,
-				cc: admin_emails[1],
+				to: admin_emails,
 				subject: "[ALERTA] Falha no envio da OS #{@os_code} ao Portal Financeiro"
 			)
 		end

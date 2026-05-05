@@ -63,7 +63,11 @@ module Utils
       def build_header        # Logo top-left
         if File.exist?(LOGO_PATH)
           logo_top = @pdf.cursor
-          @pdf.image LOGO_PATH, width: 35, at: [0, logo_top]
+          begin
+            @pdf.image LOGO_PATH, width: 35, at: [0, logo_top]
+          rescue Prawn::Errors::UnsupportedImageType, StandardError => e
+            Rails.logger.warn("[GenerateInvoicePdfService] Falha ao carregar logo (#{e.class}: #{e.message}); seguindo sem logo.")
+          end
         end
         @pdf.font_size 18
         @pdf.text "Fatura Gestão de Frotas", style: :bold, align: :center, color: BLUE_DARK
@@ -87,8 +91,13 @@ module Utils
                     when 'servicos' then ' (Somente Servicos)'
                     else ''
                     end
+        numero_exibicao = case @invoice_split
+                          when 'pecas' then (@fatura.numero_pecas.presence || "#{@fatura.numero}-P")
+                          when 'servicos' then (@fatura.numero_servicos.presence || "#{@fatura.numero}-S")
+                          else @fatura.numero
+                          end
         @pdf.font_size 13
-        @pdf.text "N\u00B0 #{@fatura.numero}#{split_txt}", style: :bold, align: :center, color: BLUE_LIGHT
+        @pdf.text "N\u00B0 #{numero_exibicao}#{split_txt}", style: :bold, align: :center, color: BLUE_LIGHT
         @pdf.move_down 4
 
         @pdf.font_size 9
@@ -207,6 +216,7 @@ module Utils
         @total_pecas = 0; @total_servicos = 0; @total_bruto = 0
         @total_desconto = 0; @total_com_desc = 0
         @total_pecas_display = 0; @total_servicos_display = 0
+        @total_bruto_pecas = 0; @total_bruto_servicos = 0
         @providers_detail = []
 
         client_discount_pct = (@client&.discount_percent || 0).to_d / 100
@@ -215,7 +225,8 @@ module Utils
         grouped = @items.select { |i| i.order_service_id.present? }.group_by(&:order_service_id)
 
         grouped.each do |_os_id, items|
-          os = items.first.order_service
+          fatura_item = items.first
+          os = fatura_item.order_service
           next unless os
 
           proposal = find_approved_proposal(os)
@@ -254,9 +265,11 @@ module Utils
           is_simples = provider ? !provider.optante_simples : true
 
           nf_total_os = pecas_val + servicos_val
+          bruto_pecas_val = nf_total_os > 0 ? (bruto * (pecas_val / nf_total_os)).round(2) : bruto
+          bruto_servicos_val = bruto - bruto_pecas_val
           if @tipo_valor == 'bruto' && nf_total_os > 0
-            pecas_display = (bruto * (pecas_val / nf_total_os)).round(2)
-            servicos_display = (bruto - pecas_display).round(2)
+            pecas_display = bruto_pecas_val
+            servicos_display = bruto_servicos_val
           else
             pecas_display = pecas_val
             servicos_display = servicos_val
@@ -265,6 +278,7 @@ module Utils
           @total_pecas += pecas_val; @total_servicos += servicos_val
           @total_bruto += bruto; @total_desconto += desc_val; @total_com_desc += com_desc
           @total_pecas_display += pecas_display; @total_servicos_display += servicos_display
+          @total_bruto_pecas += bruto_pecas_val; @total_bruto_servicos += bruto_servicos_val
 
           pct_pecas_ret = 0; pct_serv_ret = 0; ret_provider = 0
           unless is_simples
@@ -293,9 +307,9 @@ module Utils
             os.vehicle&.board || '-',
             (os.cost_center&.name || '-').truncate(14),
             pecas_nums.presence || '-',
-            money(pecas_display),
+            { content: "#{money(bruto_pecas_val)}\nLiq: #{money(pecas_val)}", align: :right },
             servicos_nums.presence || '-',
-            money(servicos_display),
+            { content: "#{money(bruto_servicos_val)}\nLiq: #{money(servicos_val)}", align: :right },
             money(bruto),
             "-#{money(desc_val)}",
             money(com_desc)
@@ -304,12 +318,16 @@ module Utils
           # Sub-row: CNPJ + regime + retention info
           regime_txt = is_simples ? 'Optante Simples (Isento)' : "Não Optante - Ret. Peças #{fmt_pct(pct_pecas_ret)}% / Serviços #{fmt_pct(pct_serv_ret)}% = #{money(ret_provider)}"
           rows << [{ content: "#{provider_name}  |  CNPJ: #{provider&.cnpj || '-'}  |  #{regime_txt}", colspan: 11, text_color: '888888', size: 7 }]
+
+          if fatura_item.observacoes.present?
+            rows << [{ content: "Obs: #{fatura_item.observacoes}", colspan: 11, text_color: '555555', size: 7, font_style: :italic }]
+          end
         end
 
         rows << [
           { content: 'SUBTOTAIS:', colspan: 4, font_style: :bold, align: :right },
-          '', { content: money(@total_pecas_display), font_style: :bold, align: :right },
-          '', { content: money(@total_servicos_display), font_style: :bold, align: :right },
+          '', { content: "#{money(@total_bruto_pecas)}\nLiq: #{money(@total_pecas)}", font_style: :bold, align: :right },
+          '', { content: "#{money(@total_bruto_servicos)}\nLiq: #{money(@total_servicos)}", font_style: :bold, align: :right },
           { content: money(@total_bruto), font_style: :bold, align: :right },
           { content: "-#{money(@total_desconto)}", font_style: :bold, align: :right, text_color: RED },
           { content: money(@total_com_desc), font_style: :bold, align: :right, text_color: GREEN }
@@ -317,12 +335,13 @@ module Utils
 
         if rows.length > 2
           col_widths = [40, 100, 50, 60, 60, 65, 60, 70, 60, 60, 60]
+          target_w = @pdf.bounds.width.floor
           total_w = col_widths.sum
-          scale = @pdf.bounds.width / total_w.to_f
+          scale = target_w.to_f / total_w
           col_widths = col_widths.map { |w| (w * scale).floor }
-          col_widths[-1] += (@pdf.bounds.width - col_widths.sum).to_i
+          col_widths[-1] += target_w - col_widths.sum
 
-          @pdf.table(rows, header: true, width: @pdf.bounds.width,
+          @pdf.table(rows, header: true, width: target_w,
                      column_widths: col_widths,
                      cell_style: { size: 7, padding: [3, 3], borders: [:bottom], border_color: 'DDDDDD' }) do |t|
             t.row(0).background_color = HEADER_BG

@@ -1,8 +1,9 @@
-class OrderServiceProposal < ApplicationRecord
+﻿class OrderServiceProposal < ApplicationRecord
   audited
   after_initialize :default_values
   after_create :generate_code
   before_update :set_warranty_start_date_on_authorization
+  after_update :sync_order_service_status, if: :saved_change_to_order_service_proposal_status_id?
 
   attr_accessor :files, :skip_validation
 
@@ -21,14 +22,14 @@ class OrderServiceProposal < ApplicationRecord
   # scope :by_name, lambda { |value| where("LOWER(order_service_proposals.name) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
   scope :by_code, lambda { |value| where("LOWER(order_service_proposals.code) LIKE ?", "%#{value.downcase}%") if !value.nil? && !value.blank? }
 
-  scope :by_initial_date, lambda { |value| where("order_service_proposals.created_at >= '#{value} 00:00:00'") if !value.nil? && !value.blank? }
-  scope :by_final_date, lambda { |value| where("order_service_proposals.created_at <= '#{value} 23:59:59'") if !value.nil? && !value.blank? }
+  scope :by_initial_date, lambda { |value| where("order_service_proposals.created_at >= ?", "#{value} 00:00:00") if !value.nil? && !value.blank? }
+  scope :by_final_date, lambda { |value| where("order_service_proposals.created_at <= ?", "#{value} 23:59:59") if !value.nil? && !value.blank? }
 
-  scope :by_initial_total_value, lambda { |value| where("order_service_proposals.total_value >= '#{value}'") if !value.nil? && !value.blank? }
-  scope :by_final_total_value, lambda { |value| where("order_service_proposals.total_value <= '#{value}'") if !value.nil? && !value.blank? }
+  scope :by_initial_total_value, lambda { |value| where("order_service_proposals.total_value >= ?", value) if !value.nil? && !value.blank? }
+  scope :by_final_total_value, lambda { |value| where("order_service_proposals.total_value <= ?", value) if !value.nil? && !value.blank? }
 
-  scope :by_initial_total_discount, lambda { |value| where("order_service_proposals.total_discount >= '#{value}'") if !value.nil? && !value.blank? }
-  scope :by_final_total_discount, lambda { |value| where("order_service_proposals.total_discount <= '#{value}'") if !value.nil? && !value.blank? }
+  scope :by_initial_total_discount, lambda { |value| where("order_service_proposals.total_discount >= ?", value) if !value.nil? && !value.blank? }
+  scope :by_final_total_discount, lambda { |value| where("order_service_proposals.total_discount <= ?", value) if !value.nil? && !value.blank? }
 
   # Scopes para fluxo de aprovação em duas etapas
   scope :pending_manager_approval, -> { where(pending_manager_approval: true) }
@@ -48,7 +49,8 @@ class OrderServiceProposal < ApplicationRecord
   has_many :complement_proposals, class_name: 'OrderServiceProposal', foreign_key: 'parent_proposal_id', dependent: :nullify
 
   has_many :order_service_proposal_items, validate: false, dependent: :destroy
-  accepts_nested_attributes_for :order_service_proposal_items, :reject_if  => proc { |attrs| attrs[:service_id].blank? }
+  accepts_nested_attributes_for :order_service_proposal_items,
+    reject_if: proc { |attrs| attrs[:service_id].blank? && attrs[:service_name].blank? }
 
   has_many :provider_service_temps, inverse_of: :order_service_proposal, validate: true, dependent: :destroy
   accepts_nested_attributes_for :provider_service_temps, 
@@ -62,9 +64,6 @@ class OrderServiceProposal < ApplicationRecord
 	accepts_nested_attributes_for :attachments, :reject_if => :all_blank
 
   validates_presence_of :order_service_id, :provider_id, :order_service_proposal_status_id, if: Proc.new { |obj| obj.skip_validation != true }
-  
-  # Validação: Apenas uma proposta ativa por OS (exceto complementos)
-  validate :only_one_active_proposal_per_order_service, unless: :is_complement, if: :should_validate_uniqueness?
 
   def get_text_name
     self.id.to_s
@@ -311,9 +310,10 @@ class OrderServiceProposal < ApplicationRecord
 
   def generate_code
     result = ""
-    id = self.id.to_s
+    # Formata ID com 4 dígitos (0001, 0002, etc)
+    id = self.id.to_s.rjust(4, '0')
     order_service_code = self.order_service.code
-    result = 'P'+id+order_service_code
+    result = 'P'+id+'-'+order_service_code
     self.update_columns(code: result)
   end
 
@@ -337,36 +337,39 @@ class OrderServiceProposal < ApplicationRecord
       end
     end
   end
-  
-  # Validação: Garantir que apenas uma proposta ativa existe por OS (exceto complementos)
-  def only_one_active_proposal_per_order_service
-    return if order_service_id.nil?
-    return if skip_validation == true
+
+  # Sincroniza automaticamente o status da OS quando o status da proposta mudar
+  def sync_order_service_status
+    return if order_service.nil?
+    return if is_complement? # Complementos não alteram status da OS principal
     
-    # Verificar apenas quando o status for "ativo" (aprovada, autorizada, etc.)
-    return unless order_service_proposal_status_id.in?(OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES)
+    # Mapeamento automático: Status da Proposta → Status da OS
+    status_mapping = {
+      OrderServiceProposalStatus::APROVADA_ID => OrderServiceStatus::APROVADA_ID,
+      OrderServiceProposalStatus::NOTAS_INSERIDAS_ID => OrderServiceStatus::NOTA_FISCAL_INSERIDA_ID,
+      OrderServiceProposalStatus::AUTORIZADA_ID => OrderServiceStatus::AUTORIZADA_ID,
+      OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID => OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID,
+      OrderServiceProposalStatus::PAGA_ID => OrderServiceStatus::PAGA_ID
+    }
     
-    # Buscar outras propostas ativas da mesma OS (não-complementos)
-    other_active_proposals = OrderService.find(order_service_id)
-      .order_service_proposals
-      .unscoped
-      .where.not(id: self.id || 0) # Excluir a própria proposta
-      .where(is_complement: [false, nil]) # Apenas propostas principais
-      .where(order_service_proposal_status_id: OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES)
+    new_os_status = status_mapping[order_service_proposal_status_id]
     
-    if other_active_proposals.exists?
-      existing_code = other_active_proposals.first.code
-      errors.add(:base, 
-        "Já existe uma proposta ativa (#{existing_code}) para esta Ordem de Serviço. " \
-        "Para aprovar ou autorizar esta proposta, é necessário cancelar a proposta anterior.")
+    # Se há mapeamento e o status da OS está diferente, atualizar
+    if new_os_status.present? && order_service.order_service_status_id != new_os_status
+      old_status = order_service.order_service_status_id
+      
+      # Atualizar status da OS
+      OrderService.where(id: order_service.id).update_all(order_service_status_id: new_os_status)
+      
+      # Gerar histórico se possível
+      begin
+        admin_user = User.find_by(profile_id: 1) || User.first
+        OrderService.generate_historic(order_service, admin_user, old_status, new_os_status) if admin_user
+      rescue => e
+        Rails.logger.warn "Não foi possível gerar histórico para OS #{order_service.id}: #{e.message}"
+      end
+      
     end
-  end
-  
-  # Determinar quando executar a validação de unicidade
-  def should_validate_uniqueness?
-    # Executar quando estiver alterando o status para um status ativo
-    order_service_proposal_status_id_changed? && 
-      order_service_proposal_status_id.in?(OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES)
   end
 
 end

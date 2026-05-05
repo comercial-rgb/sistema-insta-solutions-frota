@@ -4,6 +4,7 @@
 	after_initialize :default_values
 	before_validation :insert_profile_image
 	before_save :set_manual_enviado_at
+	before_save :set_treinamento_apenas_manual_at
 
 	ADMIN_FIRST_ID = 1
 
@@ -341,6 +342,17 @@
 		!profile.nil? && profile.provider?
 	end
 
+	# Estado efetivo do usuário (usa o estado direto do usuário ou, se ausente,
+	# o estado do endereço — caso dos fornecedores que só têm state_id no address).
+	def effective_state_id
+		state_id.presence || address&.state_id
+	end
+
+	# Cidade efetiva do usuário (mesma lógica do estado efetivo).
+	def effective_city_id
+		city_id.presence || address&.city_id
+	end
+
 	# Usuário é motorista?
 	def driver?
 		!profile.nil? && profile.driver?
@@ -552,13 +564,22 @@
 		end
 	end
 
-	# Define automaticamente manual_enviado_at quando manual_enviado muda para true
 	def set_manual_enviado_at
 		if self.has_attribute?(:manual_enviado) && self.manual_enviado_changed?
 			if self.manual_enviado
 				self.manual_enviado_at ||= Time.current
 			else
 				self.manual_enviado_at = nil
+			end
+		end
+	end
+
+	def set_treinamento_apenas_manual_at
+		if self.has_attribute?(:treinamento_apenas_manual) && self.treinamento_apenas_manual_changed?
+			if self.treinamento_apenas_manual
+				self.treinamento_apenas_manual_at ||= Time.current
+			else
+				self.treinamento_apenas_manual_at = nil
 			end
 		end
 	end
@@ -571,6 +592,8 @@
 
 	# Validando se o nome possui ao menos 2 palavras
 	def name_is_less_than_2
+		return if name.blank?
+
 		errors[:name] << "inválido" if name.split.size < 2
 	end
 

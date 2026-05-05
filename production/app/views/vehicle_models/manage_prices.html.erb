@@ -47,6 +47,7 @@ can_edit = policy(@vehicle_model).update_prices?
                     <tr>
                       <th>Peça/Serviço</th>
                       <th width="15%">Preço Ref. (R$)</th>
+                      <th width="14%">Código Ref.</th>
                       <th width="12%">% Máx.</th>
                       <th width="15%">Fonte</th>
                       <th width="8%">Ativo</th>
@@ -64,6 +65,13 @@ can_edit = policy(@vehicle_model).update_prices?
                                              number_with_precision(rp.reference_price, precision: 2),
                                              class: 'form-control form-control-sm',
                                              placeholder: '0.00',
+                                             disabled: !can_edit %>
+                        </td>
+                        <td>
+                          <%= text_field_tag "reference_prices[#{rp.service_id}][reference_code]",
+                                             rp.reference_code,
+                                             class: 'form-control form-control-sm',
+                                             placeholder: 'Código',
                                              disabled: !can_edit %>
                         </td>
                         <td>
@@ -139,7 +147,7 @@ can_edit = policy(@vehicle_model).update_prices?
                 <!-- Lista de serviços -->
                 <% @available_services.each do |service| %>
                   <div class="row mb-2 align-items-end service-row" data-service-name="<%= service.name.downcase %>">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                       <label class="form-label small"><%= service.name %></label>
                     </div>
                     <div class="col-md-2">
@@ -147,6 +155,12 @@ can_edit = policy(@vehicle_model).update_prices?
                                          nil,
                                          class: 'form-control form-control-sm',
                                          placeholder: 'Preço (R$)' %>
+                    </div>
+                    <div class="col-md-2">
+                      <%= text_field_tag "reference_prices[#{service.id}][reference_code]",
+                                         nil,
+                                         class: 'form-control form-control-sm',
+                                         placeholder: 'Código Ref.' %>
                     </div>
                     <div class="col-md-2">
                       <%= number_field_tag "reference_prices[#{service.id}][max_percentage]", 
@@ -162,7 +176,7 @@ can_edit = policy(@vehicle_model).update_prices?
                                          class: 'form-control form-control-sm',
                                          placeholder: 'Fonte' %>
                     </div>
-                    <div class="col-md-2 text-center">
+                    <div class="col-md-1 text-center">
                       <%= check_box_tag "reference_prices[#{service.id}][active]", '1', true, 
                                         class: 'form-check-input' %>
                       <label class="form-check-label small">Ativo</label>

@@ -246,22 +246,18 @@
     # Se o empenho tem categoria, calcular consumo específico por tipo.
     # Usar total_value dos itens (COM desconto aplicado) para calcular o consumo real
     if commitment.category_id == Category::SERVICOS_PECAS_ID
-      return OrderServiceProposalItem
-        .joins(:service)
+      scope = OrderServiceProposalItem
         .joins(order_service_proposal: :order_service)
         .where(order_services: { commitment_parts_id: commitment.id, order_service_status_id: required_order_service_statuses })
         .where(order_service_proposals: { order_service_proposal_status_id: required_proposal_statuses, is_complement: [false, nil] })
-        .where(services: { category_id: Category::SERVICOS_PECAS_ID })
-        .sum('order_service_proposal_items.total_value')
+      return OrderServiceProposalItem.sum_parts_total_value(scope)
 
     elsif commitment.category_id == Category::SERVICOS_SERVICOS_ID
-      return OrderServiceProposalItem
-        .joins(:service)
+      scope = OrderServiceProposalItem
         .joins(order_service_proposal: :order_service)
         .where(order_services: { commitment_services_id: commitment.id, order_service_status_id: required_order_service_statuses })
         .where(order_service_proposals: { order_service_proposal_status_id: required_proposal_statuses, is_complement: [false, nil] })
-        .where(services: { category_id: Category::SERVICOS_SERVICOS_ID })
-        .sum('order_service_proposal_items.total_value')
+      return OrderServiceProposalItem.sum_services_total_value(scope)
     end
     
     # Fallback: se categoria desconhecida
