@@ -15,9 +15,7 @@ module Api
           requires :id
         end
         get ":id" do
-          status 404
-          status 200
-          City.where(id: permitted_params[:id]).first!
+          City.find(permitted_params[:id])
         end
 
         #GET /cities/by_state/:state_id

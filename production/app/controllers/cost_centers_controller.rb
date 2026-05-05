@@ -119,11 +119,19 @@ class CostCentersController < ApplicationController
     client_id = @current_user.admin? ? params[:client_id]
               : @current_user.client? ? @current_user.id
               : @current_user.client_id
-    if params[:only_order_services].present? && params[:only_order_services].to_i == 1
-      result = CostCenter.by_client_id(client_id).joins(:order_services).distinct
-    else
-      result = CostCenter.by_client_id(client_id)
+    result = CostCenter.by_client_id(client_id)
+
+    if @current_user.manager? || @current_user.additional?
+      allowed_cost_center_ids = @current_user.associated_cost_centers.pluck(:id)
+      result = result.by_ids(allowed_cost_center_ids)
     end
+
+    if params[:only_order_services].present? && params[:only_order_services].to_i == 1
+      result = result.joins(:order_services).distinct
+    end
+
+    result = result.reorder('cost_centers.name ASC').select('cost_centers.id, cost_centers.name')
+
     data = {
       result: result
     }

@@ -1833,7 +1833,7 @@ class OrderServicesController < ApplicationController
 
     items = OrderServiceProposalItem
       .joins(order_service_proposal: :order_service)
-      .includes(:service, order_service_proposal: [:provider, :order_service])
+      .includes(:service, order_service_proposal: [:provider, :order_service, :provider_service_temps])
       .where(order_services: { vehicle_id: vehicle_id })
       .where(order_service_proposals: { order_service_proposal_status_id: valid_statuses })
       .where.not(order_service_proposal_items: { warranty_period: [nil, 0] })
@@ -1851,10 +1851,10 @@ class OrderServicesController < ApplicationController
         unity_value = item.unity_value || 0
         quantity = item.quantity || 1
         total_value = item.total_value || (unity_value.to_f * quantity.to_f)
-        
-        # Identificar se é peça ou serviço
-        category_id = service&.category_id
-        is_part = category_id == Category::SERVICOS_PECAS_ID
+
+        # Mesma regra de categoria que empenho/proposta (itens sem service_id não podem cair só em service&.category_id).
+        resolved_category_id = item.category_id_for_commitment
+        is_part = resolved_category_id == Category::SERVICOS_PECAS_ID
 
         {
           name: item.service_name.presence || service&.name,
@@ -1866,7 +1866,7 @@ class OrderServicesController < ApplicationController
           provider_name: proposal.provider&.name,
           order_service_code: proposal.order_service&.code,
           order_service_id: proposal.order_service_id,
-          category_id: category_id,
+          category_id: resolved_category_id,
           is_part: is_part,
           type_name: is_part ? 'Peça' : 'Serviço'
         }

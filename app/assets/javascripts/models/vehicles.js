@@ -27,10 +27,20 @@ $(document).ready(function () {
                     client_id: client_id
                 },
                 success: function(data) {
-                    fillSelect(data.result, select_cost_center_id, 'name', null);
+                    var values = (data && data.result) ? data.result : [];
+                    fillSelect(values, select_cost_center_id, 'name', null);
+                },
+                error: function() {
+                    fillSelect([], select_cost_center_id, 'name', null);
                 }
             });
         }
+    }
+
+    // Em edição/criação com cliente já selecionado, carrega automaticamente os centros.
+    var initial_client_id = $('#vehicle_client_id').val();
+    if (initial_client_id) {
+        findCostCentersByClients(initial_client_id, '#vehicle_cost_center_id', '#vehicle_sub_unit_id');
     }
 
     $(document).on('change', '#vehicles_grid_cost_center_id', function () {
