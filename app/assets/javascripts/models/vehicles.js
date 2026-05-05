@@ -1,60 +1,60 @@
-$(document).ready(function () {
-
-    $(document).on('change', '#vehicles_grid_client_id', function () {
-        var client_id = $(this).find(":selected").val();
-        var cost_center_id = '#vehicles_grid_cost_center_id';
-        var sub_unit_id = '#vehicles_grid_sub_unit_id';
-        findCostCentersByClients(client_id, cost_center_id, sub_unit_id)
-    });
-
-    $(document).on('change', '#vehicle_client_id', function () {
-        var client_id = $(this).find(":selected").val();
-        var cost_center_id = '#vehicle_cost_center_id';
-        var sub_unit_id = '#vehicle_sub_unit_id';
-        findCostCentersByClients(client_id, cost_center_id, sub_unit_id)
-    });
-
-    function findCostCentersByClients(client_id, select_cost_center_id, select_sub_unit_id){
-        let url = '/get_cost_centers_by_client_id';
-        fillSelect([], select_cost_center_id, 'name', null);
-        fillSelect([], select_sub_unit_id, 'name', null);
-        if (client_id != null && client_id != ''){
-            $.ajax({
-                url: url,
-                dataType: 'json',
-                async: false,
-                data: {
-                    client_id: client_id
-                },
-                success: function(data) {
-                    var values = (data && data.result) ? data.result : [];
-                    fillSelect(values, select_cost_center_id, 'name', null);
-                },
-                error: function() {
-                    fillSelect([], select_cost_center_id, 'name', null);
-                }
-            });
-        }
+function findCostCentersByClients(client_id, select_cost_center_id, select_sub_unit_id){
+    let url = '/get_cost_centers_by_client_id';
+    fillSelect([], select_cost_center_id, 'name', null);
+    fillSelect([], select_sub_unit_id, 'name', null);
+    if (client_id != null && client_id != ''){
+        $.ajax({
+            url: url,
+            dataType: 'json',
+            async: false,
+            data: {
+                client_id: client_id
+            },
+            success: function(data) {
+                var values = (data && data.result) ? data.result : [];
+                fillSelect(values, select_cost_center_id, 'name', null);
+            },
+            error: function() {
+                fillSelect([], select_cost_center_id, 'name', null);
+            }
+        });
     }
+}
+
+function bindVehicleCostCenterEvents() {
+    $(document).off('change.vehiclesGridClient', '#vehicles_grid_client_id');
+    $(document).on('change.vehiclesGridClient', '#vehicles_grid_client_id', function () {
+        var client_id = $(this).find(":selected").val();
+        findCostCentersByClients(client_id, '#vehicles_grid_cost_center_id', '#vehicles_grid_sub_unit_id');
+    });
+
+    $(document).off('change.vehicleClient', '#vehicle_client_id');
+    $(document).on('change.vehicleClient', '#vehicle_client_id', function () {
+        var client_id = $(this).find(":selected").val();
+        findCostCentersByClients(client_id, '#vehicle_cost_center_id', '#vehicle_sub_unit_id');
+    });
+
+    $(document).off('change.vehiclesGridCostCenter', '#vehicles_grid_cost_center_id');
+    $(document).on('change.vehiclesGridCostCenter', '#vehicles_grid_cost_center_id', function () {
+        var cost_center_id = $(this).find(":selected").val();
+        findSubUnitsByCostCenters(cost_center_id, '#vehicles_grid_sub_unit_id');
+    });
+
+    $(document).off('change.vehicleCostCenter', '#vehicle_cost_center_id');
+    $(document).on('change.vehicleCostCenter', '#vehicle_cost_center_id', function () {
+        var cost_center_id = $(this).find(":selected").val();
+        findSubUnitsByCostCenters(cost_center_id, '#vehicle_sub_unit_id');
+    });
 
     // Em edição/criação com cliente já selecionado, carrega automaticamente os centros.
     var initial_client_id = $('#vehicle_client_id').val();
     if (initial_client_id) {
         findCostCentersByClients(initial_client_id, '#vehicle_cost_center_id', '#vehicle_sub_unit_id');
     }
+}
 
-    $(document).on('change', '#vehicles_grid_cost_center_id', function () {
-        var cost_center_id = $(this).find(":selected").val();
-        var select_to_populate = '#vehicles_grid_sub_unit_id';
-        findSubUnitsByCostCenters(cost_center_id, select_to_populate)
-    });
-
-    $(document).on('change', '#vehicle_cost_center_id', function () {
-        var cost_center_id = $(this).find(":selected").val();
-        var select_to_populate = '#vehicle_sub_unit_id';
-        findSubUnitsByCostCenters(cost_center_id, select_to_populate)
-    });
-});
+$(document).ready(bindVehicleCostCenterEvents);
+document.addEventListener('turbo:load', bindVehicleCostCenterEvents);
 
 document.addEventListener("DOMContentLoaded", function () {
     $(document).on('click', '#btn-fetch-vehicle-data', function () {
