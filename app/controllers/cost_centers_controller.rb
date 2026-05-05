@@ -116,34 +116,37 @@ class CostCentersController < ApplicationController
 
   def by_client_id
     authorize CostCenter
-    client_id = @current_user.admin? ? params[:client_id]
-              : @current_user.client? ? @current_user.id
-              : @current_user.client_id
-    # Usa unscoped para evitar efeitos colaterais de default_scope em respostas AJAX.
-    result = CostCenter.unscoped.where(client_id: client_id)
+
+    client_id = if @current_user.admin?
+                  params[:client_id]
+                elsif @current_user.client?
+                  @current_user.id
+                else
+                  @current_user.client_id
+                end
+
+    # Usa unscoped para evitar efeitos colaterais de default_scope no endpoint AJAX.
+    relation = CostCenter.unscoped.where(client_id: client_id)
 
     if @current_user.manager? || @current_user.additional?
       allowed_cost_center_ids = @current_user.associated_cost_centers.pluck(:id)
-      # Se o vínculo N:N ainda não foi configurado, não bloquear cadastro de veículo
-      # para todo o cliente.
-      result = result.where(id: allowed_cost_center_ids) if allowed_cost_center_ids.present?
+      # Se o vínculo N:N não existir para o usuário, mantém os CCs do cliente.
+      relation = relation.where(id: allowed_cost_center_ids) if allowed_cost_center_ids.present?
     end
 
     if params[:only_order_services].present? && params[:only_order_services].to_i == 1
-      result = result.joins(:order_services).distinct
+      relation = relation.joins(:order_services).distinct
     end
 
-    result = result.reorder('cost_centers.name ASC').select('cost_centers.id, cost_centers.name')
-    result_payload = result.map { |cc| { id: cc.id, name: cc.name } }
+    result_payload = relation.reorder('cost_centers.name ASC')
+                             .pluck(:id, :name)
+                             .map { |id, name| { id: id, name: name } }
 
-    Rails.logger.info("[CostCenters#by_client_id] user_id=#{@current_user.id} profile_id=#{@current_user.profile_id} client_id=#{client_id} count=#{result_payload.size}")
-
-    data = {
-      result: result_payload
-    }
-    respond_to do |format|
-      format.json {render :json => data, :status => 200}
-    end
+    Rails.logger.info("[CostCenters#by_client_id] user_id=#{@current_user.id} client_id=#{client_id} count=#{result_payload.size}")
+    render json: { result: result_payload }, status: :ok
+  rescue => e
+    Rails.logger.error("[CostCenters#by_client_id] ERROR user_id=#{@current_user&.id} client_id=#{params[:client_id]} #{e.class}: #{e.message}")
+    render json: { result: [] }, status: :ok
   end
 
   def sub_units_by_cost_center_id
