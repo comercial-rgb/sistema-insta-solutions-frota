@@ -115,7 +115,7 @@ class CostCentersController < ApplicationController
   end
 
   def by_client_id
-    authorize CostCenter
+    authorize CostCenter, :index?
 
     client_id = if @current_user.admin?
                   params[:client_id]
@@ -168,7 +168,7 @@ class CostCentersController < ApplicationController
   end
 
   def sub_units_by_client_id
-    authorize CostCenter
+    authorize CostCenter, :index?
     client_id = @current_user.admin? ? params[:client_id]
               : @current_user.client? ? @current_user.id
               : @current_user.client_id
