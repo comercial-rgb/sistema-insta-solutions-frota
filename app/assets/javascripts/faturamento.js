@@ -684,18 +684,23 @@ var Faturamento = (function() {
       totalDesconto += os.total_desconto;
       totalComDesconto += os.total_com_desconto;
 
-      // Retenção sobre NF values (valores faturados = com desconto = base tributável)
+      // Retenção por tipo de valor selecionado:
+      // - bruto: usa base sem desconto por categoria
+      // - liquido: usa base com desconto por categoria
       // optante_simples=true = NÃO simples = aplicar retenção
       var isSimples = !os.provider_optante_simples;
       if (isSimples) return; // Simples = ISENTO
 
-      // Não-simples: retenção sobre valores das NFs
+      var basePecas = (savedTipo === 'liquido') ? (os.bruto_pecas - os.desc_pecas) : os.bruto_pecas;
+      var baseServicos = (savedTipo === 'liquido') ? (os.bruto_servicos - os.desc_servicos) : os.bruto_servicos;
+
+      // Não-simples: retenção sobre a base escolhida
       if (isFederal) {
-        retPecasNaoSimples += os.nf_pecas_value * 0.0585;       // 5,85%
-        retServicosNaoSimples += os.nf_servicos_value * 0.0945; // 9,45%
+        retPecasNaoSimples += basePecas * 0.0585;       // 5,85%
+        retServicosNaoSimples += baseServicos * 0.0945; // 9,45%
       } else {
-        retPecasNaoSimples += os.nf_pecas_value * 0.012;        // 1,20%
-        retServicosNaoSimples += os.nf_servicos_value * 0.048;  // 4,80%
+        retPecasNaoSimples += basePecas * 0.012;        // 1,20%
+        retServicosNaoSimples += baseServicos * 0.048;  // 4,80%
       }
     });
 

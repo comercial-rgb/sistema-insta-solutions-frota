@@ -579,21 +579,26 @@ class FaturamentoController < ApplicationController
       .first
   end
 
-  # Bases para retenção por tipo (peças vs serviços): com tipo_valor "liquido" usa valores das NFs (com desconto);
-  # com "bruto" usa soma dos itens da proposta sem desconto, por categoria (alinhado ao valor bruto da fatura).
+  # Bases para retenção por tipo (peças vs serviços), sempre a partir dos itens da proposta:
+  # - tipo_valor "bruto": sem desconto
+  # - tipo_valor "liquido": com desconto
+  # Isso evita divergência por notas fiscais e respeita exatamente a seleção do usuário.
   def parts_services_for_retention(proposal, tipo_valor)
-    invoices = proposal.order_service_invoices.to_a
-    nf_parts = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::PECAS_ID }.sum(&:value).to_f
-    nf_services = invoices.select { |i| i.order_service_invoice_type_id == OrderServiceInvoiceType::SERVICOS_ID }.sum(&:value).to_f
-
-    return [nf_parts, nf_services] if tipo_valor.to_s == 'liquido'
-
     items = OrderServiceProposal.items_for_totals(proposal)
-    gross_parts = items.select { |i| i.category_id_for_commitment == Category::SERVICOS_PECAS_ID }
-                       .sum { |i| (i.total_value_without_discount.presence || (i.unity_value.to_d * i.quantity.to_d)).to_f }
-    gross_services = items.select { |i| i.category_id_for_commitment == Category::SERVICOS_SERVICOS_ID }
-                          .sum { |i| (i.total_value_without_discount.presence || (i.unity_value.to_d * i.quantity.to_d)).to_f }
-    [gross_parts, gross_services]
+
+    if tipo_valor.to_s == 'liquido'
+      net_parts = items.select { |i| i.category_id_for_commitment == Category::SERVICOS_PECAS_ID }
+                       .sum { |i| i.total_value.to_f }
+      net_services = items.select { |i| i.category_id_for_commitment == Category::SERVICOS_SERVICOS_ID }
+                          .sum { |i| i.total_value.to_f }
+      [net_parts, net_services]
+    else
+      gross_parts = items.select { |i| i.category_id_for_commitment == Category::SERVICOS_PECAS_ID }
+                         .sum { |i| (i.total_value_without_discount.presence || (i.unity_value.to_d * i.quantity.to_d)).to_f }
+      gross_services = items.select { |i| i.category_id_for_commitment == Category::SERVICOS_SERVICOS_ID }
+                            .sum { |i| (i.total_value_without_discount.presence || (i.unity_value.to_d * i.quantity.to_d)).to_f }
+      [gross_parts, gross_services]
+    end
   end
 
   def calcular_resumo
