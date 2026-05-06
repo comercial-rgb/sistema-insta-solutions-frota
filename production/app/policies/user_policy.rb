@@ -13,7 +13,7 @@ class UserPolicy < ApplicationPolicy
   end
 
   def users_manager?
-    user.admin? || user.client? || user.manager?
+    user.admin? || user.client? || user.manager? || user.provider?
   end
 
   def users_additional?

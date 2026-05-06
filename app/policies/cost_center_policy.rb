@@ -1,7 +1,7 @@
 class CostCenterPolicy < ApplicationPolicy
 
   def general_can_access?
-    user.admin? || user.client? || user.manager? || user.additional?
+    user.admin? || user.client? || user.manager? || user.additional? || user.provider?
   end
 
   def index?
