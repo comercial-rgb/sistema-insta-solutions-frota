@@ -572,11 +572,16 @@ class FaturamentoController < ApplicationController
 
   def find_approved_proposal(order_service)
     approved_statuses = OrderServiceProposalStatus::REQUIRED_PROPOSAL_STATUSES
-    order_service.order_service_proposals
+    scope = order_service.order_service_proposals
       .where(is_complement: [false, nil])
       .where(order_service_proposal_status_id: approved_statuses)
-      .order(updated_at: :desc)
-      .first
+
+    if order_service.provider_id.present?
+      match = scope.where(provider_id: order_service.provider_id).order(updated_at: :desc).first
+      return match if match
+    end
+
+    scope.order(updated_at: :desc).first
   end
 
   # Bases para retenção por tipo (peças vs serviços), sempre a partir dos itens da proposta:
@@ -664,6 +669,8 @@ class FaturamentoController < ApplicationController
       nota_fiscal_pecas_file_name: (f.nota_fiscal_pecas_file.attached? ? f.nota_fiscal_pecas_file.filename.to_s : nil),
       nota_fiscal_servicos_file_url: (f.nota_fiscal_servicos_file.attached? ? Rails.application.routes.url_helpers.rails_blob_path(f.nota_fiscal_servicos_file, only_path: true) : nil),
       nota_fiscal_servicos_file_name: (f.nota_fiscal_servicos_file.attached? ? f.nota_fiscal_servicos_file.filename.to_s : nil),
+      nota_fiscal_consolidada_file_url: (f.nota_fiscal_consolidada_file.attached? ? Rails.application.routes.url_helpers.rails_blob_path(f.nota_fiscal_consolidada_file, only_path: true) : nil),
+      nota_fiscal_consolidada_file_name: (f.nota_fiscal_consolidada_file.attached? ? f.nota_fiscal_consolidada_file.filename.to_s : nil),
       total_itens: f.total_itens
     }
   end
@@ -711,7 +718,7 @@ class FaturamentoController < ApplicationController
       :admin_observacoes, :nota_fiscal_numero, :nota_fiscal_serie,
       :nota_fiscal_numero_pecas, :nota_fiscal_serie_pecas,
       :nota_fiscal_numero_servicos, :nota_fiscal_serie_servicos,
-      :nota_fiscal_pecas_file, :nota_fiscal_servicos_file,
+      :nota_fiscal_pecas_file, :nota_fiscal_servicos_file, :nota_fiscal_consolidada_file,
       :desconto, :valor_bruto
     )
   end

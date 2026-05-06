@@ -235,34 +235,39 @@ module Api
             error!('Sem permissão para aprovar OS', 403)
           end
 
-          if user.admin?
-            os = OrderService.find(params[:id])
-          else
-            client_id = user.client? ? user.id : user.client_id
-            os = OrderService.where(client_id: client_id).find(params[:id])
-          end
-
-          if os.order_service_status_id == OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID
-            os.update!(
-              order_service_status_id: OrderServiceStatus::APROVADA_ID,
-              manager_id: user.id
-            )
-
-            # Aprovar proposta pendente
-            pending_proposal = os.order_service_proposals
-                                  .where(pending_manager_approval: true)
-                                  .first
-            if pending_proposal
-              pending_proposal.update!(
-                pending_manager_approval: false,
-                order_service_proposal_status_id: OrderServiceProposalStatus::APROVADA_ID
-              )
+          payload = ActiveRecord::Base.transaction do
+            os = if user.admin?
+              OrderService.lock.find(params[:id])
+            else
+              client_id = user.client? ? user.id : user.client_id
+              OrderService.lock.where(client_id: client_id).find(params[:id])
             end
 
-            { order_service: serialize_os_detail(os), message: 'OS aprovada com sucesso' }
-          else
-            error!("OS não está aguardando aprovação (status atual: #{os.order_service_status&.name})", 422)
+            unless os.order_service_status_id == OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID
+              error!("OS não está aguardando aprovação (status atual: #{os.order_service_status&.name})", 422)
+            end
+
+            pending_proposal = os.order_service_proposals.where(pending_manager_approval: true).first
+            error!('Nenhuma proposta pendente encontrada para concluir a aprovação.', 422) if pending_proposal.blank?
+
+            balance = os.check_commitment_balance_with_lock!(0, 0, proposal: pending_proposal)
+            error!(balance[:message], 422) unless balance[:valid]
+
+            os.update!(
+              order_service_status_id: OrderServiceStatus::APROVADA_ID,
+              manager_id: user.id,
+              provider_id: pending_proposal.provider_id
+            )
+
+            pending_proposal.update!(
+              pending_manager_approval: false,
+              order_service_proposal_status_id: OrderServiceProposalStatus::APROVADA_ID
+            )
+
+            { order_service: serialize_os_detail(os.reload), message: 'OS aprovada com sucesso' }
           end
+
+          payload
         end
 
         desc 'Rejeitar OS (gestor/adicional)'

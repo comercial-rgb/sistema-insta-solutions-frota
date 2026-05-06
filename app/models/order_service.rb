@@ -552,13 +552,16 @@ class OrderService < ApplicationRecord
       OrderServiceProposalStatus::PAGA_ID
     ]
 
-    # Preferir a proposta principal (não complemento). Isso garante que os totais
-    # e o fluxo de criação/merge de complemento usem sempre a proposta correta.
-    main = order_service_proposals
+    # Preferir a proposta principal (não complemento) e o fornecedor vinculado à OS.
+    scope = order_service_proposals
       .where(is_complement: [false, nil])
       .where(order_service_proposal_status_id: approved_statuses)
-      .order(updated_at: :desc)
-      .first
+
+    main =
+      if provider_id.present?
+        scope.where(provider_id: provider_id).order(updated_at: :desc).first
+      end
+    main ||= scope.order(updated_at: :desc).first
     if main.present?
       OrderServiceProposal.ensure_total_values(main)
       return main
@@ -914,9 +917,18 @@ class OrderService < ApplicationRecord
       .sort_by { |row| row[:expires_at] }
   end
 
-  def check_commitment_balance(parts_value, services_value)
+  def check_commitment_balance(parts_value, services_value, proposal: nil)
     # Retorna hash com status e mensagem de erro
     result = { valid: true, message: nil }
+
+    if proposal.present?
+      items = OrderServiceProposal.items_for_totals(proposal)
+      parts_value = items.sum { |i| i.category_id_for_commitment == Category::SERVICOS_PECAS_ID ? i.total_value.to_d : 0.to_d }
+      services_value = items.sum { |i| i.category_id_for_commitment == Category::SERVICOS_SERVICOS_ID ? i.total_value.to_d : 0.to_d }
+    else
+      parts_value = (parts_value || 0).to_d
+      services_value = (services_value || 0).to_d
+    end
 
     # Se usa empenho global
     if commitment_id.present?
@@ -926,7 +938,7 @@ class OrderService < ApplicationRecord
         return result
       end
 
-      total_value = (parts_value || 0) + (services_value || 0)
+      total_value = parts_value + services_value
       available = commitment.get_available_balance
       
       if total_value > available
@@ -939,7 +951,7 @@ class OrderService < ApplicationRecord
     errors = []
 
     # Verifica empenho de peças
-    if parts_value.to_f > 0
+    if parts_value.to_f.positive?
       if commitment_parts_id.blank?
         errors << "Empenho de Peças não selecionado para OS com itens de peças"
       elsif !commitment_parts.present?
@@ -953,7 +965,7 @@ class OrderService < ApplicationRecord
     end
 
     # Verifica empenho de serviços
-    if services_value.to_f > 0
+    if services_value.to_f.positive?
       if commitment_services_id.blank?
         errors << "Empenho de Serviços não selecionado para OS com itens de serviços"
       elsif !commitment_services.present?
@@ -976,7 +988,7 @@ class OrderService < ApplicationRecord
 
   # Versão com lock pessimista (FOR UPDATE) para prevenir race conditions
   # em aprovações simultâneas que consomem o mesmo saldo de empenho
-  def check_commitment_balance_with_lock!(parts_value, services_value)
+  def check_commitment_balance_with_lock!(parts_value, services_value, proposal: nil)
     # Adquire lock FOR UPDATE nos empenhos relacionados
     if commitment_id.present? && commitment.present?
       Commitment.lock("FOR UPDATE").find(commitment_id)
@@ -989,7 +1001,7 @@ class OrderService < ApplicationRecord
     end
 
     # Re-verifica saldo após adquirir os locks
-    check_commitment_balance(parts_value, services_value)
+    check_commitment_balance(parts_value, services_value, proposal: proposal)
   end
 
   # Mapeamento entre status da OS e status da Proposta
@@ -1010,19 +1022,68 @@ class OrderService < ApplicationRecord
     # Só avança propostas que estão "atrás" do status da OS (nunca regride)
     # Ignora canceladas (9), reprovadas (8) e complementos
     eligible_statuses = OS_TO_PROPOSAL_STATUS.values.select { |s| s < target_proposal_status }
-    return if eligible_statuses.empty?
+    unless eligible_statuses.empty?
+      proposals_to_sync = order_service_proposals
+        .where(is_complement: [false, nil])
+        .where(order_service_proposal_status_id: eligible_statuses)
+        .where.not(order_service_proposal_status_id: [
+          OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
+          OrderServiceProposalStatus::CANCELADA_ID
+        ])
 
-    proposals_to_sync = order_service_proposals
-      .where(order_service_proposal_status_id: eligible_statuses)
-      .where.not(order_service_proposal_status_id: [
-        OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
-        OrderServiceProposalStatus::CANCELADA_ID
-      ])
+      proposals_to_sync.each do |proposal|
+        # Não promover proposta de fornecedor divergente da OS (evita duas "Autorizada" em cotação)
+        if provider_id.present? && proposal.provider_id != provider_id
+          Rails.logger.info "[SYNC_STATUS] Proposta #{proposal.id} ignorada (provider #{proposal.provider_id} != OS #{provider_id})"
+          next
+        end
 
-    proposals_to_sync.each do |proposal|
-      Rails.logger.info "[SYNC_STATUS] Proposta #{proposal.id}: #{proposal.order_service_proposal_status_id} -> #{target_proposal_status} (OS #{id} status #{order_service_status_id})"
-      proposal.update_columns(order_service_proposal_status_id: target_proposal_status)
+        Rails.logger.info "[SYNC_STATUS] Proposta #{proposal.id}: #{proposal.order_service_proposal_status_id} -> #{target_proposal_status} (OS #{id} status #{order_service_status_id})"
+        proposal.update_columns(order_service_proposal_status_id: target_proposal_status)
+      end
     end
+
+    resolve_duplicate_authorized_proposals! if should_resolve_duplicate_proposals?
+  end
+
+  # Garante no máximo uma proposta principal em status "ativa" (Autorizada ou posterior) por OS.
+  def resolve_duplicate_authorized_proposals!
+    high = [
+      OrderServiceProposalStatus::AUTORIZADA_ID,
+      OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+      OrderServiceProposalStatus::PAGA_ID
+    ]
+    scope = order_service_proposals
+      .where(is_complement: [false, nil])
+      .where(order_service_proposal_status_id: high)
+    return if scope.count <= 1
+
+    keeper =
+      if provider_id.present? && scope.where(provider_id: provider_id).exists?
+        scope.where(provider_id: provider_id).order(updated_at: :desc).first
+      else
+        scope.order(updated_at: :desc).first
+      end
+    return unless keeper
+
+    scope.where.not(id: keeper.id).find_each do |prop|
+      prop.update_columns(
+        order_service_proposal_status_id: OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
+        reproved: true,
+        reason_reproved: 'Proposta concorrente: a OS permanece vinculada a outro fornecedor.'
+      )
+    end
+  end
+
+  def should_resolve_duplicate_proposals?
+    return false unless provider_id.present?
+
+    high = [
+      OrderServiceProposalStatus::AUTORIZADA_ID,
+      OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+      OrderServiceProposalStatus::PAGA_ID
+    ]
+    order_service_proposals.where(is_complement: [false, nil], order_service_proposal_status_id: high).count > 1
   end
 
   private

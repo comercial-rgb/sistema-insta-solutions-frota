@@ -195,8 +195,17 @@ var Faturamento = (function() {
             servInfo.textContent = 'Nenhum arquivo anexado.';
           }
         }
+        var consInfo = document.getElementById('editNfConsolidadaFileExistente');
+        if (consInfo) {
+          if (f.nota_fiscal_consolidada_file_url) {
+            consInfo.innerHTML = 'Arquivo atual: <a href="' + f.nota_fiscal_consolidada_file_url + '" target="_blank">' + (f.nota_fiscal_consolidada_file_name || 'baixar') + '</a>';
+          } else {
+            consInfo.textContent = 'Nenhum arquivo anexado.';
+          }
+        }
         var fileP = document.getElementById('editNfPecasFile'); if (fileP) fileP.value = '';
         var fileS = document.getElementById('editNfServicosFile'); if (fileS) fileS.value = '';
+        var fileC = document.getElementById('editNfConsolidadaFile'); if (fileC) fileC.value = '';
 
         document.getElementById('editDesconto').value = f.desconto || 0;
         document.getElementById('editObs').value = f.admin_observacoes || '';
@@ -233,6 +242,10 @@ var Faturamento = (function() {
     var servFile = document.getElementById('editNfServicosFile');
     if (servFile && servFile.files && servFile.files[0]) {
       fd.append('fatura[nota_fiscal_servicos_file]', servFile.files[0]);
+    }
+    var consFile = document.getElementById('editNfConsolidadaFile');
+    if (consFile && consFile.files && consFile.files[0]) {
+      fd.append('fatura[nota_fiscal_consolidada_file]', consFile.files[0]);
     }
     fd.append('_method', 'patch');
 

@@ -240,7 +240,7 @@ breadcrumbs = [
   <% end %>
 
   <!-- NF Info -->
-  <% has_nf = @fatura.nota_fiscal_numero.present? || @fatura.nota_fiscal_numero_pecas.present? || @fatura.nota_fiscal_numero_servicos.present? || @fatura.nota_fiscal_pecas_file.attached? || @fatura.nota_fiscal_servicos_file.attached? %>
+  <% has_nf = @fatura.nota_fiscal_numero.present? || @fatura.nota_fiscal_numero_pecas.present? || @fatura.nota_fiscal_numero_servicos.present? || @fatura.nota_fiscal_pecas_file.attached? || @fatura.nota_fiscal_servicos_file.attached? || @fatura.nota_fiscal_consolidada_file.attached? %>
   <% if has_nf %>
     <div class="card border-0 shadow-sm mb-4">
       <div class="card-header bg-white border-bottom">
@@ -268,6 +268,18 @@ breadcrumbs = [
           <div class="col-md-3">
             <small class="text-muted d-block">Valor Líquido</small>
             <strong class="text-primary"><%= number_to_currency(@fatura.valor_liquido, unit: 'R$ ') %></strong>
+          </div>
+        </div>
+        <% end %>
+        <% if @fatura.nota_fiscal_numero.present? || @fatura.nota_fiscal_consolidada_file.attached? %>
+        <div class="row mt-2">
+          <div class="col-md-12">
+            <small class="text-muted d-block">Arquivo NF consolidada</small>
+            <% if @fatura.nota_fiscal_consolidada_file.attached? %>
+              <%= link_to "<i class='bi bi-download'></i> #{@fatura.nota_fiscal_consolidada_file.filename}".html_safe, rails_blob_path(@fatura.nota_fiscal_consolidada_file, disposition: 'attachment'), class: 'btn btn-sm btn-outline-primary' %>
+            <% else %>
+              <span class="text-muted">Nenhum</span>
+            <% end %>
           </div>
         </div>
         <% end %>

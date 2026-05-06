@@ -9,6 +9,7 @@ class Fatura < ApplicationRecord
 
   has_one_attached :nota_fiscal_pecas_file
   has_one_attached :nota_fiscal_servicos_file
+  has_one_attached :nota_fiscal_consolidada_file
 
   STATUSES = %w[aberta enviada paga cancelada].freeze
 

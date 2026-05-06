@@ -525,12 +525,8 @@ class OrderServiceProposalsController < ApplicationController
     # ✅ Verificar saldo nos empenhos antes de aprovar (validação movida do update)
     order_service = @order_service_proposal.order_service
     
-    # Calcula valores totais DA PROPOSTA COM DESCONTO APLICADO (inclui itens sem service_id)
-    items_scope = @order_service_proposal.order_service_proposal_items
-    parts_value = OrderServiceProposalItem.sum_parts_total_value(items_scope)
-    services_value = OrderServiceProposalItem.sum_services_total_value(items_scope)
-    
-    balance_check = order_service.check_commitment_balance(parts_value, services_value)
+    # Saldo: mesma base do consumo no empenho (itens + complementos via items_for_totals — ver OrderService#check_commitment_balance)
+    balance_check = order_service.check_commitment_balance(0, 0, proposal: @order_service_proposal)
     
     unless balance_check[:valid]
       flash[:error] = "Não é possível aprovar: #{balance_check[:message]}"
@@ -567,7 +563,7 @@ class OrderServiceProposalsController < ApplicationController
       
       ActiveRecord::Base.transaction do
         # Re-verifica saldo com lock FOR UPDATE nos empenhos (garante atomicidade)
-        locked_balance_check = order_service.check_commitment_balance_with_lock!(parts_value, services_value)
+        locked_balance_check = order_service.check_commitment_balance_with_lock!(0, 0, proposal: @order_service_proposal)
         unless locked_balance_check[:valid]
           approval_error = "Não é possível aprovar: #{locked_balance_check[:message]}"
           raise ActiveRecord::Rollback
@@ -617,8 +613,12 @@ class OrderServiceProposalsController < ApplicationController
           reason_approved: reason.presence
         )
       
-        # Recarrega a OS diretamente do banco para evitar problemas com cache
-        OrderService.where(id: order_service.id).update_all(order_service_status_id: OrderServiceStatus::APROVADA_ID)
+        # Recarrega a OS diretamente do banco para evitar problemas com cache; vincula fornecedor da proposta aprovada
+        OrderService.where(id: order_service.id).update_all(
+          order_service_status_id: OrderServiceStatus::APROVADA_ID,
+          provider_id: @order_service_proposal.provider_id,
+          updated_at: Time.current
+        )
       end # fim da transaction
 
       if approval_error
@@ -696,7 +696,11 @@ class OrderServiceProposalsController < ApplicationController
 
       # Manually create an audit record
       OrderService.generate_historic(@order_service_proposal.order_service, @current_user, @order_service_proposal.order_service.order_service_status_id, OrderServiceStatus::AUTORIZADA_ID)
-      @order_service_proposal.order_service.update_columns(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID, updated_at: Time.current)
+      @order_service_proposal.order_service.update_columns(
+        order_service_status_id: OrderServiceStatus::AUTORIZADA_ID,
+        provider_id: @order_service_proposal.provider_id,
+        updated_at: Time.current
+      )
       
       # 🔄 Sincroniza outras propostas que ficaram para trás
       @order_service_proposal.order_service.reload.sync_proposals_status!

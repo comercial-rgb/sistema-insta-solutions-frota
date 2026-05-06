@@ -1422,21 +1422,31 @@ class OrderServicesController < ApplicationController
       order_service_ids = params[:order_service_ids].split(",").map(&:strip).uniq
       all_order_services = OrderService.where(id: order_service_ids)
       all_order_services.each do |order_service|
-        # 🔒 Autorizar apenas propostas com NOTAS_INSERIDAS (não complementos)
-        order_service_proposals = order_service.order_service_proposals
-        .not_complement
-        .where(order_service_proposal_status_id: OrderServiceProposalStatus::NOTAS_INSERIDAS_ID)
-        order_service_proposals.each do |order_service_proposal|
-          # Manually create an audit record
-          OrderServiceProposal.generate_historic(order_service_proposal, @current_user, order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::AUTORIZADA_ID)
-          order_service_proposal.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::AUTORIZADA_ID)
+        candidates = order_service.order_service_proposals
+          .not_complement
+          .where(order_service_proposal_status_id: OrderServiceProposalStatus::NOTAS_INSERIDAS_ID)
+
+        chosen =
+          if order_service.provider_id.present?
+            candidates.where(provider_id: order_service.provider_id).order(updated_at: :desc).first
+          end
+        chosen ||= candidates.order(updated_at: :desc).first
+
+        if chosen
+          OrderServiceProposal.generate_historic(chosen, @current_user, chosen.order_service_proposal_status_id, OrderServiceProposalStatus::AUTORIZADA_ID)
+          chosen.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::AUTORIZADA_ID)
         end
 
-        # Manually create an audit record
+        next unless chosen
+
         OrderService.generate_historic(order_service, @current_user, order_service.order_service_status_id, OrderServiceStatus::AUTORIZADA_ID)
-        order_service.update_columns(order_service_status_id: OrderServiceStatus::AUTORIZADA_ID, updated_at: Time.current)
-        
-        # 🔄 Sincroniza propostas que ficaram para trás
+        order_service.update_columns(
+          order_service_status_id: OrderServiceStatus::AUTORIZADA_ID,
+          provider_id: chosen.provider_id,
+          updated_at: Time.current
+        )
+
+        # 🔄 Sincroniza propostas que ficaram para trás e remove concorrentes em status avançado indevido
         order_service.reload.sync_proposals_status!
         
         # Envia webhook para sistema financeiro (assíncrono com retry)

@@ -228,19 +228,26 @@
 
     return 0 if commitment.nil?
     
-    # Se o empenho é GLOBAL (category_id nil), somar tudo
+    # Se o empenho é GLOBAL (category_id nil), somar o mesmo conjunto de valores usado na aprovação:
+    # itens da proposta principal (items_for_totals inclui complementos aprovados sem duplicar merge).
     if commitment.category_id.nil?
-      order_services = OrderService.where(commitment_id: commitment.id)
-                                  .where(order_service_status_id: required_order_service_statuses)
-      
-      total = order_services.joins(:order_service_proposals)
-                          .where(order_service_proposals: { 
-                            order_service_proposal_status_id: required_proposal_statuses,
-                            is_complement: [false, nil]  # Evitar duplicar complementos
-                          })
-                          .sum("order_service_proposals.total_value")
-      
-      return total
+      order_service_ids = OrderService.where(commitment_id: commitment.id)
+        .where(order_service_status_id: required_order_service_statuses)
+        .pluck(:id)
+      return 0.0 if order_service_ids.empty?
+
+      proposal_ids = OrderServiceProposal.unscoped
+        .where(order_service_id: order_service_ids)
+        .where(order_service_proposal_status_id: required_proposal_statuses, is_complement: [false, nil])
+        .pluck(:id)
+      return 0.0 if proposal_ids.empty?
+
+      total = 0.to_d
+      OrderServiceProposal.unscoped.where(id: proposal_ids).find_each do |prop|
+        total += OrderServiceProposal.items_for_totals(prop).sum { |i| i.total_value.to_d }
+      end
+
+      return total.to_f
     end
     
     # Se o empenho tem categoria, calcular consumo específico por tipo.
