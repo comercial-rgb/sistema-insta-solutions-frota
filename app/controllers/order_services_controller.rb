@@ -1417,52 +1417,87 @@ class OrderServicesController < ApplicationController
 
   def authorize_order_services
     authorize OrderService
-    result = true
+    failures = []
+    authorized_ids = []
+    message = nil
+    result = false
+
     begin
-      order_service_ids = params[:order_service_ids].split(",").map(&:strip).uniq
+      order_service_ids = params[:order_service_ids].to_s.split(",").map(&:strip).reject(&:blank?).uniq
       all_order_services = OrderService.where(id: order_service_ids)
+
       all_order_services.each do |order_service|
-        candidates = order_service.order_service_proposals
-          .not_complement
-          .where(order_service_proposal_status_id: OrderServiceProposalStatus::NOTAS_INSERIDAS_ID)
+        begin
+          candidates = order_service.order_service_proposals
+            .not_complement
+            .where(order_service_proposal_status_id: OrderServiceProposalStatus::NOTAS_INSERIDAS_ID)
 
-        chosen =
-          if order_service.provider_id.present?
-            candidates.where(provider_id: order_service.provider_id).order(updated_at: :desc).first
-          end
-        chosen ||= candidates.order(updated_at: :desc).first
+          chosen =
+            if order_service.provider_id.present?
+              match = candidates.where(provider_id: order_service.provider_id).order(updated_at: :desc).first
+              if match.nil? && candidates.exists?
+                failures << {
+                  order_service_id: order_service.id,
+                  code: order_service.code.to_s,
+                  message: I18n.t(
+                    'activerecord.attributes.order_service.authorize_batch_wrong_provider_proposal',
+                    code: order_service.code
+                  )
+                }
+                next
+              end
+              match
+            else
+              candidates.order(updated_at: :desc).first
+            end
 
-        if chosen
+          next if chosen.blank?
+
           OrderServiceProposal.generate_historic(chosen, @current_user, chosen.order_service_proposal_status_id, OrderServiceProposalStatus::AUTORIZADA_ID)
           chosen.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::AUTORIZADA_ID)
+
+          OrderService.generate_historic(order_service, @current_user, order_service.order_service_status_id, OrderServiceStatus::AUTORIZADA_ID)
+          order_service.update_columns(
+            order_service_status_id: OrderServiceStatus::AUTORIZADA_ID,
+            provider_id: chosen.provider_id,
+            updated_at: Time.current
+          )
+
+          order_service.reload.sync_proposals_status!
+          SendAuthorizedOsWebhookJob.perform_later(order_service.id)
+          authorized_ids << order_service.id
+        rescue StandardError => e
+          Rails.logger.error("[authorize_order_services] OS #{order_service.id}: #{e.class} — #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}")
+          failures << {
+            order_service_id: order_service.id,
+            code: order_service.code.to_s,
+            message: I18n.t(
+              'activerecord.attributes.order_service.authorize_batch_processing_error',
+              code: order_service.code,
+              error: e.message.to_s.truncate(500)
+            )
+          }
         end
-
-        next unless chosen
-
-        OrderService.generate_historic(order_service, @current_user, order_service.order_service_status_id, OrderServiceStatus::AUTORIZADA_ID)
-        order_service.update_columns(
-          order_service_status_id: OrderServiceStatus::AUTORIZADA_ID,
-          provider_id: chosen.provider_id,
-          updated_at: Time.current
-        )
-
-        # 🔄 Sincroniza propostas que ficaram para trás e remove concorrentes em status avançado indevido
-        order_service.reload.sync_proposals_status!
-        
-        # Envia webhook para sistema financeiro (assíncrono com retry)
-        SendAuthorizedOsWebhookJob.perform_later(order_service.id)
       end
-      message = OrderService.human_attribute_name(:all_authorized_with_success)
-    rescue Exception => e
+
+      message = build_authorize_order_services_message(authorized_ids.size, failures)
+      result = authorized_ids.any?
+    rescue StandardError => e
+      Rails.logger.error("[authorize_order_services] #{e.class}: #{e.message}")
       result = false
-      message = e.message
+      message = e.message.to_s
     end
+
     data = {
       result: result,
-      message: message
+      message: message,
+      authorized_count: authorized_ids.size,
+      failed_count: failures.size,
+      authorized_ids: authorized_ids,
+      failures: failures
     }
     respond_to do |format|
-      format.json {render :json => data, :status => 200}
+      format.json { render json: data, status: 200 }
     end
   end
 
@@ -1473,20 +1508,22 @@ class OrderServicesController < ApplicationController
       order_service_ids = params[:order_service_ids].split(",").map(&:strip).uniq
       all_order_services = OrderService.where(id: order_service_ids)
       all_order_services.each do |order_service|
-        order_service_proposals = order_service.order_service_proposals
-        .not_complement
-        .where(order_service_proposal_status_id: OrderServiceProposalStatus::AUTORIZADA_ID)
-        order_service_proposals.each do |order_service_proposal|
-          # Manually create an audit record
+        proposals_scope = order_service.order_service_proposals
+          .not_complement
+          .where(order_service_proposal_status_id: OrderServiceProposalStatus::AUTORIZADA_ID)
+
+        to_advance = order_service.proposals_scope_for_linked_provider(proposals_scope)
+
+        to_advance.each do |order_service_proposal|
           OrderServiceProposal.generate_historic(order_service_proposal, @current_user, order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID)
           order_service_proposal.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID)
         end
 
-        # Manually create an audit record
+        next if to_advance.empty?
+
         OrderService.generate_historic(order_service, @current_user, order_service.order_service_status_id, OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID)
         order_service.update_columns(order_service_status_id: OrderServiceStatus::AGUARDANDO_PAGAMENTO_ID, updated_at: Time.current)
-        
-        # 🔄 Sincroniza propostas que ficaram para trás
+
         order_service.reload.sync_proposals_status!
       end
       message = OrderService.human_attribute_name(:all_waiting_payment_with_success)
@@ -1510,18 +1547,23 @@ class OrderServicesController < ApplicationController
       order_service_ids = params[:order_service_ids].split(",").map(&:strip).uniq
       all_order_services = OrderService.where(id: order_service_ids)
       all_order_services.each do |order_service|
-        order_service_proposals = order_service.order_service_proposals
-        .not_complement
-        .where(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID)
-        order_service_proposals.each do |order_service_proposal|
-          # Manually create an audit record
+        proposals_scope = order_service.order_service_proposals
+          .not_complement
+          .where(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID)
+
+        to_pay = order_service.proposals_scope_for_linked_provider(proposals_scope)
+
+        to_pay.each do |order_service_proposal|
           OrderServiceProposal.generate_historic(order_service_proposal, @current_user, order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::PAGA_ID)
           order_service_proposal.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::PAGA_ID)
         end
 
-        # Manually create an audit record
+        next if to_pay.empty?
+
         OrderService.generate_historic(order_service, @current_user, order_service.order_service_status_id, OrderServiceStatus::PAGA_ID)
         order_service.update_columns(order_service_status_id: OrderServiceStatus::PAGA_ID, updated_at: Time.current)
+
+        order_service.reload.sync_proposals_status!
       end
       message = OrderService.human_attribute_name(:all_make_payment_with_success)
     rescue Exception => e
@@ -1672,6 +1714,33 @@ class OrderServicesController < ApplicationController
   end
 
   private
+
+  def build_authorize_order_services_message(authorized_count, failures)
+    if failures.empty? && authorized_count.positive?
+      return OrderService.human_attribute_name(:all_authorized_with_success)
+    end
+
+    if failures.empty? && authorized_count.zero?
+      return OrderService.human_attribute_name(:authorize_batch_nothing_to_authorize)
+    end
+
+    if authorized_count.positive?
+      header = I18n.t(
+        'activerecord.attributes.order_service.authorize_batch_partial_header',
+        count_ok: authorized_count,
+        count_fail: failures.size
+      )
+      return [header, '', *failures.map { |f| f[:message] }].join("\n")
+    end
+
+    return failures.first[:message] if failures.size == 1
+
+    header = I18n.t(
+      'activerecord.attributes.order_service.authorize_batch_all_failed_header',
+      count: failures.size
+    )
+    [header, '', *failures.map { |f| f[:message] }].join("\n")
+  end
 
   def generate_demonstrativo_pdf(order_services, current_client)
     tempfiles_to_cleanup = []

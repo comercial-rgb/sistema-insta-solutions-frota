@@ -164,6 +164,8 @@ class FaturamentoController < ApplicationController
       observacoes: params[:observacoes]
     )
 
+    os_ids_invoiced = order_services.pluck(:id)
+
     ActiveRecord::Base.transaction do
       @fatura.save!
 
@@ -177,6 +179,9 @@ class FaturamentoController < ApplicationController
         invoiced_at: Time.current,
         order_service_status_id: aguardando_pagamento_id
       )
+
+      # Alinha propostas ao novo status da OS (só fornecedor vinculado, via sync)
+      OrderService.where(id: os_ids_invoiced).find_each(&:sync_proposals_status!)
     end
 
     # Generate DOCX
@@ -301,11 +306,21 @@ class FaturamentoController < ApplicationController
     ActiveRecord::Base.transaction do
       # Liberar as OS: voltar para status Autorizada e marcar como não faturada
       if os_ids.any?
+        # Reverter propostas que tinham acompanhado a fatura para "Aguardando pagamento"
+        OrderService.where(id: os_ids).find_each do |os|
+          os.order_service_proposals
+            .not_complement
+            .where(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID)
+            .update_all(order_service_proposal_status_id: OrderServiceProposalStatus::AUTORIZADA_ID)
+        end
+
         OrderService.where(id: os_ids).update_all(
           invoiced: false,
           invoiced_at: nil,
           order_service_status_id: OrderServiceStatus::AUTORIZADA_ID
         )
+
+        OrderService.where(id: os_ids).find_each(&:sync_proposals_status!)
       end
 
       @fatura.destroy!

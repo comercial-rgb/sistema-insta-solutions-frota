@@ -29,6 +29,9 @@ class WebhookFinanceService
     
     approved_proposal = @order_service.approved_proposal
     return { success: false, error: 'OS sem proposta aprovada' } unless approved_proposal
+    if @order_service.locks_out_proposal?(approved_proposal)
+      return { success: false, error: 'Fornecedor da proposta em destaque diverge do fornecedor vinculado à OS; corrija antes de enviar ao financeiro.' }
+    end
     return { success: false, error: 'Proposta aprovada sem fornecedor cadastrado' } unless approved_proposal.provider_id.present?
     
     # Valida se o fornecedor tem nome cadastrado

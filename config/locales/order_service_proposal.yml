@@ -36,6 +36,7 @@ pt-BR:
         paid_order_service_proposal: 'Marcar como paga'
         reproved_with_success: "Proposta reprovada com sucesso!"
         authorized_with_success: "Proposta autorizada com sucesso!"
+        authorize_blocked_other_provider: "Esta OS já está vinculada a outro fornecedor. Utilize apenas propostas desse fornecedor neste fluxo."
         waiting_payment_with_success: "Proposta atualizada como 'Aguardando pagamento' com sucesso!"
         make_payment_with_success: "Proposta atualizada como 'Paga' com sucesso!"
         approved_with_success: "Proposta aprovada com sucesso!"
@@ -151,6 +152,7 @@ en:
         paid_order_service_proposal: 'Marcar como paga'
         reproved_with_success: "Proposta reprovada com sucesso!"
         authorized_with_success: "Proposta autorizada com sucesso!"
+        authorize_blocked_other_provider: "This work order is already linked to another supplier. Only use proposals from that supplier in this flow."
         waiting_payment_with_success: "Proposta atualizada como 'Aguardando pagamento' com sucesso!"
         make_payment_with_success: "Proposta atualizada como 'Paga' com sucesso!"
         approved_with_success: "Proposta aprovada com sucesso!"

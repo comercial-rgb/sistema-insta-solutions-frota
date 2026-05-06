@@ -1,4 +1,5 @@
-# Job para enviar webhook de OS autorizada de forma assíncrona
+# Job para enviar webhook de OS autorizada de forma assíncrona.
+# Não altera status de OS/proposta (isso fica em controllers/models); só envia HTTP e atualiza WebhookLog.
 class SendAuthorizedOsWebhookJob < ApplicationJob
   queue_as :default
 

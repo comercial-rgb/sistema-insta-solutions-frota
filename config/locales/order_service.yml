@@ -43,6 +43,11 @@ pt-BR:
         print_order_service_proposals: "Imprimir propostas"
         select_all_order_services: "Selecionar todas as ordens de serviço"
         all_authorized_with_success: "Ordens de serviço autorizadas com sucesso"
+        authorize_batch_wrong_provider_proposal: "%{code}: há proposta com NF de outro fornecedor; autorize apenas a do fornecedor vinculado à OS."
+        authorize_batch_partial_header: "%{count_ok} ordem(ns) autorizada(s). %{count_fail} não processada(s):"
+        authorize_batch_all_failed_header: "Nenhuma ordem foi autorizada (%{count} problema(s)):"
+        authorize_batch_nothing_to_authorize: "Nenhuma OS estava pronta para autorização (sem proposta com NF inserida)."
+        authorize_batch_processing_error: "%{code}: %{error}"
         authorize_order_services: 'Autorizar ordens de serviço'
         waiting_payment: 'Atualizar para "Aguardando pagamento"'
         make_payment: 'Atualizar para "Paga"'
@@ -167,6 +172,11 @@ en:
         print_order_service_proposals: "Imprimir propostas"
         select_all_order_services: "Selecionar todas as ordens de serviço"
         all_authorized_with_success: "Ordens de serviço autorizadas com sucesso"
+        authorize_batch_wrong_provider_proposal: "%{code}: invoice entered on another supplier's proposal; only the proposal linked to this work order's supplier can be authorized."
+        authorize_batch_partial_header: "%{count_ok} work order(s) authorized. %{count_fail} not processed:"
+        authorize_batch_all_failed_header: "No work order was authorized (%{count} issue(s)):"
+        authorize_batch_nothing_to_authorize: "No work order was ready to authorize (no proposal with invoice inserted)."
+        authorize_batch_processing_error: "%{code}: %{error}"
         authorize_order_services: 'Autorizar ordens de serviço'
         waiting_payment: 'Atualizar para "Aguardando pagamento"'
         make_payment: 'Atualizar para "Paga"'

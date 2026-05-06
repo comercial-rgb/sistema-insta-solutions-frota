@@ -522,8 +522,13 @@ class OrderServiceProposalsController < ApplicationController
     authorize @order_service_proposal
     reason = params[:reason_approved].to_s.strip
 
-    # ✅ Verificar saldo nos empenhos antes de aprovar (validação movida do update)
     order_service = @order_service_proposal.order_service
+    if order_service.locks_out_proposal?(@order_service_proposal)
+      flash[:error] = OrderServiceProposal.human_attribute_name(:authorize_blocked_other_provider)
+      return redirect_back(fallback_location: :back)
+    end
+
+    # ✅ Verificar saldo nos empenhos antes de aprovar (validação movida do update)
     
     # Saldo: mesma base do consumo no empenho (itens + complementos via items_for_totals — ver OrderService#check_commitment_balance)
     balance_check = order_service.check_commitment_balance(0, 0, proposal: @order_service_proposal)
@@ -535,8 +540,6 @@ class OrderServiceProposalsController < ApplicationController
 
     # Usuário ADICIONAL faz pré-aprovação
     if @current_user.additional?
-      order_service = @order_service_proposal.order_service
-      
       # Manually create an audit record
       OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, @order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::AGUARDANDO_AVALIACAO_ID)
       OrderService.generate_historic(order_service, @current_user, order_service.order_service_status_id, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID)
@@ -555,8 +558,6 @@ class OrderServiceProposalsController < ApplicationController
       flash[:success] = "Pré-aprovação realizada com sucesso. Aguardando aprovação do gestor."
     # Usuário GESTOR ou ADMIN faz aprovação final
     elsif @current_user.manager? || @current_user.admin?
-      order_service = @order_service_proposal.order_service
-      
       # 🔒 Aprovação final dentro de transaction com lock pessimista nos empenhos
       # Previne race conditions (duas aprovações simultâneas consumindo o mesmo saldo)
       approval_error = nil
@@ -672,6 +673,13 @@ class OrderServiceProposalsController < ApplicationController
 
   def autorize_order_service_proposal
     authorize @order_service_proposal
+
+    order_service = @order_service_proposal.order_service
+    if order_service.locks_out_proposal?(@order_service_proposal)
+      flash[:error] = OrderServiceProposal.human_attribute_name(:authorize_blocked_other_provider)
+      redirect_back(fallback_location: :back)
+      return
+    end
     
     # Usuário ADICIONAL faz pré-autorização
     if @current_user.additional?
@@ -770,6 +778,11 @@ class OrderServiceProposalsController < ApplicationController
 
   def waiting_payment_order_service_proposal
     authorize @order_service_proposal
+    os = @order_service_proposal.order_service
+    if os.locks_out_proposal?(@order_service_proposal)
+      flash[:error] = OrderServiceProposal.human_attribute_name(:authorize_blocked_other_provider)
+      return redirect_back(fallback_location: :back)
+    end
     # Manually create an audit record
     OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, @order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID)
     @order_service_proposal.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID)
@@ -788,6 +801,11 @@ class OrderServiceProposalsController < ApplicationController
 
   def paid_order_service_proposal
     authorize @order_service_proposal
+    os = @order_service_proposal.order_service
+    if os.locks_out_proposal?(@order_service_proposal)
+      flash[:error] = OrderServiceProposal.human_attribute_name(:authorize_blocked_other_provider)
+      return redirect_back(fallback_location: :back)
+    end
     # Manually create an audit record
     OrderServiceProposal.generate_historic(@order_service_proposal, @current_user, @order_service_proposal.order_service_proposal_status_id, OrderServiceProposalStatus::PAGA_ID)
     @order_service_proposal.update_columns(order_service_proposal_status_id: OrderServiceProposalStatus::PAGA_ID)

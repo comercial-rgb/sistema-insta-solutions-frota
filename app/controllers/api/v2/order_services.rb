@@ -250,6 +250,13 @@ module Api
             pending_proposal = os.order_service_proposals.where(pending_manager_approval: true).first
             error!('Nenhuma proposta pendente encontrada para concluir a aprovação.', 422) if pending_proposal.blank?
 
+            if os.locks_out_proposal?(pending_proposal)
+              error!(
+                I18n.t('activerecord.attributes.order_service_proposal.authorize_blocked_other_provider'),
+                422
+              )
+            end
+
             balance = os.check_commitment_balance_with_lock!(0, 0, proposal: pending_proposal)
             error!(balance[:message], 422) unless balance[:valid]
 

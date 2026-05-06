@@ -4,6 +4,8 @@ var Faturamento = (function() {
   var _currentPage = 1;
   var _osAbertosData = []; // cached OS data
   var _selectedOS = {};    // { osId: true/false }
+  var _lastOsAbertosClientId = null;
+  var _lastOsAbertosCcId = null;
   var _clientDiscount = 0; // client discount percent
   var _clientSphere = 0;   // 0=Municipal, 1=Estadual, 2=Federal
   var _contractsInfo = [];  // contract saldo info
@@ -366,20 +368,30 @@ var Faturamento = (function() {
     _selectedOS = {};
 
     if (!clienteId) {
+      _lastOsAbertosClientId = null;
+      _lastOsAbertosCcId = null;
       content.innerHTML = '<p class="text-center text-muted py-5">Selecione um cliente para listar as OS autorizadas para faturamento.</p>';
       document.getElementById('previewSection').style.display = 'none';
       document.getElementById('successSection').style.display = 'none';
       return;
     }
 
+    if (clienteId !== _lastOsAbertosClientId) {
+      _lastOsAbertosClientId = clienteId;
+      _lastOsAbertosCcId = null;
+    }
+
     content.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="text-muted mt-2">Carregando OS autorizadas...</p></div>';
 
-    // Build URL with date filters
+    // Build URL with date filters + filtros já escolhidos (evita depender só de comparação de texto no browser)
     var params = new URLSearchParams({ client_id: clienteId });
     var dtIni = document.getElementById('fAbertoDtIni');
     var dtFim = document.getElementById('fAbertoDtFim');
     if (dtIni && dtIni.value) params.set('data_inicio', dtIni.value);
     if (dtFim && dtFim.value) params.set('data_fim', dtFim.value);
+    if (savedCC) params.set('cost_center_id', savedCC);
+    if (savedSU) params.set('sub_unit_id', savedSU);
+    if (savedEmpenho) params.set('commitment_id', savedEmpenho);
 
     $.ajax({
       url: '/faturamento/os_abertos_json?' + params.toString(),
@@ -427,17 +439,9 @@ var Faturamento = (function() {
         if (savedSU) { suSelect.value = savedSU; }
         if (savedEmpenho && empenhoSelect) { empenhoSelect.value = savedEmpenho; }
 
-        // Aplicar filtro local se CC ou SU estava selecionado
-        if (savedCC || savedSU) {
-          var filtered = _osAbertosData.filter(function(os) {
-            if (savedCC && os.cost_center !== getCCNameById(savedCC)) return false;
-            if (savedSU && os.sub_unit !== getSUNameById(savedSU)) return false;
-            return true;
-          });
-          renderOSAbertosTable(filtered);
-        } else {
-          renderOSAbertosTable(_osAbertosData);
-        }
+        _lastOsAbertosCcId = savedCC ? savedCC : null;
+
+        renderOSAbertosTable(_osAbertosData);
       },
       error: function() {
         content.innerHTML = '<div class="alert alert-danger">Erro ao carregar OS em aberto.</div>';
@@ -447,37 +451,19 @@ var Faturamento = (function() {
 
   function filtrarOSAbertos() {
     var ccId = document.getElementById('fAbertoCentroCusto').value;
-    var suId = document.getElementById('fAbertoSubUnidade').value;
     var empenhoId = document.getElementById('fAbertoEmpenho') ? document.getElementById('fAbertoEmpenho').value : '';
     var suSelect = document.getElementById('fAbertoSubUnidade');
+    var clienteId = document.getElementById('fAbertoCliente').value;
+    if (!clienteId) return;
 
-    // If empenho filter is set, reload from server (filter is server-side)
-    if (empenhoId) {
-      var clienteId = document.getElementById('fAbertoCliente').value;
-      var params = new URLSearchParams({ client_id: clienteId, commitment_id: empenhoId });
-      var dtIni = document.getElementById('fAbertoDtIni');
-      var dtFim = document.getElementById('fAbertoDtFim');
-      if (dtIni && dtIni.value) params.set('data_inicio', dtIni.value);
-      if (dtFim && dtFim.value) params.set('data_fim', dtFim.value);
-      if (ccId) params.set('cost_center_id', ccId);
-      if (suId) params.set('sub_unit_id', suId);
-
-      var content = document.getElementById('abertosContent');
-      content.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Filtrando...</div>';
-
-      $.ajax({
-        url: '/faturamento/os_abertos_json?' + params.toString(),
-        method: 'GET',
-        dataType: 'json',
-        success: function(data) {
-          var filtered = data.results || [];
-          renderOSAbertosTable(filtered);
-        }
-      });
-      return;
+    var normCc = ccId ? ccId : null;
+    var prevCc = _lastOsAbertosCcId;
+    if (normCc !== prevCc) {
+      if (normCc || prevCc) suSelect.value = '';
+      _lastOsAbertosCcId = normCc;
     }
+    var suId = suSelect.value;
 
-    // Load sub_units when cost center changes
     if (ccId) {
       $.ajax({
         url: '/faturamento/sub_units_json?cost_center_id=' + ccId,
@@ -494,6 +480,7 @@ var Faturamento = (function() {
               opt.textContent = su.name;
               suSelect.appendChild(opt);
             });
+            if (suId) suSelect.value = suId;
           } else {
             suSelect.disabled = true;
           }
@@ -504,33 +491,38 @@ var Faturamento = (function() {
       suSelect.disabled = true;
     }
 
-    // Filter locally
-    var filtered = _osAbertosData.filter(function(os) {
-      if (ccId && os.cost_center !== getCCNameById(ccId)) return false;
-      if (suId && os.sub_unit !== getSUNameById(suId)) return false;
-      return true;
+    var params = new URLSearchParams({ client_id: clienteId });
+    var dtIni = document.getElementById('fAbertoDtIni');
+    var dtFim = document.getElementById('fAbertoDtFim');
+    if (dtIni && dtIni.value) params.set('data_inicio', dtIni.value);
+    if (dtFim && dtFim.value) params.set('data_fim', dtFim.value);
+    if (ccId) params.set('cost_center_id', ccId);
+    if (suId) params.set('sub_unit_id', suId);
+    if (empenhoId) params.set('commitment_id', empenhoId);
+
+    var content = document.getElementById('abertosContent');
+    content.innerHTML = '<div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div> Filtrando...</div>';
+
+    $.ajax({
+      url: '/faturamento/os_abertos_json?' + params.toString(),
+      method: 'GET',
+      dataType: 'json',
+      success: function(data) {
+        _osAbertosData = data.results || [];
+        _clientDiscount = data.client_discount || 0;
+        _clientSphere = data.client_sphere || 0;
+        _contractsInfo = data.contracts_info || [];
+        _commitmentNumbers = data.commitment_numbers || [];
+        renderOSAbertosTable(_osAbertosData);
+      },
+      error: function() {
+        content.innerHTML = '<div class="alert alert-danger">Erro ao filtrar OS em aberto.</div>';
+      }
     });
-
-    renderOSAbertosTable(filtered);
-  }
-
-  function getCCNameById(id) {
-    var sel = document.getElementById('fAbertoCentroCusto');
-    for (var i = 0; i < sel.options.length; i++) {
-      if (sel.options[i].value == id) return sel.options[i].textContent;
-    }
-    return '';
-  }
-
-  function getSUNameById(id) {
-    var sel = document.getElementById('fAbertoSubUnidade');
-    for (var i = 0; i < sel.options.length; i++) {
-      if (sel.options[i].value == id) return sel.options[i].textContent;
-    }
-    return '';
   }
 
   function limparFiltrosAbertos() {
+    _lastOsAbertosCcId = null;
     document.getElementById('fAbertoCentroCusto').value = '';
     document.getElementById('fAbertoSubUnidade').value = '';
     var empenhoSel = document.getElementById('fAbertoEmpenho');
@@ -618,28 +610,16 @@ var Faturamento = (function() {
   }
 
   function toggleSelectAll() {
-    var allChecked = Object.keys(_selectedOS).length === _osAbertosData.length;
-    _selectedOS = {};
+    var visibleCount = _osAbertosData.length;
+    var selectedCount = Object.keys(_selectedOS).length;
+    var allChecked = visibleCount > 0 && selectedCount === visibleCount;
 
+    _selectedOS = {};
     if (!allChecked) {
       _osAbertosData.forEach(function(os) { _selectedOS[os.id] = true; });
     }
 
-    // Re-render with current filter
-    var ccId = document.getElementById('fAbertoCentroCusto').value;
-    var suId = document.getElementById('fAbertoSubUnidade').value;
-    var filtered = _osAbertosData.filter(function(os) {
-      if (ccId && os.cost_center !== getCCNameById(ccId)) return false;
-      if (suId && os.sub_unit !== getSUNameById(suId)) return false;
-      return true;
-    });
-
-    if (!allChecked) {
-      _selectedOS = {};
-      filtered.forEach(function(os) { _selectedOS[os.id] = true; });
-    }
-
-    renderOSAbertosTable(filtered);
+    renderOSAbertosTable(_osAbertosData);
   }
 
   function updateGerarPreviaBtn() {

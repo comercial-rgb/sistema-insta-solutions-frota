@@ -353,6 +353,9 @@
     }
     
     new_os_status = status_mapping[order_service_proposal_status_id]
+
+    # Não deixar proposta de outro fornecedor (ou sem fornecedor) reescrever o status da OS
+    return if order_service.locks_out_proposal?(self)
     
     # Se há mapeamento e o status da OS está diferente, atualizar
     if new_os_status.present? && order_service.order_service_status_id != new_os_status

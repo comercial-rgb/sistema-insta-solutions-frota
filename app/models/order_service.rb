@@ -575,6 +575,21 @@ class OrderService < ApplicationRecord
     OrderServiceProposal.ensure_total_values(result) if result.present?
     result
   end
+
+  # Lotes / transições: prioriza propostas do fornecedor vinculado à OS; se não houver, mantém +relation+ (legado).
+  def proposals_scope_for_linked_provider(relation)
+    return relation if provider_id.blank?
+
+    filtered = relation.where(provider_id: provider_id)
+    filtered.exists? ? filtered : relation
+  end
+
+  # OS já vinculada a um fornecedor: não avançar com proposta sem fornecedor ou de outro (concorrente).
+  def locks_out_proposal?(proposal)
+    return false if proposal.blank? || provider_id.blank?
+
+    proposal.provider_id.blank? || proposal.provider_id != provider_id
+  end
   
   # Verifica se tem propostas ativas (não canceladas/reprovadas)
   def has_active_proposals?
