@@ -26,6 +26,7 @@ module SistemaInstaSolutions
     config.active_storage.track_variants = true
 
     config.middleware.use Rack::Attack
+    require_relative '../app/middleware/server_timing_middleware'
     config.middleware.use ServerTimingMiddleware
 
     cors_origins =
