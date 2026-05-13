@@ -84,6 +84,16 @@ module MenuHelper
 			})
 		end
 
+		if @current_user.admin? || @current_user.client? || @current_user.manager?
+			# Log de Auditoria
+			menu_links.push({
+				opened: is_current_controller?("audit_logs"),
+				icon: "bi bi-shield-check",
+				label: "Log de Auditoria",
+				href: audit_logs_path
+			})
+		end
+
 		if policy(:gerencial_report).index?
 			# Relatório Gerencial
 			menu_links.push({
