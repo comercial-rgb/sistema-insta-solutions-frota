@@ -21,8 +21,8 @@ class FaturamentoController < ApplicationController
     @clients = User.client.active.name_ordered
     @cost_centers = CostCenter.order(:name)
 
-    # Alertas de faturas vencidas (para admin/manager)
-    @faturas_vencidas = Fatura.vencidas.includes(:client).order(:data_vencimento) if @current_user.admin? || @current_user.manager?
+    # Alertas de faturas vencidas (para admin/manager) — limitado a 20 para não sobrecarregar a view
+    @faturas_vencidas = Fatura.vencidas.includes(:client).order(:data_vencimento).limit(20) if @current_user.admin? || @current_user.manager?
 
     respond_to do |format|
       format.html
@@ -629,19 +629,44 @@ class FaturamentoController < ApplicationController
   def calcular_resumo
     faturas = apply_user_client_scope(Fatura.all)
 
+    # Agrega por status em uma única query ao banco
+    by_status = faturas.group(:status).pluck(
+      :status,
+      Arel.sql('COUNT(*)'),
+      Arel.sql('COALESCE(SUM(valor_bruto), 0)'),
+      Arel.sql('COALESCE(SUM(valor_liquido), 0)')
+    ).each_with_object({}) do |(status, count, bruto, liquido), h|
+      h[status] = { count: count, bruto: bruto.to_f, liquido: liquido.to_f }
+    end
+
+    aberta    = by_status['aberta']    || { count: 0, bruto: 0.0 }
+    enviada   = by_status['enviada']   || { count: 0, bruto: 0.0 }
+    paga      = by_status['paga']      || { count: 0, bruto: 0.0 }
+    cancelada = by_status['cancelada'] || { count: 0, bruto: 0.0 }
+
+    total_bruto   = by_status.values.sum { |v| v[:bruto] }
+    total_liquido = by_status.values.sum { |v| v[:liquido] }
+    total_count   = by_status.values.sum { |v| v[:count] }
+
+    # Vencidas: abertas + enviadas com data_vencimento no passado (query única)
+    vencidas_data = faturas.where(status: %w[aberta enviada]).where('data_vencimento < ?', Date.current)
+      .pluck(Arel.sql('COUNT(*), COALESCE(SUM(valor_bruto), 0)')).first
+    total_vencidas = vencidas_data&.first.to_i
+    valor_vencidas = vencidas_data&.last.to_f
+
     {
-      total_faturas: faturas.count,
-      total_abertas: faturas.abertas.count,
-      valor_abertas: faturas.abertas.sum(:valor_bruto),
-      total_enviadas: faturas.enviadas.count,
-      valor_enviadas: faturas.enviadas.sum(:valor_bruto),
-      total_pagas: faturas.pagas.count,
-      valor_pagas: faturas.pagas.sum(:valor_bruto),
-      total_canceladas: faturas.canceladas.count,
-      total_vencidas: faturas.vencidas.count,
-      valor_vencidas: faturas.vencidas.sum(:valor_bruto),
-      valor_total_bruto: faturas.sum(:valor_bruto),
-      valor_total_liquido: faturas.sum(:valor_liquido)
+      total_faturas:    total_count,
+      total_abertas:    aberta[:count],
+      valor_abertas:    aberta[:bruto],
+      total_enviadas:   enviada[:count],
+      valor_enviadas:   enviada[:bruto],
+      total_pagas:      paga[:count],
+      valor_pagas:      paga[:bruto],
+      total_canceladas: cancelada[:count],
+      total_vencidas:   total_vencidas,
+      valor_vencidas:   valor_vencidas,
+      valor_total_bruto:   total_bruto,
+      valor_total_liquido: total_liquido
     }
   end
 

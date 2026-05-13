@@ -355,16 +355,16 @@ class OrderService < ApplicationRecord
     end
 
     if (current_user.admin? || current_user.client? || current_user.manager?) && order_service_status_id == OrderServiceStatus::TEMP_REJEITADA_ID
-      return OrderService.joins(:rejected_providers).distinct.length
+      return OrderService.unscoped.joins(:rejected_providers).distinct.count(:id)
     elsif current_user.admin?
-      return OrderService.by_order_service_status_id(order_service_status_id).length
+      return OrderService.unscoped.by_order_service_status_id(order_service_status_id).count
     elsif current_user.client?
-      return OrderService.by_client_id(current_user.id).by_order_service_status_id(order_service_status_id).length
+      return OrderService.unscoped.by_client_id(current_user.id).by_order_service_status_id(order_service_status_id).count
     elsif current_user.manager? || current_user.additional?
       client_id = current_user.client_id
       cost_center_ids = current_user.associated_cost_centers.map(&:id)
       sub_unit_ids = current_user.associated_sub_units.map(&:id)
-      return OrderService.by_client_id(client_id).by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids).by_order_service_status_id(order_service_status_id).length
+      return OrderService.unscoped.by_client_id(client_id).by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids).by_order_service_status_id(order_service_status_id).count
     elsif current_user.provider?
       provider_state_id = -1
       if !current_user.address.nil? && !current_user.address.state.nil?
@@ -373,10 +373,10 @@ class OrderService < ApplicationRecord
       provider_service_types_ids = current_user.provider_service_types.map(&:id)
 
       if order_service_status_id == OrderServiceStatus::EM_ABERTO_ID
-        rejected_ids = current_user.rejected_order_services.map(&:id)
+        rejected_ids = current_user.rejected_order_services.pluck(:id)
         statuses_to_filter = [OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID]
-        return OrderService
-        .where.not(id: [rejected_ids])
+        return OrderService.unscoped
+        .where.not(id: rejected_ids)
         .by_state_id(provider_state_id)
         .by_provider_service_types_id(provider_service_types_ids)
         .by_provider_id_or_null(current_user.id)
@@ -387,22 +387,22 @@ class OrderService < ApplicationRecord
           current_user.id
         )
         .distinct
-        .length
+        .count(:id)
       # Em reavaliação e Cancelada - fornecedor vê apenas OSs onde ele tem proposta
-      elsif order_service_status_id == OrderServiceStatus::EM_REAVALIACAO_ID || 
+      elsif order_service_status_id == OrderServiceStatus::EM_REAVALIACAO_ID ||
             order_service_status_id == OrderServiceStatus::CANCELADA_ID
-        return OrderService
+        return OrderService.unscoped
         .by_order_service_status_id(order_service_status_id)
         .with_user_relation(current_user.id)
         .distinct
-        .length
+        .count(:id)
       else
-        return OrderService
+        return OrderService.unscoped
         .by_state_id(provider_state_id)
         .by_provider_service_types_id(provider_service_types_ids)
         .by_provider_id_or_null(current_user.id)
         .by_order_service_status_id(order_service_status_id)
-        .length
+        .count
       end
     end
   end
