@@ -318,8 +318,8 @@
   end
 
   def default_values
-    self.details ||= ""
-    self.order_service_proposal_status_id ||= OrderServiceProposalStatus::EM_CADASTRO_ID
+    self.details ||= "" if has_attribute?(:details)
+    self.order_service_proposal_status_id ||= OrderServiceProposalStatus::EM_CADASTRO_ID if has_attribute?(:order_service_proposal_status_id)
   end
 
   def set_warranty_start_date_on_authorization
