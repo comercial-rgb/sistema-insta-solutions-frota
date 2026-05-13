@@ -420,12 +420,14 @@ os_base = {
 }
 
 os1 = create_os(os_base.merge(
-  vehicle_id:              v1.id,
-  order_service_status_id: OS_STATUS_EM_ABERTO,
-  km:                      46_800,
-  details:                 'Substituição de pastilhas de freio dianteiras — anomalia identificada em checklist.'
+  vehicle_id:                     v1.id,
+  order_service_status_id:        OS_STATUS_EM_ABERTO,
+  km:                             46_800,
+  details:                        'Substituição de pastilhas de freio dianteiras — anomalia identificada em checklist.',
+  directed_to_specific_providers: true
 ))
-puts "[PoC]   #{os1.code} — EM ABERTO (#{v1.board})"
+os1.directed_providers << fornecedor1 rescue nil
+puts "[PoC]   #{os1.code} — EM ABERTO (#{v1.board}) — direcionada ao Fornecedor 1"
 
 os2 = create_os(os_base.merge(
   vehicle_id:              v1.id,
