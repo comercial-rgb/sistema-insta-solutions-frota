@@ -69,7 +69,18 @@ module MenuHelper
 				opened: is_current_controller?("custom_reports"),
 				icon: "bi bi-file-earmark-bar-graph",
 				label: "Relatórios Personalizados",
-				href: custom_reports_path
+				submenus: [
+					{
+						opened: is_current_controller?("custom_reports") && is_current_action?("index"),
+						label: "Relatório por OS",
+						href: custom_reports_path
+					},
+					{
+						opened: is_current_controller?("custom_reports") && is_current_action?("provider_report"),
+						label: "Por Estabelecimento",
+						href: provider_report_path
+					}
+				]
 			})
 		end
 
