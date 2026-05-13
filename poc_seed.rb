@@ -104,6 +104,9 @@ if poc_user_ids.any?
   VehicleChecklist.where(id: poc_checklist_ids).delete_all                        if poc_checklist_ids.any?
 
   VehicleKmRecord.where(vehicle_id: poc_vehicle_ids).delete_all if poc_vehicle_ids.any?
+  # Deletar maintenance_alerts antes dos veículos (FK constraint)
+  MaintenanceAlert.where(vehicle_id: poc_vehicle_ids).delete_all if poc_vehicle_ids.any? && defined?(MaintenanceAlert)
+  ActiveRecord::Base.connection.execute("DELETE FROM maintenance_alerts WHERE vehicle_id IN (#{poc_vehicle_ids.join(',')})") if poc_vehicle_ids.any?
   Vehicle.where(id: poc_vehicle_ids).delete_all                  if poc_vehicle_ids.any?
 
   Commitment.where(id: poc_commit_ids).delete_all      if poc_commit_ids.any?
