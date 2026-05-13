@@ -23,14 +23,17 @@
     </div>
 
     <%
-      _is_diagnostico_reuse = f.object.order_service.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID
-      _first_submitted_reuse = _is_diagnostico_reuse ? f.object.order_service.order_service_proposals
+      # Botão disponível para fornecedores em qualquer OS que tenha veículo vinculado
+      _os_has_vehicle = f.object.order_service.vehicle_id.present?
+      _is_provider_user = @current_user.provider?
+      _first_submitted_reuse = (_os_has_vehicle && _is_provider_user) ? f.object.order_service.order_service_proposals
+        .where(provider_id: @current_user.id)
         .where.not(order_service_proposal_status_id: [
           OrderServiceProposalStatus::EM_CADASTRO_ID,
           OrderServiceProposalStatus::CANCELADA_ID,
           OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID
         ]).order(:created_at).first : nil
-      _can_reuse = _is_diagnostico_reuse && (
+      _can_reuse = _os_has_vehicle && _is_provider_user && (
         _first_submitted_reuse.nil? ||
         _first_submitted_reuse.id == f.object.id
       )

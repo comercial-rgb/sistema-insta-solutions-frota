@@ -490,8 +490,18 @@ class OrderServiceProposalsController < ApplicationController
       .where(order_services: { vehicle_id: os.vehicle_id })
       .where.not(order_service_id: os.id)
       .where(order_service_proposal_status_id: valid_statuses, is_complement: false)
-      .order(created_at: :desc)
-      .limit(10)
+
+    # Fornecedor vê apenas suas próprias propostas
+    if @current_user.provider?
+      proposals = proposals.where(provider_id: @current_user.id)
+    end
+
+    # Filtrar pelo mesmo tipo de OS (Diagnóstico, Cotação, etc.)
+    if os.order_service_type_id.present?
+      proposals = proposals.where(order_services: { order_service_type_id: os.order_service_type_id })
+    end
+
+    proposals = proposals.order(created_at: :desc).limit(10)
 
     result = proposals.map do |p|
       items = p.order_service_proposal_items.reject(&:is_complement).map do |item|
