@@ -438,9 +438,7 @@ class FaturamentoController < ApplicationController
 
     os_scope = os_scope.by_cost_center_id(params[:cost_center_id]) if params[:cost_center_id].present?
 
-    if params[:sub_unit_id].present?
-      os_scope = os_scope.joins(:vehicle).where(vehicles: { sub_unit_id: params[:sub_unit_id] })
-    end
+    os_scope = os_scope.by_sub_unit_id(params[:sub_unit_id]) if params[:sub_unit_id].present?
 
     # Filtro por empenho
     if params[:commitment_id].present?
