@@ -1,6 +1,6 @@
 class NotificationMailer < ApplicationMailer
 
-	default from: I18n.t('session.project')+' <comercial@instasolutions.com.br>'
+	default from: I18n.t('session.project')+' <noreply@frotainstasolutions.com.br>'
 	TO_DEVELOPMENT = "andre.sulivam@sulivam.com.br"
 
 	def forgot_password(user, system_configuration)
