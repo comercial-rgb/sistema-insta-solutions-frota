@@ -14,6 +14,10 @@ class Rack::Attack
     req.ip if req.post? && req.path == '/api/v1/auth/login'
   end
 
+  throttle('web/sessions/ip', limit: LOGIN_LIMIT, period: LOGIN_PERIOD) do |req|
+    req.ip if req.post? && req.path == '/sessions'
+  end
+
   throttle('api/v1/auth/recover_pass/ip', limit: RECOVER_LIMIT, period: RECOVER_PERIOD) do |req|
     req.ip if req.post? && req.path == '/api/v1/auth/recover_pass'
   end
