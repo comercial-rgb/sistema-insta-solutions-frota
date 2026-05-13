@@ -1,3 +1,17 @@
+<%
+  _exp_type  = local_assigns[:expected_type_id]
+  _hp        = local_assigns[:has_pecas]
+  _hs        = local_assigns[:has_servicos]
+  _nf_collection = if _hp && !_hs
+    OrderServiceInvoiceType.where(id: OrderServiceInvoiceType::PECAS_ID)
+  elsif _hs && !_hp
+    OrderServiceInvoiceType.where(id: OrderServiceInvoiceType::SERVICOS_ID)
+  else
+    OrderServiceInvoiceType.all
+  end
+  _locked = _exp_type.present?
+%>
+
 <div class="col-12 col-md-2">
     <%= order_service_invoice.input :number, input_html: {class: 'order_service_invoice_number'} %>
 </div>
@@ -7,7 +21,14 @@
 </div>
 
 <div class="col-12 col-md-2">
-    <%= order_service_invoice.association :order_service_invoice_type, input_html: {class: 'order_service_invoice_order_service_invoice_type_id'}, collection: OrderServiceInvoiceType.all, as: :select, include_blank: false %>
+    <%= order_service_invoice.association :order_service_invoice_type,
+          input_html: { class: 'order_service_invoice_order_service_invoice_type_id', disabled: _locked },
+          collection: _nf_collection,
+          as: :select,
+          include_blank: false %>
+    <% if _locked %>
+      <%= order_service_invoice.hidden_field :order_service_invoice_type_id, value: _exp_type %>
+    <% end %>
 </div>
 
 <div class="col-12 col-md-2">
