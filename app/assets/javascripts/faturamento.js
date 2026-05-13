@@ -321,18 +321,25 @@ var Faturamento = (function() {
 
   // ========== MARCAR PAGO ==========
 
-  function marcarPago(id) {
-    if (!confirm('Confirma que esta fatura foi paga?')) return;
+  function marcarPago(id, tipo) {
+    var tipoLabel = tipo === 'pecas' ? 'as peças' : (tipo === 'servicos' ? 'os serviços' : 'esta fatura');
+    if (!confirm('Confirma que ' + tipoLabel + ' foram pagos?')) return;
+
+    var payload = { data_pagamento: new Date().toISOString().substring(0, 10) };
+    if (tipo) payload.tipo = tipo;
 
     $.ajax({
       url: '/faturamento/' + id + '/marcar_pago',
       method: 'POST',
       headers: { 'X-CSRF-Token': csrfToken() },
-      data: JSON.stringify({ data_pagamento: new Date().toISOString().substring(0, 10) }),
+      data: JSON.stringify(payload),
       contentType: 'application/json',
       dataType: 'json',
-      success: function() {
-        showAlert('Fatura marcada como paga!');
+      success: function(resp) {
+        var msg = tipo === 'pecas' ? 'Peças marcadas como pagas!' :
+                  (tipo === 'servicos' ? 'Serviços marcados como pagos!' : 'Fatura marcada como paga!');
+        if (resp.status === 'paga' && tipo && tipo !== 'ambos') msg += ' Fatura totalmente quitada.';
+        showAlert(msg);
         setTimeout(function() { window.location.reload(); }, 1000);
       },
       error: function(xhr) {

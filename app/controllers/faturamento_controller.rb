@@ -76,6 +76,8 @@ class FaturamentoController < ApplicationController
     total_bruto = 0
     total_com_desconto = 0
     total_desconto = 0
+    total_bruto_pecas = 0.0
+    total_bruto_servicos = 0.0
     items_data = []
 
     order_services.each do |os|
@@ -88,6 +90,11 @@ class FaturamentoController < ApplicationController
       total_bruto += os_bruto
       total_com_desconto += os_com_desconto
       total_desconto += os_desconto
+
+      # Acumula valores por tipo para controle de baixa parcial
+      bruto_p, bruto_s = parts_services_for_retention(proposal, 'bruto')
+      total_bruto_pecas    += bruto_p
+      total_bruto_servicos += bruto_s
 
       items_data << {
         order_service_id: os.id,
@@ -146,6 +153,11 @@ class FaturamentoController < ApplicationController
 
     # Build fatura
     vencimento = params[:vencimento].present? ? Date.parse(params[:vencimento]) : (Date.current + 30.days)
+
+    # Status por tipo: se não há valor do tipo, marcar como 'nao_aplicavel'
+    st_pecas    = total_bruto_pecas    > 0 ? 'aberta' : 'nao_aplicavel'
+    st_servicos = total_bruto_servicos > 0 ? 'aberta' : 'nao_aplicavel'
+
     @fatura = Fatura.new(
       numero: Fatura.gerar_numero,
       client_id: client.id,
@@ -161,7 +173,11 @@ class FaturamentoController < ApplicationController
       valor_final: valor_final.round(2),
       tipo_valor: tipo_valor,
       total_itens: items_data.size,
-      observacoes: params[:observacoes]
+      observacoes: params[:observacoes],
+      valor_bruto_pecas:    total_bruto_pecas.round(2),
+      valor_bruto_servicos: total_bruto_servicos.round(2),
+      status_pecas:    st_pecas,
+      status_servicos: st_servicos
     )
 
     os_ids_invoiced = order_services.pluck(:id)
@@ -273,20 +289,27 @@ class FaturamentoController < ApplicationController
 
     unless %w[aberta enviada].include?(@fatura.status)
       respond_to do |format|
+        format.html { redirect_to faturamento_path(@fatura), alert: "Fatura já está #{@fatura.status}." }
         format.json { render json: { error: "Fatura está #{@fatura.status}, não pode ser marcada como paga." }, status: :bad_request }
       end
       return
     end
 
-    @fatura.update!(
-      status: 'paga',
-      data_pagamento: params[:data_pagamento].presence || Date.current,
-      pago_por_id: @current_user.id
-    )
+    tipo = params[:tipo].presence || 'ambos'
+    data = params[:data_pagamento].present? ? Date.parse(params[:data_pagamento]) : Date.current
+
+    @fatura.marcar_tipo_pago!(tipo, data: data, user_id: @current_user.id)
+
+    msg = case tipo
+          when 'pecas'    then 'Peças marcadas como pagas!'
+          when 'servicos' then 'Serviços marcados como pagos!'
+          else                 'Fatura marcada como paga!'
+          end
+    msg += ' Fatura totalmente quitada.' if @fatura.reload.status == 'paga' && tipo != 'ambos'
 
     respond_to do |format|
-      format.html { redirect_to faturamento_path(@fatura), notice: 'Fatura marcada como paga!' }
-      format.json { render json: { success: true } }
+      format.html { redirect_to faturamento_path(@fatura), notice: msg }
+      format.json { render json: { success: true, status: @fatura.status, status_pecas: @fatura.status_pecas, status_servicos: @fatura.status_servicos } }
     end
   end
 

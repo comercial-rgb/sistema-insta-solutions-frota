@@ -128,8 +128,10 @@ module Utils
         @pdf.text "Cliente / Contratante", style: :bold, color: BLUE_DARK
         @pdf.move_down 4
 
-        client_name = @client&.social_name.presence || @client&.fantasy_name.presence || @client&.name || '-'
-        cnpj = @client&.cnpj || '-'
+        cost_center = @fatura.respond_to?(:cost_center) ? @fatura.cost_center : nil
+        client_name = cost_center&.invoice_name.presence ||
+                      @client&.social_name.presence || @client&.fantasy_name.presence || @client&.name || '-'
+        cnpj = cost_center&.invoice_cnpj.presence || @client&.cnpj || '-'
         address = @client&.respond_to?(:get_address) ? @client.get_address : '-'
         city = @client&.respond_to?(:get_city) ? @client.get_city : ''
         state = @client&.respond_to?(:get_state) ? @client.get_state : ''

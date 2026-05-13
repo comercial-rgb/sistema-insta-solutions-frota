@@ -67,9 +67,26 @@ breadcrumbs = [
               <i class="bi bi-file-earmark-spreadsheet"></i> Excel
             </a>
             <% if @current_user.admin? && %w[aberta enviada].include?(@fatura.status) %>
-              <button class="btn btn-sm btn-success" onclick="Faturamento.marcarPago(<%= @fatura.id %>)">
-                <i class="bi bi-check-circle-fill"></i> Marcar como Pago
-              </button>
+              <% tem_ambos = @fatura.tem_pecas? && @fatura.tem_servicos? %>
+              <% if tem_ambos %>
+                <% if @fatura.status_pecas == 'aberta' %>
+                  <button class="btn btn-sm btn-outline-success" onclick="Faturamento.marcarPago(<%= @fatura.id %>, 'pecas')" title="Dar baixa apenas nas peças">
+                    <i class="bi bi-tools"></i> Pagar Peças
+                  </button>
+                <% end %>
+                <% if @fatura.status_servicos == 'aberta' %>
+                  <button class="btn btn-sm btn-outline-success" onclick="Faturamento.marcarPago(<%= @fatura.id %>, 'servicos')" title="Dar baixa apenas nos serviços">
+                    <i class="bi bi-wrench"></i> Pagar Serviços
+                  </button>
+                <% end %>
+                <button class="btn btn-sm btn-success" onclick="Faturamento.marcarPago(<%= @fatura.id %>, 'ambos')" title="Dar baixa em peças e serviços">
+                  <i class="bi bi-check-circle-fill"></i> Pagar Tudo
+                </button>
+              <% else %>
+                <button class="btn btn-sm btn-success" onclick="Faturamento.marcarPago(<%= @fatura.id %>)">
+                  <i class="bi bi-check-circle-fill"></i> Marcar como Pago
+                </button>
+              <% end %>
             <% end %>
           </div>
         </div>
@@ -87,9 +104,10 @@ breadcrumbs = [
             <i class="bi bi-building"></i> Cliente
           </h6>
           <div style="line-height:1.8">
-            <strong><%= @fatura.client&.fantasy_name.presence || @fatura.client&.social_name.presence || @fatura.client&.name || '-' %></strong><br>
-            <% if @fatura.client&.cnpj.present? %>
-              CNPJ: <%= @fatura.client.cnpj %><br>
+            <strong><%= @fatura.nome_faturamento || '-' %></strong><br>
+            <% cnpj_exibir = @fatura.cnpj_faturamento %>
+            <% if cnpj_exibir.present? %>
+              CNPJ: <%= cnpj_exibir %><br>
             <% end %>
             <% if @fatura.client&.phone.present? %>
               <i class="bi bi-telephone"></i> <%= @fatura.client.phone %><br>

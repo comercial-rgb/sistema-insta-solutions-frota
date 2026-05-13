@@ -187,7 +187,12 @@ module Utils
         # === CLIENTE / CONTRATANTE ===
         body_xml << wp_heading('Cliente / Contratante', 13, color: '251C59')
 
-        client_name = @client&.social_name.presence || @client&.fantasy_name.presence || @client&.name || '-'
+        # Razão social e CNPJ: prioridade para dados específicos do centro de custo
+        # (ex.: Secretaria de Saúde tem CNPJ próprio diferente da Prefeitura)
+        cost_center = @fatura.respond_to?(:cost_center) ? @fatura.cost_center : nil
+        client_name = cost_center&.invoice_name.presence ||
+                      @client&.social_name.presence || @client&.fantasy_name.presence || @client&.name || '-'
+        client_cnpj = cost_center&.invoice_cnpj.presence || @client&.cnpj || '-'
         client_address = @client&.respond_to?(:get_address) ? @client.get_address : '-'
         client_city = @client&.respond_to?(:get_city) ? @client.get_city : ''
         client_state = @client&.respond_to?(:get_state) ? @client.get_state : ''
@@ -196,7 +201,7 @@ module Utils
         client_email = @client&.email || '-'
 
         client_rows = [
-          ['Razão Social:', client_name, 'CNPJ:', @client&.cnpj || '-'],
+          ['Razão Social:', client_name, 'CNPJ:', client_cnpj],
           ['Endereço:', "#{client_address} - #{client_city_uf}", 'Esfera:', sphere_name],
           ['Desconto Contrato:', "#{fmt_pct(@client&.discount_percent)}%", 'Telefone:', client_phone],
           ['Centro de Custo:', @fatura.cost_center&.name || '-', 'E-mail:', client_email]
