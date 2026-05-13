@@ -109,12 +109,21 @@ breadcrumbs = [
         <!-- Subunidade -->
         <div class="col-md-3">
           <%= label_tag :sub_unit_id, 'Subunidade', class: 'form-label' %>
-          <%= select_tag :sub_unit_id, 
-              options_from_collection_for_select(@sub_units, :id, :name, params[:sub_unit_id]), 
-              { include_blank: 'Todas as subunidades', class: 'form-select' } 
+          <%= select_tag :sub_unit_id,
+              options_from_collection_for_select(@sub_units, :id, :name, params[:sub_unit_id]),
+              { include_blank: 'Todas as subunidades', class: 'form-select' }
           %>
         </div>
-        
+
+        <!-- Empenho -->
+        <div class="col-md-3">
+          <%= label_tag :commitment_id, 'Empenho', class: 'form-label' %>
+          <%= select_tag :commitment_id,
+              options_from_collection_for_select(@commitments, :id, :commitment_number, params[:commitment_id]),
+              { include_blank: 'Todos os empenhos', class: 'form-select' }
+          %>
+        </div>
+
         <!-- Veículo -->
         <div class="col-md-3">
           <%= label_tag :vehicle_id, 'Veículo', class: 'form-label' %>

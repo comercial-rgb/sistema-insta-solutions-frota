@@ -55,6 +55,13 @@ class CustomReportsController < ApplicationController
     else
       Vehicle.getting_data_by_user(@current_user)
     end
+    @commitments = if @current_user.admin?
+      Commitment.active.order(:commitment_number)
+    elsif @current_user.manager? || @current_user.additional?
+      Commitment.active.where(client_id: @current_user.client_id).order(:commitment_number)
+    else
+      Commitment.none
+    end
     
     # Inicializar como vazio se não houver filtros
     if has_filters?
@@ -179,7 +186,8 @@ class CustomReportsController < ApplicationController
     params[:month].present? || params[:year].present? ||
     params[:status_id].present? || params[:type_id].present? ||
     params[:vehicle_id].present? || params[:provider_id].present? ||
-    params[:cost_center_id].present? || params[:sub_unit_id].present?
+    params[:cost_center_id].present? || params[:sub_unit_id].present? ||
+    params[:commitment_id].present?
   end
 
   def authorize_access
@@ -272,7 +280,16 @@ class CustomReportsController < ApplicationController
     if params[:sub_unit_id].present?
       scope = scope.joins(:vehicle).where(vehicles: { sub_unit_id: params[:sub_unit_id] })
     end
-    
+
+    # Filtro por empenho (cobre empenho geral, de peças e de serviços)
+    if params[:commitment_id].present?
+      cid = params[:commitment_id].to_i
+      scope = scope.where(
+        'order_services.commitment_id = :cid OR order_services.commitment_parts_id = :cid OR order_services.commitment_services_id = :cid',
+        cid: cid
+      )
+    end
+
     scope.order(created_at: :desc)
   end
 
@@ -708,6 +725,11 @@ class CustomReportsController < ApplicationController
       if report_params[:sub_unit_id].present?
         sub_unit = SubUnit.find_by(id: report_params[:sub_unit_id])
         filters_lines << "Subunidade: #{sub_unit&.name || '-'}"
+      end
+
+      if report_params[:commitment_id].present?
+        commitment = Commitment.find_by(id: report_params[:commitment_id])
+        filters_lines << "Empenho: #{commitment&.commitment_number || '-'}"
       end
 
       if filters_lines.any?
