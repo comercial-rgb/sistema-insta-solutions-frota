@@ -1268,6 +1268,13 @@ class OrderServicesController < ApplicationController
       handle_directed_providers
       @order_service.audit_creation(@current_user)
       save_files
+
+      # Notificar fornecedor por e-mail quando OS de Diagnóstico é aberta
+      if @order_service.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID &&
+         @order_service.order_service_status_id == OrderServiceStatus::EM_ABERTO_ID
+        notify_diagnostico_providers
+      end
+
       flash[:success] = t('flash.create')
       redirect_to show_order_services_path(order_service_status_id: @order_service.order_service_status_id)
     else
@@ -1879,6 +1886,20 @@ class OrderServicesController < ApplicationController
   end
 
   # Processar fornecedores direcionados (envio para fornecedores específicos)
+  def notify_diagnostico_providers
+    # Fornecedores a notificar: provider_id da OS OU directed_providers
+    providers = []
+    providers << @order_service.provider if @order_service.provider_id.present?
+    providers += @order_service.directed_providers.to_a if @order_service.directed_providers.any?
+    providers = providers.uniq(&:id).select { |p| p.email.present? && CustomHelper.address_valid?(p.email) }
+
+    providers.each do |provider|
+      NotificationMailer.os_diagnostico_aberta(@order_service, provider).deliver_later
+    end
+  rescue => e
+    Rails.logger.error "Erro ao notificar fornecedores (OS #{@order_service.code}): #{e.message}"
+  end
+
   def handle_directed_providers
     # Para Diagnóstico, só processa quando estiver liberando para cotação
     if @order_service.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID

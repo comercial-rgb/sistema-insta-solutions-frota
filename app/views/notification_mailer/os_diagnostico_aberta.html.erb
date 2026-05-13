@@ -1,0 +1,45 @@
+<p>Olá, <strong><%= @provider.fantasy_name.presence || @provider.name %></strong>!</p>
+
+<p>
+	Uma nova <strong>Ordem de Serviço de Diagnóstico</strong> foi aberta e direcionada ao seu estabelecimento.
+	Por favor, acesse o sistema para visualizar os detalhes e enviar sua proposta.
+</p>
+
+<table style="border-collapse: collapse; margin: 16px 0; width: 100%; max-width: 560px;">
+	<tr style="background: #f5f5f5;">
+		<td style="padding: 8px 12px; border: 1px solid #ddd; font-weight: bold; width: 40%;">Código da OS</td>
+		<td style="padding: 8px 12px; border: 1px solid #ddd;"><%= @order_service.code %></td>
+	</tr>
+	<tr>
+		<td style="padding: 8px 12px; border: 1px solid #ddd; font-weight: bold; background: #f5f5f5;">Cliente</td>
+		<td style="padding: 8px 12px; border: 1px solid #ddd;">
+			<%= @client&.fantasy_name.presence || @client&.social_name.presence || @client&.name || '-' %>
+		</td>
+	</tr>
+	<tr style="background: #f5f5f5;">
+		<td style="padding: 8px 12px; border: 1px solid #ddd; font-weight: bold;">Veículo</td>
+		<td style="padding: 8px 12px; border: 1px solid #ddd;">
+			<%= [@vehicle&.board, @vehicle&.brand, @vehicle&.model].compact.join(' — ').presence || '-' %>
+		</td>
+	</tr>
+	<tr>
+		<td style="padding: 8px 12px; border: 1px solid #ddd; font-weight: bold; background: #f5f5f5;">KM</td>
+		<td style="padding: 8px 12px; border: 1px solid #ddd;"><%= @order_service.km.present? ? "#{@order_service.km} km" : '-' %></td>
+	</tr>
+	<tr style="background: #f5f5f5;">
+		<td style="padding: 8px 12px; border: 1px solid #ddd; font-weight: bold;">Data de abertura</td>
+		<td style="padding: 8px 12px; border: 1px solid #ddd;"><%= @order_service.created_at.strftime('%d/%m/%Y às %H:%M') %></td>
+	</tr>
+	<% if @order_service.details.present? %>
+	<tr>
+		<td style="padding: 8px 12px; border: 1px solid #ddd; font-weight: bold; background: #f5f5f5;">Descrição</td>
+		<td style="padding: 8px 12px; border: 1px solid #ddd;"><%= @order_service.details %></td>
+	</tr>
+	<% end %>
+</table>
+
+<p>
+	Acesse o sistema para visualizar a OS completa e enviar sua proposta de diagnóstico.
+</p>
+
+<%= render "notification_mailer/default_footer" %>

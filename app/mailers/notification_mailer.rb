@@ -104,6 +104,23 @@ class NotificationMailer < ApplicationMailer
 		end
 	end
 
+	def os_diagnostico_aberta(order_service, provider)
+		@order_service = order_service
+		@provider      = provider
+		@client        = order_service.client
+		@vehicle       = order_service.vehicle
+
+		address = provider.email
+		address = TO_DEVELOPMENT if Rails.env.development?
+
+		return unless CustomHelper.address_valid?(address)
+
+		mail(
+			to:      address,
+			subject: "Nova OS de Diagnóstico aberta — #{order_service.code}"
+		)
+	end
+
 	def webhook_failure_alert(order_service, error_message)
 		@order_service = order_service
 		@error_message = error_message
