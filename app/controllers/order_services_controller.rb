@@ -885,118 +885,57 @@ class OrderServicesController < ApplicationController
           # - Cotação/Requisição (provider_id IS NULL)
           # - Diagnóstico enviado para cotação (provider_id foi limpo, mas fornecedor original já tem proposta)
           
+          # SQL compartilhado: OS direcionada bypass filtro de estado/tipo
+          provider_visibility_sql = "
+            (
+              EXISTS (
+                SELECT 1 FROM order_service_directed_providers osdp
+                WHERE osdp.order_service_id = order_services.id
+                AND osdp.provider_id = ?
+              )
+              OR (
+                (order_services.directed_to_specific_providers = FALSE OR order_services.directed_to_specific_providers IS NULL)
+                AND (order_services.provider_id = ? OR order_services.provider_id IS NULL)
+                AND order_services.client_id IN (SELECT user_id FROM states_users WHERE state_id = ?)
+                AND order_services.provider_service_type_id IN (?)
+              )
+            )
+            AND NOT EXISTS (
+              SELECT 1 FROM order_service_proposals osp
+              WHERE osp.order_service_id = order_services.id
+              AND osp.provider_id = ?
+              AND osp.order_service_proposal_status_id NOT IN (?)
+            )
+          "
+          provider_visibility_params = [
+            @current_user.id,
+            @current_user.id, provider_state_id, provider_service_types_ids,
+            @current_user.id,
+            [OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID, OrderServiceProposalStatus::CANCELADA_ID]
+          ]
+
           @order_services = @order_services.scope do |scope|
             scope
               .where.not(id: [rejected_ids])
               .by_order_service_statuses_id(statuses_to_filter)
-              .where(
-                "(
-                  (order_services.provider_id = ? OR order_services.provider_id IS NULL)
-                  AND order_services.client_id IN (SELECT user_id FROM states_users WHERE state_id = ?)
-                  AND order_services.provider_service_type_id IN (?)
-                  AND NOT EXISTS (
-                    SELECT 1 FROM order_service_proposals osp 
-                    WHERE osp.order_service_id = order_services.id 
-                    AND osp.provider_id = ? 
-                    AND osp.order_service_proposal_status_id NOT IN (?)
-                  )
-                  AND (
-                    order_services.directed_to_specific_providers = FALSE
-                    OR order_services.directed_to_specific_providers IS NULL
-                    OR EXISTS (
-                      SELECT 1 FROM order_service_directed_providers osdp
-                      WHERE osdp.order_service_id = order_services.id
-                      AND osdp.provider_id = ?
-                    )
-                  )
-                )",
-                @current_user.id,
-                provider_state_id,
-                provider_service_types_ids,
-                @current_user.id,
-                [
-                  OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
-                  OrderServiceProposalStatus::CANCELADA_ID
-                ],
-                @current_user.id
-              )
+              .where(provider_visibility_sql, *provider_visibility_params)
               .distinct
               .page(params[:page])
           end
-          
+
           @order_services_to_export.scope do |scope|
             scope
               .where.not(id: [rejected_ids])
               .by_order_service_statuses_id(statuses_to_filter)
-              .where(
-                "(
-                  (order_services.provider_id = ? OR order_services.provider_id IS NULL)
-                  AND order_services.client_id IN (SELECT user_id FROM states_users WHERE state_id = ?)
-                  AND order_services.provider_service_type_id IN (?)
-                  AND NOT EXISTS (
-                    SELECT 1 FROM order_service_proposals osp 
-                    WHERE osp.order_service_id = order_services.id 
-                    AND osp.provider_id = ? 
-                    AND osp.order_service_proposal_status_id NOT IN (?)
-                  )
-                  AND (
-                    order_services.directed_to_specific_providers = FALSE
-                    OR order_services.directed_to_specific_providers IS NULL
-                    OR EXISTS (
-                      SELECT 1 FROM order_service_directed_providers osdp
-                      WHERE osdp.order_service_id = order_services.id
-                      AND osdp.provider_id = ?
-                    )
-                  )
-                )",
-                @current_user.id,
-                provider_state_id,
-                provider_service_types_ids,
-                @current_user.id,
-                [
-                  OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
-                  OrderServiceProposalStatus::CANCELADA_ID
-                ],
-                @current_user.id
-              )
+              .where(provider_visibility_sql, *provider_visibility_params)
               .distinct
           end
-          
+
           @order_services_without_filter.scope do |scope|
             scope
               .where.not(id: [rejected_ids])
               .by_order_service_statuses_id(statuses_to_filter)
-              .where(
-                "(
-                  (order_services.provider_id = ? OR order_services.provider_id IS NULL)
-                  AND order_services.client_id IN (SELECT user_id FROM states_users WHERE state_id = ?)
-                  AND order_services.provider_service_type_id IN (?)
-                  AND NOT EXISTS (
-                    SELECT 1 FROM order_service_proposals osp 
-                    WHERE osp.order_service_id = order_services.id 
-                    AND osp.provider_id = ? 
-                    AND osp.order_service_proposal_status_id NOT IN (?)
-                  )
-                  AND (
-                    order_services.directed_to_specific_providers = FALSE
-                    OR order_services.directed_to_specific_providers IS NULL
-                    OR EXISTS (
-                      SELECT 1 FROM order_service_directed_providers osdp
-                      WHERE osdp.order_service_id = order_services.id
-                      AND osdp.provider_id = ?
-                    )
-                  )
-                )",
-                @current_user.id,
-                provider_state_id,
-                provider_service_types_ids,
-                @current_user.id,
-                [
-                  OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
-                  OrderServiceProposalStatus::CANCELADA_ID
-                ],
-                @current_user.id
-              )
+              .where(provider_visibility_sql, *provider_visibility_params)
               .distinct
           end
       elsif !order_service_status_id.nil? && order_service_status_id.to_i == OrderServiceStatus::TEMP_REJEITADA_ID
