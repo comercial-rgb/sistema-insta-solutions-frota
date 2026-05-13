@@ -275,7 +275,7 @@
   def can_manage_by_pendent_value
     commitment = self.order_service.commitment
     values = Commitment.getting_values_to_commitment(commitment)
-    return (values[:pendent_value] >= self.total_value)
+    return (values[:pendent_value] >= self.total_value.to_f)
   end
 
   def approval_justification_triggers
