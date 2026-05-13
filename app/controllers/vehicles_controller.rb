@@ -30,6 +30,16 @@ class VehiclesController < ApplicationController
       @vehicles.scope {|scope| scope.by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids).page(params[:page]) }
       @vehicles_to_export.scope {|scope| scope.by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids) }
       fleet_scope = Vehicle.by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids)
+    elsif @current_user.provider?
+      # Fornecedor vê apenas veículos de OSs onde tem propostas ou direcionamento
+      vehicle_ids = OrderServiceProposal.where(provider_id: @current_user.id)
+        .joins(:order_service).pluck('order_services.vehicle_id').uniq.compact
+      directed_vehicle_ids = @current_user.directed_order_services
+        .pluck(:vehicle_id).uniq.compact rescue []
+      all_vehicle_ids = (vehicle_ids + directed_vehicle_ids).uniq
+      @vehicles.scope {|scope| scope.where(id: all_vehicle_ids).page(params[:page]) }
+      @vehicles_to_export.scope {|scope| scope.where(id: all_vehicle_ids) }
+      fleet_scope = Vehicle.where(id: all_vehicle_ids)
     else
       fleet_scope = Vehicle.none
     end

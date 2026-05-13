@@ -71,27 +71,36 @@ class OrderServicesController < ApplicationController
 
   def rejected_history
     authorize OrderService
-    
-    # Buscar apenas OSs que possuem fornecedores rejeitados
-    @order_services = OrderService
-      .joins(:rejected_providers)
-      .includes(:client, :manager, :rejected_providers)
-      .distinct
-    
-    # Aplicar filtros
-    if params[:client_id].present?
-      @order_services = @order_services.where(client_id: params[:client_id])
+
+    if current_user.provider?
+      # Fornecedor vê apenas OSs que ELE rejeitou
+      @order_services = current_user.rejected_order_services
+        .includes(:client, :manager, :rejected_providers)
+        .distinct
+      @is_provider_view = true
+    else
+      # Admin/Gestor: todas as OSs com fornecedores rejeitados
+      @order_services = OrderService
+        .joins(:rejected_providers)
+        .includes(:client, :manager, :rejected_providers)
+        .distinct
+
+      if params[:client_id].present?
+        @order_services = @order_services.where(client_id: params[:client_id])
+      end
+
+      if params[:code].present?
+        @order_services = @order_services.where("order_services.code LIKE ?", "%#{params[:code]}%")
+      end
+
+      @is_provider_view = false
     end
-    
-    if params[:code].present?
-      @order_services = @order_services.where("order_services.code LIKE ?", "%#{params[:code]}%")
-    end
-    
+
     @order_services = @order_services
       .order(created_at: :desc)
       .page(params[:page])
       .per(50)
-    
+
     render 'order_services/rejected_history'
   end
 
