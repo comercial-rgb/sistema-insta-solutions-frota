@@ -553,6 +553,26 @@ class OrderService < ApplicationRecord
       OrderServiceProposalStatus::PAGA_ID
     ]
 
+    # Quando a associação já está carregada em memória (ex: grid com includes),
+    # filtra em Ruby para evitar N+1 por linha.
+    if order_service_proposals.loaded?
+      proposals = order_service_proposals.to_a
+      main_candidates = proposals.select { |p| !p.is_complement && approved_statuses.include?(p.order_service_proposal_status_id) }
+      main = if provider_id.present?
+        main_candidates.select { |p| p.provider_id == provider_id }.max_by(&:updated_at) ||
+        main_candidates.max_by(&:updated_at)
+      else
+        main_candidates.max_by(&:updated_at)
+      end
+      if main.present?
+        OrderServiceProposal.ensure_total_values(main)
+        return main
+      end
+      result = proposals.select { |p| approved_statuses.include?(p.order_service_proposal_status_id) }.max_by(&:updated_at)
+      OrderServiceProposal.ensure_total_values(result) if result.present?
+      return result
+    end
+
     # Preferir a proposta principal (não complemento) e o fornecedor vinculado à OS.
     scope = order_service_proposals
       .where(is_complement: [false, nil])
@@ -642,6 +662,20 @@ class OrderService < ApplicationRecord
       OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
       OrderServiceProposalStatus::PAGA_ID
     ]
+
+    # Quando a associação já está carregada em memória (ex: grid com includes),
+    # filtra em Ruby para evitar N+1 por linha.
+    if order_service_proposals.loaded?
+      proposals = order_service_proposals.to_a
+      result = proposals
+        .select { |p| !p.is_complement && approved_statuses.include?(p.order_service_proposal_status_id) }
+        .max_by(&:updated_at)
+      result ||= proposals
+        .select { |p| approved_statuses.include?(p.order_service_proposal_status_id) }
+        .max_by(&:updated_at)
+      OrderServiceProposal.ensure_total_values(result) if result.present?
+      return @_approved_proposal = result
+    end
 
     # Preferir a proposta principal para evitar que um complemento aprovado
     # seja tratado como a proposta "aprovada" principal.

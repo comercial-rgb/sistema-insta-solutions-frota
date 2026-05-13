@@ -55,7 +55,7 @@ class MaintenanceAlertService
 
     last_service_km = vehicle.order_services
                               .where(maintenance_plan_id: plan_item.maintenance_plan_id)
-                              .where.not(order_service_status_id: OrderServiceStatus::CANCELADA)
+                              .where.not(order_service_status_id: OrderServiceStatus::CANCELADA_ID)
                               .order(created_at: :desc)
                               .first&.km || 0
 
@@ -90,7 +90,7 @@ class MaintenanceAlertService
 
     last_service = vehicle.order_services
                            .where(maintenance_plan_id: plan_item.maintenance_plan_id)
-                           .where.not(order_service_status_id: OrderServiceStatus::CANCELADA)
+                           .where.not(order_service_status_id: OrderServiceStatus::CANCELADA_ID)
                            .order(created_at: :desc)
                            .first
 

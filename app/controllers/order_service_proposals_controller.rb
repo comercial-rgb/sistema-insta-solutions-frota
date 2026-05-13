@@ -1448,8 +1448,8 @@ class OrderServiceProposalsController < ApplicationController
 
     begin
       @catalogo_sugestoes = CatalogoPeca.buscar_por_veiculo(vehicle).limit(200)
-      @catalogo_fornecedores = CatalogoPeca.fornecedores_disponiveis
-      @catalogo_grupos = CatalogoPeca.grupos_produto_disponiveis
+      @catalogo_fornecedores = Rails.cache.fetch('catalogo_pecas/fornecedores', expires_in: 12.hours) { CatalogoPeca.fornecedores_disponiveis }
+      @catalogo_grupos = Rails.cache.fetch('catalogo_pecas/grupos_produto', expires_in: 12.hours) { CatalogoPeca.grupos_produto_disponiveis }
 
       # Agrupa referências por grupo_produto para exibir no formulário
       @catalogo_sugestoes.each do |sug|

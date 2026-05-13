@@ -4,7 +4,16 @@ class CatalogoPeca < ApplicationRecord
   # Scopes de busca
   scope :by_fornecedor, ->(f) { where(fornecedor: f.upcase) if f.present? }
   scope :by_marca, ->(m) { where("LOWER(catalogo_pecas.marca) LIKE ?", "%#{m.downcase}%") if m.present? }
-  scope :by_veiculo, ->(v) { where("LOWER(catalogo_pecas.veiculo) LIKE ?", "%#{v.downcase}%") if v.present? }
+  scope :by_veiculo, ->(v) {
+    if v.present?
+      termos = v.split(/\s+/).select { |t| t.length >= 3 }.join(' ')
+      if termos.present?
+        where("MATCH(catalogo_pecas.veiculo) AGAINST(? IN BOOLEAN MODE)", termos)
+      else
+        where("LOWER(catalogo_pecas.veiculo) LIKE ?", "%#{v.downcase}%")
+      end
+    end
+  }
   scope :by_modelo, ->(m) { where("LOWER(catalogo_pecas.modelo) LIKE ?", "%#{m.downcase}%") if m.present? }
   scope :by_produto, ->(p) { where("LOWER(catalogo_pecas.produto) LIKE ?", "%#{p.downcase}%") if p.present? }
   scope :by_grupo_produto, ->(g) { where("LOWER(catalogo_pecas.grupo_produto) LIKE ?", "%#{g.downcase}%") if g.present? }
@@ -30,9 +39,14 @@ class CatalogoPeca < ApplicationRecord
     if modelo_veiculo.present?
       palavras_modelo = modelo_veiculo.split(/[\s\/\-]+/).select { |p| p.length > 1 }
       if palavras_modelo.any?
-        conditions = palavras_modelo.map { |p| "LOWER(catalogo_pecas.veiculo) LIKE ?" }
-        values = palavras_modelo.map { |p| "%#{p.downcase}%" }
-        query = query.where(conditions.join(" OR "), *values)
+        termos_ft = palavras_modelo.select { |p| p.length >= 3 }.map(&:downcase).join(' ')
+        if termos_ft.present?
+          query = query.where("MATCH(catalogo_pecas.veiculo) AGAINST(? IN BOOLEAN MODE)", termos_ft)
+        else
+          conditions = palavras_modelo.map { |p| "LOWER(catalogo_pecas.veiculo) LIKE ?" }
+          values = palavras_modelo.map { |p| "%#{p.downcase}%" }
+          query = query.where(conditions.join(" OR "), *values)
+        end
       end
     end
 
@@ -109,9 +123,14 @@ class CatalogoPeca < ApplicationRecord
       if vehicle.model.present?
         palavras = vehicle.model.split(/[\s\/\-]+/).select { |p| p.length > 1 }
         if palavras.any?
-          conds = palavras.map { |_| "LOWER(veiculo) LIKE ?" }
-          vals = palavras.map { |p| "%#{p.downcase}%" }
-          query = query.where(conds.join(" OR "), *vals)
+          termos_ft = palavras.select { |p| p.length >= 3 }.map(&:downcase).join(' ')
+          if termos_ft.present?
+            query = query.where("MATCH(veiculo) AGAINST(? IN BOOLEAN MODE)", termos_ft)
+          else
+            conds = palavras.map { |_| "LOWER(veiculo) LIKE ?" }
+            vals = palavras.map { |p| "%#{p.downcase}%" }
+            query = query.where(conds.join(" OR "), *vals)
+          end
         end
       end
 

@@ -136,7 +136,7 @@
   end
 
   def get_formatted_name_with_pendent_value
-    values = Commitment.getting_values_to_commitment(self)
+    values = @cached_values || Commitment.getting_values_to_commitment(self)
     self.get_text_name + ' - ' + CustomHelper.to_currency(values[:pendent_value])
   end
 
@@ -215,6 +215,7 @@
     commitments.each do |commitment|
       values = Commitment.getting_values_to_commitment(commitment)
       if values[:pendent_value] > 0
+        commitment.instance_variable_set(:@cached_values, values)
         result.push(commitment)
       end
     end

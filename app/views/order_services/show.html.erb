@@ -126,15 +126,16 @@ breadcrumbs = [
                 <tr>
                   <td>
                     <%= proposal.code %>
-                    <% if proposal.complement_proposals.any? %>
+                    <% complements = proposal.complement_proposals.to_a %>
+                    <% if complements.any? %>
                       <span class="badge bg-warning text-dark ms-2">
-                        <i class="bi bi-plus-square"></i> <%= proposal.complement_proposals.count %> complemento(s)
+                        <i class="bi bi-plus-square"></i> <%= complements.size %> complemento(s)
                       </span>
                     <% end %>
-                    <% pending_complements = proposal.complement_proposals.where(order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID) %>
+                    <% pending_complements = complements.select { |c| c.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID } %>
                     <% if pending_complements.any? %>
                       <span class="badge bg-danger ms-2">
-                        <i class="bi bi-exclamation-circle"></i> <%= pending_complements.count %> pendente(s)
+                        <i class="bi bi-exclamation-circle"></i> <%= pending_complements.size %> pendente(s)
                       </span>
                     <% end %>
                   </td>

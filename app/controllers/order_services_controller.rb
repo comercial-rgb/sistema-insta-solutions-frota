@@ -156,14 +156,13 @@ class OrderServicesController < ApplicationController
 
   def show
     authorize @order_service
-    @order_service.reload # Força reload para evitar cache
-    
+
     # Busca APENAS propostas que NÃO são complementos (complementos serão mostrados dentro da proposta pai)
     proposals_base = @order_service.order_service_proposals
       .reload
       .where.not(order_service_proposal_status_id: OrderServiceProposalStatus::EM_CADASTRO_ID)
       .where(is_complement: [false, nil])  # Excluir complementos da lista principal
-      .includes(:provider, :order_service_proposal_status, :order_service_proposal_items)
+      .includes(:provider, :order_service_proposal_status, :order_service_proposal_items, :complement_proposals)
     
     # 🔒 CORREÇÃO: Para fornecedores, filtrar apenas suas próprias propostas
     # Isso evita que um fornecedor veja propostas de outros fornecedores quando a OS
@@ -1914,15 +1913,13 @@ class OrderServicesController < ApplicationController
 
     items = OrderServiceProposalItem
       .joins(order_service_proposal: :order_service)
-      .includes(:service, order_service_proposal: [:provider, :order_service, :provider_service_temps])
+      .includes(:service, order_service_proposal: [:provider, :order_service])
       .where(order_services: { vehicle_id: vehicle_id })
       .where(order_service_proposals: { order_service_proposal_status_id: valid_statuses })
       .where.not(order_service_proposal_items: { warranty_period: [nil, 0] })
       .map do |item|
         proposal = item.order_service_proposal
-        
-        # Usar updated_at da proposta como data de início da garantia (quando foi autorizada)
-        # Para propostas autorizadas, essa é a data mais recente que reflete a autorização
+
         start_date = proposal.updated_at.to_date
         expires_at = start_date + item.warranty_period.days
         remaining_days = (expires_at - today).to_i

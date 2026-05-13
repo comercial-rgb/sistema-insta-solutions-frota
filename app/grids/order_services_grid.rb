@@ -11,8 +11,13 @@ class OrderServicesGrid
     OrderService.all.includes(
       :client, :manager, :provider, :provider_service_type, :order_service_type,
       :order_service_status, :commitment, :commitment_parts, :commitment_services,
+      :rejected_providers,
       { vehicle: [:cost_center, :sub_unit] },
-      { order_service_proposals: [:provider, :order_service_proposal_status, :order_service_proposal_items] }
+      { order_service_proposals: [
+        :provider, :order_service_proposal_status,
+        { order_service_proposal_items: :service },
+        { order_service_invoices: :order_service_invoice_type }
+      ] }
     )
   end
 
@@ -214,15 +219,12 @@ class OrderServicesGrid
     if (grid.current_user.manager? || grid.current_user.admin?) && record.approved_proposal.blank? && record.order_service_proposals.any? { |p| p.pending_manager_approval || p.pending_manager_authorization }
       pending_badge = " [Aguardando Gestor]"
     end
-    # Verifica se há COMPLEMENTOS aguardando aprovação do gestor
+    # Verifica se há COMPLEMENTOS aguardando aprovação do gestor (filtra em memória para evitar N+1)
     if (grid.current_user.manager? || grid.current_user.admin?) && record.approved_proposal.present?
-      pending_complements = record.order_service_proposals.where(
-        is_complement: true,
-        order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID
-      )
-      if pending_complements.any?
-        pending_badge = " [Aguardando Complemento]"
-      end
+      has_pending_complement = record.order_service_proposals.any? { |p|
+        p.is_complement && p.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID
+      }
+      pending_badge = " [Aguardando Complemento]" if has_pending_complement
     end
     record.code + pending_badge
   end
@@ -233,13 +235,12 @@ class OrderServicesGrid
     if (grid.current_user.manager? || grid.current_user.admin?) && record.approved_proposal.blank? && record.order_service_proposals.any? { |p| p.pending_manager_approval || p.pending_manager_authorization }
       pending_badge = '<br><span class="badge" style="background-color: #ffc107; color: #000; font-size: 0.75rem; padding: 0.25rem 0.5rem; margin-top: 0.25rem;">Aguardando Gestor</span>'.html_safe
     end
-    # Verifica se há COMPLEMENTOS aguardando aprovação do gestor
+    # Verifica se há COMPLEMENTOS aguardando aprovação do gestor (filtra em memória para evitar N+1)
     if (grid.current_user.manager? || grid.current_user.admin?) && record.approved_proposal.present?
-      pending_complements = record.order_service_proposals.where(
-        is_complement: true,
-        order_service_proposal_status_id: OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID
-      )
-      if pending_complements.any?
+      has_pending_complement = record.order_service_proposals.any? { |p|
+        p.is_complement && p.order_service_proposal_status_id == OrderServiceProposalStatus::AGUARDANDO_APROVACAO_COMPLEMENTO_ID
+      }
+      if has_pending_complement
         pending_badge = '<br><span class="badge bg-danger text-white" style="font-size: 0.75rem; padding: 0.25rem 0.5rem; margin-top: 0.25rem;"><i class="bi bi-plus-square"></i> Aguardando Complemento</span>'.html_safe
       end
     end

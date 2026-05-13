@@ -26,8 +26,8 @@ class CatalogoPecasController < ApplicationController
       format.html do
         @results = service.results
         @vehicle = service.vehicle
-        @fornecedores = CatalogoPeca.fornecedores_disponiveis
-        @grupos = CatalogoPeca.grupos_produto_disponiveis
+        @fornecedores = Rails.cache.fetch('catalogo_pecas/fornecedores', expires_in: 12.hours) { CatalogoPeca.fornecedores_disponiveis }
+        @grupos = Rails.cache.fetch('catalogo_pecas/grupos_produto', expires_in: 12.hours) { CatalogoPeca.grupos_produto_disponiveis }
       end
     end
   end
@@ -51,12 +51,12 @@ class CatalogoPecasController < ApplicationController
 
   # GET /catalogo_pecas/fornecedores
   def fornecedores
-    render json: CatalogoPeca.fornecedores_disponiveis
+    render json: Rails.cache.fetch('catalogo_pecas/fornecedores', expires_in: 12.hours) { CatalogoPeca.fornecedores_disponiveis }
   end
 
   # GET /catalogo_pecas/grupos
   def grupos
-    render json: CatalogoPeca.grupos_produto_disponiveis
+    render json: Rails.cache.fetch('catalogo_pecas/grupos_produto', expires_in: 12.hours) { CatalogoPeca.grupos_produto_disponiveis }
   end
 
   # GET /catalogo_pecas/stats
