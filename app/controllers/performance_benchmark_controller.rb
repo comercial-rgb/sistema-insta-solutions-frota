@@ -118,7 +118,7 @@ class PerformanceBenchmarkController < ApplicationController
   end
 
   def ensure_admin_or_manager
-    unless @current_user.admin? || @current_user.manager? || @current_user.additional?
+    unless @current_user.admin? || @current_user.manager?
       flash[:alert] = 'Acesso restrito.'
       redirect_to root_path
     end
