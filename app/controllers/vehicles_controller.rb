@@ -20,7 +20,8 @@ class VehiclesController < ApplicationController
 
     if @current_user.admin?
       @vehicles.scope {|scope| scope.page(params[:page]) }
-      fleet_scope = Vehicle.all
+      filtered_client_id = params.dig(:vehicles_grid, :client_id).presence
+      fleet_scope = filtered_client_id ? Vehicle.where(client_id: filtered_client_id) : Vehicle.all
     elsif @current_user.manager?
       @vehicles.scope {|scope| scope.by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids).page(params[:page]) }
       @vehicles_to_export.scope {|scope| scope.by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids) }
