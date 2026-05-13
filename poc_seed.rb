@@ -98,6 +98,7 @@ if poc_user_ids.any?
   OrderServiceProposal.where(id: poc_proposal_ids).delete_all if poc_proposal_ids.any?
 
   WebhookLog.where(order_service_id: poc_os_ids).delete_all if poc_os_ids.any?
+  ActiveRecord::Base.connection.execute("DELETE FROM order_service_directed_providers WHERE order_service_id IN (#{poc_os_ids.join(',')})") if poc_os_ids.any?
   OrderService.where(id: poc_os_ids).delete_all             if poc_os_ids.any?
 
   VehicleChecklistItem.where(vehicle_checklist_id: poc_checklist_ids).delete_all if poc_checklist_ids.any?
