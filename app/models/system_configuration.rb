@@ -22,14 +22,16 @@ class SystemConfiguration < ApplicationRecord
 	accepts_nested_attributes_for :address
 
 	has_one_attached :client_logo
-
 	has_one_attached :about_image
-
 	has_one_attached :favicon
-
 	has_one_attached :gerencia_net_certificate
-
 	has_one_attached :provider_contract
+
+	validates :client_logo,              safe_file: { profile: :image },       if: -> { client_logo.attached? }
+	validates :about_image,              safe_file: { profile: :image },       if: -> { about_image.attached? }
+	validates :favicon,                  safe_file: { profile: :image },       if: -> { favicon.attached? }
+	validates :gerencia_net_certificate, safe_file: { profile: :certificate }, if: -> { gerencia_net_certificate.attached? }
+	validates :provider_contract,        safe_file: { profile: :document },    if: -> { provider_contract.attached? }
 
 	# has_attached_file :client_logo,
 	# :storage => :s3,

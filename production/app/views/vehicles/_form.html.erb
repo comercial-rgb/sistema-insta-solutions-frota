@@ -21,16 +21,51 @@
             <%= f.association :sub_unit, collection: SubUnit.getting_data_by_user(@current_user, f.object.client_id), as: :select, include_blank: t('model.select_option') %>
         </div>
         <% if f.object.persisted? %>
+            <%
+              _total_paid   = f.object.get_total_paid_value
+              _custo_por_km = f.object.custo_por_km
+              _last_km      = f.object.getting_last_km.to_i
+              _vehicle_age  = f.object.year.to_s.match?(/^\d{4}$/) ? (Date.today.year - f.object.year.to_i) : nil
+            %>
             <div class="col-12 col-md-6">
-                <div class="card">
-                    <div class="card-body">
-                        <p class="card-text text-center">
-                            <b><%= Vehicle.human_attribute_name(:total_paid_value) %></b>
-                        </p>
-                        <p class="card-text text-center text-danger fs-3">
-                            <%= CustomHelper.to_currency(f.object.get_total_paid_value) %>
-                        </p>
+                <div class="row g-2">
+
+                    <div class="col-12 col-sm-6">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center py-2">
+                                <small class="text-muted d-block"><%= Vehicle.human_attribute_name(:total_paid_value) %></small>
+                                <span class="fs-4 fw-bold text-danger"><%= CustomHelper.to_currency(_total_paid) %></span>
+                                <small class="text-muted d-block">custo acumulado</small>
+                            </div>
+                        </div>
                     </div>
+
+                    <div class="col-12 col-sm-6">
+                        <div class="card border-0 shadow-sm h-100">
+                            <div class="card-body text-center py-2">
+                                <small class="text-muted d-block">Custo / km rodado</small>
+                                <% if _custo_por_km %>
+                                    <span class="fs-4 fw-bold text-primary"><%= number_to_currency(_custo_por_km, unit: 'R$ ', separator: ',', delimiter: '.', precision: 2) %><small class="fs-6">/km</small></span>
+                                    <small class="text-muted d-block">Último KM: <%= number_with_delimiter(_last_km, delimiter: '.') %></small>
+                                <% else %>
+                                    <span class="fs-5 text-muted">—</span>
+                                    <small class="text-muted d-block">KM não registrado</small>
+                                <% end %>
+                            </div>
+                        </div>
+                    </div>
+
+                    <% if _vehicle_age %>
+                        <div class="col-12">
+                            <div class="card border-0 shadow-sm">
+                                <div class="card-body py-2 d-flex justify-content-between align-items-center">
+                                    <span class="text-muted small"><i class="bi bi-calendar me-1"></i>Idade do veículo</span>
+                                    <span class="fw-bold"><%= _vehicle_age %> ano<%= _vehicle_age == 1 ? '' : 's' %> <small class="text-muted">(modelo <%= f.object.year %>)</small></span>
+                                </div>
+                            </div>
+                        </div>
+                    <% end %>
+
                 </div>
             </div>
         <% end %>

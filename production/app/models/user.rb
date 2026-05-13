@@ -155,6 +155,7 @@
 	# validates_acceptance_of :accept_therm, accept: true, if: Proc.new { |user| user.profile_id == Profile::USER_ID && user.seed != true && user.seed != 'true' && user.skip_accept_therm.nil?}
 
 	has_one_attached :profile_image
+	validates :profile_image, safe_file: { profile: :image }, if: -> { profile_image.attached? }
 
 	# has_attached_file :profile_image,
 	# :storage => :s3,

@@ -4,22 +4,27 @@ breadcrumbs = [
 	{active: false, href: vehicles_path, text: Vehicle.model_name.human(count: 2)},
 	{active: true, href: '#', text: t('model.list')},
 ]
+
+attributes = {
+	page_title: Vehicle.model_name.human(count: 2),
+	url_new_path: new_vehicle_path,
+	policy_true: policy(Vehicle).new?,
+	objects: @vehicles,
+	objects_path: vehicles_path,
+	object_name: Vehicle.model_name.human,
+	breadcrumbs: breadcrumbs,
+	objects_path_export: vehicles_path(format: "csv", vehicles_grid: (params[:vehicles_grid].nil? ? "" : params[:vehicles_grid].to_enum.to_h)),
+	objects_path_export_pdf: vehicles_path(format: "pdf", vehicles_grid: (params[:vehicles_grid].nil? ? "" : params[:vehicles_grid].to_enum.to_h))
+}
 %>
 
-<%= 
-	render 'common_pages/index',
-	attributes: {
-		page_title: Vehicle.model_name.human(count: 2),
-		url_new_path: new_vehicle_path,
-		policy_true: policy(Vehicle).new?,
-		objects: @vehicles,
-		objects_path: vehicles_path,
-		object_name: Vehicle.model_name.human,
-		breadcrumbs: breadcrumbs,
-		objects_path_export: vehicles_path(format: "csv", vehicles_grid: (params[:vehicles_grid].nil? ? "" : params[:vehicles_grid].to_enum.to_h)),
-		objects_path_export_pdf: vehicles_path(format: "pdf", vehicles_grid: (params[:vehicles_grid].nil? ? "" : params[:vehicles_grid].to_enum.to_h))
-	}
-%>
+<%= render 'common_pages/index/first_container', attributes: attributes %>
+
+<div class="container">
+	<%= render 'vehicles/fleet_summary_cards', fleet_summary: @fleet_summary %>
+</div>
+
+<%= render 'common_pages/index/second_container', attributes: attributes %>
 
 <div class="modal fade" id="vehicleOrderServicesModal" tabindex="-1" aria-labelledby="vehicleOrderServicesModalLabel" aria-hidden="true">
 	<div class="modal-dialog modal-xl modal-dialog-scrollable">
@@ -62,7 +67,6 @@ breadcrumbs = [
 			});
 		});
 
-		// Paginação dentro do modal (AJAX)
 		$(document).on('click', '#vehicle-order-services-modal-body .pagination a', function(e) {
 			e.preventDefault();
 			var url = $(this).attr('href');

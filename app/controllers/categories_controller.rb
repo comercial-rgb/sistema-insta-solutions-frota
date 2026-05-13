@@ -122,7 +122,16 @@ class CategoriesController < ApplicationController
     file = params[:file]
     errors_message = ""
     if !file.nil?
-      type_file = File.extname(file.tempfile)
+      type_file = File.extname(file.original_filename.to_s).downcase
+      allowed_spreadsheet_types = %w[
+        application/vnd.ms-excel
+        application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+      ]
+      unless %w[.xls .xlsx].include?(type_file) &&
+             allowed_spreadsheet_types.include?(file.content_type.to_s.split(';').first.strip)
+        redirect_to categories_path, alert: 'Formato inválido. Envie apenas planilhas Excel (.xls ou .xlsx).'
+        return
+      end
       filename = file.original_filename
       if type_file == '.xls'
         book = Spreadsheet.open(file.tempfile)

@@ -29,6 +29,7 @@
   validate :check_similar_names
 
   has_one_attached :image
+  validates :image, safe_file: { profile: :image }, if: -> { image.attached? }
 
   # has_attached_file :image,
   # :storage => :s3,

@@ -186,6 +186,24 @@
     end
     return result
   end
+
+  # Custo total por km rodado (custo acumulado / último km registrado)
+  def custo_por_km
+    last_km = getting_last_km.to_f
+    return nil if last_km <= 0
+    total_cost = get_total_paid_value.to_f
+    return nil if total_cost <= 0
+    (total_cost / last_km).round(2)
+  end
+
+  # Custo agrupado por status de proposta para um conjunto de IDs de status
+  def cost_by_proposal_statuses(proposal_status_ids)
+    OrderServiceProposal
+      .joins(:order_service)
+      .where(order_services: { vehicle_id: self.id })
+      .where(order_service_proposal_status_id: proposal_status_ids, is_complement: false)
+      .sum(:total_value).to_f
+  end
   
   # Auto-vinculação com VehicleModel baseado em model_text
   def try_auto_link_vehicle_model

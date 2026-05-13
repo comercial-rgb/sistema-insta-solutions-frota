@@ -17,6 +17,7 @@
   # validates_presence_of :number, :value, :order_service_invoice_type_id, :emission_date, :file
 
   has_one_attached :file
+  validates :file, safe_file: { profile: :invoice }, if: -> { file.attached? }
 
   def value=(new_value)
     self[:value] = CustomHelper.currency_to_value(new_value)

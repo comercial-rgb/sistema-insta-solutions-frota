@@ -20,13 +20,20 @@ class VehiclesController < ApplicationController
 
     if @current_user.admin?
       @vehicles.scope {|scope| scope.page(params[:page]) }
+      fleet_scope = Vehicle.all
     elsif @current_user.manager?
       @vehicles.scope {|scope| scope.by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids).page(params[:page]) }
       @vehicles_to_export.scope {|scope| scope.by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids) }
+      fleet_scope = Vehicle.by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids)
     elsif @current_user.additional?
       @vehicles.scope {|scope| scope.by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids).page(params[:page]) }
       @vehicles_to_export.scope {|scope| scope.by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids) }
+      fleet_scope = Vehicle.by_cost_center_or_sub_unit_ids(cost_center_ids, sub_unit_ids)
+    else
+      fleet_scope = Vehicle.none
     end
+
+    @fleet_summary = build_fleet_summary(fleet_scope) if fleet_scope.present?
 
     respond_to do |format|
       format.html
@@ -361,6 +368,38 @@ class VehiclesController < ApplicationController
   end
 
   private
+
+  def build_fleet_summary(vehicle_scope)
+    vehicle_ids = vehicle_scope.pluck(:id)
+    total = vehicle_ids.size
+
+    # Idade média: apenas veículos com ano válido (4 dígitos)
+    current_year = Date.today.year
+    years_valid = vehicle_scope.where("year REGEXP ?", "^[0-9]{4}$").pluck(:year).map(&:to_i).select { |y| y > 1900 && y <= current_year }
+    avg_age = years_valid.any? ? ((years_valid.sum { |y| current_year - y }.to_f / years_valid.size).round(1)) : nil
+
+    proposals_base = OrderServiceProposal
+      .joins(:order_service)
+      .where(order_services: { vehicle_id: vehicle_ids }, is_complement: false)
+
+    cost_aprovada = proposals_base
+      .where(order_service_proposal_status_id: OrderServiceProposalStatus::APROVADA_ID)
+      .sum(:total_value).to_f
+
+    cost_faturada = proposals_base
+      .where(order_service_proposal_status_id: [
+        OrderServiceProposalStatus::NOTAS_INSERIDAS_ID,
+        OrderServiceProposalStatus::AUTORIZADA_ID,
+        OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID
+      ])
+      .sum(:total_value).to_f
+
+    cost_paga = proposals_base
+      .where(order_service_proposal_status_id: OrderServiceProposalStatus::PAGA_ID)
+      .sum(:total_value).to_f
+
+    { total: total, avg_age: avg_age, cost_aprovada: cost_aprovada, cost_faturada: cost_faturada, cost_paga: cost_paga }
+  end
 
   # Use callbacks to share common setup or constraints between actions.
   def set_vehicle

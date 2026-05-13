@@ -26,6 +26,7 @@ module SistemaInstaSolutions
     config.active_storage.track_variants = true
 
     config.middleware.use Rack::Attack
+    config.middleware.use ServerTimingMiddleware
 
     cors_origins =
       if ENV['CORS_ORIGINS'].present?

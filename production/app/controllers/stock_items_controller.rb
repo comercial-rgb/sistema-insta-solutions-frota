@@ -143,6 +143,14 @@ class StockItemsController < ApplicationController
       return
     end
 
+    xml_file = params[:xml_file]
+    allowed_xml_types = %w[text/xml application/xml]
+    ext = File.extname(xml_file.original_filename.to_s).downcase
+    unless ext == '.xml' && allowed_xml_types.include?(xml_file.content_type.to_s.split(';').first.strip)
+      redirect_to new_import_xml_stock_items_path, alert: 'Formato inválido. Envie apenas arquivos XML (NF-e).'
+      return
+    end
+
     service = StockXmlImportService.new(
       xml_file: params[:xml_file],
       client_id: resolve_client_id,

@@ -311,10 +311,16 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
 
 	# Relatórios Personalizados
 	get 'custom_reports', :to => 'custom_reports#index', :as => 'custom_reports'
+	get 'custom_reports/provider_report', :to => 'custom_reports#provider_report', :as => 'provider_report'
+	get 'performance_benchmark', :to => 'performance_benchmark#index', :as => 'performance_benchmark'
 
 	# Relatório Gerencial
 	get 'gerencial_report', :to => 'gerencial_report#index', :as => 'gerencial_report'
 	get 'gerencial_report/export', :to => 'gerencial_report#export', :as => 'gerencial_report_export'
+
+	# Auditoria do Sistema
+	get 'audit_logs',        :to => 'audit_logs#index',  :as => 'audit_logs'
+	get 'audit_logs/export', :to => 'audit_logs#export', :as => 'audit_logs_export'
 
 	resources :order_services
 		get 'order_services/:id/print_no_values', to: 'order_services#print_no_values', as: 'print_no_values_order_service'
@@ -362,6 +368,7 @@ patch '/cilia_pricing/:id/unmark_complete', to: 'cilia_pricing#unmark_complete',
 	post 'get_new_proposals_order_service_proposal/:id', :to => 'order_service_proposals#get_new_proposals_order_service_proposal', :as => 'get_new_proposals_order_service_proposal'
 
 	post '/reprove_order_service_proposals', :to => 'order_service_proposals#reprove_order_service_proposals', :as => 'reprove_order_service_proposals'
+	get '/previous_proposals_for_reuse', :to => 'order_service_proposals#previous_proposals_for_reuse', :as => 'previous_proposals_for_reuse'
 
 
 

@@ -19,6 +19,8 @@
 
   has_one_attached :document
   has_one_attached :mobile_banner_image
+  validates :document,            safe_file: { profile: :document }, if: -> { document.attached? }
+  validates :mobile_banner_image, safe_file: { profile: :image },    if: -> { mobile_banner_image.attached? }
 
   scope :mobile_banners, -> { where(mobile_banner_enabled: true).order(:mobile_banner_order, :name) }
 

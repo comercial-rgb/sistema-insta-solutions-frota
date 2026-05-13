@@ -8,6 +8,7 @@ class VehicleChecklist < ApplicationRecord
 
   has_many :items, class_name: 'VehicleChecklistItem', dependent: :destroy
   has_many_attached :photos
+  validates :photos, safe_file: { profile: :image }, if: -> { photos.attached? }
 
   accepts_nested_attributes_for :items, reject_if: :all_blank, allow_destroy: true
 

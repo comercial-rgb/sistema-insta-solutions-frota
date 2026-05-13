@@ -1094,3 +1094,267 @@ function updateCatalogoRefDisplay($section, refText) {
         );
     }
 }
+
+// ============================================================
+// REAPROVEITAMENTO DE ORÇAMENTO (TR 5.42)
+// ============================================================
+
+var reuseSelectedProposal = null;
+
+// Ao abrir o modal: busca propostas anteriores do veículo
+document.getElementById('reuseProposalModal') && (function() {
+    var modal = document.getElementById('reuseProposalModal');
+    modal.addEventListener('show.bs.modal', function() {
+        reuseSelectedProposal = null;
+        $('#btnConfirmReuse').addClass('d-none');
+        $('#reuseProposalList').empty();
+        $('#reuseProposalPreview').html('<p class="text-muted fst-italic">Selecione um orçamento à esquerda para visualizar os itens.</p>');
+        $('#reuseProposalLoading').removeClass('d-none');
+        $('#reuseProposalEmpty').addClass('d-none');
+        $('#reuseProposalContent').addClass('d-none');
+
+        var osId = $('#btnOpenReuseModal').data('order-service-id');
+
+        $.ajax({
+            url: '/previous_proposals_for_reuse',
+            method: 'GET',
+            dataType: 'json',
+            data: { order_service_id: osId },
+            success: function(data) {
+                $('#reuseProposalLoading').addClass('d-none');
+                var proposals = data.proposals || [];
+
+                if (proposals.length === 0) {
+                    $('#reuseProposalEmpty').removeClass('d-none');
+                    return;
+                }
+
+                $('#reuseProposalContent').removeClass('d-none');
+                var listHtml = '';
+                proposals.forEach(function(p) {
+                    listHtml +=
+                        '<button type="button" class="list-group-item list-group-item-action py-2 px-3 reuse-proposal-item" ' +
+                        'data-proposal-id="' + p.id + '">' +
+                        '<div class="d-flex justify-content-between align-items-start">' +
+                        '<div>' +
+                        '<span class="fw-semibold text-primary">' + $('<span>').text(p.os_code || 'OS').html() + '</span>' +
+                        '<span class="badge bg-secondary ms-2" style="font-size:0.7rem;">' + $('<span>').text(p.status || '').html() + '</span>' +
+                        '</div>' +
+                        '<small class="text-muted">' + $('<span>').text(p.created_at).html() + '</small>' +
+                        '</div>' +
+                        '<div class="mt-1 d-flex justify-content-between">' +
+                        '<small class="text-muted">' + $('<span>').text(p.provider_name || '—').html() + '</small>' +
+                        '<span class="badge bg-success">' + $('<span>').text(p.total_value).html() + '</span>' +
+                        '</div>' +
+                        '<small class="text-muted mt-1 d-block">' + p.items_count + ' item(s)</small>' +
+                        '</button>';
+                });
+
+                $('#reuseProposalList').html(listHtml);
+
+                // Armazenar dados das propostas no DOM para acesso posterior
+                $('#reuseProposalList').data('proposals', proposals);
+            },
+            error: function() {
+                $('#reuseProposalLoading').addClass('d-none');
+                $('#reuseProposalEmpty').removeClass('d-none');
+            }
+        });
+    });
+})();
+
+// Clique em um orçamento da lista: exibe preview dos itens
+$(document).on('click', '.reuse-proposal-item', function() {
+    $('.reuse-proposal-item').removeClass('active');
+    $(this).addClass('active');
+
+    var proposalId = $(this).data('proposal-id');
+    var proposals = $('#reuseProposalList').data('proposals') || [];
+    var proposal = proposals.find(function(p) { return p.id == proposalId; });
+
+    if (!proposal) return;
+
+    reuseSelectedProposal = proposal;
+    $('#btnConfirmReuse').removeClass('d-none');
+
+    if (!proposal.items || proposal.items.length === 0) {
+        $('#reuseProposalPreview').html('<p class="text-muted fst-italic">Este orçamento não possui itens detalhados.</p>');
+        return;
+    }
+
+    var peças = proposal.items.filter(function(i) { return i.category_id == 1; });
+    var servicos = proposal.items.filter(function(i) { return i.category_id != 1; });
+
+    function buildItemRows(items) {
+        var rows = '';
+        items.forEach(function(item) {
+            var price = 'R$ ' + parseFloat(item.unity_value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            rows +=
+                '<tr>' +
+                '<td>' + $('<span>').text(item.service_name || '—').html() +
+                (item.brand ? '<br><small class="text-muted">' + $('<span>').text(item.brand).html() + '</small>' : '') +
+                '</td>' +
+                '<td class="text-center">' + item.quantity + '</td>' +
+                '<td class="text-end">' + price + '</td>' +
+                '<td class="text-center"><small>' + (item.warranty_period || '—') + 'd</small></td>' +
+                '</tr>';
+        });
+        return rows;
+    }
+
+    function buildSection(title, items, badgeClass) {
+        if (items.length === 0) return '';
+        return '<h6 class="text-muted fw-semibold mt-3 mb-1">' + title + '</h6>' +
+            '<table class="table table-sm table-bordered mb-0" style="font-size:0.82rem;">' +
+            '<thead class="table-light"><tr>' +
+            '<th>Item</th><th class="text-center">Qtd</th><th class="text-end">Preço unit.</th><th class="text-center">Garantia</th>' +
+            '</tr></thead>' +
+            '<tbody>' + buildItemRows(items) + '</tbody>' +
+            '</table>';
+    }
+
+    var html = '<div class="alert alert-warning py-1 px-2 mb-2" style="font-size:0.8rem;">' +
+        '<i class="bi bi-exclamation-triangle me-1"></i>' +
+        '<strong>Referência — OS ' + $('<span>').text(proposal.os_code).html() + '.</strong> ' +
+        'Revise todos os preços antes de enviar.' +
+        '</div>' +
+        buildSection('Peças', peças) +
+        buildSection('Serviços', servicos);
+
+    $('#reuseProposalPreview').html(html);
+});
+
+// Confirmar reaproveitamento: injeta itens no formulário
+$(document).on('click', '#btnConfirmReuse', function() {
+    if (!reuseSelectedProposal) return;
+
+    var osCode = reuseSelectedProposal.os_code;
+    var items = reuseSelectedProposal.items || [];
+
+    if (items.length === 0) {
+        alert('Este orçamento não possui itens para carregar.');
+        return;
+    }
+
+    var clientId = $('#order_service_proposal_client_id').val();
+
+    // Fechar modal
+    var modalEl = document.getElementById('reuseProposalModal');
+    bootstrap.Modal.getInstance(modalEl).hide();
+
+    // Separar peças e serviços
+    var pecas = items.filter(function(i) { return i.category_id == 1; });
+    var servicos = items.filter(function(i) { return i.category_id != 1; });
+
+    function injectItems(itemList, categoryId) {
+        if (itemList.length === 0) return;
+
+        // Encontrar o container de peças ou serviços pelo botão "adicionar" da categoria correta
+        var addBtn = $('.add-provider-service-temp[data-category-id="' + categoryId + '"]');
+        if (addBtn.length === 0) return;
+
+        itemList.forEach(function(item) {
+            providerServiceTempCounter++;
+            var idx = providerServiceTempCounter;
+            var isPeca = (categoryId == 1);
+
+            var priceFormatted = 'R$ ' + parseFloat(item.unity_value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            var referenceBadge =
+                '<div class="alert alert-warning py-1 px-2 mb-2 reuse-reference-badge" style="font-size:0.78rem;">' +
+                '<i class="bi bi-recycle me-1"></i>' +
+                '<strong>Ref. ' + $('<span>').text(osCode).html() + '</strong> — revise o preço antes de enviar.' +
+                '</div>';
+
+            var brandField = isPeca
+                ? '<div class="col-md-3">' +
+                  '<label class="form-label">Marca</label>' +
+                  '<input type="text" name="order_service_proposal[provider_service_temps_attributes][' + idx + '][brand]" class="form-control form-control-sm" value="' + $('<span>').text(item.brand || '').html() + '" />' +
+                  '</div>'
+                : '';
+
+            var newItemHtml =
+                '<div class="provider-service-temp-item position-relative">' +
+                '<div class="card mb-2 shadow-sm border-warning">' +
+                '<div class="card-body py-2 px-3">' +
+                '<div class="row g-2 align-items-end">' +
+
+                '<div class="col-12 text-end">' +
+                '<button type="button" class="btn btn-sm btn-outline-danger remove-provider-service-temp" title="Remover item">' +
+                '<i class="bi bi-trash"></i> Remover' +
+                '</button>' +
+                '</div>' +
+
+                referenceBadge +
+
+                '<input type="hidden" name="order_service_proposal[provider_service_temps_attributes][' + idx + '][id]" id="order_service_proposal_provider_service_temps_attributes_' + idx + '_id" />' +
+                '<input type="hidden" name="order_service_proposal[provider_service_temps_attributes][' + idx + '][service_id]" id="order_service_proposal_provider_service_temps_attributes_' + idx + '_service_id" value="' + (item.service_id || '') + '" />' +
+                '<input type="hidden" name="order_service_proposal[provider_service_temps_attributes][' + idx + '][description]" id="order_service_proposal_provider_service_temps_attributes_' + idx + '_description" />' +
+                '<input type="hidden" name="order_service_proposal[provider_service_temps_attributes][' + idx + '][category_id]" value="' + categoryId + '" class="change-category-type-provider-service-temp" id="change-category-type-provider-service-temp-' + idx + '" />' +
+
+                '<div class="col-md-12">' +
+                '<label class="form-label">' + (isPeca ? 'Peça' : 'Serviço') + '</label>' +
+                '<input type="text" class="form-control form-control-sm fw-bold text-warning-emphasis bg-warning bg-opacity-10" ' +
+                'value="' + $('<span>').text(item.service_name || '').html() + '" ' +
+                'name="order_service_proposal[provider_service_temps_attributes][' + idx + '][name]" ' +
+                'id="order_service_proposal_provider_service_temps_attributes_' + idx + '_name" ' +
+                'readonly />' +
+                '</div>' +
+
+                brandField +
+
+                '<div class="col-md-2">' +
+                '<label class="form-label">Garantia (dias)</label>' +
+                '<input type="number" name="order_service_proposal[provider_service_temps_attributes][' + idx + '][warranty_period]" class="form-control form-control-sm" value="' + (item.warranty_period || 30) + '" />' +
+                '</div>' +
+
+                '<div class="col-md-2">' +
+                '<label class="form-label required">Preço Unit.</label>' +
+                '<input type="tel" name="order_service_proposal[provider_service_temps_attributes][' + idx + '][price]" id="order_service_proposal_provider_service_temps_attributes_' + idx + '_price" class="form-control form-control-sm money provider_service_temp_price" value="' + priceFormatted + '" data-index="' + idx + '" required />' +
+                '</div>' +
+
+                '<div class="col-md-1">' +
+                '<label class="form-label required">Qtd</label>' +
+                '<input type="number" min="1" name="order_service_proposal[provider_service_temps_attributes][' + idx + '][quantity]" id="order_service_proposal_provider_service_temps_attributes_' + idx + '_quantity" class="form-control form-control-sm provider_service_temp_quantity" value="' + (item.quantity || 1) + '" required />' +
+                '</div>' +
+
+                '<div class="col-md-2">' +
+                '<label class="form-label">Desconto</label>' +
+                '<input type="text" name="order_service_proposal[provider_service_temps_attributes][' + idx + '][discount_temp]" id="order_service_proposal_provider_service_temps_attributes_' + idx + '_discount_temp" class="form-control form-control-sm only-read bg-light" value="R$ 0,00" readonly />' +
+                '<input type="hidden" name="order_service_proposal[provider_service_temps_attributes][' + idx + '][discount]" id="order_service_proposal_provider_service_temps_attributes_' + idx + '_discount" class="order_service_proposal_item_discount_' + (isPeca ? 'part' : 'service') + '" value="0" />' +
+                '</div>' +
+
+                '<div class="col-md-2">' +
+                '<label class="form-label">Total</label>' +
+                '<input type="text" name="order_service_proposal[provider_service_temps_attributes][' + idx + '][total_temp]" id="order_service_proposal_provider_service_temps_attributes_' + idx + '_total_temp" class="form-control form-control-sm only-read fw-bold text-success bg-light" value="R$ 0,00" readonly />' +
+                '<input type="hidden" name="order_service_proposal[provider_service_temps_attributes][' + idx + '][total_value]" id="order_service_proposal_provider_service_temps_attributes_' + idx + '_total_value" class="order_service_proposal_item_total_value_' + (isPeca ? 'part' : 'service') + '" value="0" />' +
+                '</div>' +
+
+                '</div></div></div></div>';
+
+            addBtn.parent().after(newItemHtml);
+
+            // Aplicar máscara de moeda e disparar cálculo
+            setTimeout(function() {
+                var priceInput = $('#order_service_proposal_provider_service_temps_attributes_' + idx + '_price');
+                if (priceInput.length) {
+                    priceInput.maskMoney({ prefix: 'R$ ', showSymbol: true, decimal: ',', thousands: '.', symbolStay: true, selectAllOnFocus: true });
+                    priceInput.on('blur change', function() { gettingCorrectValueAndDiscountToNewServices(idx); });
+                }
+                var qtyInput = $('#order_service_proposal_provider_service_temps_attributes_' + idx + '_quantity');
+                if (qtyInput.length) {
+                    qtyInput.on('blur change', function() { gettingCorrectValueAndDiscountToNewServices(idx); });
+                }
+                // Disparar cálculo inicial com o valor pré-carregado
+                gettingCorrectValueAndDiscountToNewServices(idx);
+            }, 150);
+        });
+    }
+
+    injectItems(pecas, 1);
+    injectItems(servicos, 2);
+
+    updateTotalValues();
+
+    // Scroll até os itens carregados
+    $('html, body').animate({ scrollTop: $('.reuse-reference-badge').first().offset().top - 100 }, 400);
+});

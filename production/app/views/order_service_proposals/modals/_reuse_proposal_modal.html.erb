@@ -1,0 +1,56 @@
+<div class="modal fade" id="reuseProposalModal" tabindex="-1" aria-labelledby="reuseProposalModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
+    <div class="modal-content">
+
+      <div class="modal-header bg-primary text-white py-2">
+        <h5 class="modal-title" id="reuseProposalModalLabel">
+          <i class="bi bi-recycle me-2"></i>Reaproveitar Orçamento Anterior
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+      </div>
+
+      <div class="modal-body p-3">
+        <div class="alert alert-info py-2 px-3 mb-3 d-flex align-items-start gap-2">
+          <i class="bi bi-info-circle-fill mt-1 flex-shrink-0"></i>
+          <div>
+            <strong>Caráter estritamente referencial.</strong>
+            Os itens serão carregados como ponto de partida com os preços anteriores indicados. Você deverá revisar e confirmar todos os valores antes de enviar a proposta.
+          </div>
+        </div>
+
+        <div id="reuseProposalLoading" class="text-center py-4">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="mt-2 text-muted">Buscando orçamentos anteriores do veículo...</p>
+        </div>
+
+        <div id="reuseProposalEmpty" class="text-center py-4 d-none">
+          <i class="bi bi-inbox fs-2 text-muted"></i>
+          <p class="mt-2 text-muted">Nenhum orçamento aprovado encontrado para este veículo.</p>
+        </div>
+
+        <div id="reuseProposalContent" class="d-none">
+          <div class="row g-3">
+            <div class="col-md-5">
+              <h6 class="text-muted fw-semibold mb-2">Orçamentos disponíveis</h6>
+              <div id="reuseProposalList" class="list-group" style="max-height: 400px; overflow-y: auto;"></div>
+            </div>
+            <div class="col-md-7">
+              <h6 class="text-muted fw-semibold mb-2">Itens do orçamento selecionado</h6>
+              <div id="reuseProposalPreview">
+                <p class="text-muted fst-italic">Selecione um orçamento à esquerda para visualizar os itens.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-sm btn-primary d-none" id="btnConfirmReuse">
+          <i class="bi bi-check-circle me-1"></i>Usar como referência
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>

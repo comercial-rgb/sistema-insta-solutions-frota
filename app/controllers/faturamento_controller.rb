@@ -204,9 +204,10 @@ class FaturamentoController < ApplicationController
     end
 
   rescue ActiveRecord::RecordNotFound => e
+    Rails.logger.error "Fatura RecordNotFound: #{e.message}"
     respond_to do |format|
-      format.html { redirect_to faturamento_index_path, alert: "Cliente ou OS não encontrado: #{e.message}" }
-      format.json { render json: { error: "Cliente ou OS não encontrado: #{e.message}" }, status: :not_found }
+      format.html { redirect_to faturamento_index_path, alert: "Registro não encontrado. Verifique os dados e tente novamente." }
+      format.json { render json: { error: "Registro não encontrado." }, status: :not_found }
     end
   rescue ActiveRecord::RecordNotUnique => e
     Rails.logger.error "Fatura RecordNotUnique: #{e.message}"
@@ -222,8 +223,8 @@ class FaturamentoController < ApplicationController
   rescue => e
     Rails.logger.error "Erro inesperado ao criar fatura: #{e.class} - #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}"
     respond_to do |format|
-      format.html { redirect_to faturamento_index_path, alert: "Erro ao criar fatura: #{e.message}" }
-      format.json { render json: { error: "Erro ao criar fatura: #{e.message}" }, status: :internal_server_error }
+      format.html { redirect_to faturamento_index_path, alert: "Erro ao criar fatura. Tente novamente ou contate o suporte." }
+      format.json { render json: { error: "Erro ao criar fatura. Tente novamente ou contate o suporte." }, status: :internal_server_error }
     end
   end
 
@@ -331,9 +332,10 @@ class FaturamentoController < ApplicationController
       format.json { render json: { success: true, message: "Fatura excluída. #{os_ids.size} OS liberadas." } }
     end
   rescue => e
+    Rails.logger.error "Erro ao excluir fatura: #{e.class} - #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}"
     respond_to do |format|
-      format.html { redirect_to faturamento_index_path, alert: "Erro ao excluir: #{e.message}" }
-      format.json { render json: { error: e.message }, status: :unprocessable_entity }
+      format.html { redirect_to faturamento_index_path, alert: "Erro ao excluir fatura. Tente novamente ou contate o suporte." }
+      format.json { render json: { error: "Erro ao excluir fatura. Tente novamente ou contate o suporte." }, status: :unprocessable_entity }
     end
   end
 
@@ -352,7 +354,8 @@ class FaturamentoController < ApplicationController
               type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
               disposition: 'attachment'
   rescue => e
-    redirect_to faturamento_path(@fatura), alert: "Erro ao gerar documento: #{e.message}"
+    Rails.logger.error "Erro ao gerar DOCX fatura #{@fatura&.id}: #{e.class} - #{e.message}"
+    redirect_to faturamento_path(@fatura), alert: "Erro ao gerar documento. Tente novamente ou contate o suporte."
   end
 
   def gerar_pdf
@@ -370,7 +373,8 @@ class FaturamentoController < ApplicationController
               type: 'application/pdf',
               disposition: 'attachment'
   rescue => e
-    redirect_to faturamento_path(@fatura), alert: "Erro ao gerar PDF: #{e.message}"
+    Rails.logger.error "Erro ao gerar PDF fatura #{@fatura&.id}: #{e.class} - #{e.message}"
+    redirect_to faturamento_path(@fatura), alert: "Erro ao gerar PDF. Tente novamente ou contate o suporte."
   end
 
   def gerar_excel
@@ -384,7 +388,8 @@ class FaturamentoController < ApplicationController
               type: 'application/vnd.ms-excel',
               disposition: 'attachment'
   rescue => e
-    redirect_to faturamento_path(@fatura), alert: "Erro ao gerar Excel: #{e.message}"
+    Rails.logger.error "Erro ao gerar Excel fatura #{@fatura&.id}: #{e.class} - #{e.message}"
+    redirect_to faturamento_path(@fatura), alert: "Erro ao gerar Excel. Tente novamente ou contate o suporte."
   end
 
   # JSON: OS em aberto para um cliente

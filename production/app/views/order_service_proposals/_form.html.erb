@@ -22,6 +22,35 @@
         </div>
     </div>
 
+    <%
+      _is_diagnostico_reuse = f.object.order_service.order_service_type_id == OrderServiceType::DIAGNOSTICO_ID
+      _first_submitted_reuse = _is_diagnostico_reuse ? f.object.order_service.order_service_proposals
+        .where.not(order_service_proposal_status_id: [
+          OrderServiceProposalStatus::EM_CADASTRO_ID,
+          OrderServiceProposalStatus::CANCELADA_ID,
+          OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID
+        ]).order(:created_at).first : nil
+      _can_reuse = _is_diagnostico_reuse && (
+        _first_submitted_reuse.nil? ||
+        _first_submitted_reuse.id == f.object.id
+      )
+    %>
+    <% if _can_reuse %>
+      <div class="row mb-3">
+        <div class="col-12 d-flex justify-content-end">
+          <button type="button"
+            class="btn btn-sm btn-outline-primary"
+            id="btnOpenReuseModal"
+            data-order-service-id="<%= f.object.order_service_id %>"
+            data-bs-toggle="modal"
+            data-bs-target="#reuseProposalModal">
+            <i class="bi bi-recycle me-1"></i>Reaproveitar Orçamento Anterior
+          </button>
+        </div>
+      </div>
+      <%= render 'order_service_proposals/modals/reuse_proposal_modal' %>
+    <% end %>
+
     <input type="hidden" value="<%= f.object.order_service_proposal_items.length.to_s %>" id="multi-order_service_proposal_items-cont" disabled>
 
     <%# 

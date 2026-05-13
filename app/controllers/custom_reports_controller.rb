@@ -76,6 +76,102 @@ class CustomReportsController < ApplicationController
     end
   end
 
+  def provider_report
+    authorize :custom_report, :index?
+
+    if @current_user.admin?
+      @clients = User.client.active.name_ordered
+    else
+      @clients = User.client.active.where(id: @current_user.client_id).name_ordered
+    end
+
+    @clients_options = @clients.map do |client|
+      social_name = client.social_name.to_s.strip
+      fantasy_name = client.fantasy_name.to_s.strip
+      fallback_name = client.name.to_s.strip
+      label = if social_name.present? && fantasy_name.present?
+        "#{social_name} (#{fantasy_name})"
+      else
+        social_name.presence || fantasy_name.presence || fallback_name
+      end
+      [label, client.id]
+    end
+
+    selected_client_id = @current_user.admin? ? params[:client_id] : @current_user.client_id
+    @selected_client = User.client.active.find_by(id: selected_client_id) if selected_client_id.present?
+
+    @provider_rows = []
+    @grand_total_transactions = 0
+    @grand_total_gross        = 0.0
+    @grand_total_net          = 0.0
+
+    if selected_client_id.present? || !@current_user.admin?
+      valid_statuses = [
+        OrderServiceProposalStatus::APROVADA_ID,
+        OrderServiceProposalStatus::NOTAS_INSERIDAS_ID,
+        OrderServiceProposalStatus::AUTORIZADA_ID,
+        OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+        OrderServiceProposalStatus::PAGA_ID
+      ]
+
+      base = OrderServiceProposal
+        .joins(:order_service)
+        .joins("INNER JOIN users AS providers ON providers.id = order_service_proposals.provider_id")
+        .where(is_complement: false)
+        .where(order_service_proposal_status_id: valid_statuses)
+
+      if selected_client_id.present?
+        base = base.where(order_services: { client_id: selected_client_id })
+      elsif @current_user.manager? || @current_user.additional?
+        base = base.where(order_services: { client_id: @current_user.client_id })
+      end
+
+      if params[:start_date].present?
+        start_date = Date.parse(params[:start_date]) rescue nil
+        base = base.where("order_service_proposals.created_at >= ?", start_date.beginning_of_day) if start_date
+      end
+      if params[:end_date].present?
+        end_date = Date.parse(params[:end_date]) rescue nil
+        base = base.where("order_service_proposals.created_at <= ?", end_date.end_of_day) if end_date
+      end
+
+      rows = base
+        .group("order_service_proposals.provider_id, providers.fantasy_name, providers.social_name, providers.name")
+        .select(
+          "order_service_proposals.provider_id",
+          "providers.fantasy_name AS provider_fantasy_name",
+          "providers.social_name AS provider_social_name",
+          "providers.name AS provider_name",
+          "COUNT(order_service_proposals.id) AS transactions_count",
+          "SUM(order_service_proposals.total_value_without_discount) AS gross_value",
+          "SUM(order_service_proposals.total_value) AS net_value"
+        )
+        .order("net_value DESC")
+
+      @grand_total_gross = rows.sum { |r| r.gross_value.to_f }
+      @grand_total_net   = rows.sum { |r| r.net_value.to_f }
+      @grand_total_transactions = rows.sum { |r| r.transactions_count.to_i }
+
+      @provider_rows = rows.map do |r|
+        net = r.net_value.to_f
+        pct = @grand_total_net > 0 ? ((net / @grand_total_net) * 100).round(2) : 0.0
+        {
+          name: r.provider_fantasy_name.presence || r.provider_social_name.presence || r.provider_name || 'Sem nome',
+          transactions: r.transactions_count.to_i,
+          gross_value: r.gross_value.to_f,
+          net_value: net,
+          pct: pct
+        }
+      end
+    end
+
+    respond_to do |format|
+      format.html
+      format.pdf { render_provider_report_pdf }
+      format.csv { render_provider_report_csv }
+    end
+  end
+
   private
 
   def has_filters?
@@ -375,6 +471,139 @@ class CustomReportsController < ApplicationController
     
     send_data csv_data,
               filename: "relatorio_personalizado_#{Date.current.strftime('%Y%m%d')}.csv",
+              type: 'text/csv; charset=utf-8',
+              disposition: 'attachment'
+  end
+
+  def render_provider_report_pdf
+    tempfiles_to_cleanup = []
+
+    client_label = @selected_client&.fantasy_name.presence ||
+                   @selected_client&.social_name.presence ||
+                   @selected_client&.name || 'Todos os clientes'
+
+    period_label = ''
+    if params[:start_date].present? && params[:end_date].present?
+      period_label = "#{params[:start_date]} a #{params[:end_date]}"
+    elsif params[:start_date].present?
+      period_label = "A partir de #{params[:start_date]}"
+    elsif params[:end_date].present?
+      period_label = "Até #{params[:end_date]}"
+    end
+
+    pdf = Prawn::Document.new(page_size: 'A4', page_layout: :landscape) do |pdf|
+      pdf.font_size 10
+
+      logo_path = Rails.root.join('app', 'assets', 'images', 'logos', 'logo.png')
+      logo_drawn = false
+      if File.exist?(logo_path)
+        begin
+          pdf.image logo_path.to_s, fit: [160, 50], position: :left
+          logo_drawn = true
+        rescue Prawn::Errors::UnsupportedImageType, Prawn::Errors::UnsupportedImageFormat
+          begin
+            require 'mini_magick'
+            tmp = Tempfile.new(['instasolutions-logo', '.png'])
+            tmp.binmode
+            image = MiniMagick::Image.open(logo_path.to_s)
+            begin; image.interlace 'none'; rescue StandardError; end
+            image.format 'png'
+            image.write tmp.path
+            tempfiles_to_cleanup << tmp
+            pdf.image tmp.path, fit: [160, 50], position: :left
+            logo_drawn = true
+          rescue StandardError
+            logo_drawn = false
+          end
+        end
+      end
+      pdf.text 'InstaSolutions', size: 16, style: :bold unless logo_drawn
+
+      pdf.move_down 10
+      pdf.text 'RELATÓRIO POR ESTABELECIMENTO CREDENCIADO', size: 14, style: :bold, align: :center
+      pdf.move_down 5
+      pdf.text "Cliente: #{client_label}", size: 11
+      pdf.text "Período: #{period_label.presence || 'Todos'}", size: 10
+      pdf.text "Data de emissão: #{Date.current.strftime('%d/%m/%Y')}", size: 10
+      pdf.move_down 12
+
+      header = ['Estabelecimento', 'Transações', 'Valor Bruto (R$)', 'Valor Líquido (R$)', '% do Contrato']
+
+      rows = @provider_rows.map do |r|
+        [
+          r[:name].truncate(40),
+          r[:transactions].to_s,
+          number_to_currency(r[:gross_value], unit: 'R$ ', separator: ',', delimiter: '.', precision: 2),
+          number_to_currency(r[:net_value],   unit: 'R$ ', separator: ',', delimiter: '.', precision: 2),
+          "#{r[:pct].to_s.gsub('.', ',')}%"
+        ]
+      end
+
+      rows << [
+        { content: 'TOTAL', font_style: :bold },
+        { content: @grand_total_transactions.to_s, font_style: :bold },
+        { content: number_to_currency(@grand_total_gross, unit: 'R$ ', separator: ',', delimiter: '.', precision: 2), font_style: :bold },
+        { content: number_to_currency(@grand_total_net,   unit: 'R$ ', separator: ',', delimiter: '.', precision: 2), font_style: :bold },
+        { content: '100%', font_style: :bold }
+      ]
+
+      table_data = [header] + rows
+
+      pdf.table(table_data, header: true, width: pdf.bounds.width,
+                cell_style: { size: 9, padding: [4, 6, 4, 6] },
+                row_colors: ['FFFFFF', 'F5F5F5']) do
+        row(0).font_style = :bold
+        row(0).background_color = 'E0E0E0'
+        row(0).align = :center
+        columns(1).align = :center
+        columns(2..3).align = :right
+        columns(4).align = :center
+      end
+
+      pdf.move_down 10
+      pdf.text "* Valores bruto e líquido referem-se às propostas aprovadas e subsequentes.", size: 8, color: '888888'
+      pdf.text "* Taxa secundária disponível no Portal Financeiro.", size: 8, color: '888888'
+      pdf.number_pages 'Página <page> de <total>', at: [pdf.bounds.right - 120, -5], size: 8
+    end
+
+    tempfiles_to_cleanup.each { |tmp| tmp.close! rescue nil }
+
+    send_data pdf.render,
+              filename: "relatorio_estabelecimentos_#{Date.current.strftime('%Y%m%d')}.pdf",
+              type: 'application/pdf',
+              disposition: 'inline'
+  end
+
+  def render_provider_report_csv
+    require 'csv'
+
+    client_label = @selected_client&.fantasy_name.presence ||
+                   @selected_client&.social_name.presence ||
+                   @selected_client&.name || 'Todos'
+
+    csv_data = CSV.generate(headers: true, col_sep: ';', encoding: 'UTF-8') do |csv|
+      csv << ['Relatório por Estabelecimento Credenciado']
+      csv << ['Cliente', client_label]
+      csv << ['Gerado em', Date.current.strftime('%d/%m/%Y')]
+      csv << []
+      csv << ['Estabelecimento', 'Qtd. Transações', 'Valor Bruto (R$)', 'Valor Líquido (R$)', '% do Contrato']
+
+      @provider_rows.each do |r|
+        csv << [
+          r[:name],
+          r[:transactions],
+          r[:gross_value].to_s.gsub('.', ','),
+          r[:net_value].to_s.gsub('.', ','),
+          "#{r[:pct].to_s.gsub('.', ',')}%"
+        ]
+      end
+
+      csv << []
+      csv << ['TOTAL', @grand_total_transactions, @grand_total_gross.to_s.gsub('.', ','), @grand_total_net.to_s.gsub('.', ','), '100%']
+    end
+
+    send_data csv_data,
+              filename: "relatorio_estabelecimentos_#{Date.current.strftime('%Y%m%d')}.csv",
               type: 'text/csv; charset=utf-8',
               disposition: 'attachment'
   end

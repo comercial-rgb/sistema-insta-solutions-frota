@@ -6,6 +6,7 @@ class Anomaly < ApplicationRecord
   belongs_to :resolved_by, class_name: 'User', optional: true
 
   has_many_attached :photos
+  validates :photos, safe_file: { profile: :image }, if: -> { photos.attached? }
 
   validates :title, presence: true
   validates :severity, inclusion: { in: %w[low medium high critical] }

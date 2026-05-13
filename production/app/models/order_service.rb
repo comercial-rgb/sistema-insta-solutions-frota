@@ -7,6 +7,7 @@ class OrderService < ApplicationRecord
 
   # ActiveStorage attachments for vehicle photos
   has_many_attached :vehicle_photos
+  validates :vehicle_photos, safe_file: { profile: :media }, if: -> { vehicle_photos.attached? }
 
   # Constantes para origin_type
   ORIGIN_DIAGNOSTICO_DIAGNOSTICO = 'diagnostico_diagnostico'

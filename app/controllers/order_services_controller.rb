@@ -1483,9 +1483,9 @@ class OrderServicesController < ApplicationController
       message = build_authorize_order_services_message(authorized_ids.size, failures)
       result = authorized_ids.any?
     rescue StandardError => e
-      Rails.logger.error("[authorize_order_services] #{e.class}: #{e.message}")
+      Rails.logger.error("[authorize_order_services] #{e.class}: #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}")
       result = false
-      message = e.message.to_s
+      message = "Erro ao processar autorização. Tente novamente ou contate o suporte."
     end
 
     data = {
@@ -1528,8 +1528,9 @@ class OrderServicesController < ApplicationController
       end
       message = OrderService.human_attribute_name(:all_waiting_payment_with_success)
     rescue Exception => e
+      Rails.logger.error("[all_waiting_payment_order_services] #{e.class}: #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}")
       result = false
-      message = e.message
+      message = "Erro ao processar operação. Tente novamente ou contate o suporte."
     end
     data = {
       result: result,
@@ -1567,8 +1568,9 @@ class OrderServicesController < ApplicationController
       end
       message = OrderService.human_attribute_name(:all_make_payment_with_success)
     rescue Exception => e
+      Rails.logger.error("[make_payment_order_services] #{e.class}: #{e.message}\n#{e.backtrace&.first(5)&.join("\n")}")
       result = false
-      message = e.message
+      message = "Erro ao processar pagamento. Tente novamente ou contate o suporte."
     end
     data = {
       result: result,

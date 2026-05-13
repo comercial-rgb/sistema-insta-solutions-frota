@@ -10,6 +10,9 @@ class Fatura < ApplicationRecord
   has_one_attached :nota_fiscal_pecas_file
   has_one_attached :nota_fiscal_servicos_file
   has_one_attached :nota_fiscal_consolidada_file
+  validates :nota_fiscal_pecas_file,       safe_file: { profile: :invoice }, if: -> { nota_fiscal_pecas_file.attached? }
+  validates :nota_fiscal_servicos_file,    safe_file: { profile: :invoice }, if: -> { nota_fiscal_servicos_file.attached? }
+  validates :nota_fiscal_consolidada_file, safe_file: { profile: :invoice }, if: -> { nota_fiscal_consolidada_file.attached? }
 
   STATUSES = %w[aberta enviada paga cancelada].freeze
 

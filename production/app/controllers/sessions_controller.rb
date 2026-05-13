@@ -41,6 +41,7 @@ class SessionsController < ApplicationController
 			if user && user.authenticate(params[:password])
 				if !user.client?
 					session[:user_id] = user.id
+					audit_session_event(user, 'login')
 					flash[:success] = t('flash.login')
 					if !session[:current_pay_order].nil? && !session[:current_pay_order].blank?
 						redirect_pay_order
@@ -55,6 +56,7 @@ class SessionsController < ApplicationController
 					render "new"
 				end
 			else
+				audit_failed_login(params[:email])
 				flash[:error] = t('flash.login_error')
 				@user = User.new
 				render "new"
@@ -70,6 +72,7 @@ class SessionsController < ApplicationController
 			result = User.find_or_create_from_auth_hash(auth)
 			if result[0]
 		  		session[:user_id] = result[1].id
+		  		audit_session_event(result[1], 'login')
 		  		flash[:success] = t('flash.login')
 		  		redirect
 		  	else
@@ -118,6 +121,10 @@ class SessionsController < ApplicationController
 	end
 
 	def destroy
+		if session[:user_id].present?
+			logged_user = User.find_by(id: session[:user_id])
+			audit_session_event(logged_user, 'logout') if logged_user
+		end
 		session[:user_id] = nil
 		flash[:success] = t('flash.logout')
 		redirect_to root_path
@@ -168,6 +175,34 @@ class SessionsController < ApplicationController
 	end
 
 	private
+
+	def audit_session_event(user, action)
+		Audited::Audit.create!(
+			auditable_type: 'Session',
+			auditable_id:   user.id,
+			user:           user,
+			action:         action,
+			audited_changes: { 'email' => user.email },
+			remote_address: request.remote_ip,
+			request_uuid:   request.uuid
+		)
+	rescue => e
+		Rails.logger.error "[SessionAudit] #{e.class}: #{e.message}"
+	end
+
+	def audit_failed_login(email)
+		Audited::Audit.create!(
+			auditable_type: 'Session',
+			auditable_id:   0,
+			user:           nil,
+			action:         'login',
+			audited_changes: { 'email' => email.to_s.strip.downcase, 'result' => 'failed' },
+			remote_address: request.remote_ip,
+			request_uuid:   request.uuid
+		)
+	rescue => e
+		Rails.logger.error "[SessionAudit] #{e.class}: #{e.message}"
+	end
 
 	def user_params
 		params

@@ -1,0 +1,89 @@
+<% return unless fleet_summary.present? %>
+
+<div class="row g-3 mb-4">
+
+  <%# Card 1 — Total de Veículos %>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body text-center py-3">
+        <div class="mb-2 text-primary">
+          <i class="bi bi-truck" style="font-size: 1.8rem;"></i>
+        </div>
+        <h3 class="fw-bold mb-0"><%= fleet_summary[:total] %></h3>
+        <small class="text-muted">Total de Veículos</small>
+      </div>
+    </div>
+  </div>
+
+  <%# Card 2 — Idade Média da Frota %>
+  <div class="col-6 col-md-3">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body text-center py-3">
+        <div class="mb-2 text-info">
+          <i class="bi bi-calendar-check" style="font-size: 1.8rem;"></i>
+        </div>
+        <% if fleet_summary[:avg_age].present? %>
+          <h3 class="fw-bold mb-0"><%= fleet_summary[:avg_age].to_s.gsub('.', ',') %> <small class="fs-6 text-muted">anos</small></h3>
+        <% else %>
+          <h3 class="fw-bold mb-0 text-muted">—</h3>
+        <% end %>
+        <small class="text-muted">Idade Média da Frota</small>
+      </div>
+    </div>
+  </div>
+
+  <%# Card 3 — Custo Aprovado %>
+  <div class="col-6 col-md-2">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body text-center py-3">
+        <div class="mb-2 text-warning">
+          <i class="bi bi-clipboard2-check" style="font-size: 1.8rem;"></i>
+        </div>
+        <h5 class="fw-bold mb-0 text-warning">
+          <%= number_to_currency(fleet_summary[:cost_aprovada], unit: 'R$ ', separator: ',', delimiter: '.', precision: 2) %>
+        </h5>
+        <small class="text-muted">Aprovado</small>
+        <div>
+          <span class="badge bg-warning text-dark" style="font-size: 0.65rem;">Aguardando NF</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# Card 4 — Custo Faturado (NF inserida / Autorizado / Aguardando pagamento) %>
+  <div class="col-6 col-md-2">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body text-center py-3">
+        <div class="mb-2 text-secondary">
+          <i class="bi bi-receipt" style="font-size: 1.8rem;"></i>
+        </div>
+        <h5 class="fw-bold mb-0 text-secondary">
+          <%= number_to_currency(fleet_summary[:cost_faturada], unit: 'R$ ', separator: ',', delimiter: '.', precision: 2) %>
+        </h5>
+        <small class="text-muted">Faturado</small>
+        <div>
+          <span class="badge bg-secondary" style="font-size: 0.65rem;">NF / Autorizado / Ag. Pag.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <%# Card 5 — Custo Pago %>
+  <div class="col-6 col-md-2">
+    <div class="card border-0 shadow-sm h-100">
+      <div class="card-body text-center py-3">
+        <div class="mb-2 text-success">
+          <i class="bi bi-check-circle" style="font-size: 1.8rem;"></i>
+        </div>
+        <h5 class="fw-bold mb-0 text-success">
+          <%= number_to_currency(fleet_summary[:cost_paga], unit: 'R$ ', separator: ',', delimiter: '.', precision: 2) %>
+        </h5>
+        <small class="text-muted">Pago</small>
+        <div>
+          <span class="badge bg-success" style="font-size: 0.65rem;">Liquidado</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>

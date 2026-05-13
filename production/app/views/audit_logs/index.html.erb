@@ -1,0 +1,269 @@
+<%
+breadcrumbs = [
+  { active: false, href: root_path,    text: t('menu.initial_page') },
+  { active: true,  href: audit_logs_path, text: 'Log de Auditoria' }
+]
+%>
+
+<div class="container-fluid">
+  <%= render 'common_pages/breadcrumb', links: breadcrumbs %>
+
+  <%# Cabeçalho %>
+  <div class="row mb-3 align-items-center">
+    <div class="col">
+      <h4 class="mb-0">
+        <i class="bi bi-shield-check text-primary me-2"></i>Log de Auditoria
+      </h4>
+      <p class="text-muted mb-0 small">
+        Rastreamento completo de todas as ações relevantes realizadas pelos usuários no sistema.
+      </p>
+    </div>
+    <div class="col-auto d-flex gap-2">
+      <%= link_to audit_logs_export_path(request.query_parameters.merge(format: :csv)),
+            class: 'btn btn-outline-success btn-sm' do %>
+        <i class="bi bi-file-earmark-spreadsheet me-1"></i>Exportar CSV
+      <% end %>
+      <%= link_to audit_logs_export_path(request.query_parameters.merge(format: :pdf)),
+            class: 'btn btn-outline-danger btn-sm' do %>
+        <i class="bi bi-file-earmark-pdf me-1"></i>Exportar PDF
+      <% end %>
+    </div>
+  </div>
+
+  <%# Formulário de filtros %>
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-light fw-bold">
+      <i class="bi bi-funnel me-2"></i>Filtros
+    </div>
+    <div class="card-body">
+      <%= form_with url: audit_logs_path, method: :get, local: true do |f| %>
+        <div class="row g-3 align-items-end">
+
+          <div class="col-md-3">
+            <%= f.label :user_id, 'Usuário', class: 'form-label fw-semibold mb-1' %>
+            <%= f.select :user_id,
+                  options_for_select([['Todos os usuários', '']] + @users, params[:user_id]),
+                  {},
+                  class: 'form-select form-select-sm' %>
+          </div>
+
+          <div class="col-md-2">
+            <%= f.label :start_date, 'Data inicial', class: 'form-label fw-semibold mb-1' %>
+            <%= f.date_field :start_date, value: params[:start_date],
+                  class: 'form-control form-control-sm' %>
+          </div>
+
+          <div class="col-md-2">
+            <%= f.label :end_date, 'Data final', class: 'form-label fw-semibold mb-1' %>
+            <%= f.date_field :end_date, value: params[:end_date],
+                  class: 'form-control form-control-sm' %>
+          </div>
+
+          <div class="col-md-2">
+            <%= f.label :action_filter, 'Tipo de ação', class: 'form-label fw-semibold mb-1' %>
+            <%= f.select :action_filter,
+                  options_for_select(
+                    [['Todas as ações', '']] + @action_opts.map { |k, v| [v, k] },
+                    params[:action_filter]
+                  ),
+                  {},
+                  class: 'form-select form-select-sm' %>
+          </div>
+
+          <div class="col-md-2">
+            <%= f.label :auditable_type, 'Entidade', class: 'form-label fw-semibold mb-1' %>
+            <%= f.select :auditable_type,
+                  options_for_select(
+                    [['Todas as entidades', '']] + @entity_opts.map { |k, v| [v, k] },
+                    params[:auditable_type]
+                  ),
+                  {},
+                  class: 'form-select form-select-sm' %>
+          </div>
+
+          <div class="col-md-1 d-flex gap-2">
+            <%= f.submit 'Filtrar', class: 'btn btn-primary btn-sm w-100' %>
+          </div>
+
+          <% if [params[:user_id], params[:start_date], params[:end_date],
+                  params[:action_filter], params[:auditable_type]].any?(&:present?) %>
+            <div class="col-auto">
+              <%= link_to audit_logs_path, class: 'btn btn-outline-secondary btn-sm' do %>
+                <i class="bi bi-x-circle me-1"></i>Limpar
+              <% end %>
+            </div>
+          <% end %>
+
+        </div>
+      <% end %>
+    </div>
+  </div>
+
+  <%# Tabela de resultados %>
+  <div class="card shadow-sm">
+    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+      <span class="fw-bold"><i class="bi bi-table me-2"></i>Registros de Auditoria</span>
+      <span class="badge bg-secondary"><%= @audits.total_count %> registro(s)</span>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-hover table-sm align-middle mb-0">
+          <thead class="table-dark">
+            <tr>
+              <th style="width:130px">Data/Hora</th>
+              <th>Usuário</th>
+              <th style="width:80px">IP</th>
+              <th style="width:140px">Entidade</th>
+              <th style="width:60px" class="text-center">ID</th>
+              <th style="width:110px" class="text-center">Ação</th>
+              <th>Mudança registrada</th>
+              <th style="width:60px" class="text-center">Detalhes</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if @audits.empty? %>
+              <tr>
+                <td colspan="8" class="text-center text-muted py-4">
+                  <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                  Nenhum registro encontrado para os filtros aplicados.
+                </td>
+              </tr>
+            <% else %>
+              <% @audits.each do |audit| %>
+                <%
+                  action_badge = case audit.action
+                    when 'create'  then 'bg-success'
+                    when 'update'  then 'bg-primary'
+                    when 'destroy' then 'bg-danger'
+                    when 'login'   then 'bg-info text-dark'
+                    when 'logout'  then 'bg-secondary'
+                    else 'bg-light text-dark'
+                  end
+                  action_label = AuditLogsController::ACTION_LABELS[audit.action] || audit.action
+                  entity_label = AuditLogsController::ENTITY_LABELS[audit.auditable_type] || audit.auditable_type
+
+                  changes_text = if audit.audited_changes&.dig('order_service_status').present?
+                    ch = audit.audited_changes['order_service_status']
+                    "<span class='text-muted'>#{ERB::Util.h(ch[0].to_s)}</span> &rarr; <strong>#{ERB::Util.h(ch[1].to_s)}</strong>"
+                  elsif audit.audited_changes&.dig('order_service_proposal_status').present?
+                    ch = audit.audited_changes['order_service_proposal_status']
+                    "<span class='text-muted'>#{ERB::Util.h(ch[0].to_s)}</span> &rarr; <strong>#{ERB::Util.h(ch[1].to_s)}</strong>"
+                  elsif audit.action.in?(%w[login logout])
+                    "IP: <code>#{ERB::Util.h(audit.remote_address.presence || '—')}</code>"
+                  elsif audit.audited_changes.present?
+                    count = audit.audited_changes.keys.size
+                    "<span class='text-muted'>#{count} campo(s) alterado(s)</span>"
+                  else
+                    '—'
+                  end
+                %>
+                <tr>
+                  <td class="small text-nowrap">
+                    <%= audit.created_at.in_time_zone('Brasilia').strftime('%d/%m/%Y %H:%M:%S') %>
+                  </td>
+                  <td>
+                    <% if audit.user %>
+                      <div class="fw-semibold small"><%= audit.user.name %></div>
+                      <div class="text-muted" style="font-size:0.72rem"><%= audit.user.email %></div>
+                    <% else %>
+                      <span class="text-muted small">(sistema)</span>
+                    <% end %>
+                  </td>
+                  <td class="small text-muted text-nowrap">
+                    <%= audit.remote_address.presence || '—' %>
+                  </td>
+                  <td>
+                    <span class="badge bg-light text-dark border small"><%= entity_label %></span>
+                  </td>
+                  <td class="text-center small text-muted">
+                    <%= audit.auditable_id %>
+                  </td>
+                  <td class="text-center">
+                    <span class="badge <%= action_badge %>"><%= action_label %></span>
+                  </td>
+                  <td class="small"><%= changes_text.html_safe %></td>
+                  <td class="text-center">
+                    <% if audit.auditable_type == 'OrderService' && audit.auditable_id.present? %>
+                      <%= link_to show_historic_path(id: audit.auditable_id),
+                            target: '_blank',
+                            class: 'btn btn-xs btn-outline-secondary py-0 px-1',
+                            title: 'Ver histórico completo da OS' do %>
+                        <i class="bi bi-box-arrow-up-right"></i>
+                      <% end %>
+                    <% elsif audit.audited_changes.present? && !audit.action.in?(%w[login logout]) %>
+                      <button type="button"
+                              class="btn btn-xs btn-outline-secondary py-0 px-1"
+                              data-bs-toggle="modal"
+                              data-bs-target="#auditDetailModal"
+                              data-changes="<%= ERB::Util.html_escape(audit.audited_changes.to_json) %>"
+                              title="Ver campos alterados">
+                        <i class="bi bi-info-circle"></i>
+                      </button>
+                    <% end %>
+                  </td>
+                </tr>
+              <% end %>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <%# Paginação %>
+    <% if @audits.total_pages > 1 %>
+      <div class="card-footer bg-light d-flex justify-content-center py-2">
+        <%= paginate @audits %>
+      </div>
+    <% end %>
+  </div>
+</div>
+
+<%# Modal de detalhes de mudanças %>
+<div class="modal fade" id="auditDetailModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-list-check me-2"></i>Campos Alterados</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="table-responsive">
+          <table class="table table-sm" id="auditDetailTable">
+            <thead class="table-light">
+              <tr>
+                <th>Campo</th>
+                <th>Valor Anterior</th>
+                <th>Novo Valor</th>
+              </tr>
+            </thead>
+            <tbody id="auditDetailBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+  var modal = document.getElementById('auditDetailModal');
+  if (!modal) return;
+  modal.addEventListener('show.bs.modal', function (event) {
+    var btn     = event.relatedTarget;
+    var changes = JSON.parse(btn.dataset.changes || '{}');
+    var tbody   = document.getElementById('auditDetailBody');
+    tbody.innerHTML = '';
+    Object.keys(changes).forEach(function (field) {
+      var val = changes[field];
+      var old_val = Array.isArray(val) ? val[0] : '—';
+      var new_val = Array.isArray(val) ? val[1] : val;
+      var tr = document.createElement('tr');
+      tr.innerHTML =
+        '<td><code>' + field + '</code></td>' +
+        '<td class="text-muted">' + (old_val !== null ? old_val : '<em>nulo</em>') + '</td>' +
+        '<td><strong>' + (new_val !== null ? new_val : '<em>nulo</em>') + '</strong></td>';
+      tbody.appendChild(tr);
+    });
+  });
+});
+</script>

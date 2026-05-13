@@ -470,6 +470,61 @@ class OrderServiceProposalsController < ApplicationController
     end
   end
 
+  def previous_proposals_for_reuse
+    authorize OrderServiceProposal, :index?
+
+    os = OrderService.find_by(id: params[:order_service_id])
+    return render json: { proposals: [] } unless os&.vehicle_id
+
+    valid_statuses = [
+      OrderServiceProposalStatus::APROVADA_ID,
+      OrderServiceProposalStatus::NOTAS_INSERIDAS_ID,
+      OrderServiceProposalStatus::AUTORIZADA_ID,
+      OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+      OrderServiceProposalStatus::PAGA_ID
+    ]
+
+    proposals = OrderServiceProposal
+      .joins(:order_service)
+      .includes(:provider, :order_service_proposal_status, order_service_proposal_items: :service)
+      .where(order_services: { vehicle_id: os.vehicle_id })
+      .where.not(order_service_id: os.id)
+      .where(order_service_proposal_status_id: valid_statuses, is_complement: false)
+      .order(created_at: :desc)
+      .limit(10)
+
+    result = proposals.map do |p|
+      items = p.order_service_proposal_items.reject(&:is_complement).map do |item|
+        {
+          service_id: item.service_id,
+          service_name: item.service_name,
+          brand: item.brand.to_s,
+          unity_value: item.unity_value.to_f,
+          quantity: item.quantity.to_i,
+          warranty_period: item.warranty_period.to_i,
+          category_id: item.service&.category_id || Category::SERVICOS_PECAS_ID
+        }
+      end
+
+      {
+        id: p.id,
+        os_code: p.order_service&.code,
+        os_id: p.order_service_id,
+        provider_name: p.provider&.get_name,
+        total_value: ActionController::Base.helpers.number_to_currency(p.total_value.to_f, unit: 'R$ ', separator: ',', delimiter: '.'),
+        status: p.order_service_proposal_status&.name,
+        created_at: p.created_at.strftime('%d/%m/%Y'),
+        items: items,
+        items_count: items.count
+      }
+    end
+
+    render json: { proposals: result }, status: :ok
+  rescue => e
+    Rails.logger.error("[previous_proposals_for_reuse] #{e.class}: #{e.message}")
+    render json: { proposals: [] }, status: :ok
+  end
+
   def build_initial_relations
     # if @order_service_proposal.relations.select{ |item| item[:id].nil? }.length == 0
     #  @order_service_proposal.relations.build

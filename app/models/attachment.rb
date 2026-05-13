@@ -20,6 +20,7 @@ class Attachment < ActiveRecord::Base
 	belongs_to :ownertable, :polymorphic => true, optional: true
 
 	has_one_attached :attachment
+	validates :attachment, safe_file: { profile: :media }, if: -> { attachment.attached? }
 
 	# has_attached_file :attachment,
 	# :storage => :s3,
