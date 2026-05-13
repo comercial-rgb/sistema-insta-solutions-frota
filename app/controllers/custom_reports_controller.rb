@@ -56,9 +56,9 @@ class CustomReportsController < ApplicationController
       Vehicle.getting_data_by_user(@current_user)
     end
     @commitments = if @current_user.admin?
-      Commitment.active.order(:commitment_number)
+      Commitment.where(active: true).order(:commitment_number)
     elsif @current_user.manager? || @current_user.additional?
-      Commitment.active.where(client_id: @current_user.client_id).order(:commitment_number)
+      Commitment.where(active: true, client_id: @current_user.client_id).order(:commitment_number)
     else
       Commitment.none
     end
