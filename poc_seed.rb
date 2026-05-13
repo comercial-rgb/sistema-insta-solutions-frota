@@ -469,10 +469,43 @@ os5 = create_os(os_base.merge(
 puts "[PoC]   #{os5.code} — CANCELADA (#{v2.board})"
 
 # ---------------------------------------------------------------------------
-# 10. PROPOSTAS E ITENS (ProviderServiceTemp)
+# 10. PROPOSTAS E ITENS
+# ---------------------------------------------------------------------------
+# Propostas submetidas (ag. avaliação, aprovada, paga) → OrderServiceProposalItem (visível em "Ver Proposta")
+# ProviderServiceTemp também criado para que o formulário de edição funcione
 # ---------------------------------------------------------------------------
 
 puts "[PoC] Criando propostas..."
+
+def create_proposal_items(proposal_id, items)
+  items.each do |item|
+    OrderServiceProposalItem.create!(
+      order_service_proposal_id:    proposal_id,
+      service_id:                   item[:service_id],
+      service_name:                 item[:name],
+      service_description:          item[:description],
+      quantity:                     item[:quantity],
+      unity_value:                  item[:price],
+      discount:                     item[:discount],
+      total_value:                  item[:total_value],
+      total_value_without_discount: (item[:price].to_f * item[:quantity].to_i),
+      brand:                        item[:brand],
+      warranty_period:              item[:warranty_period]
+    )
+    ProviderServiceTemp.create!(
+      order_service_proposal_id: proposal_id,
+      name:                      item[:name],
+      code:                      item[:code],
+      price:                     item[:price],
+      quantity:                  item[:quantity],
+      discount:                  item[:discount],
+      total_value:               item[:total_value],
+      category_id:               item[:category_id],
+      brand:                     item[:brand],
+      warranty_period:           item[:warranty_period]
+    )
+  end
+end
 
 # OS2 — 2 cotações concorrentes (demonstração de avaliação comparativa)
 prop1 = OrderServiceProposal.create!(
@@ -481,11 +514,12 @@ prop1 = OrderServiceProposal.create!(
   order_service_proposal_status_id: PROP_STATUS_AG_AVALIACAO,
   details:                          'Revisão preventiva com peças originais. Garantia de 6 meses nas peças.'
 )
-ProviderServiceTemp.create!([
-  { order_service_proposal_id: prop1.id, name: 'Filtro de Óleo Original VW',       code: 'FO-VW-001',   price: 89.90,  quantity: 1, discount: 0, total_value: 89.90,  category_id: CAT_PECAS,    brand: 'Volkswagen', warranty_period: 180 },
-  { order_service_proposal_id: prop1.id, name: 'Óleo Motor 5W30 Sintético (4L)',   code: 'OM-5W30-4L',  price: 185.00, quantity: 1, discount: 0, total_value: 185.00, category_id: CAT_PECAS,    brand: 'Castrol',    warranty_period: 90 },
-  { order_service_proposal_id: prop1.id, name: 'Mão de obra — Troca de óleo',      code: 'MO-OLEO-001', price: 120.00, quantity: 1, discount: 0, total_value: 120.00, category_id: CAT_SERVICOS, warranty_period: 30 },
-])
+prop1_items = [
+  { name: 'Filtro de Óleo Original VW',     code: 'FO-VW-001',   price: 89.90,  quantity: 1, discount: 0, total_value: 89.90,  category_id: CAT_PECAS,    brand: 'Volkswagen', warranty_period: 180 },
+  { name: 'Óleo Motor 5W30 Sintético (4L)', code: 'OM-5W30-4L',  price: 185.00, quantity: 1, discount: 0, total_value: 185.00, category_id: CAT_PECAS,    brand: 'Castrol',    warranty_period: 90 },
+  { name: 'Mão de obra — Troca de óleo',    code: 'MO-OLEO-001', price: 120.00, quantity: 1, discount: 0, total_value: 120.00, category_id: CAT_SERVICOS, warranty_period: 30 },
+]
+create_proposal_items(prop1.id, prop1_items)
 puts "[PoC]   Proposta ##{prop1.id} — Fornecedor 1 para #{os2.code} (R$ 394,90)"
 
 prop2 = OrderServiceProposal.create!(
@@ -494,11 +528,12 @@ prop2 = OrderServiceProposal.create!(
   order_service_proposal_status_id: PROP_STATUS_AG_AVALIACAO,
   details:                          'Peças certificadas com garantia de 90 dias. Menor prazo de entrega.'
 )
-ProviderServiceTemp.create!([
-  { order_service_proposal_id: prop2.id, name: 'Filtro de Óleo Universal',          code: 'FO-UNI-015',  price: 65.00,  quantity: 1, discount: 0, total_value: 65.00,  category_id: CAT_PECAS,    brand: 'Mann Filter', warranty_period: 90 },
-  { order_service_proposal_id: prop2.id, name: 'Óleo Motor 5W30 Semi-Sintético (4L)', code: 'OM-SS-4L', price: 145.00, quantity: 1, discount: 0, total_value: 145.00, category_id: CAT_PECAS,    brand: 'Mobil',       warranty_period: 90 },
-  { order_service_proposal_id: prop2.id, name: 'Mão de obra — Revisão completa',    code: 'MO-REV-001',  price: 95.00,  quantity: 1, discount: 5, total_value: 90.25,  category_id: CAT_SERVICOS, warranty_period: 30 },
-])
+prop2_items = [
+  { name: 'Filtro de Óleo Universal',              code: 'FO-UNI-015', price: 65.00,  quantity: 1, discount: 0, total_value: 65.00,  category_id: CAT_PECAS,    brand: 'Mann Filter', warranty_period: 90 },
+  { name: 'Óleo Motor 5W30 Semi-Sintético (4L)',   code: 'OM-SS-4L',   price: 145.00, quantity: 1, discount: 0, total_value: 145.00, category_id: CAT_PECAS,    brand: 'Mobil',       warranty_period: 90 },
+  { name: 'Mão de obra — Revisão completa',        code: 'MO-REV-001', price: 95.00,  quantity: 1, discount: 5, total_value: 90.25,  category_id: CAT_SERVICOS, warranty_period: 30 },
+]
+create_proposal_items(prop2.id, prop2_items)
 puts "[PoC]   Proposta ##{prop2.id} — Fornecedor 2 para #{os2.code} (R$ 300,25)"
 
 # OS3 — Proposta aprovada
@@ -508,10 +543,11 @@ prop3 = OrderServiceProposal.create!(
   order_service_proposal_status_id: PROP_STATUS_APROVADA,
   details:                          'Reparo elétrico com diagnóstico completo. Garantia de 90 dias.'
 )
-ProviderServiceTemp.create!([
-  { order_service_proposal_id: prop3.id, name: 'Lâmpada Farol H7 par',                     code: 'LF-H7-PAR',   price: 78.00,  quantity: 1, discount: 0, total_value: 78.00,  category_id: CAT_PECAS,    brand: 'Osram', warranty_period: 180 },
-  { order_service_proposal_id: prop3.id, name: 'Mão de obra — Diagnóstico e reparo elétrico', code: 'MO-ELET-001', price: 220.00, quantity: 1, discount: 0, total_value: 220.00, category_id: CAT_SERVICOS, warranty_period: 30 },
-])
+prop3_items = [
+  { name: 'Lâmpada Farol H7 par',                        code: 'LF-H7-PAR',   price: 78.00,  quantity: 1, discount: 0, total_value: 78.00,  category_id: CAT_PECAS,    brand: 'Osram', warranty_period: 180 },
+  { name: 'Mão de obra — Diagnóstico e reparo elétrico',  code: 'MO-ELET-001', price: 220.00, quantity: 1, discount: 0, total_value: 220.00, category_id: CAT_SERVICOS, warranty_period: 30 },
+]
+create_proposal_items(prop3.id, prop3_items)
 puts "[PoC]   Proposta ##{prop3.id} — Fornecedor 1 para #{os3.code} (APROVADA, R$ 298,00)"
 
 # OS4 — Proposta paga (ciclo completo)
@@ -521,11 +557,12 @@ prop4 = OrderServiceProposal.create!(
   order_service_proposal_status_id: PROP_STATUS_PAGA,
   details:                          'Alinhamento, balanceamento e amortecedor concluídos com sucesso.'
 )
-ProviderServiceTemp.create!([
-  { order_service_proposal_id: prop4.id, name: 'Amortecedor Traseiro E — Hilux',         code: 'AT-HIL-E',    price: 380.00, quantity: 1, discount: 0,  total_value: 380.00, category_id: CAT_PECAS,    brand: 'Monroe', warranty_period: 365 },
-  { order_service_proposal_id: prop4.id, name: 'Mão de obra — Alinhamento e balanceamento', code: 'MO-ALINH', price: 150.00, quantity: 1, discount: 0,  total_value: 150.00, category_id: CAT_SERVICOS, warranty_period: 30 },
-  { order_service_proposal_id: prop4.id, name: 'Mão de obra — Substituição amortecedor',  code: 'MO-AMORT',  price: 200.00, quantity: 1, discount: 10, total_value: 180.00, category_id: CAT_SERVICOS, warranty_period: 30 },
-])
+prop4_items = [
+  { name: 'Amortecedor Traseiro E — Hilux',           code: 'AT-HIL-E',  price: 380.00, quantity: 1, discount: 0,  total_value: 380.00, category_id: CAT_PECAS,    brand: 'Monroe', warranty_period: 365 },
+  { name: 'Mão de obra — Alinhamento e balanceamento', code: 'MO-ALINH',  price: 150.00, quantity: 1, discount: 0,  total_value: 150.00, category_id: CAT_SERVICOS, warranty_period: 30 },
+  { name: 'Mão de obra — Substituição amortecedor',    code: 'MO-AMORT',  price: 200.00, quantity: 1, discount: 10, total_value: 180.00, category_id: CAT_SERVICOS, warranty_period: 30 },
+]
+create_proposal_items(prop4.id, prop4_items)
 puts "[PoC]   Proposta ##{prop4.id} — Fornecedor 2 para #{os4.code} (PAGA, R$ 710,00)"
 
 # ---------------------------------------------------------------------------
