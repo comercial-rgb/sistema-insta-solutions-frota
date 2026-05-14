@@ -469,6 +469,17 @@ os5 = create_os(os_base.merge(
 ))
 puts "[PoC]   #{os5.code} — CANCELADA (#{v2.board})"
 
+# OS Histórica — PAGA (POC-0001, Fornecedor 1) — usada pelo "Reaproveitar Orçamento Anterior"
+os_hist = create_os(os_base.merge(
+  vehicle_id:              v1.id,
+  order_service_status_id: OS_STATUS_PAGA,
+  km:                      44_100,
+  details:                 'Troca de pastilhas de freio dianteiras e traseiras — manutenção preventiva.',
+  invoiced:                true,
+  invoiced_at:             3.months.ago
+))
+puts "[PoC]   #{os_hist.code} — HISTÓRICA PAGA (#{v1.board}) — referência para Reaproveitar Orçamento"
+
 # ---------------------------------------------------------------------------
 # 10. PROPOSTAS E ITENS
 # ---------------------------------------------------------------------------
@@ -566,17 +577,34 @@ prop4_items = [
 create_proposal_items(prop4.id, prop4_items)
 puts "[PoC]   Proposta ##{prop4.id} — Fornecedor 2 para #{os4.code} (PAGA, R$ 710,00)"
 
+# OS Histórica — proposta PAGA do Fornecedor 1 para POC-0001 (referência para "Reaproveitar")
+prop_hist = OrderServiceProposal.create!(
+  order_service_id:                 os_hist.id,
+  provider_id:                      fornecedor1.id,
+  order_service_proposal_status_id: PROP_STATUS_PAGA,
+  details:                          'Substituição completa de pastilhas dianteiras e traseiras com peças originais.'
+)
+prop_hist_items = [
+  { name: 'Pastilha de Freio Dianteira — Gol G6 (par)', code: 'PF-GOL-D', price: 145.00, quantity: 1, discount: 0, total_value: 145.00, category_id: CAT_PECAS,    brand: 'Fras-le',  warranty_period: 365 },
+  { name: 'Pastilha de Freio Traseira — Gol G6 (par)',  code: 'PF-GOL-T', price: 98.00,  quantity: 1, discount: 0, total_value: 98.00,  category_id: CAT_PECAS,    brand: 'Fras-le',  warranty_period: 365 },
+  { name: 'Fluido de Freio DOT 4 (500ml)',               code: 'FF-DOT4',  price: 42.00,  quantity: 1, discount: 0, total_value: 42.00,  category_id: CAT_PECAS,    brand: 'Bosch',    warranty_period: 180 },
+  { name: 'Mão de obra — Troca de pastilhas (4 rodas)',  code: 'MO-PAST',  price: 180.00, quantity: 1, discount: 0, total_value: 180.00, category_id: CAT_SERVICOS, warranty_period: 30 },
+]
+create_proposal_items(prop_hist.id, prop_hist_items)
+puts "[PoC]   Proposta ##{prop_hist.id} — Fornecedor 1 para #{os_hist.code} (HISTÓRICA PAGA, R$ 465,00)"
+
 # ---------------------------------------------------------------------------
 # 11. WEBHOOK LOGS (integração Portal Financeiro — Bloco 02)
 # ---------------------------------------------------------------------------
 
 puts "[PoC] Criando WebhookLogs..."
 
-WebhookLog.create!(order_service_id: os3.id, status: WebhookLog::SUCCESS, last_http_code: '200', attempts: 1, last_attempt_at: 2.days.ago,   succeeded_at: 2.days.ago)
-WebhookLog.create!(order_service_id: os4.id, status: WebhookLog::SUCCESS, last_http_code: '200', attempts: 1, last_attempt_at: 1.month.ago,  succeeded_at: 1.month.ago)
-WebhookLog.create!(order_service_id: os1.id, status: WebhookLog::FAILED,  last_http_code: '503', attempts: 3, last_attempt_at: 1.hour.ago,   last_error: 'Connection timeout — Portal Financeiro indisponível')
-WebhookLog.create!(order_service_id: os2.id, status: WebhookLog::PENDING, attempts: 0)
-puts "[PoC]   4 WebhookLogs: 2 sucesso, 1 falha, 1 pendente"
+WebhookLog.create!(order_service_id: os3.id,    status: WebhookLog::SUCCESS, last_http_code: '200', attempts: 1, last_attempt_at: 2.days.ago,    succeeded_at: 2.days.ago)
+WebhookLog.create!(order_service_id: os4.id,    status: WebhookLog::SUCCESS, last_http_code: '200', attempts: 1, last_attempt_at: 1.month.ago,   succeeded_at: 1.month.ago)
+WebhookLog.create!(order_service_id: os_hist.id, status: WebhookLog::SUCCESS, last_http_code: '200', attempts: 1, last_attempt_at: 3.months.ago, succeeded_at: 3.months.ago)
+WebhookLog.create!(order_service_id: os1.id,    status: WebhookLog::FAILED,  last_http_code: '503', attempts: 3, last_attempt_at: 1.hour.ago,    last_error: 'Connection timeout — Portal Financeiro indisponível')
+WebhookLog.create!(order_service_id: os2.id,    status: WebhookLog::PENDING, attempts: 0)
+puts "[PoC]   5 WebhookLogs: 3 sucesso, 1 falha, 1 pendente"
 
 # ---------------------------------------------------------------------------
 # 12. AUDIT LOGS (gem audited — registros manuais para demo)
@@ -620,7 +648,7 @@ Audited::Audit.create!(
 )
 
 # Criação das OS
-[os1, os2, os3, os4, os5].each do |os|
+[os1, os2, os3, os4, os5, os_hist].each do |os|
   Audited::Audit.create!(
     auditable_type:  'OrderService',
     auditable_id:    os.id,
@@ -672,11 +700,12 @@ puts "  #{v3.board} — #{v3.brand} #{v3.model} #{v3.year}  (id=#{v3.id})"
 puts ""
 puts "ORDENS DE SERVIÇO"
 puts "-" * 70
-puts "  #{os1.code} — EM ABERTO            (#{v1.board})"
-puts "  #{os2.code} — AGUARDANDO AVALIAÇÃO  (#{v1.board}) — 2 propostas concorrentes"
-puts "  #{os3.code} — APROVADA              (#{v2.board}) — proposta aprovada + webhook OK"
-puts "  #{os4.code} — PAGA                  (#{v3.board}) — ciclo completo"
-puts "  #{os5.code} — CANCELADA             (#{v2.board})"
+puts "  #{os1.code}   — EM ABERTO            (#{v1.board}) — direcionada ao Fornecedor 1"
+puts "  #{os2.code}   — AGUARDANDO AVALIAÇÃO (#{v1.board}) — 2 propostas concorrentes"
+puts "  #{os3.code}   — APROVADA             (#{v2.board}) — proposta aprovada + webhook OK"
+puts "  #{os4.code}   — PAGA                 (#{v3.board}) — ciclo completo"
+puts "  #{os5.code}   — CANCELADA            (#{v2.board})"
+puts "  #{os_hist.code} — HISTÓRICA PAGA     (#{v1.board}) — referência para Reaproveitar Orçamento"
 puts ""
 puts "API KEYS (API V2)"
 puts "-" * 70
