@@ -375,19 +375,34 @@ class OrderService < ApplicationRecord
       if order_service_status_id == OrderServiceStatus::EM_ABERTO_ID
         rejected_ids = current_user.rejected_order_services.pluck(:id)
         statuses_to_filter = [OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID]
-        return OrderService.unscoped
-        .where.not(id: rejected_ids)
-        .by_state_id(provider_state_id)
-        .by_provider_service_types_id(provider_service_types_ids)
-        .by_provider_id_or_null(current_user.id)
-        .by_order_service_statuses_id(statuses_to_filter)
-        .excluded_by_active_proposal_by_provider(current_user.id)
-        .where(
-          "order_services.directed_to_specific_providers = FALSE OR order_services.directed_to_specific_providers IS NULL OR EXISTS (SELECT 1 FROM order_service_directed_providers osdp WHERE osdp.order_service_id = order_services.id AND osdp.provider_id = ?)",
-          current_user.id
-        )
-        .distinct
-        .count(:id)
+        cancelled_statuses = [OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID, OrderServiceProposalStatus::CANCELADA_ID]
+
+        # Ramo 1 (sempre): OS direcionadas a este fornecedor
+        directed_count = OrderService.unscoped
+          .where(order_service_status_id: statuses_to_filter)
+          .where.not(id: rejected_ids)
+          .where(
+            "EXISTS (SELECT 1 FROM order_service_directed_providers osdp WHERE osdp.order_service_id = order_services.id AND osdp.provider_id = ?)",
+            current_user.id
+          )
+          .excluded_by_active_proposal_by_provider(current_user.id)
+          .distinct.count(:id)
+
+        # Ramo 2 (requer estado + tipo): OS abertas por estado
+        state_count = 0
+        if provider_state_id != -1 && provider_service_types_ids.present?
+          state_count = OrderService.unscoped
+            .where.not(id: rejected_ids)
+            .by_state_id(provider_state_id)
+            .by_provider_service_types_id(provider_service_types_ids)
+            .by_provider_id_or_null(current_user.id)
+            .by_order_service_statuses_id(statuses_to_filter)
+            .excluded_by_active_proposal_by_provider(current_user.id)
+            .where("order_services.directed_to_specific_providers = FALSE OR order_services.directed_to_specific_providers IS NULL")
+            .distinct.count(:id)
+        end
+
+        return directed_count + state_count
       # Em reavaliação e Cancelada - fornecedor vê apenas OSs onde ele tem proposta
       elsif order_service_status_id == OrderServiceStatus::EM_REAVALIACAO_ID ||
             order_service_status_id == OrderServiceStatus::CANCELADA_ID
@@ -398,11 +413,10 @@ class OrderService < ApplicationRecord
         .count(:id)
       else
         return OrderService.unscoped
-        .by_state_id(provider_state_id)
-        .by_provider_service_types_id(provider_service_types_ids)
-        .by_provider_id_or_null(current_user.id)
         .by_order_service_status_id(order_service_status_id)
-        .count
+        .with_user_relation(current_user.id)
+        .distinct
+        .count(:id)
       end
     end
   end
