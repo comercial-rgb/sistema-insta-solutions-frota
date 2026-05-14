@@ -5,11 +5,11 @@ class VehiclePolicy < ApplicationPolicy
   end
 
   def index?
-    user.admin? || user.client? || user.manager? || user.additional?
+    user.admin? || user.client? || user.manager? || user.additional? || user.provider?
   end
 
   def show?
-    user.admin? || user.client? || user.manager? || user.additional?
+    user.admin? || user.client? || user.manager? || user.additional? || user.provider?
   end
 
   def create?

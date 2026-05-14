@@ -999,47 +999,24 @@ class OrderServicesController < ApplicationController
           .with_user_relation(@current_user.id)
         }
       else
-        if method == 'index'
-          @order_services.scope {
-            |scope| scope
-            .by_order_service_status_id(order_service_status_id)
-            .with_user_relation(@current_user.id)
-            .page(params[:page])
-          }
-          @order_services_to_export.scope {
-            |scope| scope
-            .by_order_service_status_id(order_service_status_id)
-            .with_user_relation(@current_user.id)
-          }
-          @order_services_without_filter.scope {
-            |scope| scope
-            .by_order_service_status_id(order_service_status_id)
-            .with_user_relation(@current_user.id)
-          }
-        else
-          @order_services.scope {
-            |scope| scope
-            .by_order_service_status_id(order_service_status_id)
-            .by_state_id(provider_state_id)
-            .by_provider_service_types_id(provider_service_types_ids)
-            .visible_by_provider(@current_user.id)
-            .page(params[:page])
-          }
-          @order_services_to_export.scope {
-            |scope| scope
-            .by_order_service_status_id(order_service_status_id)
-            .by_state_id(provider_state_id)
-            .by_provider_service_types_id(provider_service_types_ids)
-            .visible_by_provider(@current_user.id)
-          }
-          @order_services_without_filter.scope {
-            |scope| scope
-            .by_order_service_status_id(order_service_status_id)
-            .by_state_id(provider_state_id)
-            .by_provider_service_types_id(provider_service_types_ids)
-            .visible_by_provider(@current_user.id)
-          }
-        end
+        # Para qualquer outro status (AGUARDANDO, APROVADA, PAGA, etc.),
+        # o fornecedor vê apenas OS onde ele tem proposta ou rejeitou.
+        @order_services.scope {
+          |scope| scope
+          .by_order_service_status_id(order_service_status_id)
+          .with_user_relation(@current_user.id)
+          .page(params[:page])
+        }
+        @order_services_to_export.scope {
+          |scope| scope
+          .by_order_service_status_id(order_service_status_id)
+          .with_user_relation(@current_user.id)
+        }
+        @order_services_without_filter.scope {
+          |scope| scope
+          .by_order_service_status_id(order_service_status_id)
+          .with_user_relation(@current_user.id)
+        }
       end
     end
 
