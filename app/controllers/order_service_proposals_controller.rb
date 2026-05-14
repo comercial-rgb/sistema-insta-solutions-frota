@@ -512,7 +512,7 @@ class OrderServiceProposalsController < ApplicationController
           unity_value: item.unity_value.to_f,
           quantity: item.quantity.to_i,
           warranty_period: item.warranty_period.to_i,
-          category_id: item.service&.category_id || Category::SERVICOS_PECAS_ID
+          category_id: item.get_category_id || Category::SERVICOS_PECAS_ID
         }
       end
 

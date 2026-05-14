@@ -524,6 +524,8 @@ prop1 = OrderServiceProposal.create!(
   order_service_id:                 os2.id,
   provider_id:                      fornecedor1.id,
   order_service_proposal_status_id: PROP_STATUS_AG_AVALIACAO,
+  total_value:                      394.90,
+  total_value_without_discount:     394.90,
   details:                          'Revisão preventiva com peças originais. Garantia de 6 meses nas peças.'
 )
 prop1_items = [
@@ -538,6 +540,8 @@ prop2 = OrderServiceProposal.create!(
   order_service_id:                 os2.id,
   provider_id:                      fornecedor2.id,
   order_service_proposal_status_id: PROP_STATUS_AG_AVALIACAO,
+  total_value:                      300.25,
+  total_value_without_discount:     305.00,
   details:                          'Peças certificadas com garantia de 90 dias. Menor prazo de entrega.'
 )
 prop2_items = [
@@ -553,6 +557,8 @@ prop3 = OrderServiceProposal.create!(
   order_service_id:                 os3.id,
   provider_id:                      fornecedor1.id,
   order_service_proposal_status_id: PROP_STATUS_APROVADA,
+  total_value:                      298.00,
+  total_value_without_discount:     298.00,
   details:                          'Reparo elétrico com diagnóstico completo. Garantia de 90 dias.'
 )
 prop3_items = [
@@ -567,6 +573,8 @@ prop4 = OrderServiceProposal.create!(
   order_service_id:                 os4.id,
   provider_id:                      fornecedor2.id,
   order_service_proposal_status_id: PROP_STATUS_PAGA,
+  total_value:                      710.00,
+  total_value_without_discount:     730.00,
   details:                          'Alinhamento, balanceamento e amortecedor concluídos com sucesso.'
 )
 prop4_items = [
@@ -582,6 +590,8 @@ prop_hist = OrderServiceProposal.create!(
   order_service_id:                 os_hist.id,
   provider_id:                      fornecedor1.id,
   order_service_proposal_status_id: PROP_STATUS_PAGA,
+  total_value:                      465.00,
+  total_value_without_discount:     465.00,
   details:                          'Substituição completa de pastilhas dianteiras e traseiras com peças originais.'
 )
 prop_hist_items = [
