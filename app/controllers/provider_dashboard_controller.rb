@@ -41,53 +41,65 @@ class ProviderDashboardController < ApplicationController
     # - Cotação/Requisição (provider_id IS NULL)
     # - Diagnóstico enviado para cotação (provider_id foi limpo, mas fornecedor original já tem proposta)
     
+    scope = OrderService
+      .where(order_service_status_id: [OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID])
+    scope = scope.where.not(id: rejected_ids) if rejected_ids.any?
+
+    # Condição de visibilidade:
+    # Ramo 1 (sempre ativo): OS direcionada especificamente a este fornecedor
+    # Ramo 2 (requer estado + tipo de serviço): OS abertas para cotação no estado do fornecedor
+    directed_sql = "EXISTS (
+      SELECT 1 FROM order_service_directed_providers osdp
+      WHERE osdp.order_service_id = order_services.id
+      AND osdp.provider_id = ?
+    )"
+
     if provider_address_state_id.present? && provider_service_types_ids.present?
-      scope = OrderService
-        .where(order_service_status_id: [OrderServiceStatus::EM_ABERTO_ID, OrderServiceStatus::AGUARDANDO_AVALIACAO_PROPOSTA_ID])
-      scope = scope.where.not(id: rejected_ids) if rejected_ids.any?
-      @os_em_aberto = scope
-        .where(
-          "(
-            order_services.provider_id = ? OR order_services.provider_id IS NULL
-          )
+      visibility_sql = "(
+        #{directed_sql}
+        OR (
+          (order_services.directed_to_specific_providers = FALSE OR order_services.directed_to_specific_providers IS NULL)
+          AND (order_services.provider_id = ? OR order_services.provider_id IS NULL)
           AND order_services.provider_service_type_id IN (?)
           AND EXISTS (
-            SELECT 1 FROM states_users su 
+            SELECT 1 FROM states_users su
             INNER JOIN users u ON u.id = su.user_id
-            WHERE su.state_id = ? 
+            WHERE su.state_id = ?
             AND u.id = order_services.client_id
           )
-          AND NOT EXISTS (
-            SELECT 1 FROM order_service_proposals osp 
-            WHERE osp.order_service_id = order_services.id 
-            AND osp.provider_id = ? 
-            AND osp.order_service_proposal_status_id NOT IN (?)
-          )
-          AND (
-            order_services.directed_to_specific_providers = FALSE
-            OR order_services.directed_to_specific_providers IS NULL
-            OR EXISTS (
-              SELECT 1 FROM order_service_directed_providers osdp
-              WHERE osdp.order_service_id = order_services.id
-              AND osdp.provider_id = ?
-            )
-          )",
-          @provider.id,
-          provider_service_types_ids,
-          provider_address_state_id,
-          @provider.id,
-          [
-            OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID,
-            OrderServiceProposalStatus::CANCELADA_ID
-          ],
-          @provider.id
         )
-        .includes(:cost_center, :client)
-        .order(created_at: :desc)
-        .limit(10)
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM order_service_proposals osp
+        WHERE osp.order_service_id = order_services.id
+        AND osp.provider_id = ?
+        AND osp.order_service_proposal_status_id NOT IN (?)
+      )"
+      visibility_params = [
+        @provider.id,
+        @provider.id, provider_service_types_ids, provider_address_state_id,
+        @provider.id, [OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID, OrderServiceProposalStatus::CANCELADA_ID]
+      ]
     else
-      @os_em_aberto = OrderService.none
+      # Sem estado/tipo configurado: mostra apenas OS direcionadas a este fornecedor
+      visibility_sql = "#{directed_sql}
+      AND NOT EXISTS (
+        SELECT 1 FROM order_service_proposals osp
+        WHERE osp.order_service_id = order_services.id
+        AND osp.provider_id = ?
+        AND osp.order_service_proposal_status_id NOT IN (?)
+      )"
+      visibility_params = [
+        @provider.id,
+        @provider.id, [OrderServiceProposalStatus::PROPOSTA_REPROVADA_ID, OrderServiceProposalStatus::CANCELADA_ID]
+      ]
     end
+
+    @os_em_aberto = scope
+      .where(visibility_sql, *visibility_params)
+      .includes(:cost_center, :client)
+      .order(created_at: :desc)
+      .limit(10)
     
     @os_em_aberto_count = @os_em_aberto.except(:limit, :offset, :order, :includes).count
     
