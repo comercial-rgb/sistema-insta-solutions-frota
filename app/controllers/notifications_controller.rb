@@ -163,7 +163,8 @@ class NotificationsController < ApplicationController
     end
 
     begin
-      unless notification.read_by?(@current_user)
+      already_read = ReadMark.where(reader: @current_user, readable: notification).exists?
+      unless already_read
         notification.mark_as_read! for: @current_user
         read_mark = notification.read_marks.find_by(reader_id: @current_user.id)
         read_mark&.update_columns(timestamp: DateTime.now)
