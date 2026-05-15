@@ -89,7 +89,7 @@
             <span class="text-dark"><%= CustomHelper.get_text_date(record.created_at, 'datetime', :full) %></span>
           </div>
           
-          <% if record.client&.needs_km && record.km.present? %>
+          <% if record.km.present? %>
             <div class="col-12 col-md-6">
               <strong><%= OrderService.human_attribute_name(:km) %>:</strong>
               <span class="text-dark"><%= number_with_delimiter(record.km) %> km</span>
