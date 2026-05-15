@@ -182,6 +182,35 @@ class OrderServicesController < ApplicationController
       # Para admin/manager/additional, mostra todas as propostas
       @order_service_proposals = proposals_base.reorder(total_value: :asc)
     end
+
+    # Histórico de preços do veículo — 3 últimas propostas aprovadas/pagas
+    # para o mesmo veículo + mesmo tipo de serviço. Visível apenas para cliente.
+    if !@current_user.provider? && @order_service.vehicle_id.present?
+      valid_history_statuses = [
+        OrderServiceProposalStatus::APROVADA_ID,
+        OrderServiceProposalStatus::NOTAS_INSERIDAS_ID,
+        OrderServiceProposalStatus::AUTORIZADA_ID,
+        OrderServiceProposalStatus::AGUARDANDO_PAGAMENTO_ID,
+        OrderServiceProposalStatus::PAGA_ID
+      ]
+
+      history_scope = OrderServiceProposal
+        .joins(:order_service)
+        .includes(:provider, :order_service_proposal_status,
+                  order_service_proposal_items: :service)
+        .where(order_services: { vehicle_id: @order_service.vehicle_id })
+        .where.not(order_service_id: @order_service.id)
+        .where(order_service_proposal_status_id: valid_history_statuses)
+        .where(is_complement: [false, nil])
+
+      history_scope = history_scope.where(
+        order_services: { order_service_type_id: @order_service.order_service_type_id }
+      ) if @order_service.order_service_type_id.present?
+
+      @price_history_proposals = history_scope.order(created_at: :desc).limit(3)
+    else
+      @price_history_proposals = []
+    end
   end
 
   def print_no_values
