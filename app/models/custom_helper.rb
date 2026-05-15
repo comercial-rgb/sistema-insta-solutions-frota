@@ -309,6 +309,7 @@ class CustomHelper < ApplicationRecord
 
 	# Mascarar o CPF
 	def self.mask_cpf(cpf)
+		return '' if cpf.nil? || cpf.blank?
 		if cpf.match?(/^\d{11}$/)
 			cpf.gsub(/(\d{3})(\d{3})(\d{3})(\d{2})/, '\1.***.***-\4')
 		else

@@ -175,7 +175,8 @@ admin = create_poc_user(
   email:          'poc.admin@frotademo.gov.br',
   plain_password: 'PoC@2025!',
   user_status_id: user_status_ativo.id,
-  phone:          '51900000001'
+  phone:          '51900000001',
+  cpf:            '111.222.333-00'
 )
 puts "[PoC]   Admin: #{admin.email} (id=#{admin.id})"
 
@@ -203,7 +204,8 @@ gestor = create_poc_user(
   user_status_id: user_status_ativo.id,
   client_id:      contratante.id,
   phone:          '51900000003',
-  registration:   'SIAPE-12345'
+  registration:   'SIAPE-12345',
+  cpf:            '123.456.789-00'
 )
 puts "[PoC]   Gestor: #{gestor.email} (id=#{gestor.id})"
 
@@ -215,7 +217,8 @@ adicional = create_poc_user(
   user_status_id: user_status_ativo.id,
   client_id:      contratante.id,
   phone:          '51900000004',
-  registration:   'SIAPE-67890'
+  registration:   'SIAPE-67890',
+  cpf:            '987.654.321-00'
 )
 puts "[PoC]   Adicional: #{adicional.email} (id=#{adicional.id})"
 
