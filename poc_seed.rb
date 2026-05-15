@@ -112,6 +112,12 @@ if poc_user_ids.any?
 
   Commitment.where(id: poc_commit_ids).delete_all      if poc_commit_ids.any?
   MaintenancePlan.where(id: poc_mplan_ids).delete_all  if poc_mplan_ids.any?
+  poc_contract_ids = Contract.where(client_id: poc_user_ids).pluck(:id)
+  if poc_contract_ids.any?
+    ActiveRecord::Base.connection.execute("DELETE FROM contracts_cost_centers WHERE contract_id IN (#{poc_contract_ids.join(',')})")
+    Contract.where(id: poc_contract_ids).delete_all
+  end
+  ActiveRecord::Base.connection.execute("DELETE FROM cost_centers_users WHERE cost_center_id IN (#{poc_cc_ids.join(',')})") if poc_cc_ids.any?
   CostCenter.where(id: poc_cc_ids).delete_all          if poc_cc_ids.any?
 
   ApiKey.where(user_id: poc_user_ids).delete_all
@@ -295,6 +301,26 @@ commitment = Commitment.new(
 commitment.save(validate: false)
 abort "[ERRO] Commitment não salvo" if commitment.new_record?
 puts "[PoC]   Commitment##{commitment.id}: R$ 300.000,00"
+
+# Contrato (necessário para o gráfico "Saldo do contrato" no dashboard)
+contract = Contract.create!(
+  client_id:    contratante.id,
+  name:         'Contrato 001/2025 — Manutenção da Frota UFRGS Demo',
+  number:       '001/2025-DEMO',
+  total_value:  500_000.00,
+  initial_date: '01/01/2025',
+  final_date:   '31/12/2026',
+  active:       true
+)
+ActiveRecord::Base.connection.execute(
+  "INSERT INTO contracts_cost_centers (contract_id, cost_center_id) VALUES (#{contract.id}, #{cost_center.id})"
+)
+puts "[PoC]   Contract##{contract.id}: R$ 500.000,00 — vinculado ao CC"
+
+# Vincular gestor e adicional ao centro de custo (necessário para dashboard mostrar dados)
+gestor.associated_cost_centers << cost_center rescue nil
+adicional.associated_cost_centers << cost_center rescue nil
+puts "[PoC]   Gestor e Adicional vinculados ao CostCenter##{cost_center.id}"
 
 # Plano de manutenção — usa o do sistema se já existir, cria poc se não
 maintenance_plan_id_to_use = MAINT_PLAN_ID || begin
