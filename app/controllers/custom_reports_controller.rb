@@ -1,5 +1,6 @@
 class CustomReportsController < ApplicationController
   require 'prawn/table' if defined?(Prawn)
+  include ActionView::Helpers::NumberHelper
   
   before_action :authorize_access
 
