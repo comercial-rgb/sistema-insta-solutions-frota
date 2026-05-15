@@ -115,6 +115,20 @@ if poc_user_ids.any?
   CostCenter.where(id: poc_cc_ids).delete_all          if poc_cc_ids.any?
 
   ApiKey.where(user_id: poc_user_ids).delete_all
+
+  # Limpar notificações PoC e marcações de leitura/reconhecimento
+  poc_notif_ids = Notification.where("title LIKE ?", '%[PoC]%').pluck(:id)
+  if poc_notif_ids.any?
+    NotificationAcknowledgment.where(notification_id: poc_notif_ids).delete_all
+    ActiveRecord::Base.connection.execute("DELETE FROM notifications_users WHERE notification_id IN (#{poc_notif_ids.join(',')})")
+    ActiveRecord::Base.connection.execute("DELETE FROM read_marks WHERE readable_type = 'Notification' AND readable_id IN (#{poc_notif_ids.join(',')})")
+    Notification.where(id: poc_notif_ids).delete_all
+  end
+  # Limpar read_marks globais de notificações para usuários PoC (mark_all_as_read)
+  ActiveRecord::Base.connection.execute(
+    "DELETE FROM read_marks WHERE reader_type = 'User' AND reader_id IN (#{poc_user_ids.join(',')}) AND readable_type = 'Notification'"
+  ) if poc_user_ids.any?
+
   # Desativa FK temporariamente para deletar users com auto-referência (client_id)
   ActiveRecord::Base.connection.execute("SET FOREIGN_KEY_CHECKS = 0")
   User.where(id: poc_user_ids).delete_all
@@ -685,7 +699,74 @@ total_audits = 6 + 1 + 1 + 5 + 1
 puts "[PoC]   #{total_audits} registros de auditoria criados"
 
 # ---------------------------------------------------------------------------
-# 13. RELATÓRIO FINAL
+# 13. NOTIFICAÇÕES (painel de notificações — sino e popup)
+# ---------------------------------------------------------------------------
+
+puts "[PoC] Criando notificações..."
+
+gestor_profile_id    = Profile::MANAGER_ID
+fornecedor_profile_id = Profile::PROVIDER_ID
+
+# 1. Global — todos os perfis — Sino + Popup — Importante
+notif1 = Notification.create!(
+  title:       '[PoC] Atualização do sistema — versão 3.12.0 disponível',
+  message:     'O sistema foi atualizado com melhorias de desempenho e novas funcionalidades: histórico de preços por veículo, relatórios aprimorados e correções de segurança. Acesse o painel para verificar as novidades.',
+  profile_id:  nil,
+  send_all:    true,
+  display_type: Notification::DISPLAY_BOTH,
+  is_important: true,
+  created_at:  2.days.ago
+)
+
+# 2. Gestor — Sino — Importante: proposta recebida aguardando avaliação
+notif2 = Notification.create!(
+  title:       '[PoC] Nova proposta recebida — ação necessária',
+  message:     "A OS #{os2.code} (#{v1.board}) recebeu 2 propostas concorrentes e está aguardando sua avaliação. Acesse o painel para comparar os valores e aprovar a proposta mais vantajosa.",
+  profile_id:  gestor_profile_id,
+  send_all:    true,
+  display_type: Notification::DISPLAY_BELL,
+  is_important: true,
+  created_at:  1.day.ago
+)
+
+# 3. Fornecedor — Popup: nova OS disponível na região
+notif3 = Notification.create!(
+  title:       '[PoC] Nova OS disponível para cotação',
+  message:     "Uma nova Ordem de Serviço (#{os1.code}) foi aberta para o veículo #{v1.board} e está disponível para sua empresa realizar uma proposta. Acesse o sistema para visualizar os detalhes.",
+  profile_id:  fornecedor_profile_id,
+  send_all:    true,
+  display_type: Notification::DISPLAY_POPUP,
+  is_important: false,
+  created_at:  3.hours.ago
+)
+
+# 4. Global — todos — Sino: manutenção programada
+notif4 = Notification.create!(
+  title:       '[PoC] Manutenção programada do sistema — 18/05/2026 às 02h',
+  message:     'Informamos que o sistema passará por manutenção preventiva no dia 18/05/2026 das 02h00 às 04h00. Durante este período, o acesso poderá ficar intermitente. Salve seus trabalhos antes do horário indicado.',
+  profile_id:  nil,
+  send_all:    true,
+  display_type: Notification::DISPLAY_BELL,
+  is_important: false,
+  created_at:  5.hours.ago
+)
+
+# 5. Gestor — Sino: anomalia crítica detectada no checklist
+notif5 = Notification.create!(
+  title:       '[PoC] Anomalia crítica detectada — POC-0001',
+  message:     "O checklist do veículo #{v1.board} (POC-0001) registrou anomalia CRÍTICA no item Pastilha de Freio Dianteira. O problema foi reconhecido pelo gestor e a OS #{os1.code} foi aberta para tratamento. Acompanhe o andamento.",
+  profile_id:  gestor_profile_id,
+  send_all:    true,
+  display_type: Notification::DISPLAY_BELL,
+  is_important: false,
+  created_at:  4.days.ago
+)
+
+puts "[PoC]   5 notificações criadas (2 globais, 2 gestor, 1 fornecedor)"
+puts "[PoC]   Tipos: 1 popup+sino, 2 sino, 1 popup, 1 sino | 2 importantes"
+
+# ---------------------------------------------------------------------------
+# 15. RELATÓRIO FINAL
 # ---------------------------------------------------------------------------
 
 puts ""
@@ -729,6 +810,7 @@ puts "  OS:            #{OrderService.where(client_id: contratante.id).count}"
 puts "  Checklists:    #{VehicleChecklist.where(client_id: contratante.id).count} (1 com anomalia crítica)"
 puts "  KM Records:    #{VehicleKmRecord.where(vehicle_id: [v1.id, v2.id, v3.id]).count}"
 puts "  WebhookLogs:   #{WebhookLog.count} (#{WebhookLog.success.count} OK / #{WebhookLog.failed.count} falha / #{WebhookLog.pending.count} pendente)"
+puts "  Notificações:  #{Notification.where('title LIKE ?', '%[PoC]%').count} criadas (#{Notification.where('title LIKE ? AND is_important = 1', '%[PoC]%').count} importantes)"
 puts ""
 puts "ROTEIRO RÁPIDO DA DEMONSTRAÇÃO"
 puts "-" * 70
